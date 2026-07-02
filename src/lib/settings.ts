@@ -1,0 +1,262 @@
+import { Prisma, UserRole, UserStatus } from "@prisma/client";
+import { createAuditLog } from "@/lib/audit";
+import { notifyAdmins } from "@/lib/notifications";
+import { prisma } from "@/lib/prisma";
+
+const CURRENT_YEAR = new Date().getFullYear();
+
+export const PRICING_SETTING_KEYS = {
+  vatRate: "vat_rate",
+  expressSurcharge: "express_surcharge",
+  photoProofSurcharge: "photo_proof_surcharge",
+  warehouseSurcharge: "warehouse_surcharge",
+} as const;
+
+export async function getCompanySettings() {
+  const existing = await prisma.companySettings.findFirst({ orderBy: { createdAt: "asc" } });
+  if (existing) return existing;
+  return prisma.companySettings.create({
+    data: {
+      companyName: "Flyero",
+      legalName: "Flyero GmbH i.G.",
+      street: "Musterstrasse 1",
+      postalCode: "56068",
+      city: "Koblenz",
+      country: "DE",
+      phone: "+49 261 000000",
+      email: "hello@flyero.de",
+      website: "https://flyero.de",
+      taxNumber: "22/123/45678",
+      vatId: "DE000000000",
+      bankName: "Demo Bank",
+      iban: "DE89370400440532013000",
+      bic: "DEMODEFFXXX",
+    },
+  });
+}
+
+export async function updateCompanySettings(data: Prisma.CompanySettingsUpdateInput, userId?: string | null) {
+  const current = await getCompanySettings();
+  const updated = await prisma.companySettings.update({ where: { id: current.id }, data });
+  await createAuditLog({
+    userId,
+    action: "settings.company_updated",
+    entityType: "CompanySettings",
+    entityId: updated.id,
+    oldValues: current,
+    newValues: updated,
+  });
+  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geaendert", message: "Firmeneinstellungen wurden aktualisiert." });
+  return updated;
+}
+
+export async function getBrandingSettings() {
+  const existing = await prisma.brandingSettings.findFirst({ orderBy: { createdAt: "asc" } });
+  if (existing) return existing;
+  return prisma.brandingSettings.create({
+    data: {
+      primaryColor: "#102033",
+      secondaryColor: "#176b36",
+      accentColor: "#e0b84d",
+      logoUrl: "",
+      reportFooterText: "Flyero / digitaler Verteilnachweis",
+      invoiceFooterText: "Flyero GmbH i.G. / Musterstrasse 1 / 56068 Koblenz",
+    },
+  });
+}
+
+export async function updateBrandingSettings(data: Prisma.BrandingSettingsUpdateInput, userId?: string | null) {
+  const current = await getBrandingSettings();
+  const updated = await prisma.brandingSettings.update({ where: { id: current.id }, data });
+  await createAuditLog({
+    userId,
+    action: "settings.branding_updated",
+    entityType: "BrandingSettings",
+    entityId: updated.id,
+    oldValues: current,
+    newValues: updated,
+  });
+  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geaendert", message: "Branding wurde aktualisiert." });
+  return updated;
+}
+
+export async function getNumberingSettings() {
+  const existing = await prisma.numberingSettings.findFirst({ orderBy: { createdAt: "asc" } });
+  if (existing) return existing;
+  return prisma.numberingSettings.create({
+    data: {
+      invoiceYear: CURRENT_YEAR,
+      reportYear: CURRENT_YEAR,
+      orderYear: CURRENT_YEAR,
+    },
+  });
+}
+
+export async function updateNumberingSettings(data: Prisma.NumberingSettingsUpdateInput, userId?: string | null) {
+  const current = await getNumberingSettings();
+  const updated = await prisma.numberingSettings.update({ where: { id: current.id }, data });
+  await createAuditLog({
+    userId,
+    action: "settings.numbering_updated",
+    entityType: "NumberingSettings",
+    entityId: updated.id,
+    oldValues: current,
+    newValues: updated,
+  });
+  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geaendert", message: "Nummernkreise wurden aktualisiert." });
+  return updated;
+}
+
+export async function getSystemSettings() {
+  const existing = await prisma.systemSettings.findFirst({ orderBy: { createdAt: "asc" } });
+  if (existing) return existing;
+  return prisma.systemSettings.create({
+    data: {
+      defaultVatRate: new Prisma.Decimal("0.19"),
+      defaultCurrency: "EUR",
+      paymentDueDays: 14,
+      allowManualInvoiceCreation: true,
+      requirePaymentBeforeReview: true,
+      requireAdminReviewAfterPayment: true,
+    },
+  });
+}
+
+export async function getPricingSettings() {
+  await ensureDefaultPricingSettings();
+  const [settings, rules] = await Promise.all([
+    prisma.pricingSetting.findMany({ orderBy: { key: "asc" } }),
+    prisma.pricingRule.findMany({ orderBy: [{ serviceType: "asc" }, { minQuantity: "asc" }] }),
+  ]);
+  return { settings, rules };
+}
+
+export async function ensureDefaultPricingSettings() {
+  const system = await getSystemSettings();
+  const defaults = [
+    [PRICING_SETTING_KEYS.vatRate, system.defaultVatRate, "Mehrwertsteuersatz fuer Auftragspreise."],
+    [PRICING_SETTING_KEYS.expressSurcharge, new Prisma.Decimal("49.00"), "Optionaler Expresszuschlag netto."],
+    [PRICING_SETTING_KEYS.photoProofSurcharge, new Prisma.Decimal("19.00"), "Optionaler Foto-Nachweis-Zuschlag netto."],
+    [PRICING_SETTING_KEYS.warehouseSurcharge, new Prisma.Decimal("0.00"), "Optionaler Lagerzuschlag netto."],
+  ] as const;
+
+  for (const [key, valueDecimal, description] of defaults) {
+    await prisma.pricingSetting.upsert({
+      where: { key },
+      update: {},
+      create: { key, valueDecimal, description },
+    });
+  }
+}
+
+export async function getPaymentConfigStatus() {
+  const secretKey = process.env.STRIPE_SECRET_KEY ?? "";
+  return {
+    stripeConfigured: Boolean(secretKey && !secretKey.includes("_mock") && secretKey !== "sk_test_mock"),
+    publishableKeyPresent: Boolean(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY),
+    secretKeyPresent: Boolean(secretKey),
+    webhookSecretPresent: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
+    testMode: !secretKey || secretKey.includes("_test") || secretKey.includes("_mock") || secretKey === "sk_test_mock",
+  };
+}
+
+export async function getGoogleMapsConfigStatus() {
+  const browserKeyPresent = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
+  const serverKeyPresent = Boolean(process.env.GOOGLE_MAPS_SERVER_KEY);
+  return {
+    browserKeyPresent,
+    serverKeyPresent,
+    mapsFallbackActive: !browserKeyPresent,
+    staticMapsAvailable: serverKeyPresent,
+  };
+}
+
+export async function getDefaultWarehouse() {
+  return prisma.warehouse.findFirst({
+    where: { isActive: true },
+    orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+  });
+}
+
+export type NumberingKind = "invoice" | "report" | "order";
+
+function padNumber(value: number) {
+  return String(value).padStart(6, "0");
+}
+
+export async function generateSettingsNumber(kind: NumberingKind) {
+  const now = new Date();
+  const year = now.getFullYear();
+  const settings = await getNumberingSettings();
+
+  return prisma.$transaction(async (tx) => {
+    const current = await tx.numberingSettings.findUnique({ where: { id: settings.id } });
+    if (!current) throw new Error("Nummernkreis wurde nicht gefunden.");
+
+    const config = {
+      invoice: {
+        yearField: "invoiceYear",
+        nextField: "invoiceNextNumber",
+        prefixField: "invoicePrefix",
+      },
+      report: {
+        yearField: "reportYear",
+        nextField: "reportNextNumber",
+        prefixField: "reportPrefix",
+      },
+      order: {
+        yearField: "orderYear",
+        nextField: "orderNextNumber",
+        prefixField: "orderPrefix",
+      },
+    }[kind] as {
+      yearField: keyof typeof current;
+      nextField: keyof typeof current;
+      prefixField: keyof typeof current;
+    };
+
+    const storedYear = Number(current[config.yearField]);
+    const nextNumber = storedYear === year ? Number(current[config.nextField]) : 1;
+    const prefix = String(current[config.prefixField]);
+    await tx.numberingSettings.update({
+      where: { id: current.id },
+      data: {
+        [config.yearField]: year,
+        [config.nextField]: nextNumber + 1,
+      },
+    });
+    return `${prefix}-${year}-${padNumber(nextNumber)}`;
+  });
+}
+
+export async function listInternalUsers() {
+  return prisma.user.findMany({
+    where: {
+      role: { in: [UserRole.ADMIN, UserRole.WAREHOUSE_STAFF, UserRole.SUPPORT_DISPATCHER] },
+    },
+    orderBy: [{ role: "asc" }, { email: "asc" }],
+    select: { id: true, email: true, role: true, status: true, createdAt: true, updatedAt: true },
+  });
+}
+
+export async function setInternalUserStatus(input: { userId: string; status: UserStatus; adminUserId: string }) {
+  const current = await prisma.user.findUnique({ where: { id: input.userId } });
+  if (!current) throw new Error("Benutzer wurde nicht gefunden.");
+  const internalRoles: UserRole[] = [UserRole.ADMIN, UserRole.WAREHOUSE_STAFF, UserRole.SUPPORT_DISPATCHER];
+  if (!internalRoles.includes(current.role)) {
+    throw new Error("Nur interne Benutzer koennen hier geaendert werden.");
+  }
+  const updated = await prisma.user.update({ where: { id: input.userId }, data: { status: input.status } });
+  await createAuditLog({
+    userId: input.adminUserId,
+    action: "settings.user_status_changed",
+    entityType: "User",
+    entityId: updated.id,
+    oldValues: { status: current.status },
+    newValues: { status: updated.status },
+  });
+  if (updated.status === UserStatus.DISABLED) {
+    await notifyAdmins({ type: "INTERNAL_USER_DISABLED", title: "Interner Benutzer deaktiviert", message: `${updated.email} wurde deaktiviert.` });
+  }
+  return updated;
+}

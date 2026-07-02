@@ -1,0 +1,23 @@
+import { NextRequest, NextResponse } from "next/server";
+import { clearSessionCookie, getSession } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit";
+
+export async function POST(request: NextRequest) {
+  const session = await getSession();
+  await clearSessionCookie();
+
+  if (session) {
+    await createAuditLog({
+      userId: session.id,
+      action: "auth.logout",
+      entityType: "User",
+      entityId: session.id,
+    });
+  }
+
+  if (request.headers.get("accept")?.includes("text/html")) {
+    return NextResponse.redirect(new URL("/login", request.url), { status: 303 });
+  }
+
+  return Response.json({ ok: true });
+}

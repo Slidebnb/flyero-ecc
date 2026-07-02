@@ -1,0 +1,387 @@
+import { z } from "zod";
+import {
+  DISTRIBUTOR_AREAS,
+  ADMIN_ORDER_STATUS_OPTIONS,
+  SERVICE_RADII,
+  WEEKDAYS,
+  WORKING_TIMES,
+} from "@/lib/constants";
+
+const passwordSchema = z
+  .string()
+  .min(10, "Das Passwort muss mindestens 10 Zeichen lang sein.");
+
+export const loginSchema = z.object({
+  email: z.string().email().transform((value) => value.toLowerCase()),
+  password: z.string().min(1, "Passwort ist erforderlich."),
+});
+
+export const addressSchema = z.object({
+  street: z.string().min(1),
+  houseNumber: z.string().optional(),
+  postalCode: z.string().min(3),
+  city: z.string().min(1),
+  federalState: z.string().optional(),
+  country: z.string().default("DE"),
+});
+
+const checkboxArray = z
+  .union([z.string(), z.array(z.string())])
+  .transform((value) => (Array.isArray(value) ? value : [value]));
+
+const optionalText = z
+  .string()
+  .optional()
+  .transform((value) => {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : undefined;
+  });
+
+const optionalPositiveNumber = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.coerce.number().positive().optional(),
+);
+
+const optionalNonNegativeInt = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.coerce.number().int().nonnegative().optional(),
+);
+
+const optionalBoolean = z.preprocess(
+  (value) => (value === undefined || value === null || value === "" ? undefined : value === "on" || value === "true" || value === true),
+  z.boolean().optional(),
+);
+
+const optionalJson = z
+  .string()
+  .optional()
+  .transform((value) => {
+    const trimmed = value?.trim();
+    if (!trimmed) return undefined;
+    try {
+      return JSON.parse(trimmed) as unknown;
+    } catch {
+      return undefined;
+    }
+  });
+
+export const customerRegisterSchema = z.object({
+  companyName: z.string().min(2),
+  contactName: z.string().min(2),
+  email: z.string().email().transform((value) => value.toLowerCase()),
+  phone: z.string().min(6),
+  billingStreet: z.string().min(1),
+  billingHouseNumber: optionalText,
+  billingPostalCode: z.string().min(3),
+  billingCity: z.string().min(1),
+  deliveryStreet: optionalText,
+  deliveryHouseNumber: optionalText,
+  deliveryPostalCode: optionalText,
+  deliveryCity: optionalText,
+  vatId: optionalText,
+  logoUrl: optionalText,
+  password: passwordSchema,
+});
+
+export const customerProfileUpdateSchema = z.object({
+  companyName: z.string().min(2),
+  contactName: z.string().min(2),
+  phone: z.string().min(6),
+  billingStreet: z.string().min(1),
+  billingHouseNumber: optionalText,
+  billingPostalCode: z.string().min(3),
+  billingCity: z.string().min(1),
+  deliveryStreet: optionalText,
+  deliveryHouseNumber: optionalText,
+  deliveryPostalCode: optionalText,
+  deliveryCity: optionalText,
+  vatId: optionalText,
+  logoUrl: optionalText,
+  currentPassword: optionalText,
+  newPassword: optionalText,
+});
+
+export const distributorRegisterSchema = z.object({
+  firstName: z.string().min(2),
+  lastName: z.string().min(2),
+  birthDate: z.coerce.date(),
+  email: z.string().email().transform((value) => value.toLowerCase()),
+  phone: z.string().min(6),
+  street: z.string().min(1),
+  houseNumber: z.string().min(1),
+  postalCode: z.string().min(3),
+  city: z.string().min(1),
+  federalState: z.string().min(2),
+  mobilityTypes: checkboxArray.pipe(z.array(z.enum(["WALK", "BIKE", "CAR"])).min(1)),
+  preferredAreas: checkboxArray.pipe(
+    z.array(z.enum(DISTRIBUTOR_AREAS)).min(1),
+  ),
+  availabilityDays: checkboxArray.pipe(z.array(z.enum(WEEKDAYS)).min(1)),
+  workingTimes: checkboxArray.pipe(z.array(z.enum(WORKING_TIMES)).min(1)),
+  serviceRadiusKm: z.coerce.number().refine(
+    (value) => SERVICE_RADII.includes(value as (typeof SERVICE_RADII)[number]),
+    "Ungueltiger Einsatzradius.",
+  ),
+  taxNumber: optionalText,
+  bankAccountOwner: optionalText,
+  iban: optionalText,
+  acceptsTerms: z.coerce.boolean().refine(Boolean),
+  password: passwordSchema,
+});
+
+export const distributorProfileUpdateSchema = distributorRegisterSchema
+  .omit({ email: true, password: true, acceptsTerms: true })
+  .extend({
+    taxNumber: optionalText,
+    bankAccountOwner: optionalText,
+    iban: optionalText,
+  });
+
+export const adminDistributorUpdateSchema = z.object({
+  reviewStatus: z.enum(["APPROVED", "REJECTED", "PAUSED", "BANNED"]),
+  adminNotes: optionalText,
+});
+
+export const orderCreateSchema = z
+  .object({
+    serviceType: z.enum([
+      "FLYER_DISTRIBUTION",
+      "DOOR_HANGER",
+      "BROCHURE",
+      "MAGAZINE",
+    ]),
+    city: z.string().min(2),
+    postalCode: z.string().min(3),
+    street: optionalText,
+    houseNumber: optionalText,
+    targetAreaName: z.string().min(2),
+    areaType: z.enum(["POSTAL_CODE", "CITY", "DISTRICT", "POLYGON", "RADIUS"]).optional(),
+    distributionAreaId: optionalText,
+    targetAreaGeoJson: optionalJson,
+    estimatedHouseholds: z.coerce.number().int().positive().optional(),
+    estimatedFlyers: optionalNonNegativeInt,
+    estimatedDistanceMeters: optionalNonNegativeInt,
+    coverageAreaSqm: optionalPositiveNumber,
+    centerLat: z.coerce.number().optional(),
+    centerLng: z.coerce.number().optional(),
+    radiusMeters: optionalNonNegativeInt,
+    flyerQuantity: z.coerce.number().int().positive(),
+    flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]),
+    preferredStartDate: z.coerce.date(),
+    preferredEndDate: z.coerce.date(),
+    flexibleScheduling: z.coerce.boolean().optional().default(false),
+    notes: optionalText,
+    contactPerson: optionalText,
+    contactPhone: optionalText,
+  })
+  .refine((data) => data.preferredEndDate >= data.preferredStartDate, {
+    message: "Bis-spaetestens-Datum muss nach dem Wunschtermin liegen.",
+    path: ["preferredEndDate"],
+  });
+
+export const orderUpdateSchema = orderCreateSchema.extend({
+  status: z.enum(["DRAFT", "PAYMENT_PENDING"]).optional(),
+});
+
+export const adminOrderStatusSchema = z.object({
+  status: z.enum(ADMIN_ORDER_STATUS_OPTIONS),
+  note: optionalText,
+  adminCustomerMessage: optionalText,
+});
+
+export const adminOrderPriceSchema = z.object({
+  manualPriceOverride: z.coerce.number().positive(),
+  note: optionalText,
+});
+
+export const adminOrderNoteSchema = z.object({
+  adminInternalNotes: optionalText,
+  adminCustomerMessage: optionalText,
+});
+
+export const warehouseCheckinSchema = z.object({
+  orderId: z.string().min(1),
+  warehouseId: z.string().min(1),
+  warehouseLocationId: z.string().min(1),
+  cartonCount: z.coerce.number().int().positive(),
+  receivedFlyers: z.coerce.number().int().nonnegative(),
+  damagedFlyers: z.coerce.number().int().nonnegative().default(0),
+  weightOptional: optionalPositiveNumber,
+  notes: optionalText,
+});
+
+export const warehouseLocationAssignSchema = z.object({
+  inventoryId: z.string().min(1),
+  warehouseLocationId: z.string().min(1),
+});
+
+export const warehouseStatusSchema = z.object({
+  inventoryId: z.string().min(1),
+  status: z.enum(["FLYERS_EXPECTED", "FLYERS_RECEIVED", "STORED", "READY_FOR_PICKUP", "PICKED_UP", "RETURNED"]),
+  remainingFlyers: optionalNonNegativeInt,
+  remainingStockStatus: z.enum(["NOT_RELEVANT", "ALLE_VERTEILT", "RESTBESTAND", "ENTSORGT", "RUECKVERSAND"]).optional(),
+  notes: optionalText,
+});
+
+export const warehouseQrSchema = z.object({
+  inventoryId: z.string().min(1),
+});
+
+export const warehouseLocationCreateSchema = z.object({
+  warehouseId: z.string().min(1),
+  aisle: z.string().min(1),
+  shelf: z.string().min(1),
+  compartment: z.string().min(1),
+});
+
+export const logisticsWarehouseUpdateSchema = z.object({
+  name: optionalText,
+  code: optionalText,
+  city: optionalText,
+  postalCode: optionalText,
+  country: optionalText,
+  region: optionalText,
+  latitude: optionalPositiveNumber.or(z.coerce.number().optional()),
+  longitude: optionalPositiveNumber.or(z.coerce.number().optional()),
+  openingHours: optionalText,
+  contactPerson: optionalText,
+  contactPhone: optionalText,
+  contactEmail: optionalText,
+  capacityLimit: optionalNonNegativeInt,
+  currentUtilization: optionalNonNegativeInt,
+  notes: optionalText,
+  isActive: optionalBoolean,
+  isDefault: optionalBoolean,
+});
+
+export const logisticsShipmentCreateSchema = z.object({
+  orderId: z.string().min(1),
+  printOrderId: optionalText,
+  warehouseId: z.string().min(1),
+  shipmentType: z.enum(["CUSTOMER_TO_WAREHOUSE", "PRINTER_TO_WAREHOUSE", "WAREHOUSE_TO_WAREHOUSE", "WAREHOUSE_TO_DISTRIBUTOR", "RETURN_TO_CUSTOMER", "DISPOSAL"]),
+  status: z.enum(["CREATED", "IN_TRANSIT", "DELIVERED", "RECEIVED", "DAMAGED", "LOST", "CANCELLED"]).optional(),
+  carrier: optionalText,
+  trackingNumber: optionalText,
+  senderName: optionalText,
+  senderAddress: optionalJson,
+  recipientName: optionalText,
+  recipientAddress: optionalJson,
+  expectedDeliveryDate: z.coerce.date().optional(),
+  notes: optionalText,
+});
+
+export const logisticsShipmentUpdateSchema = z.object({
+  status: z.enum(["CREATED", "IN_TRANSIT", "DELIVERED", "RECEIVED", "DAMAGED", "LOST", "CANCELLED"]).optional(),
+  carrier: optionalText,
+  trackingNumber: optionalText,
+  expectedDeliveryDate: z.coerce.date().optional(),
+  notes: optionalText,
+});
+
+export const warehouseTransferCreateSchema = z.object({
+  fromWarehouseId: z.string().min(1),
+  toWarehouseId: z.string().min(1),
+  inventoryId: z.string().min(1),
+  quantity: z.coerce.number().int().positive(),
+  notes: optionalText,
+});
+
+export const warehouseTransferUpdateSchema = z.object({
+  status: z.enum(["REQUESTED", "APPROVED", "IN_TRANSIT", "RECEIVED", "CANCELLED"]),
+  notes: optionalText,
+});
+
+export const warehouseStockCountCreateSchema = z.object({
+  warehouseId: z.string().min(1),
+  inventoryId: z.string().min(1),
+  expectedQuantity: z.coerce.number().int().nonnegative(),
+  countedQuantity: z.coerce.number().int().nonnegative(),
+  notes: optionalText,
+});
+
+const optionalGpsNumber = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.coerce.number().optional(),
+);
+
+export const adminTourAssignSchema = z.object({
+  inventoryId: z.string().min(1),
+  distributorId: z.string().min(1),
+});
+
+export const adminDispatchAssignSchema = z.object({
+  distributorId: z.string().min(1),
+});
+
+export const distributorDispatchRejectSchema = z.object({
+  reason: z.enum(["KEINE_ZEIT", "KRANK", "ZU_WEIT", "SONSTIGES"]),
+  note: optionalText,
+});
+
+export const areaSchema = z.object({
+  name: z.string().min(2),
+  type: z.enum(["POSTAL_CODE", "CITY", "DISTRICT", "POLYGON", "RADIUS"]),
+  city: optionalText,
+  postalCode: optionalText,
+  district: optionalText,
+  centerLat: z.coerce.number().optional(),
+  centerLng: z.coerce.number().optional(),
+  radiusMeters: optionalNonNegativeInt,
+  geoJson: optionalJson,
+  estimatedHouseholds: optionalNonNegativeInt,
+  estimatedFlyers: optionalNonNegativeInt,
+  estimatedDistanceMeters: optionalNonNegativeInt,
+  coverageAreaSqm: optionalPositiveNumber,
+  reusable: optionalBoolean,
+});
+
+export const areaAssignSchema = z.object({
+  areaId: z.string().min(1),
+});
+
+export const tourPickupSchema = z.object({
+  qrCode: z.string().min(1),
+});
+
+export const tourGpsPointSchema = z.object({
+  lat: z.coerce.number(),
+  lng: z.coerce.number(),
+  accuracy: optionalGpsNumber,
+  speed: optionalGpsNumber,
+  heading: optionalGpsNumber,
+  altitude: optionalGpsNumber,
+  battery: z.coerce.number().int().min(0).max(100).optional(),
+  recordedAt: z.coerce.date().optional(),
+  source: z.string().optional(),
+  status: z.string().optional(),
+});
+
+export const tourGpsUploadSchema = z.object({
+  points: z.array(tourGpsPointSchema).min(1),
+});
+
+export const tourPhotoSchema = z.object({
+  imageDataUrl: z.string().min(1).optional(),
+  url: z.string().min(1).optional(),
+  lat: optionalGpsNumber,
+  lng: optionalGpsNumber,
+  accuracy: optionalGpsNumber,
+  takenAt: z.coerce.date().optional(),
+}).refine((data) => data.imageDataUrl || data.url, {
+  message: "Foto oder URL ist erforderlich.",
+});
+
+export const tourCompleteSchema = z.object({
+  remainingFlyers: z.coerce.number().int().nonnegative(),
+  notes: optionalText,
+});
+
+export const adminTourReviewSchema = z.object({
+  note: optionalText,
+  customerMessage: optionalText,
+});
+
+export const adminTourNoteSchema = z.object({
+  adminInternalNote: optionalText,
+  adminCustomerMessage: optionalText,
+});

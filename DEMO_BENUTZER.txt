@@ -1,0 +1,127 @@
+Flyero ECC - Demo-Benutzer
+==========================
+
+Alle Demo-Accounts aus dem Seed verwenden dasselbe Passwort:
+
+Passwort: DemoPasswort123!
+
+
+Admin
+-----
+E-Mail: admin@example.com
+Rolle: ADMIN
+Bereiche: Admin-Dashboard, Auftraege, Payments, Rechnungen, Lager, Dispatch, Touren, Reports, Verteilerpruefung.
+Start: /admin/dashboard
+
+
+Lager
+-----
+E-Mail: warehouse@example.com
+Rolle: WAREHOUSE_STAFF
+Bereiche: Lager-Dashboard, Wareneingang, Lagerbestand, Lagerplaetze.
+Start: /warehouse/dashboard
+
+E-Mail: warehouse.inaktiv@example.com
+Rolle: WAREHOUSE_STAFF
+Status: DISABLED
+Bereiche: Demo fuer deaktivierte interne Benutzer.
+
+
+Support / Dispatch
+------------------
+E-Mail: support@example.com
+Rolle: SUPPORT_DISPATCHER
+Bereiche: Admin-nahe Pruef-, Report- und Dispatch-Workflows.
+Start: /admin/dispatch
+Hinweis: Support/Dispatch darf in den Admin-Bereich hinein, konkrete Admin-APIs und Seiten bleiben zusaetzlich rollenbeschraenkt.
+
+
+Kunden
+------
+E-Mail: kunde.immobilien@example.com
+Rolle: CUSTOMER
+Firma: Rhein-Mosel Immobilien GmbH
+Bereiche: Kundenportal, Auftragserstellung, Zahlungen, Rechnungen, Berichte.
+Start: /customer/dashboard
+
+E-Mail: kunde.autohaus@example.com
+Rolle: CUSTOMER
+Firma: Autohaus Mittelrhein KG
+Bereiche: Kundenportal, Auftragserstellung, Zahlungen, Rechnungen, Berichte.
+
+E-Mail: kunde.pflege@example.com
+Rolle: CUSTOMER
+Firma: PflegePlus Lahnstein
+Bereiche: Kundenportal, Auftragserstellung, Zahlungen, Rechnungen, Berichte.
+
+
+Verteiler
+---------
+E-Mail: verteiler.pending1@example.com
+Rolle: DISTRIBUTOR
+Status: PENDING_REVIEW
+Hinweis: Noch nicht freigegeben.
+Start: /distributor/dashboard
+
+E-Mail: verteiler.pending2@example.com
+Rolle: DISTRIBUTOR
+Status: PENDING_REVIEW
+Hinweis: Noch nicht freigegeben.
+
+E-Mail: verteiler.approved1@example.com
+Rolle: DISTRIBUTOR
+Status: APPROVED
+Hinweis: Freigegeben fuer Touren und Dispatch.
+Start: /distributor/dashboard
+
+E-Mail: verteiler.approved2@example.com
+Rolle: DISTRIBUTOR
+Status: APPROVED
+Hinweis: Freigegeben fuer Touren und Dispatch.
+
+E-Mail: verteiler.approved3@example.com
+Rolle: DISTRIBUTOR
+Status: APPROVED
+Hinweis: Freigegeben fuer Touren und Dispatch.
+
+E-Mail: verteiler.approved4@example.com
+Rolle: DISTRIBUTOR
+Status: APPROVED
+Hinweis: Freigegeben fuer Touren und Dispatch.
+
+E-Mail: verteiler.approved5@example.com
+Rolle: DISTRIBUTOR
+Status: APPROVED
+Hinweis: Freigegeben fuer Touren und Dispatch.
+
+E-Mail: verteiler.approved6@example.com
+Rolle: DISTRIBUTOR
+Status: APPROVED
+Hinweis: Freigegeben fuer Touren und Dispatch.
+
+E-Mail: verteiler.rejected@example.com
+Rolle: DISTRIBUTOR
+Status: REJECTED
+Hinweis: Abgelehnter Verteiler zum Testen der Statusansicht.
+
+E-Mail: verteiler.paused@example.com
+Rolle: DISTRIBUTOR
+Status: PAUSED
+Hinweis: Pausierter Verteiler zum Testen der Statusansicht.
+
+
+Lokale URL
+----------
+http://localhost:3000/login
+
+
+Beta-Hauptflow
+--------------
+Der technische Beta-Smoke laeuft mit:
+
+npm run test:beta
+
+Er prueft Registrierung, E-Mail-Verifizierung, Auftrag, lokalen Stripe-Testcheckout,
+Admin-Genehmigung, Rechnung, Lager-Check-in, QR-Code, Dispatch, Verteiler-Tour,
+GPS/Fotos, Tourfreigabe, Bericht, PDF-Downloads, Rollenweiterleitungen und wichtige
+Sicherheitsgrenzen.

@@ -1,0 +1,1964 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  DISTRIBUTOR
+  WAREHOUSE_STAFF
+  ADMIN
+  SUPPORT_DISPATCHER
+}
+
+enum UserStatus {
+  ACTIVE
+  EMAIL_UNVERIFIED
+  DISABLED
+  BANNED
+}
+
+enum DistributorReviewStatus {
+  REGISTERED
+  EMAIL_VERIFIED
+  PROFILE_INCOMPLETE
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  PAUSED
+  BANNED
+}
+
+enum MobilityType {
+  WALK
+  BIKE
+  CAR
+}
+
+enum DistributorDocumentStatus {
+  NOT_SUBMITTED
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum ServiceType {
+  FLYER_DISTRIBUTION
+  DOOR_HANGER
+  BROCHURE
+  MAGAZINE
+}
+
+enum DistributionAreaType {
+  POSTAL_CODE
+  CITY
+  DISTRICT
+  POLYGON
+  RADIUS
+}
+
+enum DistributionAreaStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+enum HouseholdEstimateMethod {
+  MANUAL
+  SEED
+  IMPORT
+  AUTOMATIC
+}
+
+enum OrderStatus {
+  DRAFT
+  PAYMENT_PENDING
+  PAYMENT_FAILED
+  SUBMITTED
+  UNDER_REVIEW
+  PAID_WAITING_FOR_ADMIN_REVIEW
+  WAITING_FOR_CUSTOMER
+  APPROVED
+  REJECTED
+  CANCELLED
+  READY_FOR_FLYERS
+  FLYERS_EXPECTED
+  FLYERS_RECEIVED
+  STORED
+  READY_FOR_PICKUP
+  READY_FOR_DISTRIBUTION
+  DISTRIBUTION_APPROVED
+  REPORT_READY_PREVIEW
+}
+
+enum WarehouseItemStatus {
+  EXPECTED
+  RECEIVED
+  STORED
+  PICKUP_READY
+  PICKED_UP
+  PARTIALLY_RETURNED
+  RETURNED
+  DISPOSED
+}
+
+enum WarehouseInventoryStatus {
+  FLYERS_EXPECTED
+  FLYERS_RECEIVED
+  STORED
+  READY_FOR_PICKUP
+  PICKED_UP
+  RETURNED
+}
+
+enum RemainingStockStatus {
+  NOT_RELEVANT
+  ALLE_VERTEILT
+  RESTBESTAND
+  ENTSORGT
+  RUECKVERSAND
+}
+
+enum PickupStatus {
+  NOT_PREPARED
+  PREPARED
+  RESERVED
+  PICKED_UP
+  CANCELLED
+}
+
+enum DispatchAssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  REJECTED
+  CANCELLED
+  REASSIGNED
+}
+
+enum DispatchRejectionReason {
+  KEINE_ZEIT
+  KRANK
+  ZU_WEIT
+  SONSTIGES
+}
+
+enum AutoDispatchRecommendationStatus {
+  SUGGESTED
+  SELECTED
+  DISMISSED
+  EXPIRED
+}
+
+enum TourStatus {
+  ASSIGNED
+  READY
+  PICKED_UP
+  PICKUP_CONFIRMED
+  STARTED
+  PAUSED
+  RESUMED
+  COMPLETED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_CLARIFICATION
+  CANCELLED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_REVIEW
+}
+
+enum ReportStatus {
+  DRAFT
+  GENERATED
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+  RELEASED_TO_CUSTOMER
+  REGENERATING
+}
+
+enum ReportType {
+  DISTRIBUTION_PROOF
+}
+
+enum ReportTemplate {
+  STANDARD
+  IMMOBILIEN
+  RESTAURANT
+  FRANCHISE
+  CUSTOM_BRANDING
+}
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PAID
+  OVERDUE
+  CANCELLED
+  CREDITED
+}
+
+enum CreditNoteStatus {
+  PREPARED
+  ISSUED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  CREATED
+  CHECKOUT_CREATED
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum RefundType {
+  FULL
+  PARTIAL
+}
+
+enum RefundStatus {
+  CREATED
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum AccountingExportType {
+  INVOICES
+  PAYMENTS
+  CREDIT_NOTES
+  FULL_ACCOUNTING
+}
+
+enum AccountingExportStatus {
+  DRAFT
+  GENERATING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+enum AccountingExportFormat {
+  CSV_LEXWARE
+  CSV_DATEV
+  CSV_GENERIC
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_FOR_CUSTOMER
+  WAITING_INTERNAL
+  RESOLVED
+  REJECTED
+  CLOSED
+}
+
+enum TicketType {
+  CUSTOMER_SUPPORT
+  COMPLAINT
+  TOUR_ISSUE
+  WAREHOUSE_ISSUE
+  BILLING_ISSUE
+  TECHNICAL_ISSUE
+  OTHER
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TicketMessageVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+enum DocumentType {
+  FLYER_PDF
+  PRINT_FILE
+  INDESIGN
+  ILLUSTRATOR
+  LOGO
+  IMAGE
+  ZIP
+  REPORT
+  INVOICE
+  CONTRACT
+  OTHER
+}
+
+enum DocumentStatus {
+  UPLOADED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum DocumentCommentVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+enum PrintStatus {
+  REQUESTED
+  APPROVED
+  IN_PRODUCTION
+  SHIPPED
+  DELIVERED
+  RECEIVED_IN_WAREHOUSE
+  READY_FOR_DISTRIBUTION
+  CANCELLED
+}
+
+enum ShipmentType {
+  CUSTOMER_TO_WAREHOUSE
+  PRINTER_TO_WAREHOUSE
+  WAREHOUSE_TO_WAREHOUSE
+  WAREHOUSE_TO_DISTRIBUTOR
+  RETURN_TO_CUSTOMER
+  DISPOSAL
+}
+
+enum ShipmentStatus {
+  CREATED
+  IN_TRANSIT
+  DELIVERED
+  RECEIVED
+  DAMAGED
+  LOST
+  CANCELLED
+}
+
+enum TransferStatus {
+  REQUESTED
+  APPROVED
+  IN_TRANSIT
+  RECEIVED
+  CANCELLED
+}
+
+enum NotificationAudience {
+  CUSTOMER
+  DISTRIBUTOR
+  ADMIN
+  INTERNAL
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  WHATSAPP
+  SMS
+  PUSH
+}
+
+enum NotificationQueueStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  RETRY
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  OFFER_SENT
+  TEST_ORDER_PLANNED
+  WON
+  LOST
+  ARCHIVED
+}
+
+enum LeadPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum LeadType {
+  CUSTOMER
+  DISTRIBUTOR
+  PARTNER
+  OTHER
+}
+
+enum SystemLogLevel {
+  INFO
+  WARNING
+  ERROR
+  CRITICAL
+}
+
+enum ErrorSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ErrorStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  IGNORED
+}
+
+enum HealthStatus {
+  OK
+  DEGRADED
+  DOWN
+}
+
+enum BackgroundJobStatus {
+  STARTED
+  SUCCESS
+  FAILED
+}
+
+model User {
+  id            String     @id @default(cuid())
+  email         String     @unique
+  passwordHash  String
+  role          UserRole
+  warehouseId   String?
+  status        UserStatus @default(EMAIL_UNVERIFIED)
+  emailVerified DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  customerProfile    CustomerProfile?
+  distributorProfile DistributorProfile?
+  uploadedPhotos     PhotoProof[]        @relation("UploadedPhotos")
+  approvedReports    Report[]            @relation("ApprovedReports")
+  emailVerificationTokens EmailVerificationToken[]
+  orderStatusEvents  OrderStatusEvent[]
+  warehouseHistories WarehouseHistory[]
+  auditLogs          AuditLog[]
+  notifications      Notification[]
+  accountingExports  AccountingExport[]
+  assignedDispatches DispatchAssignment[] @relation("DispatchAssignedBy")
+  createdAreas       DistributionArea[]   @relation("AreaCreatedBy")
+  areaEstimates      AreaHouseholdEstimate[] @relation("AreaEstimateCreatedBy")
+  areaHistories      AreaHistory[]        @relation("AreaHistoryUser")
+  notificationMessages NotificationMessage[]
+  notificationQueues NotificationQueue[]
+  notificationPreferences NotificationPreference[]
+  notificationLogs   NotificationLog[]
+  resolvedErrorLogs  ErrorLog[]          @relation("ResolvedErrorLogs")
+  assignedLeads      Lead[]              @relation("AssignedLeads")
+  leadNotes          LeadNote[]
+  leadActivities     LeadActivity[]
+  assignedTickets    SupportTicket[]     @relation("AssignedTickets")
+  createdTickets     SupportTicket[]     @relation("CreatedTickets")
+  ticketMessages     TicketMessage[]
+  ticketAttachments  TicketAttachment[]
+  uploadedDocuments  Document[]          @relation("UploadedDocuments")
+  approvedDocuments  Document[]          @relation("ApprovedDocuments")
+  documentVersions   DocumentVersion[]
+  documentComments   DocumentComment[]
+  warehouse          Warehouse? @relation("WarehouseStaff", fields: [warehouseId], references: [id], onDelete: SetNull)
+  receivedShipments  LogisticsShipment[] @relation("ShipmentReceivedBy")
+  requestedTransfers WarehouseTransfer[] @relation("TransferRequestedBy")
+  approvedTransfers  WarehouseTransfer[] @relation("TransferApprovedBy")
+  stockCounts        WarehouseStockCount[] @relation("StockCountedBy")
+
+  @@index([role, status])
+  @@index([warehouseId])
+}
+
+model EmailVerificationToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model CustomerProfile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  companyName    String
+  contactName    String
+  phone          String
+  billingAddress Json
+  deliveryAddress Json?
+  vatId          String?
+  logoUrl        String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders         Order[]
+  distributionAreas DistributionArea[]
+  reports        Report[]
+  payments       Payment[]
+  invoices       Invoice[]
+  supportTickets SupportTicket[]
+  documents      Document[]
+  printOrders    PrintOrder[]
+  wonLeads       Lead[] @relation("WonLeads")
+
+  @@index([companyName])
+}
+
+model DistributorProfile {
+  id             String                  @id @default(cuid())
+  userId         String                  @unique
+  firstName      String
+  lastName       String
+  birthDate      DateTime
+  address        Json
+  federalState   String
+  phone          String
+  mobilityType   MobilityType?
+  mobilityTypes  MobilityType[]
+  preferredAreas String[]
+  availability   Json
+  workingTimes   String[]
+  serviceRadiusKm Int
+  maxToursPerDay Int                     @default(3)
+  maxFlyersPerDay Int                    @default(8000)
+  currentAssignedFlyers Int              @default(0)
+  currentAssignedTours Int               @default(0)
+  availableToday Boolean                 @default(true)
+  rating        Decimal                  @default(4.50) @db.Decimal(3, 2)
+  completedToursCount Int                @default(0)
+  idDocumentStatus DistributorDocumentStatus @default(NOT_SUBMITTED)
+  driverLicenseStatus DistributorDocumentStatus @default(NOT_SUBMITTED)
+  businessDocumentStatus DistributorDocumentStatus @default(NOT_SUBMITTED)
+  taxNumber      String?
+  bankAccount    Json?
+  reviewStatus   DistributorReviewStatus @default(PENDING_REVIEW)
+  adminNotes     String?
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedOrders Order[]           @relation("AssignedDistributor")
+  tours         DistributionTour[]
+  reservedInventories WarehouseInventory[]
+  dispatchAssignments DispatchAssignment[]
+  autoDispatchRecommendations AutoDispatchRecommendation[]
+  supportTickets SupportTicket[]
+
+  @@index([reviewStatus])
+  @@index([mobilityType])
+  @@index([reviewStatus, availableToday])
+}
+
+model Order {
+  id                   String      @id @default(cuid())
+  orderNumber          String      @unique
+  customerId           String
+  status               OrderStatus @default(SUBMITTED)
+  serviceType          ServiceType @default(FLYER_DISTRIBUTION)
+  city                 String
+  postalCode           String
+  targetAddress        Json
+  targetLat            Decimal?    @db.Decimal(10, 7)
+  targetLng            Decimal?    @db.Decimal(10, 7)
+  targetAreaName       String
+  targetAreaGeoJson    Json?
+  estimatedHouseholds  Int?
+  estimatedFlyers      Int?
+  estimatedDistanceMeters Int?
+  coverageAreaSqm      Decimal?    @db.Decimal(14, 2)
+  distributionAreaId   String?
+  flyerQuantity        Int
+  customerOwnFlyers    Boolean     @default(true)
+  needsPrintService    Boolean     @default(false)
+  preferredStartDate   DateTime
+  preferredEndDate     DateTime
+  flexibleScheduling   Boolean     @default(false)
+  contactPerson        String?
+  contactPhone         String?
+  notes                String?
+  adminInternalNotes   String?
+  adminCustomerMessage String?
+  calculatedNetPrice   Decimal     @db.Decimal(12, 2)
+  calculatedVat        Decimal     @db.Decimal(12, 2)
+  calculatedGrossPrice Decimal     @db.Decimal(12, 2)
+  manualPriceOverride  Decimal?    @db.Decimal(12, 2)
+  priceRuleSnapshot    Json
+  assignedDistributorId String?
+  assignedWarehouseId   String?
+  warehouseAssignedAt   DateTime?
+  warehouseAssignmentReason String?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  customer            CustomerProfile     @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  distributionArea    DistributionArea?   @relation(fields: [distributionAreaId], references: [id], onDelete: SetNull)
+  assignedDistributor DistributorProfile? @relation("AssignedDistributor", fields: [assignedDistributorId], references: [id], onDelete: SetNull)
+  assignedWarehouse   Warehouse?          @relation("AssignedWarehouseOrders", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
+  warehouseItem       WarehouseItem?
+  tours               DistributionTour[]
+  photoProofs         PhotoProof[]
+  reports             Report[]
+  payments            Payment[]
+  invoice             Invoice?
+  supportTickets      SupportTicket[]
+  documents           Document[]
+  documentFolders     DocumentFolder[]
+  printOrders         PrintOrder[]
+  statusEvents        OrderStatusEvent[]
+  warehouseInventory  WarehouseInventory?
+  dispatchAssignments DispatchAssignment[]
+  autoDispatchRecommendations AutoDispatchRecommendation[]
+  logisticsShipments LogisticsShipment[]
+
+  @@index([customerId, status])
+  @@index([distributionAreaId])
+  @@index([assignedDistributorId])
+  @@index([assignedWarehouseId])
+  @@index([city])
+  @@index([status, createdAt])
+  @@index([serviceType])
+}
+
+model DistributionArea {
+  id                       String                 @id @default(cuid())
+  name                     String
+  slug                     String                 @unique
+  type                     DistributionAreaType
+  status                   DistributionAreaStatus @default(ACTIVE)
+  reusable                 Boolean                @default(true)
+  city                     String?
+  postalCode               String?
+  district                 String?
+  centerLat                Decimal?               @db.Decimal(10, 7)
+  centerLng                Decimal?               @db.Decimal(10, 7)
+  radiusMeters             Int?
+  geoJson                  Json?
+  coverageAreaSqm          Decimal?               @db.Decimal(14, 2)
+  estimatedHouseholds      Int?
+  estimatedFlyers          Int?
+  estimatedDistanceMeters  Int?
+  createdById              String?
+  customerId               String?
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  createdBy User? @relation("AreaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  customer  CustomerProfile? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  polygons  AreaPolygon[]
+  estimates AreaHouseholdEstimate[]
+  history   AreaHistory[]
+  orders    Order[]
+
+  @@index([type, status])
+  @@index([city, postalCode])
+  @@index([customerId, status])
+  @@index([createdById])
+}
+
+model AreaPolygon {
+  id              String   @id @default(cuid())
+  areaId          String
+  sortOrder       Int      @default(0)
+  geometry        Json
+  areaSqm         Decimal? @db.Decimal(14, 2)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  area DistributionArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+
+  @@index([areaId, sortOrder])
+}
+
+model AreaHouseholdEstimate {
+  id             String                  @id @default(cuid())
+  areaId         String
+  households     Int
+  estimatedFlyers Int?
+  distanceMeters Int?
+  coverageAreaSqm Decimal?              @db.Decimal(14, 2)
+  method         HouseholdEstimateMethod @default(MANUAL)
+  source         String?
+  confidence     Decimal?                @db.Decimal(4, 3)
+  createdById    String?
+  createdAt      DateTime                @default(now())
+
+  area      DistributionArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  createdBy User?            @relation("AreaEstimateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([areaId, createdAt])
+  @@index([method])
+}
+
+model AreaHistory {
+  id        String   @id @default(cuid())
+  areaId    String
+  userId    String?
+  action    String
+  oldValue  Json?
+  newValue  Json?
+  createdAt DateTime @default(now())
+
+  area DistributionArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
+  user User?            @relation("AreaHistoryUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([areaId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model OrderStatusEvent {
+  id         String      @id @default(cuid())
+  orderId    String
+  fromStatus OrderStatus?
+  toStatus   OrderStatus
+  changedBy  String?
+  note       String?
+  createdAt  DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@index([changedBy, createdAt])
+}
+
+model PricingSetting {
+  id           String   @id @default(cuid())
+  key          String   @unique
+  valueDecimal Decimal  @db.Decimal(12, 4)
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PricingRule {
+  id            String      @id @default(cuid())
+  serviceType   ServiceType @default(FLYER_DISTRIBUTION)
+  minQuantity   Int
+  maxQuantity   Int?
+  pricePerUnit  Decimal     @db.Decimal(12, 4)
+  basePrice     Decimal     @db.Decimal(12, 2)
+  minimumNetPrice Decimal   @db.Decimal(12, 2)
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([serviceType, isActive])
+  @@index([minQuantity, maxQuantity])
+}
+
+model Warehouse {
+  id                 String   @id @default(cuid())
+  name               String
+  code               String   @unique
+  address            Json
+  city               String
+  postalCode         String
+  country            String   @default("DE")
+  latitude           Decimal? @db.Decimal(10, 7)
+  longitude          Decimal? @db.Decimal(10, 7)
+  region             String?
+  isActive           Boolean  @default(true)
+  isDefault          Boolean  @default(false)
+  openingHours       String?
+  contactPerson      String?
+  contactPhone       String?
+  contactEmail       String?
+  capacityLimit      Int?
+  currentUtilization Int      @default(0)
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  locations          WarehouseLocation[]
+  regions            WarehouseRegion[]
+  staff              User[] @relation("WarehouseStaff")
+  assignedOrders     Order[] @relation("AssignedWarehouseOrders")
+  inventories        WarehouseInventory[]
+  printOrders        PrintOrder[] @relation("PrintOrderAssignedWarehouse")
+  shipments          LogisticsShipment[]
+  transfersFrom      WarehouseTransfer[] @relation("TransferFromWarehouse")
+  transfersTo        WarehouseTransfer[] @relation("TransferToWarehouse")
+  stockCounts        WarehouseStockCount[]
+
+  @@index([city, postalCode])
+  @@index([code])
+  @@index([isActive, isDefault])
+}
+
+model WarehouseRegion {
+  id             String   @id @default(cuid())
+  warehouseId    String
+  name           String
+  city           String?
+  postalCodes    String[]
+  radiusKm       Int?
+  polygonGeoJson Json?
+  priority       Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@index([warehouseId, isActive])
+  @@index([city])
+  @@index([priority])
+}
+
+model CompanySettings {
+  id          String   @id @default(cuid())
+  companyName String
+  legalName   String
+  street      String
+  postalCode  String
+  city        String
+  country     String   @default("DE")
+  phone       String?
+  email       String?
+  website     String?
+  taxNumber   String?
+  vatId       String?
+  bankName    String?
+  iban        String?
+  bic         String?
+  logoUrl     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model BrandingSettings {
+  id                String   @id @default(cuid())
+  primaryColor      String   @default("#102033")
+  secondaryColor    String   @default("#176b36")
+  accentColor       String   @default("#e0b84d")
+  logoUrl           String?
+  reportFooterText  String?
+  invoiceFooterText String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model NumberingSettings {
+  id                String   @id @default(cuid())
+  invoicePrefix     String   @default("FLY-RE")
+  invoiceYear       Int
+  invoiceNextNumber Int      @default(1)
+  reportPrefix      String   @default("RPT")
+  reportYear        Int
+  reportNextNumber  Int      @default(1)
+  orderPrefix       String   @default("ORD")
+  orderYear         Int
+  orderNextNumber   Int      @default(1)
+  ticketPrefix      String   @default("FLY-TK")
+  ticketYear        Int?
+  ticketNextNumber  Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model SystemSettings {
+  id                            String   @id @default(cuid())
+  defaultVatRate                Decimal  @default(0.19) @db.Decimal(5, 4)
+  defaultCurrency               String   @default("EUR")
+  paymentDueDays                Int      @default(14)
+  allowManualInvoiceCreation    Boolean  @default(true)
+  requirePaymentBeforeReview    Boolean  @default(true)
+  requireAdminReviewAfterPayment Boolean @default(true)
+  autoDispatchEnabled           Boolean  @default(false)
+  autoDispatchMinScore          Int      @default(85)
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+}
+
+model WarehouseLocation {
+  id          String   @id @default(cuid())
+  warehouseId String
+  aisle       String
+  shelf       String
+  compartment String
+  fullLabel   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  inventories WarehouseInventory[]
+
+  @@unique([warehouseId, fullLabel])
+  @@index([fullLabel])
+}
+
+model WarehouseInventory {
+  id                  String                   @id @default(cuid())
+  orderId             String                   @unique
+  warehouseId         String?
+  warehouseLocationId String?
+  status              WarehouseInventoryStatus @default(FLYERS_EXPECTED)
+  remainingStockStatus RemainingStockStatus    @default(NOT_RELEVANT)
+  qrCode              String                   @unique
+  qrCodePngDataUrl    String?
+  cartonCount         Int?
+  expectedFlyers      Int
+  receivedFlyers      Int?
+  remainingFlyers     Int?
+  damagedFlyers       Int?
+  weightOptional      Decimal?                 @db.Decimal(10, 2)
+  notes               String?
+  pickupToken         String                   @unique
+  pickupStatus        PickupStatus             @default(NOT_PREPARED)
+  reservedDistributorId String?
+  preparedAt          DateTime?
+  receivedAt          DateTime?
+  pickedUpAt          DateTime?
+  returnedAt          DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  order               Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  warehouse           Warehouse?         @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  warehouseLocation   WarehouseLocation? @relation(fields: [warehouseLocationId], references: [id], onDelete: SetNull)
+  reservedDistributor DistributorProfile? @relation(fields: [reservedDistributorId], references: [id], onDelete: SetNull)
+  history             WarehouseHistory[]
+  tours               DistributionTour[]
+  dispatchAssignments DispatchAssignment[]
+  supportTickets      SupportTicket[]
+  printOrders         PrintOrder[]
+  transfers           WarehouseTransfer[]
+  stockCounts         WarehouseStockCount[]
+
+  @@index([status])
+  @@index([warehouseId])
+  @@index([warehouseLocationId])
+  @@index([pickupStatus])
+  @@index([reservedDistributorId])
+}
+
+model DocumentFolder {
+  id        String   @id @default(cuid())
+  orderId   String
+  name      String
+  createdAt DateTime @default(now())
+
+  order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  documents Document[]
+
+  @@index([orderId])
+  @@unique([orderId, name])
+}
+
+model WarehouseHistory {
+  id          String   @id @default(cuid())
+  inventoryId String
+  action      String
+  userId      String?
+  oldValue    Json?
+  newValue    Json?
+  createdAt   DateTime @default(now())
+
+  inventory WarehouseInventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  user      User?              @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([inventoryId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model WarehouseItem {
+  id                String              @id @default(cuid())
+  orderId           String              @unique
+  expectedQuantity  Int
+  receivedQuantity  Int?
+  cartonCount       Int?
+  warehouseLocation String?
+  shelf             String?
+  compartment       String?
+  qrCodeValue       String              @unique
+  receivedAt        DateTime?
+  pickedUpAt        DateTime?
+  returnedAt        DateTime?
+  remainingQuantity Int?
+  status            WarehouseItemStatus @default(EXPECTED)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model LogisticsShipment {
+  id                   String         @id @default(cuid())
+  orderId              String
+  printOrderId         String?
+  warehouseId          String
+  shipmentType         ShipmentType
+  status               ShipmentStatus @default(CREATED)
+  carrier              String?
+  trackingNumber       String?
+  senderName           String?
+  senderAddress        Json?
+  recipientName        String?
+  recipientAddress     Json?
+  expectedDeliveryDate DateTime?
+  deliveredAt          DateTime?
+  receivedById         String?
+  notes                String?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  order      Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  printOrder PrintOrder? @relation(fields: [printOrderId], references: [id], onDelete: SetNull)
+  warehouse  Warehouse   @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  receivedBy User?       @relation("ShipmentReceivedBy", fields: [receivedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId, status])
+  @@index([printOrderId])
+  @@index([warehouseId, status])
+  @@index([shipmentType, status])
+  @@index([expectedDeliveryDate])
+}
+
+model WarehouseTransfer {
+  id              String         @id @default(cuid())
+  fromWarehouseId String
+  toWarehouseId   String
+  inventoryId     String
+  status          TransferStatus @default(REQUESTED)
+  quantity        Int
+  requestedById   String?
+  approvedById    String?
+  shippedAt       DateTime?
+  receivedAt      DateTime?
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  fromWarehouse Warehouse          @relation("TransferFromWarehouse", fields: [fromWarehouseId], references: [id], onDelete: Restrict)
+  toWarehouse   Warehouse          @relation("TransferToWarehouse", fields: [toWarehouseId], references: [id], onDelete: Restrict)
+  inventory     WarehouseInventory @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
+  requestedBy   User?              @relation("TransferRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  approvedBy    User?              @relation("TransferApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+
+  @@index([fromWarehouseId, status])
+  @@index([toWarehouseId, status])
+  @@index([inventoryId])
+  @@index([requestedById])
+}
+
+model WarehouseStockCount {
+  id               String   @id @default(cuid())
+  warehouseId      String
+  inventoryId      String
+  expectedQuantity Int
+  countedQuantity  Int
+  difference       Int
+  countedById      String?
+  countedAt        DateTime @default(now())
+  notes            String?
+
+  warehouse Warehouse          @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  inventory WarehouseInventory @relation(fields: [inventoryId], references: [id], onDelete: Restrict)
+  countedBy User?              @relation("StockCountedBy", fields: [countedById], references: [id], onDelete: SetNull)
+
+  @@index([warehouseId, countedAt])
+  @@index([inventoryId])
+  @@index([countedById])
+}
+
+model DistributionTour {
+  id                String       @id @default(cuid())
+  orderId           String
+  inventoryId       String?
+  distributorId     String
+  status            TourStatus   @default(ASSIGNED)
+  pickupTime        DateTime?
+  startTime         DateTime?
+  endTime           DateTime?
+  pauseTime         DateTime?
+  totalPauseSeconds Int          @default(0)
+  totalDistanceMeters Int?
+  totalDurationSeconds Int?
+  startedAt         DateTime?
+  pausedAt          DateTime?
+  completedAt       DateTime?
+  startLat          Decimal?     @db.Decimal(10, 7)
+  startLng          Decimal?     @db.Decimal(10, 7)
+  endLat            Decimal?     @db.Decimal(10, 7)
+  endLng            Decimal?     @db.Decimal(10, 7)
+  distanceMeters    Int?
+  durationSeconds   Int?
+  remainingFlyers   Int?
+  distributorNotes  String?
+  adminInternalNote String?
+  adminCustomerMessage String?
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  adminReviewStatus ReviewStatus @default(PENDING)
+  fraudFlags        Json?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  order       Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventory   WarehouseInventory? @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
+  distributor DistributorProfile @relation(fields: [distributorId], references: [id], onDelete: Restrict)
+  gpsPoints   GpsPoint[]
+  photoProofs PhotoProof[]
+  reports     Report[]
+  supportTickets SupportTicket[]
+
+  @@index([orderId, status])
+  @@index([inventoryId, status])
+  @@index([distributorId, status])
+}
+
+model DispatchAssignment {
+  id                  String                   @id @default(cuid())
+  orderId             String
+  inventoryId         String?
+  distributorId       String
+  assignedBy          String?
+  status              DispatchAssignmentStatus @default(ASSIGNED)
+  rejectionReason     DispatchRejectionReason?
+  rejectionNote       String?
+  capacityWarning     Boolean                  @default(false)
+  recommendationScore Int?
+  distanceMeters      Int?
+  assignedAt          DateTime                 @default(now())
+  acceptedAt          DateTime?
+  rejectedAt          DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  order       Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventory   WarehouseInventory? @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
+  distributor DistributorProfile  @relation(fields: [distributorId], references: [id], onDelete: Restrict)
+  assignedByUser User?            @relation("DispatchAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
+
+  @@index([orderId, status])
+  @@index([inventoryId, status])
+  @@index([distributorId, status])
+  @@index([assignedBy, assignedAt])
+  @@index([assignedAt])
+}
+
+model AutoDispatchRecommendation {
+  id            String                           @id @default(cuid())
+  orderId       String
+  distributorId String
+  score         Int
+  reasons       Json
+  warnings      Json
+  status        AutoDispatchRecommendationStatus @default(SUGGESTED)
+  createdAt     DateTime                         @default(now())
+  updatedAt     DateTime                         @updatedAt
+
+  order       Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  distributor DistributorProfile @relation(fields: [distributorId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, distributorId])
+  @@index([orderId, status])
+  @@index([distributorId, status])
+  @@index([score])
+}
+
+model GpsPoint {
+  id         String   @id @default(cuid())
+  tourId     String
+  lat        Decimal  @db.Decimal(10, 7)
+  lng        Decimal  @db.Decimal(10, 7)
+  accuracy   Decimal? @db.Decimal(8, 2)
+  speed      Decimal? @db.Decimal(8, 2)
+  heading    Decimal? @db.Decimal(8, 2)
+  altitude   Decimal? @db.Decimal(10, 2)
+  battery    Int?
+  source     String   @default("browser")
+  status     String   @default("ok")
+  flags      Json?
+  recordedAt DateTime
+  createdAt  DateTime @default(now())
+
+  tour DistributionTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+
+  @@index([tourId, recordedAt])
+}
+
+model PhotoProof {
+  id         String    @id @default(cuid())
+  tourId     String
+  orderId    String
+  uploadedBy String
+  url        String
+  lat        Decimal?  @db.Decimal(10, 7)
+  lng        Decimal?  @db.Decimal(10, 7)
+  accuracy   Decimal?  @db.Decimal(8, 2)
+  source     String    @default("camera")
+  metadata   Json?
+  takenAt    DateTime?
+  createdAt  DateTime  @default(now())
+
+  tour     DistributionTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  uploader User             @relation("UploadedPhotos", fields: [uploadedBy], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([uploadedBy])
+}
+
+model Report {
+  id           String         @id @default(cuid())
+  orderId      String
+  tourId       String         @unique
+  customerId   String
+  reportNumber String         @unique
+  status       ReportStatus   @default(DRAFT)
+  reportType   ReportType     @default(DISTRIBUTION_PROOF)
+  template     ReportTemplate @default(STANDARD)
+  onlineUrl    String?
+  pdfUrl       String?
+  generatedAt  DateTime?
+  approvedAt   DateTime?
+  approvedById String?
+  downloadedAt DateTime?
+  version      Int            @default(1)
+  checksum     String?
+  verificationCode String     @unique
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tour     DistributionTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  customer CustomerProfile  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  approver User?            @relation("ApprovedReports", fields: [approvedById], references: [id], onDelete: SetNull)
+  supportTickets SupportTicket[]
+
+  @@index([orderId, status])
+  @@index([customerId, status])
+  @@index([reportNumber])
+  @@index([verificationCode])
+}
+
+model PaymentProvider {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments Payment[]
+
+  @@index([active])
+}
+
+model Payment {
+  id                      String        @id @default(cuid())
+  orderId                 String
+  customerId              String
+  providerId              String
+  status                  PaymentStatus @default(CREATED)
+  amount                  Decimal       @db.Decimal(12, 2)
+  currency                String        @default("EUR")
+  description             String
+  checkoutUrl             String?
+  stripeCheckoutSessionId String?       @unique
+  stripePaymentIntentId   String?       @unique
+  stripeCustomerId        String?
+  paidAt                  DateTime?
+  failedAt                DateTime?
+  cancelledAt             DateTime?
+  refundedAt              DateTime?
+  metadata                Json?
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer  CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  provider  PaymentProvider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  events    PaymentEvent[]
+  refunds   Refund[]
+  histories PaymentStatusHistory[]
+  invoices  Invoice[]
+
+  @@index([orderId, status])
+  @@index([customerId, status])
+  @@index([providerId, status])
+  @@index([createdAt])
+}
+
+model PaymentEvent {
+  id              String   @id @default(cuid())
+  paymentId       String?
+  providerId      String?
+  stripeEventId   String?  @unique
+  type            String
+  payload         Json
+  processedAt     DateTime?
+  processingError String?
+  createdAt       DateTime @default(now())
+
+  payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([paymentId, createdAt])
+  @@index([providerId, createdAt])
+  @@index([type, createdAt])
+}
+
+model Refund {
+  id             String       @id @default(cuid())
+  paymentId      String
+  orderId        String
+  customerId     String
+  type           RefundType
+  status         RefundStatus @default(CREATED)
+  amount         Decimal      @db.Decimal(12, 2)
+  currency       String       @default("EUR")
+  reason         String?
+  stripeRefundId String?      @unique
+  requestedById  String?
+  processedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, status])
+  @@index([orderId, status])
+  @@index([customerId, status])
+}
+
+model PaymentStatusHistory {
+  id         String         @id @default(cuid())
+  paymentId  String
+  fromStatus PaymentStatus?
+  toStatus   PaymentStatus
+  reason     String?
+  createdAt  DateTime       @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, createdAt])
+}
+
+model Invoice {
+  id            String        @id @default(cuid())
+  orderId       String        @unique
+  customerId    String
+  paymentId     String?
+  invoiceNumber String        @unique
+  currency      String        @default("EUR")
+  invoiceDate   DateTime?
+  serviceDate   DateTime?
+  dueDate       DateTime?
+  subtotalNet   Decimal       @db.Decimal(12, 2)
+  vatRate       Decimal       @default(0.19) @db.Decimal(5, 4)
+  vatAmount     Decimal       @db.Decimal(12, 2)
+  totalGross    Decimal       @db.Decimal(12, 2)
+  amountNet     Decimal       @db.Decimal(12, 2)
+  amountGross   Decimal       @db.Decimal(12, 2)
+  status        InvoiceStatus @default(DRAFT)
+  pdfUrl        String?
+  notes         String?
+  issuedAt      DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  order    Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  payment  Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  items    InvoiceItem[]
+  creditNotes CreditNote[]
+
+  @@index([customerId, status])
+  @@index([paymentId])
+  @@index([invoiceNumber])
+}
+
+model InvoiceItem {
+  id           String   @id @default(cuid())
+  invoiceId    String
+  title        String
+  description  String?
+  quantity     Decimal  @db.Decimal(12, 2)
+  unit         String
+  unitPriceNet Decimal  @db.Decimal(12, 2)
+  vatRate      Decimal  @db.Decimal(5, 4)
+  lineTotalNet Decimal  @db.Decimal(12, 2)
+  createdAt    DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+}
+
+model CreditNote {
+  id               String           @id @default(cuid())
+  creditNoteNumber String           @unique
+  invoiceId        String
+  reason           String
+  amountNet        Decimal          @db.Decimal(12, 2)
+  vatAmount        Decimal          @db.Decimal(12, 2)
+  totalGross       Decimal          @db.Decimal(12, 2)
+  status           CreditNoteStatus @default(PREPARED)
+  createdAt        DateTime         @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, status])
+}
+
+model AccountingExport {
+  id          String                 @id @default(cuid())
+  exportNumber String               @unique
+  type        AccountingExportType
+  status      AccountingExportStatus @default(DRAFT)
+  format      AccountingExportFormat
+  periodStart DateTime
+  periodEnd   DateTime
+  createdById String?
+  fileUrl     String?
+  rowCount    Int                    @default(0)
+  checksum    String?
+  createdAt   DateTime               @default(now())
+  completedAt DateTime?
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  items     AccountingExportItem[]
+
+  @@index([type, status])
+  @@index([periodStart, periodEnd])
+  @@index([createdById, createdAt])
+}
+
+model AccountingExportItem {
+  id           String   @id @default(cuid())
+  exportId     String
+  entityType   String
+  entityId     String
+  status       String   @default("EXPORTED")
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
+  export AccountingExport @relation(fields: [exportId], references: [id], onDelete: Cascade)
+
+  @@index([exportId])
+  @@index([entityType, entityId])
+  @@index([status])
+}
+
+model SupportTicket {
+  id                   String              @id @default(cuid())
+  ticketNumber         String              @unique
+  type                 TicketType          @default(CUSTOMER_SUPPORT)
+  status               SupportTicketStatus @default(OPEN)
+  priority             TicketPriority      @default(NORMAL)
+  customerId           String?
+  distributorId        String?
+  orderId              String?
+  tourId               String?
+  reportId             String?
+  warehouseInventoryId String?
+  assignedToId         String?
+  subject              String
+  description          String
+  message              String?
+  resolution           String?
+  createdById          String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+  closedAt             DateTime?
+
+  customer           CustomerProfile?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  distributor        DistributorProfile? @relation(fields: [distributorId], references: [id], onDelete: SetNull)
+  order              Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  tour               DistributionTour?   @relation(fields: [tourId], references: [id], onDelete: SetNull)
+  report             Report?             @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  warehouseInventory WarehouseInventory? @relation(fields: [warehouseInventoryId], references: [id], onDelete: SetNull)
+  assignedTo         User?               @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy          User?               @relation("CreatedTickets", fields: [createdById], references: [id], onDelete: SetNull)
+  messages           TicketMessage[]
+  attachments        TicketAttachment[]
+
+  @@index([customerId, status])
+  @@index([distributorId, status])
+  @@index([orderId])
+  @@index([tourId])
+  @@index([reportId])
+  @@index([warehouseInventoryId])
+  @@index([assignedToId, status])
+  @@index([type, status])
+  @@index([priority, status])
+}
+
+model Document {
+  id               String         @id @default(cuid())
+  orderId          String
+  customerId       String
+  folderId         String?
+  documentType     DocumentType
+  title            String
+  originalFilename String
+  storedFilename   String
+  mimeType         String
+  extension        String
+  fileSize         Int
+  checksum         String
+  version          Int            @default(1)
+  status           DocumentStatus @default(UPLOADED)
+  uploadedById     String?
+  uploadedAt       DateTime       @default(now())
+  approvedById     String?
+  approvedAt       DateTime?
+  rejectedReason   String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer    CustomerProfile   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  folder      DocumentFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadedBy  User?             @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: SetNull)
+  approvedBy  User?             @relation("ApprovedDocuments", fields: [approvedById], references: [id], onDelete: SetNull)
+  versions    DocumentVersion[]
+  comments    DocumentComment[]
+
+  @@index([customerId, status])
+  @@index([orderId, documentType])
+  @@index([folderId])
+  @@index([status, uploadedAt])
+  @@index([documentType, status])
+  @@index([uploadedById])
+  @@index([approvedById])
+  @@index([checksum])
+}
+
+model DocumentVersion {
+  id           String   @id @default(cuid())
+  documentId   String
+  version      Int
+  fileUrl      String
+  checksum     String
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  uploadedBy User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@unique([documentId, version])
+  @@index([documentId, createdAt])
+  @@index([uploadedById, createdAt])
+  @@index([checksum])
+}
+
+model DocumentComment {
+  id         String                    @id @default(cuid())
+  documentId String
+  userId     String?
+  visibility DocumentCommentVisibility @default(PUBLIC)
+  message    String
+  createdAt  DateTime                  @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([documentId, createdAt])
+  @@index([userId, createdAt])
+  @@index([visibility])
+}
+
+model PrintPartner {
+  id          String   @id @default(cuid())
+  companyName String
+  contactName String?
+  email       String
+  phone       String?
+  address     Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  printOrders PrintOrder[]
+
+  @@index([isActive])
+  @@index([companyName])
+  @@index([email])
+}
+
+model PrintOrder {
+  id                String      @id @default(cuid())
+  orderId           String
+  customerId        String
+  printerId         String?
+  warehouseInventoryId String?
+  assignedWarehouseId String?
+  status            PrintStatus @default(REQUESTED)
+  printFormat       String
+  paperType         String
+  paperWeight       Int
+  colorMode         String
+  doubleSided       Boolean     @default(true)
+  folded            String?
+  finishing         String?
+  quantity          Int
+  notes             String?
+  estimatedDelivery DateTime?
+  trackingNumber    String?
+  estimatedNetPrice Decimal?    @db.Decimal(12, 2)
+  estimatedGrossPrice Decimal?  @db.Decimal(12, 2)
+  priceSnapshot     Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  order     Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer  CustomerProfile  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  printer   PrintPartner?    @relation(fields: [printerId], references: [id], onDelete: SetNull)
+  warehouseInventory WarehouseInventory? @relation(fields: [warehouseInventoryId], references: [id], onDelete: SetNull)
+  assignedWarehouse Warehouse? @relation("PrintOrderAssignedWarehouse", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
+  logisticsShipments LogisticsShipment[]
+
+  @@index([orderId, status])
+  @@index([customerId, status])
+  @@index([printerId, status])
+  @@index([warehouseInventoryId])
+  @@index([assignedWarehouseId])
+  @@index([status, createdAt])
+}
+
+model TicketMessage {
+  id         String                  @id @default(cuid())
+  ticketId   String
+  senderId   String?
+  senderRole UserRole?
+  visibility TicketMessageVisibility @default(PUBLIC)
+  message    String
+  createdAt  DateTime                @default(now())
+
+  ticket      SupportTicket      @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender      User?              @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  attachments TicketAttachment[]
+
+  @@index([ticketId, createdAt])
+  @@index([senderId, createdAt])
+  @@index([visibility])
+}
+
+model TicketAttachment {
+  id           String   @id @default(cuid())
+  ticketId     String
+  messageId    String?
+  fileUrl      String
+  fileName     String
+  fileType     String
+  uploadedById String?
+  createdAt    DateTime @default(now())
+
+  ticket     SupportTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message    TicketMessage? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  uploadedBy User?          @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([ticketId, createdAt])
+  @@index([messageId])
+  @@index([uploadedById, createdAt])
+}
+
+model Lead {
+  id                    String       @id @default(cuid())
+  type                  LeadType
+  name                  String
+  companyName           String?
+  email                 String
+  phone                 String?
+  city                  String?
+  message               String
+  status                LeadStatus   @default(NEW)
+  priority              LeadPriority @default(NORMAL)
+  source                String       @default("website")
+  sourceCampaign        String?
+  assignedToId          String?
+  nextFollowUpAt        DateTime?
+  lastContactedAt       DateTime?
+  estimatedOrderVolume  Decimal?     @db.Decimal(12, 2)
+  expectedFlyerQuantity Int?
+  notes                 String?
+  lostReason            String?
+  wonCustomerId         String?
+  adminNote             String?
+  archivedAt            DateTime?
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  assignedTo User?            @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+  wonCustomer CustomerProfile? @relation("WonLeads", fields: [wonCustomerId], references: [id], onDelete: SetNull)
+  leadNotes   LeadNote[]
+  activities  LeadActivity[]
+
+  @@index([type, status])
+  @@index([status, createdAt])
+  @@index([priority, status])
+  @@index([assignedToId])
+  @@index([nextFollowUpAt])
+  @@index([wonCustomerId])
+  @@index([archivedAt])
+  @@index([email])
+}
+
+model LeadNote {
+  id        String   @id @default(cuid())
+  leadId    String
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+
+  lead   Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  author User? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model LeadActivity {
+  id         String      @id @default(cuid())
+  leadId     String
+  actorId    String?
+  event      String
+  fromStatus LeadStatus?
+  toStatus   LeadStatus?
+  detail     String?
+  metadata   Json?
+  createdAt  DateTime    @default(now())
+
+  lead  Lead  @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+  @@index([event, createdAt])
+  @@index([actorId, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  entityType String
+  entityId   String
+  oldValues  Json?
+  newValues  Json?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+}
+
+model NotificationTemplate {
+  id           String               @id @default(cuid())
+  key          String               @unique
+  audience     NotificationAudience
+  channel      NotificationChannel  @default(EMAIL)
+  name         String
+  description  String?
+  subject      String
+  body         String
+  placeholders String[]
+  isActive     Boolean              @default(true)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  messages NotificationMessage[]
+  queues   NotificationQueue[]
+  logs     NotificationLog[]
+
+  @@index([audience, channel, isActive])
+  @@index([key])
+}
+
+model NotificationMessage {
+  id         String               @id @default(cuid())
+  userId     String
+  templateId String?
+  type       String
+  audience   NotificationAudience
+  channel    NotificationChannel  @default(IN_APP)
+  subject    String
+  body       String
+  data       Json?
+  readAt     DateTime?
+  createdAt  DateTime             @default(now())
+
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  queues   NotificationQueue[]
+  logs     NotificationLog[]
+
+  @@index([userId, readAt])
+  @@index([type, createdAt])
+  @@index([audience, channel, createdAt])
+}
+
+model NotificationQueue {
+  id                String                  @id @default(cuid())
+  messageId         String
+  templateId        String?
+  userId            String
+  channel           NotificationChannel
+  status            NotificationQueueStatus @default(PENDING)
+  attempts          Int                     @default(0)
+  maxAttempts       Int                     @default(3)
+  scheduledAt       DateTime                @default(now())
+  sentAt            DateTime?
+  failedAt          DateTime?
+  lastError         String?
+  provider          String?
+  providerMessageId String?
+  payload           Json?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  message  NotificationMessage  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  template NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs     NotificationLog[]
+
+  @@index([status, scheduledAt])
+  @@index([userId, status])
+  @@index([channel, status])
+}
+
+model NotificationPreference {
+  id        String              @id @default(cuid())
+  userId    String
+  type      String
+  channel   NotificationChannel @default(EMAIL)
+  enabled   Boolean             @default(true)
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, channel])
+  @@index([userId, enabled])
+}
+
+model NotificationLog {
+  id         String                   @id @default(cuid())
+  messageId  String?
+  queueId    String?
+  templateId String?
+  userId     String?
+  action     String
+  status     NotificationQueueStatus?
+  detail     String?
+  metadata   Json?
+  createdAt  DateTime                 @default(now())
+
+  message  NotificationMessage?  @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  queue    NotificationQueue?    @relation(fields: [queueId], references: [id], onDelete: SetNull)
+  template NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  user     User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([messageId, createdAt])
+  @@index([queueId, createdAt])
+  @@index([templateId, createdAt])
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+model SystemLog {
+  id        String         @id @default(cuid())
+  level     SystemLogLevel
+  source    String
+  message   String
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  @@index([level, createdAt])
+  @@index([source, createdAt])
+}
+
+model ErrorLog {
+  id             String        @id @default(cuid())
+  severity       ErrorSeverity
+  source         String
+  message        String
+  stack          String?
+  metadata       Json?
+  status         ErrorStatus   @default(OPEN)
+  resolvedById   String?
+  resolvedAt     DateTime?
+  resolutionNote String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  resolvedBy User? @relation("ResolvedErrorLogs", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([severity, status, createdAt])
+  @@index([source, createdAt])
+  @@index([resolvedById, resolvedAt])
+}
+
+model SystemHealthCheck {
+  id               String       @id @default(cuid())
+  status           HealthStatus
+  databaseStatus   HealthStatus
+  storageStatus    HealthStatus
+  stripeStatus     HealthStatus
+  googleMapsStatus HealthStatus
+  emailStatus      HealthStatus
+  queueStatus      HealthStatus
+  checkedAt        DateTime     @default(now())
+  metadata         Json?
+
+  @@index([status, checkedAt])
+  @@index([checkedAt])
+}
+
+model BackgroundJobLog {
+  id           String              @id @default(cuid())
+  jobType      String
+  status       BackgroundJobStatus
+  startedAt    DateTime            @default(now())
+  finishedAt   DateTime?
+  durationMs   Int?
+  errorMessage String?
+  metadata     Json?
+
+  @@index([jobType, status, startedAt])
+  @@index([status, startedAt])
+}
