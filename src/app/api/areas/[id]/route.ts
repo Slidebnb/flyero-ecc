@@ -67,7 +67,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     try {
       return routeErrorResponse(error);
     } catch {
-      return errorResponse(error instanceof Error ? error.message : "Gebiet konnte nicht geloescht werden.", 400);
+      return errorResponse(error instanceof Error ? error.message : "Gebiet konnte nicht gelöscht werden.", 400);
     }
   }
 }
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       try {
         return routeErrorResponse(error);
       } catch {
-        return errorResponse(error instanceof Error ? error.message : "Gebiet konnte nicht geloescht werden.", 400);
+        return errorResponse(error instanceof Error ? error.message : "Gebiet konnte nicht gelöscht werden.", 400);
       }
     }
   }

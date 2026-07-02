@@ -193,7 +193,7 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     orderBy: { createdAt: "desc" },
   });
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { customer: true } });
-  if (!order) throw new Error("Auftrag fuer Zahlung wurde nicht gefunden.");
+  if (!order) throw new Error("Auftrag für Zahlung wurde nicht gefunden.");
 
   const currentPayment = payment ?? await prisma.payment.create({
     data: {
@@ -248,12 +248,12 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     userId: order.customer.userId,
     type: "PAYMENT_SUCCESS",
     title: "Zahlung erfolgreich",
-    message: `Deine Zahlung fuer ${order.orderNumber} ist eingegangen.`,
+    message: `Deine Zahlung für ${order.orderNumber} ist eingegangen.`,
   });
   await notifyAdmins({
     type: "PAYMENT_COMPLETED",
     title: "Neue bezahlte Bestellung",
-    message: `Auftrag ${order.orderNumber} wurde bezahlt und wartet auf Pruefung.`,
+    message: `Auftrag ${order.orderNumber} wurde bezahlt und wartet auf Prüfung.`,
   });
 
   return paidPayment;
@@ -287,7 +287,7 @@ export async function markPaymentFailed(input: { orderId?: string; sessionId?: s
     userId: payment.order.customer.userId,
     type: "PAYMENT_FAILED",
     title: "Zahlung fehlgeschlagen",
-    message: `Die Zahlung fuer ${payment.order.orderNumber} ist fehlgeschlagen. Du kannst erneut bezahlen.`,
+    message: `Die Zahlung für ${payment.order.orderNumber} ist fehlgeschlagen. Du kannst erneut bezahlen.`,
   });
   return failed;
 }
@@ -367,7 +367,7 @@ export async function refundPayment(input: {
   });
   if (!payment) throw new Error("Zahlung wurde nicht gefunden.");
   if (!["PAID", "PARTIALLY_REFUNDED"].includes(payment.status)) {
-    throw new Error("Nur bezahlte Zahlungen koennen erstattet werden.");
+    throw new Error("Nur bezahlte Zahlungen können erstattet werden.");
   }
   const amount = input.amount ? new Prisma.Decimal(input.amount) : payment.amount;
   const refundType = amount.lessThan(payment.amount) ? "PARTIAL" : "FULL";
@@ -430,7 +430,7 @@ export async function refundPayment(input: {
     userId: payment.order.customer.userId,
     type: "PAYMENT_REFUNDED",
     title: "Rueckerstattung erfolgt",
-    message: `Die Zahlung fuer ${payment.order.orderNumber} wurde ${refundType === "PARTIAL" ? "teilweise " : ""}erstattet.`,
+    message: `Die Zahlung für ${payment.order.orderNumber} wurde ${refundType === "PARTIAL" ? "teilweise " : ""}erstattet.`,
   });
   await notifyAdmins({
     type: "PAYMENT_REFUNDED",

@@ -66,7 +66,7 @@ export async function assignTour(input: {
   });
   if (!inventory) throw new Error("Lagerbestand wurde nicht gefunden.");
   if (inventory.status !== "READY_FOR_PICKUP") {
-    throw new Error("Nur abholbereite Lagerbestaende koennen zugewiesen werden.");
+    throw new Error("Nur abholbereite Lagerbestaende können zugewiesen werden.");
   }
 
   const distributor = await prisma.distributorProfile.findUnique({
@@ -123,7 +123,7 @@ export async function assignTour(input: {
     userId: distributor.userId,
     type: "TOUR_ASSIGNED",
     title: "Neue Tour",
-    message: `Tour fuer Auftrag ${inventory.order.orderNumber} wurde zugewiesen.`,
+    message: `Tour für Auftrag ${inventory.order.orderNumber} wurde zugewiesen.`,
   });
   return tour;
 }
@@ -209,7 +209,7 @@ export async function pauseTour(input: { tourId: string; userId: string }) {
   const profile = await getDistributorProfileForUser(input.userId);
   const tour = await prisma.distributionTour.findFirst({ where: { id: input.tourId, distributorId: profile.id } });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
-  if (tour.status !== "STARTED" && tour.status !== "RESUMED") throw new Error("Nur laufende Touren koennen pausiert werden.");
+  if (tour.status !== "STARTED" && tour.status !== "RESUMED") throw new Error("Nur laufende Touren können pausiert werden.");
   const updated = await prisma.distributionTour.update({
     where: { id: tour.id },
     data: { status: "PAUSED", pauseTime: new Date(), pausedAt: new Date() },
@@ -222,7 +222,7 @@ export async function resumeTour(input: { tourId: string; userId: string }) {
   const profile = await getDistributorProfileForUser(input.userId);
   const tour = await prisma.distributionTour.findFirst({ where: { id: input.tourId, distributorId: profile.id } });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
-  if (tour.status !== "PAUSED") throw new Error("Nur pausierte Touren koennen fortgesetzt werden.");
+  if (tour.status !== "PAUSED") throw new Error("Nur pausierte Touren können fortgesetzt werden.");
   const pauseSeconds = tour.pauseTime ? Math.max(Math.floor((Date.now() - tour.pauseTime.getTime()) / 1000), 0) : 0;
   const updated = await prisma.distributionTour.update({
     where: { id: tour.id },
@@ -343,7 +343,7 @@ export async function completeTour(input: {
   });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
   if (tour.status !== "STARTED" && tour.status !== "RESUMED" && tour.status !== "PAUSED") {
-    throw new Error("Nur laufende Touren koennen abgeschlossen werden.");
+    throw new Error("Nur laufende Touren können abgeschlossen werden.");
   }
   const now = new Date();
   const totalDurationSeconds = tour.startTime
@@ -377,7 +377,7 @@ export async function completeTour(input: {
     });
   }
   await createAuditLog({ userId: input.userId, action: "tour.completed", entityType: "DistributionTour", entityId: tour.id });
-  await notifyAdmins({ type: "TOUR_UNDER_REVIEW", title: "Tour wartet auf Pruefung", message: `Tour ${tour.id} wurde abgeschlossen.` });
+  await notifyAdmins({ type: "TOUR_UNDER_REVIEW", title: "Tour wartet auf Prüfung", message: `Tour ${tour.id} wurde abgeschlossen.` });
   return updated;
 }
 
@@ -490,8 +490,8 @@ export async function approveTour(input: {
   await createNotification({
     userId: tour.order.customer.userId,
     type: "REPORT_PREVIEW_READY",
-    title: "Berichtsvorschau verfuegbar",
-    message: `Die Verteilung fuer ${tour.order.orderNumber} wurde geprueft.`,
+    title: "Berichtsvorschau verfügbar",
+    message: `Die Verteilung für ${tour.order.orderNumber} wurde geprüft.`,
   });
   await createNotification({
     userId: tour.distributor.userId,
@@ -501,7 +501,7 @@ export async function approveTour(input: {
   });
   await notifyAdmins({
     type: "TOUR_REVIEW_COMPLETED",
-    title: "Tourpruefung abgeschlossen",
+    title: "Tourprüfung abgeschlossen",
     message: `Tour ${tour.order.orderNumber} wurde freigegeben.`,
   });
   return updated;

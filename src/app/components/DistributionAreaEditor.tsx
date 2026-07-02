@@ -298,7 +298,7 @@ export function DistributionAreaEditor({
       : null;
     drawingManager?.setMap(map);
     if (drawingManager) {
-      maps.event.addListener(drawingManager, "polygoncomplete", (polygon) => {
+      maps.event.addListener(drawingManager, "polygoncomplete", (polygon: unknown) => {
         drawingManager.setDrawingMode(null);
         attachPolygon(polygon as GooglePolygon);
       });
@@ -318,7 +318,7 @@ export function DistributionAreaEditor({
         strokeColor: "#176b36",
         strokeWeight: 2,
       });
-      attachPolygon(polygon);
+      attachPolygon(polygon as unknown as GooglePolygon);
     });
     if (features.length === 0) {
       map.setCenter?.({ lat: 50.3569, lng: 7.589 });
@@ -392,7 +392,7 @@ export function DistributionAreaEditor({
       ) : (
         <div className="mapFallback">
           <strong>Google Maps Key fehlt.</strong>
-          <p>Fallback: Gebiete koennen als PLZ, Stadt, Ortsteil oder per GeoJSON gespeichert werden.</p>
+          <p>Fallback: Gebiete können als PLZ, Stadt, Ortsteil oder per GeoJSON gespeichert werden.</p>
           <textarea
             aria-label="GeoJSON Fallback"
             value={JSON.stringify(geoJson, null, 2)}

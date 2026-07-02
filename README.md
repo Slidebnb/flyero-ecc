@@ -1339,3 +1339,73 @@ Admin: `/api/admin/logistics`, `/api/admin/logistics/warehouses`, `/api/admin/lo
 Warehouse: `/api/warehouse/shipments`, `/api/warehouse/shipments/:id`, `/api/warehouse/transfers`, `/api/warehouse/transfers/:id`, `/api/warehouse/stock-counts`.
 
 Test: `npm run test:module23` prueft Multi-Lager-Seed, Regionen, Sendungen, beschaedigte/verspaetete Lieferungen, Umlagerungen, Inventur, Warehouse-Scope, Admin-Sicht, AuditLogs, Notifications und Analytics.
+
+## Modul 24: Next-Generation Order Experience, Smart Maps und Routing
+
+Modul 24 macht die Auftragserstellung UX-first: Der Kunde plant die Verteilung wie eine Kartenroute statt wie ein langes Formular.
+
+### Neuer Order Wizard
+
+- Route: `/customer/orders/new`
+- Desktop: linke kompakte Eingabe-/Schrittspalte, rechts große Kartenfläche.
+- Mobile: Karte bleibt fast vollflächig, die Eingaben liegen als Bottom-Sheet über der Karte.
+- Die bisherigen Pflichtfelder bleiben erhalten und werden über versteckte Formularfelder weiterhin an `/api/customer/orders` gesendet.
+- Businesslogik, Preisberechnung, Gebietsspeicherung, Lagerzuordnung und Stripe-Flow bleiben serverseitig bestehen.
+
+### Smart Maps
+
+- Autocomplete läuft über `/api/maps/autocomplete`.
+- Geocoding läuft über `/api/maps/geocode`.
+- Live-Kennzahlen laufen über `/api/maps/order-intelligence`.
+- Admin-Heatmap läuft über `/api/admin/maps/heatmap`.
+- Der Client ruft keine Google Places-/Geocoding-REST-APIs direkt auf; die Vorbereitung liegt in `src/lib/smartMaps.ts`.
+
+### Google APIs
+
+Vorbereitet sind:
+
+- Google Maps JavaScript API für die Kartenoberfläche.
+- Places Autocomplete über Server-Service/Fallback.
+- Geocoding API über Server-Service/Fallback.
+- Directions/Distance-Logik über `src/lib/routing.ts` als Fallback und spätere Google-Anbindung.
+- Route Optimization API ist architektonisch über `combineOrders()` und Clusterlogik vorbereitet.
+
+### Routing und Live-Berechnungen
+
+`src/lib/routing.ts` kapselt:
+
+- `calculateWalkingRoute()`
+- `calculateBestDistributor()`
+- `calculateDistributionTime()`
+- `calculateDistance()`
+- `clusterOrders()`
+- `combineOrders()`
+- `estimateFlyerTime()`
+- `estimateHouseholds()`
+- `scoreArea()`
+
+Die UI zeigt live Haushalte, Fläche, Flyer, Preis, Laufstrecke, Laufzeit, zuständiges Lager und Verteilerbedarf.
+
+### Analytics
+
+Das Modell `OrderExperienceEvent` erfasst UX-KPIs wie:
+
+- Zeit bis Auftrag erstellt
+- Wizard-Abbruchquote
+- beliebteste Gebiete und Städte
+- durchschnittliche Polygongröße
+- durchschnittliche Auftragsdauer
+- Nutzung gespeicherter Gebiete
+- Autocomplete-Nutzung
+
+Admin-Auswertung: `/admin/analytics`.
+
+### Modul-24-Test
+
+Smoke-Test:
+
+```bash
+npm run test:module24
+```
+
+Der Test prüft Autocomplete, PLZ-/Ort-/Adresssprung, Live-Preis, Haushalte, Flyer, Lager, Heatmap, Routing, Tourkombinationen, Analytics-Seed und Rendering der neuen Wizard-Seite.

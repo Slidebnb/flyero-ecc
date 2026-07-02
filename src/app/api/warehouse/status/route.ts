@@ -75,12 +75,12 @@ export async function PATCH(request: NextRequest) {
         userId: inventory.order.customer.userId,
         type: "WAREHOUSE_READY_FOR_PICKUP",
         title: "Abholbereit",
-        message: `Flyer fuer ${inventory.order.orderNumber} sind abholbereit.`,
+        message: `Flyer für ${inventory.order.orderNumber} sind abholbereit.`,
       });
     }
     await notifyAdmins({
       type: "WAREHOUSE_STATUS_CHANGED",
-      title: "Lagerstatus geaendert",
+      title: "Lagerstatus geändert",
       message: `${inventory.order.orderNumber}: ${inventory.status} -> ${updated.status}`,
     });
     if (request.headers.get("accept")?.includes("text/html")) {

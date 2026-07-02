@@ -180,7 +180,7 @@ export async function generatePdf(reportId: string) {
   const lines = [
     `${company.companyName} Verteilbericht`,
     `Berichtnummer: ${report.reportNumber}`,
-    `Pruefcode: ${report.verificationCode}`,
+    `Prüfcode: ${report.verificationCode}`,
     `Auftrag: ${customer.order.orderNumber}`,
     `Kunde: ${customer.order.customerCompany}`,
     `Gebiet: ${customer.order.area}, ${customer.order.city} ${customer.order.postalCode}`,
@@ -219,7 +219,7 @@ export async function createReportForTour(input: {
   template?: ReportTemplate;
 }) {
   const data = await collectReportData(input.tourId);
-  if (data.tour.status !== "APPROVED") throw new Error("Berichte koennen nur fuer freigegebene Touren erzeugt werden.");
+  if (data.tour.status !== "APPROVED") throw new Error("Berichte können nur für freigegebene Touren erzeugt werden.");
   const existing = await prisma.report.findUnique({ where: { tourId: input.tourId } });
   const now = new Date();
   let report: Awaited<ReturnType<typeof prisma.report.upsert>> | null = null;
@@ -278,13 +278,13 @@ export async function createReportForTour(input: {
   await createNotification({
     userId: data.customer.userId,
     type: "REPORT_AVAILABLE",
-    title: "Bericht verfuegbar",
+    title: "Bericht verfügbar",
     message: `Der Verteilbericht ${updated.reportNumber} wurde erzeugt.`,
   });
   await notifyAdmins({
     type: "REPORT_GENERATED",
     title: "Bericht generiert",
-    message: `${updated.reportNumber} fuer ${data.order.orderNumber} wurde erzeugt.`,
+    message: `${updated.reportNumber} für ${data.order.orderNumber} wurde erzeugt.`,
   });
   return updated;
 }
@@ -305,13 +305,13 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
   await createNotification({
     userId: report.customer.userId,
     type: "REPORT_PUBLISHED",
-    title: "Bericht veroeffentlicht",
-    message: `Der Verteilbericht ${report.reportNumber} ist verfuegbar.`,
+    title: "Bericht veröffentlicht",
+    message: `Der Verteilbericht ${report.reportNumber} ist verfügbar.`,
   });
   await notifyAdmins({
     type: "REPORT_PUBLISHED",
-    title: "Bericht veroeffentlicht",
-    message: `${report.reportNumber} fuer ${report.order.orderNumber} wurde veroeffentlicht.`,
+    title: "Bericht veröffentlicht",
+    message: `${report.reportNumber} für ${report.order.orderNumber} wurde veröffentlicht.`,
   });
   return report;
 }

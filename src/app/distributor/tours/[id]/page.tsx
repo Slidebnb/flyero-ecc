@@ -34,7 +34,7 @@ export default async function DistributorTourDetailPage({ params }: PageProps) {
           <h1>{tour.order.orderNumber}</h1>
           <span className="badge">{TOUR_STATUS_LABELS[tour.status]}</span>
         </div>
-        <Link className="textLink" href="/distributor/dashboard">Zurueck</Link>
+        <Link className="textLink" href="/distributor/dashboard">Zurück</Link>
       </header>
 
       <section className="mobileCard">

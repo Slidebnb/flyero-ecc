@@ -8,6 +8,7 @@ import {
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { formatCurrency } from "@/lib/format";
+import { getHeatmapData, getOrderExperienceAnalytics } from "@/lib/smartMaps";
 import { ActionPanel, DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
 
 type PageProps = {
@@ -76,9 +77,11 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
   const session = await requireRole([UserRole.ADMIN]);
   const params = await searchParams;
   const filters = parseAnalyticsFilters(params);
-  const [analytics, options] = await Promise.all([
+  const [analytics, options, orderExperience, heatmap] = await Promise.all([
     getBusinessOverview(filters),
     getAnalyticsFilterOptions(),
+    getOrderExperienceAnalytics(),
+    getHeatmapData(),
   ]);
   const exportQuery = queryString({
     from: dateInput(filters.from),
@@ -228,6 +231,42 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
         description={`${analytics.customers.recurringCustomers} wiederkehrende Kunden, ${analytics.customers.inactiveCustomers} inaktive Kunden.`}
       >
         <p className="muted">Wiederkehrend bedeutet mindestens zwei Aufträge im Filterzeitraum. Inaktiv bedeutet kein Auftrag in den letzten 90 Tagen.</p>
+      </DataSection>
+
+      <DataSection title="Modul 24: Order Experience" description="UX-KPIs aus Smart-Order-Wizard, Autocomplete, Gebietsnutzung und Karteninteraktion.">
+        <div className="analyticsKpiGrid">
+          <article><strong>{number(orderExperience.timeToOrderMs / 1000, " s")}</strong><span>Zeit bis Auftrag</span></article>
+          <article><strong>{orderExperience.abandonmentRate} %</strong><span>Wizard-Abbruchquote</span></article>
+          <article><strong>{number(orderExperience.averagePolygonSqm / 1_000_000, " km²")}</strong><span>ø Polygongröße</span></article>
+          <article><strong>{orderExperience.averageOrderDurationMinutes} min</strong><span>ø Auftragsdauer</span></article>
+          <article><strong>{orderExperience.savedAreaUsage}</strong><span>Gespeicherte Gebiete</span></article>
+          <article><strong>{orderExperience.autocompleteUsage}</strong><span>Autocomplete-Nutzung</span></article>
+        </div>
+        <div className="portalDashboardGrid" style={{ marginTop: 16 }}>
+          <div>
+            <h3 className="sectionTitle">Beliebteste Städte</h3>
+            <div className="analyticsList">
+              {orderExperience.popularCities.map((item) => <article key={item.city ?? "unknown"}><span>{item.city ?? "-"}</span><strong>{item.count}</strong></article>)}
+            </div>
+          </div>
+          <div>
+            <h3 className="sectionTitle">Beliebteste Gebiete</h3>
+            <div className="analyticsList">
+              {orderExperience.popularAreas.map((item) => <article key={item.areaName ?? "unknown"}><span>{item.areaName ?? "-"}</span><strong>{item.count}</strong></article>)}
+            </div>
+          </div>
+        </div>
+      </DataSection>
+
+      <DataSection title="Smart Maps Heatmap" description="Auslastung, laufende Kampagnen und freie Gebiete aus Auftragshistorie und Gebietsbibliothek.">
+        <div className="module24Heatmap">
+          {heatmap.load.slice(0, 18).map((item) => (
+            <article key={`${item.city}-${item.postalCode}-${item.status}`} style={{ opacity: 0.55 + item.intensity * 0.45 }}>
+              <strong>{item.postalCode} {item.city}</strong>
+              <span>{item.orders} Aufträge · {item.flyers} Flyer · {item.status}</span>
+            </article>
+          ))}
+        </div>
       </DataSection>
 
       <DataSection title="Verteilerleistung">

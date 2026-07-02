@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
+import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { requireRole } from "@/lib/auth";
 import {
   ORDER_STATUS_LABELS,
@@ -48,19 +49,12 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
   const customerShipment = order.logisticsShipments[0] ?? null;
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Auftragsdetails</p>
-          <h1>{order.orderNumber}</h1>
-          <span className="badge">{ORDER_STATUS_LABELS[order.status]}</span>
-        </div>
-        <nav className="nav">
-          <Link href="/customer/orders">Meine Aufträge</Link>
-          <Link href={`/customer/orders/${order.id}/documents`}>Dokumente</Link>
-          <Link href="/customer/orders/new">Neuer Auftrag</Link>
-        </nav>
-      </header>
+    <CustomerPortalShell active="/customer/orders" eyebrow="Auftragsdetails" title={order.orderNumber} description={ORDER_STATUS_LABELS[order.status]}>
+      <div className="customerActionRow">
+        <Link className="secondaryButton" href="/customer/orders">Meine Aufträge</Link>
+        <Link className="secondaryButton" href={`/customer/orders/${order.id}/documents`}>Dokumente</Link>
+        <Link className="primaryButton" href="/customer/orders/new">Neuer Auftrag</Link>
+      </div>
 
       <section className="gridCards">
         <article className="card">
@@ -88,7 +82,7 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
               <p className="eyebrow">Vorkasse</p>
               <h2 className="sectionTitle">Jetzt kostenpflichtig buchen</h2>
               <p className="muted">
-                Der Auftrag wird erst nach erfolgreicher Stripe-Zahlung an die Adminpruefung uebergeben.
+                Der Auftrag wird erst nach erfolgreicher Stripe-Zahlung an die Adminprüfung übergeben.
               </p>
             </div>
             <span className="badge warning">{ORDER_STATUS_LABELS[order.status]}</span>
@@ -164,9 +158,9 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
               <tr><th>Name</th><td>{order.distributionArea?.name ?? order.targetAreaName}</td></tr>
               <tr><th>Typ</th><td>{order.distributionArea?.type ?? "-"}</td></tr>
               <tr><th>Haushalte</th><td>{order.estimatedHouseholds ?? order.distributionArea?.estimatedHouseholds ?? "-"}</td></tr>
-              <tr><th>Flyer geschaetzt</th><td>{order.estimatedFlyers ?? order.distributionArea?.estimatedFlyers ?? "-"}</td></tr>
-              <tr><th>Flaeche</th><td>{order.coverageAreaSqm ? `${Number(order.coverageAreaSqm).toLocaleString("de-DE")} m²` : "-"}</td></tr>
-              <tr><th>Strecke geschaetzt</th><td>{order.estimatedDistanceMeters ? `${(order.estimatedDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : "-"}</td></tr>
+              <tr><th>Flyer geschätzt</th><td>{order.estimatedFlyers ?? order.distributionArea?.estimatedFlyers ?? "-"}</td></tr>
+              <tr><th>Fläche</th><td>{order.coverageAreaSqm ? `${Number(order.coverageAreaSqm).toLocaleString("de-DE")} m²` : "-"}</td></tr>
+              <tr><th>Strecke geschätzt</th><td>{order.estimatedDistanceMeters ? `${(order.estimatedDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : "-"}</td></tr>
             </tbody>
           </table>
         </div>
@@ -209,6 +203,6 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
           </table>
         </div>
       </section>
-    </main>
+    </CustomerPortalShell>
   );
 }

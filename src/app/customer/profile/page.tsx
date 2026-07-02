@@ -1,8 +1,9 @@
-import Link from "next/link";
 import { UserRole } from "@prisma/client";
+import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { ActionPanel, EmptyState } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
 import { asObject } from "@/lib/format";
+import { prisma } from "@/lib/prisma";
 
 export default async function CustomerProfilePage() {
   const session = await requireRole([UserRole.CUSTOMER]);
@@ -12,25 +13,19 @@ export default async function CustomerProfilePage() {
   });
 
   if (!profile) {
-    return <main className="appShell">Kundenprofil wurde nicht gefunden.</main>;
+    return (
+      <CustomerPortalShell active="/customer/profile" title="Profil" description="Kontodaten, Rechnungsadresse und Sicherheit verwalten.">
+        <EmptyState title="Kundenprofil wurde nicht gefunden." description="Bitte melden Sie sich erneut an oder kontaktieren Sie den Support." />
+      </CustomerPortalShell>
+    );
   }
 
   const billing = asObject(profile.billingAddress);
   const delivery = asObject(profile.deliveryAddress);
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Kundenportal</p>
-          <h1>Profil</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/customer/dashboard">Dashboard</Link>
-        </nav>
-      </header>
-
-      <section className="panel">
+    <CustomerPortalShell active="/customer/profile" title="Profil" description="Kontodaten, Rechnungsadresse und Sicherheit verwalten.">
+      <ActionPanel title="Kundendaten" description="Diese Daten werden für Aufträge, Rechnungen und Rückfragen verwendet.">
         <form action="/api/customer/profile" method="post" className="form grid">
           <label>
             Firma
@@ -98,7 +93,7 @@ export default async function CustomerProfilePage() {
           </label>
           <button type="submit">Profil speichern</button>
         </form>
-      </section>
-    </main>
+      </ActionPanel>
+    </CustomerPortalShell>
   );
 }

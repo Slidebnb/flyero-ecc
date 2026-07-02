@@ -480,6 +480,7 @@ model User {
   requestedTransfers WarehouseTransfer[] @relation("TransferRequestedBy")
   approvedTransfers  WarehouseTransfer[] @relation("TransferApprovedBy")
   stockCounts        WarehouseStockCount[] @relation("StockCountedBy")
+  orderExperienceEvents OrderExperienceEvent[]
 
   @@index([role, status])
   @@index([warehouseId])
@@ -521,6 +522,7 @@ model CustomerProfile {
   documents      Document[]
   printOrders    PrintOrder[]
   wonLeads       Lead[] @relation("WonLeads")
+  orderExperienceEvents OrderExperienceEvent[]
 
   @@index([companyName])
 }
@@ -632,6 +634,7 @@ model Order {
   dispatchAssignments DispatchAssignment[]
   autoDispatchRecommendations AutoDispatchRecommendation[]
   logisticsShipments LogisticsShipment[]
+  experienceEvents   OrderExperienceEvent[]
 
   @@index([customerId, status])
   @@index([distributionAreaId])
@@ -640,6 +643,42 @@ model Order {
   @@index([city])
   @@index([status, createdAt])
   @@index([serviceType])
+}
+
+model OrderExperienceEvent {
+  id             String   @id @default(cuid())
+  orderId        String?
+  customerId     String?
+  userId         String?
+  eventType      String
+  source         String   @default("order-wizard")
+  city           String?
+  postalCode     String?
+  areaName       String?
+  areaType       DistributionAreaType?
+  durationMs     Int?
+  clickCount     Int?
+  fieldCount     Int?
+  usedAutocomplete Boolean @default(false)
+  usedSavedArea  Boolean  @default(false)
+  polygonPoints  Int?
+  households     Int?
+  flyerQuantity  Int?
+  coverageAreaSqm Decimal? @db.Decimal(14, 2)
+  routeDistanceMeters Int?
+  routeDurationMinutes Int?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  order    Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customer CustomerProfile? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  user     User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([eventType, createdAt])
+  @@index([customerId, createdAt])
+  @@index([city, createdAt])
+  @@index([postalCode, createdAt])
+  @@index([orderId])
 }
 
 model DistributionArea {

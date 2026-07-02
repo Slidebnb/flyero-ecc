@@ -449,7 +449,7 @@ export async function createPrintOrder(actor: SessionUser, input: unknown) {
       recipientName: assigned.warehouse.name,
       recipientAddress: warehouseAddressJson(assigned.warehouse),
       expectedDeliveryDate: printOrder.estimatedDelivery,
-      notes: `Druckauftrag fuer ${printOrder.order.orderNumber}.`,
+      notes: `Druckauftrag für ${printOrder.order.orderNumber}.`,
     });
   }
   await prisma.order.update({ where: { id: order.id }, data: { needsPrintService: true, customerOwnFlyers: false } });

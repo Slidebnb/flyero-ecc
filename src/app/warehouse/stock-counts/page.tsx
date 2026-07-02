@@ -23,7 +23,7 @@ export default async function WarehouseStockCountsPage() {
   ]);
 
   return (
-    <PortalShell eyebrow="Lager" title="Inventur" description="Bestände zählen, Differenzen dokumentieren und spätere Klärung vorbereiten." navItems={[
+    <PortalShell eyebrow="Lager" title="Inventur" description="Bestände zählen, Differenzen dokumentieren und Klärungen zuverlässig vorbereiten." navItems={[
       { href: "/warehouse/dashboard", label: "Dashboard" },
       { href: "/warehouse/shipments", label: "Lieferungen" },
       { href: "/warehouse/transfers", label: "Umlagerungen" },

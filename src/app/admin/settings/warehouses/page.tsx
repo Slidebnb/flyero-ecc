@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
@@ -86,7 +86,7 @@ export default async function WarehouseSettingsPage() {
   const warehouses = await prisma.warehouse.findMany({ orderBy: [{ isDefault: "desc" }, { name: "asc" }] });
   return (
     <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Lager</h1></div><nav className="nav"><Link href="/admin/settings">Zurueck</Link></nav></header>
+      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Lager</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
       <section className="panel stack widePanel">
         <h2 className="sectionTitle">Lager anlegen</h2>
         <form action={createWarehouse} className="formGrid">
@@ -128,3 +128,4 @@ export default async function WarehouseSettingsPage() {
     </main>
   );
 }
+

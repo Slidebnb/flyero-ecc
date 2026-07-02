@@ -123,14 +123,14 @@ async function distributorSnapshot(distributor: DistributorWithUser, inventory: 
   const reasons: string[] = ["Verteiler ist freigegeben"];
   const warnings: string[] = [];
   if (preferredAreaMatch) reasons.push("Einsatzgebiet passt");
-  if (distributor.availableToday) reasons.push("Heute verfuegbar");
-  if (futureFlyers <= distributor.maxFlyersPerDay && futureTours <= distributor.maxToursPerDay) reasons.push("Kapazitaet frei");
+  if (distributor.availableToday) reasons.push("Heute verfügbar");
+  if (futureFlyers <= distributor.maxFlyersPerDay && futureTours <= distributor.maxToursPerDay) reasons.push("Kapazität frei");
   if (distanceKm <= 10) reasons.push("Kurze Distanz zum Lager/Gebiet");
   if (capacity.completedTours > 0) reasons.push(`${capacity.completedTours} abgeschlossene Touren`);
   if (!preferredAreaMatch) warnings.push("Einsatzgebiet nicht exakt in bevorzugten Gebieten");
-  if (!distributor.availableToday) warnings.push("Heute nicht verfuegbar");
-  if (futureFlyers > distributor.maxFlyersPerDay) warnings.push("Flyer-Kapazitaet ueberschritten");
-  if (futureTours > distributor.maxToursPerDay) warnings.push("Tour-Kapazitaet ueberschritten");
+  if (!distributor.availableToday) warnings.push("Heute nicht verfügbar");
+  if (futureFlyers > distributor.maxFlyersPerDay) warnings.push("Flyer-Kapazität überschritten");
+  if (futureTours > distributor.maxToursPerDay) warnings.push("Tour-Kapazität überschritten");
   if (distanceKm > distributor.serviceRadiusKm) warnings.push("Ausserhalb Service-Radius");
   if (rejectionRate >= 0.35) warnings.push("Hohe Ablehnungsrate");
   if (capacity.currentAssignedTours > 0) warnings.push("Bereits offene Touren");
@@ -279,8 +279,8 @@ export async function autoAssignRecommendedDistributor(input: { orderId: string;
     });
     await notifyAdmins({
       type: "DISPATCH_AUTO_ASSIGN_SKIPPED",
-      title: "Auto-Dispatch uebersprungen",
-      message: `Auto-Dispatch fuer Auftrag wurde uebersprungen. Mindestscore: ${system.autoDispatchMinScore}.`,
+      title: "Auto-Dispatch übersprungen",
+      message: `Auto-Dispatch für Auftrag wurde übersprungen. Mindestscore: ${system.autoDispatchMinScore}.`,
     });
     return { assigned: false, recommendation: best ?? null };
   }
@@ -332,7 +332,7 @@ export async function assignOrderToDistributor(input: {
   const inventory = await getReadyInventoryForOrder(input.orderId);
   if (!inventory) throw new Error("Auftrag hat keinen Lagerbestand.");
   if (inventory.status !== "READY_FOR_PICKUP") {
-    throw new Error("Nur abholbereite Auftraege koennen disponiert werden.");
+    throw new Error("Nur abholbereite Aufträge können disponiert werden.");
   }
   if (inventory.pickupStatus !== "PREPARED" && inventory.pickupStatus !== "RESERVED") {
     throw new Error("Der Lagerbestand muss vorbereitet sein, bevor er disponiert wird.");
@@ -433,8 +433,8 @@ export async function assignOrderToDistributor(input: {
   if (recommendation.capacityWarning) {
     await notifyAdmins({
       type: "DISPATCH_CAPACITY_EXCEEDED",
-      title: "Kapazitaet ueberschritten",
-      message: `${distributor.firstName} ${distributor.lastName}: Auftrag ${inventory.order.orderNumber} ueberschreitet die hinterlegte Kapazitaet.`,
+      title: "Kapazität überschritten",
+      message: `${distributor.firstName} ${distributor.lastName}: Auftrag ${inventory.order.orderNumber} überschreitet die hinterlegte Kapazität.`,
     });
   }
 
@@ -455,7 +455,7 @@ export async function acceptDispatchOrder(input: { orderId: string; distributorU
     throw new Error("Keine offene Dispatch-Anfrage gefunden.");
   }
   if (assignment.inventory?.reservedDistributorId && assignment.inventory.reservedDistributorId !== profile.id) {
-    throw new Error("Dieser Auftrag ist bereits fuer einen anderen Verteiler reserviert.");
+    throw new Error("Dieser Auftrag ist bereits für einen anderen Verteiler reserviert.");
   }
 
   const updated = await prisma.$transaction(async (tx) => {

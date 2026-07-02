@@ -46,7 +46,7 @@ export async function updateCompanySettings(data: Prisma.CompanySettingsUpdateIn
     oldValues: current,
     newValues: updated,
   });
-  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geaendert", message: "Firmeneinstellungen wurden aktualisiert." });
+  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geändert", message: "Firmeneinstellungen wurden aktualisiert." });
   return updated;
 }
 
@@ -76,7 +76,7 @@ export async function updateBrandingSettings(data: Prisma.BrandingSettingsUpdate
     oldValues: current,
     newValues: updated,
   });
-  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geaendert", message: "Branding wurde aktualisiert." });
+  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geändert", message: "Branding wurde aktualisiert." });
   return updated;
 }
 
@@ -103,7 +103,7 @@ export async function updateNumberingSettings(data: Prisma.NumberingSettingsUpda
     oldValues: current,
     newValues: updated,
   });
-  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geaendert", message: "Nummernkreise wurden aktualisiert." });
+  await notifyAdmins({ type: "SETTINGS_CHANGED", title: "Einstellungen geändert", message: "Nummernkreise wurden aktualisiert." });
   return updated;
 }
 
@@ -134,7 +134,7 @@ export async function getPricingSettings() {
 export async function ensureDefaultPricingSettings() {
   const system = await getSystemSettings();
   const defaults = [
-    [PRICING_SETTING_KEYS.vatRate, system.defaultVatRate, "Mehrwertsteuersatz fuer Auftragspreise."],
+    [PRICING_SETTING_KEYS.vatRate, system.defaultVatRate, "Mehrwertsteuersatz für Auftragspreise."],
     [PRICING_SETTING_KEYS.expressSurcharge, new Prisma.Decimal("49.00"), "Optionaler Expresszuschlag netto."],
     [PRICING_SETTING_KEYS.photoProofSurcharge, new Prisma.Decimal("19.00"), "Optionaler Foto-Nachweis-Zuschlag netto."],
     [PRICING_SETTING_KEYS.warehouseSurcharge, new Prisma.Decimal("0.00"), "Optionaler Lagerzuschlag netto."],
@@ -244,7 +244,7 @@ export async function setInternalUserStatus(input: { userId: string; status: Use
   if (!current) throw new Error("Benutzer wurde nicht gefunden.");
   const internalRoles: UserRole[] = [UserRole.ADMIN, UserRole.WAREHOUSE_STAFF, UserRole.SUPPORT_DISPATCHER];
   if (!internalRoles.includes(current.role)) {
-    throw new Error("Nur interne Benutzer koennen hier geaendert werden.");
+    throw new Error("Nur interne Benutzer können hier geändert werden.");
   }
   const updated = await prisma.user.update({ where: { id: input.userId }, data: { status: input.status } });
   await createAuditLog({

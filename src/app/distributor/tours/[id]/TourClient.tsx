@@ -110,15 +110,15 @@ export function TourClient({ tourId, qrCode, status }: Props) {
     try {
       await post(`/api/distributor/tours/${tourId}/pickup`, { qrCode: manualQr });
       setLocalStatus("PICKED_UP");
-      setMessage("Abholung bestaetigt.");
+      setMessage("Abholung bestätigt.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "QR-Code ungueltig.");
+      setMessage(error instanceof Error ? error.message : "QR-Code ungültig.");
     }
   }
 
   async function start() {
     if (!navigator.geolocation) {
-      setMessage("Standort ist auf diesem Geraet nicht verfuegbar.");
+      setMessage("Standort ist auf diesem Gerät nicht verfügbar.");
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -140,7 +140,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
           );
           setWatchId(id);
           setLocalStatus("STARTED");
-          setMessage("Tour gestartet. GPS laeuft.");
+          setMessage("Tour gestartet. GPS läuft.");
         } catch (error) {
           setMessage(error instanceof Error ? error.message : "Tourstart fehlgeschlagen.");
         }
@@ -170,7 +170,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-      setMessage("Kamera aktiv. Falls kein Scan erkannt wird, QR-Wert manuell einfuegen.");
+      setMessage("Kamera aktiv. Falls kein Scan erkannt wird, QR-Wert manuell einfügen.");
       const BarcodeDetectorCtor = (window as unknown as {
         BarcodeDetector?: new (options: { formats: string[] }) => {
           detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue?: string }>>;
@@ -185,7 +185,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
             const rawValue = codes[0]?.rawValue;
             if (rawValue) {
               setManualQr(rawValue);
-              setMessage("QR-Code erkannt. Abholung kann bestaetigt werden.");
+              setMessage("QR-Code erkannt. Abholung kann bestätigt werden.");
               streamRef.current?.getTracks().forEach((track) => track.stop());
               return;
             }
@@ -197,7 +197,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
         window.setTimeout(scan, 700);
       }
     } catch {
-      setMessage("Kamera konnte nicht geoeffnet werden.");
+      setMessage("Kamera konnte nicht geöffnet werden.");
     }
   }
 
@@ -226,7 +226,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
       });
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
       await flushBufferedPoints();
-      setMessage("Tour abgeschlossen und an Admin-Pruefung uebergeben.");
+      setMessage("Tour abgeschlossen und an Admin-Prüfung übergeben.");
       window.location.reload();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Tourabschluss fehlgeschlagen.");
@@ -259,13 +259,13 @@ export function TourClient({ tourId, qrCode, status }: Props) {
       <div className="mobileCard">
         <h2 className="sectionTitle">Abholung</h2>
         <video ref={videoRef} className="scannerVideo" playsInline muted />
-        <button type="button" onClick={openScanner}>Kamera fuer QR-Scan oeffnen</button>
+        <button type="button" onClick={openScanner}>Kamera für QR-Scan öffnen</button>
         <label>
           QR-Wert
           <textarea value={manualQr} onChange={(event) => setManualQr(event.target.value)} />
         </label>
         <button type="button" onClick={pickup} disabled={localStatus !== "ASSIGNED" && localStatus !== "READY"}>
-          Abholung bestaetigen
+          Abholung bestätigen
         </button>
       </div>
 
@@ -287,7 +287,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
       </div>
 
       <form className="mobileCard form" action={complete}>
-        <h2 className="sectionTitle">Tour abschliessen</h2>
+        <h2 className="sectionTitle">Tour abschließen</h2>
         <label>
           Restflyer
           <input name="remainingFlyers" type="number" min="0" required />
@@ -297,7 +297,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
           <textarea name="notes" />
         </label>
         <button type="submit" disabled={!["STARTED", "PAUSED", "RESUMED"].includes(localStatus)}>
-          Tour abschliessen
+          Tour abschließen
         </button>
       </form>
     </section>

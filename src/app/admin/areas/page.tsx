@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { DistributionAreaStatus, DistributionAreaType, UserRole } from "@prisma/client";
 import { DistributionAreaEditor } from "@/app/components/DistributionAreaEditor";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
@@ -75,7 +75,7 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
         </div>
         <nav className="nav">
           <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/orders">Auftraege</Link>
+          <Link href="/admin/orders">Aufträge</Link>
           <Link href="/admin/dispatch">Disposition</Link>
         </nav>
       </header>
@@ -152,7 +152,7 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
                   {AREA_TYPE_LABELS[area.type]} / {AREA_STATUS_LABELS[area.status]} / {area.city ?? "-"} {area.postalCode ?? ""}
                 </p>
               </div>
-              <span className="badge">{area.orders.length} Auftraege</span>
+              <span className="badge">{area.orders.length} Aufträge</span>
             </div>
             <DistributionAreaPreviewMap geoJson={area.geoJson} height={260} />
             <form action={`/api/areas/${area.id}`} method="post" className="form grid">
@@ -215,3 +215,4 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
     </main>
   );
 }
+

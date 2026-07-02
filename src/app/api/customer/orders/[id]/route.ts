@@ -171,7 +171,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     }
 
     if (order.status !== "DRAFT") {
-      return errorResponse("Nur Entwuerfe koennen geloescht werden.", 409);
+      return errorResponse("Nur Entwürfe können gelöscht werden.", 409);
     }
 
     await prisma.order.delete({ where: { id } });

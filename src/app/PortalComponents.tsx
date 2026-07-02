@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { FlyeroLogo } from "@/app/marketing";
 
 type PortalNavItem = {
   href: string;
@@ -32,10 +33,14 @@ export function PortalShell({
 }) {
   return (
     <main className="portalShell">
-      <PortalHeader eyebrow={eyebrow} title={title} description={description}>
+      <aside className="portalSidebar">
+        <FlyeroLogo dark />
         <PortalNav items={navItems} />
-      </PortalHeader>
-      <div className="portalContent">{children}</div>
+      </aside>
+      <section className="portalMain">
+        <PortalHeader eyebrow={eyebrow} title={title} description={description} />
+        <div className="portalContent">{children}</div>
+      </section>
     </main>
   );
 }

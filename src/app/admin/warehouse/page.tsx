@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { WAREHOUSE_INVENTORY_STATUS_LABELS } from "@/lib/constants";
@@ -26,8 +26,8 @@ export default async function AdminWarehousePage() {
         </div>
         <nav className="nav">
           <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/orders">Alle Auftraege</Link>
-          <Link href="/admin/distributors">Verteilerpruefung</Link>
+          <Link href="/admin/orders">Alle Aufträge</Link>
+          <Link href="/admin/distributors">Verteilerprüfung</Link>
         </nav>
       </header>
 
@@ -59,3 +59,6 @@ export default async function AdminWarehousePage() {
     </main>
   );
 }
+
+
+

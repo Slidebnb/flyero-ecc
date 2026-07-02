@@ -129,7 +129,7 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
   if (order.status !== "APPROVED") throw new Error("Rechnung kann erst nach Admin-Genehmigung erzeugt werden.");
   const payment = order.payments[0];
-  if (!payment) throw new Error("Keine erfolgreiche Zahlung fuer diesen Auftrag gefunden.");
+  if (!payment) throw new Error("Keine erfolgreiche Zahlung für diesen Auftrag gefunden.");
 
   const system = await getSystemSettings();
   const subtotalNet = order.manualPriceOverride ?? order.calculatedNetPrice;
@@ -200,13 +200,13 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
   await createNotification({
     userId: order.customer.userId,
     type: "INVOICE_AVAILABLE",
-    title: "Rechnung verfuegbar",
-    message: `Rechnung ${updated.invoiceNumber} fuer Auftrag ${order.orderNumber} ist verfuegbar.`,
+    title: "Rechnung verfügbar",
+    message: `Rechnung ${updated.invoiceNumber} für Auftrag ${order.orderNumber} ist verfügbar.`,
   });
   await notifyAdmins({
     type: "INVOICE_CREATED",
     title: "Rechnung erstellt",
-    message: `${updated.invoiceNumber} fuer ${order.orderNumber} wurde erstellt.`,
+    message: `${updated.invoiceNumber} für ${order.orderNumber} wurde erstellt.`,
   });
   return updated;
 }

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     });
     if (!order) return errorResponse("Auftrag wurde nicht gefunden.", 404);
     if (order.status !== "APPROVED" && order.status !== "READY_FOR_FLYERS" && order.status !== "FLYERS_EXPECTED") {
-      return errorResponse("Nur genehmigte Auftraege duerfen in den Lagerprozess.", 409);
+      return errorResponse("Nur genehmigte Aufträge dürfen in den Lagerprozess.", 409);
     }
     const inventory = await ensureInventoryForApprovedOrder({
       orderId: data.orderId,
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
       userId: order.customer.userId,
       type: "WAREHOUSE_RECEIVED",
       title: "Flyer angekommen",
-      message: `Flyer fuer ${order.orderNumber} sind im Lager angekommen.`,
+      message: `Flyer für ${order.orderNumber} sind im Lager angekommen.`,
     });
     await notifyAdmins({
       type: "WAREHOUSE_RECEIVED",

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
+import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -13,38 +15,34 @@ export default async function CustomerReportsPage() {
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Kundenportal</p>
-          <h1>Verteilberichte</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/customer/dashboard">Dashboard</Link>
-          <Link href="/customer/orders">Meine Auftraege</Link>
-        </nav>
-      </header>
-      <section className="panel stack widePanel">
-        <div className="tableWrap">
+    <CustomerPortalShell active="/customer/reports" title="Berichte" description="Verteilnachweise, PDFs und geprüfte Ergebnisse Ihrer Kampagnen.">
+      <section className="portalMetrics">
+        <MetricTile label="Berichte" value={reports.length} />
+        <MetricTile label="Veröffentlicht" value={reports.filter((report) => report.status === "PUBLISHED").length} tone="success" />
+        <MetricTile label="PDFs" value={reports.filter((report) => report.pdfUrl).length} />
+        <MetricTile label="Letztes Update" value={reports[0] ? formatDateTime(reports[0].updatedAt).slice(0, 10) : "-"} />
+      </section>
+
+      <DataSection title="Verteilberichte">
+        <div className="tableWrap customerTable">
           <table>
-            <thead><tr><th>Bericht</th><th>Auftrag</th><th>Status</th><th>Gebiet</th><th>PDF</th><th></th></tr></thead>
+            <thead><tr><th>Bericht</th><th>Auftrag</th><th>Status</th><th>Gebiet</th><th>PDF</th><th>Aktion</th></tr></thead>
             <tbody>
               {reports.map((report) => (
                 <tr key={report.id}>
-                  <td>{report.reportNumber}</td>
-                  <td>{report.order.orderNumber}</td>
-                  <td><span className="badge success">{report.status}</span></td>
-                  <td>{report.order.targetAreaName}</td>
-                  <td>{report.pdfUrl ? <a className="textLink" href={`/api/customer/reports/${report.id}/download`}>Download</a> : "-"}</td>
-                  <td><Link className="textLink" href={`/customer/reports/${report.id}`}>Ansehen</Link></td>
+                  <td data-label="Bericht"><strong>{report.reportNumber}</strong></td>
+                  <td data-label="Auftrag">{report.order.orderNumber}</td>
+                  <td data-label="Status"><StatusBadge tone="success">{report.status}</StatusBadge></td>
+                  <td data-label="Gebiet">{report.order.targetAreaName}</td>
+                  <td data-label="PDF">{report.pdfUrl ? <a className="textLink" href={`/api/customer/reports/${report.id}/download`}>Download</a> : "-"}</td>
+                  <td data-label="Aktion"><Link className="textLink" href={`/customer/reports/${report.id}`}>Ansehen</Link></td>
                 </tr>
               ))}
-              {reports.length === 0 ? <tr><td colSpan={6}>Noch keine Verteilberichte verfuegbar.</td></tr> : null}
+              {reports.length === 0 ? <tr><td colSpan={6}><EmptyState title="Noch keine Verteilberichte verfügbar." /></td></tr> : null}
             </tbody>
           </table>
         </div>
-        <p className="muted">Zuletzt aktualisiert: {formatDateTime(reports[0]?.updatedAt)}</p>
-      </section>
-    </main>
+      </DataSection>
+    </CustomerPortalShell>
   );
 }

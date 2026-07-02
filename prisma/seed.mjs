@@ -15,7 +15,7 @@ const reportOutputDir = path.join(process.cwd(), "public", "generated", "reports
 const invoiceOutputDir = path.join(process.cwd(), "public", "generated", "invoices");
 
 function buildSeedPdf(reportNumber, orderNumber) {
-  const text = `BT /F1 18 Tf 50 790 Td (Flyero Verteilbericht) Tj 0 -28 Td (${reportNumber}) Tj 0 -28 Td (Auftrag ${orderNumber}) Tj 0 -28 Td (Seed-PDF fuer Modul 9) Tj ET`;
+  const text = `BT /F1 18 Tf 50 790 Td (Flyero Verteilbericht) Tj 0 -28 Td (${reportNumber}) Tj 0 -28 Td (Auftrag ${orderNumber}) Tj 0 -28 Td (Seed-PDF für Modul 9) Tj ET`;
   const objects = [
     "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
     "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
@@ -64,7 +64,7 @@ async function ensurePricing() {
     create: {
       key: "vat_rate",
       valueDecimal: new Prisma.Decimal("0.19"),
-      description: "Mehrwertsteuersatz fuer Auftragspreise.",
+      description: "Mehrwertsteuersatz für Auftragspreise.",
     },
   });
 
@@ -267,10 +267,10 @@ const distributorSeed = [
   {
     email: "verteiler.approved3@example.com",
     firstName: "Nadine",
-    lastName: "Krueger",
+    lastName: "Krüger",
     city: "Koblenz",
     status: "APPROVED",
-    areas: ["Koblenz", "Muelheim-Kaerlich", "Urmitz"],
+    areas: ["Koblenz", "Mülheim-Kärlich", "Urmitz"],
     maxToursPerDay: 4,
     maxFlyersPerDay: 12000,
     availableToday: true,
@@ -501,7 +501,7 @@ const warehouse = await prisma.warehouse.upsert({
     longitude: new Prisma.Decimal("7.5890"),
     capacityLimit: 250000,
     currentUtilization: 42000,
-    notes: "Zentrales Demo-Lager fuer Koblenz und Umgebung.",
+    notes: "Zentrales Demo-Lager für Koblenz und Umgebung.",
     isActive: true,
     isDefault: true,
     openingHours: "Mo-Fr 08:00-17:00",
@@ -528,7 +528,7 @@ const warehouse = await prisma.warehouse.upsert({
     longitude: new Prisma.Decimal("7.5890"),
     capacityLimit: 250000,
     currentUtilization: 42000,
-    notes: "Zentrales Demo-Lager fuer Koblenz und Umgebung.",
+    notes: "Zentrales Demo-Lager für Koblenz und Umgebung.",
     isActive: true,
     isDefault: true,
     openingHours: "Mo-Fr 08:00-17:00",
@@ -548,7 +548,7 @@ await prisma.warehouse.upsert({
     longitude: new Prisma.Decimal("7.4614"),
     capacityLimit: 90000,
     currentUtilization: 18000,
-    notes: "Sekundaeres Demo-Lager fuer Rhein-Wied.",
+    notes: "Sekundaeres Demo-Lager für Rhein-Wied.",
     isActive: true,
     isDefault: false,
     openingHours: "Mo, Mi, Fr 09:00-15:00",
@@ -575,7 +575,7 @@ await prisma.warehouse.upsert({
     longitude: new Prisma.Decimal("7.4614"),
     capacityLimit: 90000,
     currentUtilization: 18000,
-    notes: "Sekundaeres Demo-Lager fuer Rhein-Wied.",
+    notes: "Sekundaeres Demo-Lager für Rhein-Wied.",
     isActive: true,
     isDefault: false,
     openingHours: "Mo, Mi, Fr 09:00-15:00",
@@ -729,7 +729,7 @@ for (const item of module23WarehouseSeed) {
       currentUtilization: item.currentUtilization,
       isActive: item.isActive ?? true,
       isDefault: false,
-      notes: "Modul 23 Demo-Standort fuer Multi-Lager-Logistik.",
+      notes: "Modul 23 Demo-Standort für Multi-Lager-Logistik.",
     },
     create: {
       id: item.id,
@@ -756,7 +756,7 @@ for (const item of module23WarehouseSeed) {
       contactPerson: `Team ${item.city}`,
       contactPhone: "+49 261 1000099",
       contactEmail: `${item.code.toLowerCase()}@flyero.de`,
-      notes: "Modul 23 Demo-Standort fuer Multi-Lager-Logistik.",
+      notes: "Modul 23 Demo-Standort für Multi-Lager-Logistik.",
     },
   });
   await prisma.warehouseRegion.upsert({
@@ -807,7 +807,7 @@ const orderSeed = [
   ["DEMO-ORD-0004", "Lahnstein", "56112", "Oberlahnstein", 10500, "READY_FOR_FLYERS"],
   ["DEMO-ORD-0005", "Andernach", "56626", "Suedstadt", 2200, "WAITING_FOR_CUSTOMER"],
   ["DEMO-ORD-0006", "Vallendar", "56179", "Rheinufer", 900, "REJECTED"],
-  ["DEMO-ORD-0007", "Muelheim-Kaerlich", "56218", "Gewerbegebiet", 6000, "CANCELLED"],
+  ["DEMO-ORD-0007", "Mülheim-Kärlich", "56218", "Gewerbegebiet", 6000, "CANCELLED"],
   ["DEMO-ORD-0008", "Urmitz", "56220", "Urmitz Bahnhof", 4200, "SUBMITTED"],
   ["DEMO-ORD-0009", "Weissenthurm", "56575", "Weissenthurm Mitte", 9800, "UNDER_REVIEW"],
   ["DEMO-ORD-0010", "Plaidt", "56637", "Plaidt Nord", 12500, "APPROVED"],
@@ -848,7 +848,7 @@ for (let index = 0; index < orderSeed.length; index += 1) {
       preferredStartDate: start,
       preferredEndDate: end,
       flexibleScheduling: index % 2 === 0,
-      notes: "Demoauftrag fuer Modul 3.",
+      notes: "Demoauftrag für Modul 3.",
       contactPerson: customer.contactName,
       contactPhone: customer.phone,
       calculatedNetPrice: price.net,
@@ -918,7 +918,7 @@ for (let index = 0; index < paymentOrders.length; index += 1) {
         fromStatus: order.status,
         toStatus: orderStatus,
         changedBy: admin.id,
-        note: "Seed-Zahlungsstatus fuer Modul 10.",
+        note: "Seed-Zahlungsstatus für Modul 10.",
       },
     });
   }
@@ -984,7 +984,7 @@ for (let index = 0; index < paymentOrders.length; index += 1) {
           status: "SUCCEEDED",
           amount: refundType === "PARTIAL" ? amount.div(2).toDecimalPlaces(2) : amount,
           currency: "EUR",
-          reason: "Seed-Refund fuer Modul 10.",
+          reason: "Seed-Refund für Modul 10.",
           stripeRefundId: `re_seed_${String(index + 1).padStart(4, "0")}`,
           requestedById: admin.id,
           processedAt: new Date(),
@@ -1033,7 +1033,7 @@ await prisma.notification.createMany({
       userId: admin.id,
       type: "PAYMENT_COMPLETED",
       title: "Neue bezahlte Bestellung",
-      message: "Seed: bezahlter Auftrag wartet auf Pruefung.",
+      message: "Seed: bezahlter Auftrag wartet auf Prüfung.",
     },
     {
       userId: admin.id,
@@ -1077,7 +1077,7 @@ for (let index = 0; index < invoicePayments.length; index += 1) {
       amountNet: subtotalNet,
       amountGross: totalGross,
       pdfUrl: pdf.pdfUrl,
-      notes: "Seed-Rechnung fuer Modul 11.",
+      notes: "Seed-Rechnung für Modul 11.",
     },
     create: {
       orderId: payment.orderId,
@@ -1097,7 +1097,7 @@ for (let index = 0; index < invoicePayments.length; index += 1) {
       amountNet: subtotalNet,
       amountGross: totalGross,
       pdfUrl: pdf.pdfUrl,
-      notes: "Seed-Rechnung fuer Modul 11.",
+      notes: "Seed-Rechnung für Modul 11.",
     },
   });
   const existingItem = await prisma.invoiceItem.findFirst({ where: { invoiceId: invoice.id } });
@@ -1152,8 +1152,8 @@ await prisma.notification.createMany({
     {
       userId: customers[0].userId,
       type: "INVOICE_AVAILABLE",
-      title: "Rechnung verfuegbar",
-      message: "Seed-Rechnung ist im Kundenportal verfuegbar.",
+      title: "Rechnung verfügbar",
+      message: "Seed-Rechnung ist im Kundenportal verfügbar.",
     },
     {
       userId: admin.id,
@@ -1177,7 +1177,7 @@ const warehouseOrderSeed = [
   ["DEMO-WH-0004", "Lahnstein", "56112", "Oberlahnstein Lagerroute", 7600, "FLYERS_RECEIVED", "FLYERS_RECEIVED", "NOT_RELEVANT"],
   ["DEMO-WH-0005", "Andernach", "56626", "Suedstadt Lagerroute", 4200, "STORED", "STORED", "NOT_RELEVANT"],
   ["DEMO-WH-0006", "Vallendar", "56179", "Rheinufer Lagerroute", 1800, "STORED", "STORED", "RESTBESTAND"],
-  ["DEMO-WH-0007", "Muelheim-Kaerlich", "56218", "Gewerbegebiet Lagerroute", 6200, "READY_FOR_PICKUP", "READY_FOR_PICKUP", "NOT_RELEVANT"],
+  ["DEMO-WH-0007", "Mülheim-Kärlich", "56218", "Gewerbegebiet Lagerroute", 6200, "READY_FOR_PICKUP", "READY_FOR_PICKUP", "NOT_RELEVANT"],
   ["DEMO-WH-0008", "Urmitz", "56220", "Bahnhof Lagerroute", 2900, "READY_FOR_PICKUP", "READY_FOR_PICKUP", "RESTBESTAND"],
   ["DEMO-WH-0009", "Weissenthurm", "56575", "Mitte Lagerroute", 8800, "STORED", "STORED", "ENTSORGT"],
   ["DEMO-WH-0010", "Plaidt", "56637", "Nord Lagerroute", 11300, "READY_FOR_PICKUP", "READY_FOR_PICKUP", "RUECKVERSAND"],
@@ -1221,7 +1221,7 @@ for (let index = 0; index < warehouseOrderSeed.length; index += 1) {
       preferredStartDate: start,
       preferredEndDate: end,
       flexibleScheduling: index % 2 === 0,
-      notes: "Demoauftrag fuer Modul 4 Lagerverwaltung.",
+      notes: "Demoauftrag für Modul 4 Lagerverwaltung.",
       contactPerson: customer.contactName,
       contactPhone: customer.phone,
       calculatedNetPrice: price.net,
@@ -1251,7 +1251,7 @@ for (let index = 0; index < warehouseOrderSeed.length; index += 1) {
       pickupStatus: inventoryStatus === "READY_FOR_PICKUP" ? "PREPARED" : "NOT_PREPARED",
       preparedAt,
       receivedAt: inventoryStatus === "FLYERS_EXPECTED" ? null : new Date(),
-      notes: "Seed-Lagerbestand fuer Modul 4.",
+      notes: "Seed-Lagerbestand für Modul 4.",
     },
     create: {
       orderId: order.id,
@@ -1268,7 +1268,7 @@ for (let index = 0; index < warehouseOrderSeed.length; index += 1) {
       pickupStatus: inventoryStatus === "READY_FOR_PICKUP" ? "PREPARED" : "NOT_PREPARED",
       preparedAt,
       receivedAt: inventoryStatus === "FLYERS_EXPECTED" ? null : new Date(),
-      notes: "Seed-Lagerbestand fuer Modul 4.",
+      notes: "Seed-Lagerbestand für Modul 4.",
     },
   });
 
@@ -1495,8 +1495,8 @@ for (let index = 0; index < module6Inventory.length; index += 1) {
       totalDistanceMeters: index === 2 ? 18000 : 2600 + index * 400,
       totalDurationSeconds: 3000,
       remainingFlyers: index === 0 ? 0 : 120,
-      distributorNotes: "Seed-Tour fuer Modul 6.",
-      adminInternalNote: route.status === "REJECTED" ? "Geschwindigkeit unrealistisch." : "Seed-Pruefung.",
+      distributorNotes: "Seed-Tour für Modul 6.",
+      adminInternalNote: route.status === "REJECTED" ? "Geschwindigkeit unrealistisch." : "Seed-Prüfung.",
       adminCustomerMessage: route.reportStatus ? "Verteilung geprueft und freigegeben." : null,
       reviewedAt: new Date(),
       reviewedBy: admin.id,
@@ -1516,8 +1516,8 @@ for (let index = 0; index < module6Inventory.length; index += 1) {
       totalDistanceMeters: index === 2 ? 18000 : 2600 + index * 400,
       totalDurationSeconds: 3000,
       remainingFlyers: index === 0 ? 0 : 120,
-      distributorNotes: "Seed-Tour fuer Modul 6.",
-      adminInternalNote: route.status === "REJECTED" ? "Geschwindigkeit unrealistisch." : "Seed-Pruefung.",
+      distributorNotes: "Seed-Tour für Modul 6.",
+      adminInternalNote: route.status === "REJECTED" ? "Geschwindigkeit unrealistisch." : "Seed-Prüfung.",
       adminCustomerMessage: route.reportStatus ? "Verteilung geprueft und freigegeben." : null,
       reviewedAt: new Date(),
       reviewedBy: admin.id,
@@ -1624,7 +1624,7 @@ for (let index = 0; index < module6Inventory.length; index += 1) {
         userId: inventory.order.customerId ? (await prisma.customerProfile.findUnique({ where: { id: inventory.order.customerId } }))?.userId ?? admin.id : admin.id,
         type: route.reportStatus === "PUBLISHED" ? "REPORT_PUBLISHED" : "REPORT_AVAILABLE",
         title: route.reportStatus === "PUBLISHED" ? "Bericht veroeffentlicht" : "Bericht vorbereitet",
-        message: `Seed-Bericht ${reportNumber} fuer ${inventory.order.orderNumber}.`,
+        message: `Seed-Bericht ${reportNumber} für ${inventory.order.orderNumber}.`,
       },
     });
   }
@@ -1651,7 +1651,7 @@ const dispatchOrderSeed = [
   ["DEMO-DISP-0004", "Lahnstein", "56112", "Innenstadt Sued", 2100],
   ["DEMO-DISP-0005", "Andernach", "56626", "Andernach Mitte", 4800],
   ["DEMO-DISP-0006", "Vallendar", "56179", "Uni-Umfeld", 5800],
-  ["DEMO-DISP-0007", "Muelheim-Kaerlich", "56218", "Industriepark", 9300],
+  ["DEMO-DISP-0007", "Mülheim-Kärlich", "56218", "Industriepark", 9300],
   ["DEMO-DISP-0008", "Urmitz", "56220", "Rheinstrasse", 3100],
 ];
 
@@ -1691,7 +1691,7 @@ for (let index = 0; index < dispatchOrderSeed.length; index += 1) {
       preferredStartDate: start,
       preferredEndDate: end,
       flexibleScheduling: true,
-      notes: "Demoauftrag fuer Modul 7 Disposition.",
+      notes: "Demoauftrag für Modul 7 Disposition.",
       contactPerson: customer.contactName,
       contactPhone: customer.phone,
       calculatedNetPrice: price.net,
@@ -1729,7 +1729,7 @@ for (let index = 0; index < dispatchOrderSeed.length; index += 1) {
       pickupStatus: "PREPARED",
       preparedAt: new Date(),
       receivedAt: new Date(),
-      notes: "Seed-Lagerbestand fuer Modul 7.",
+      notes: "Seed-Lagerbestand für Modul 7.",
     },
   });
   const qrCode = JSON.stringify({ orderNumber: order.orderNumber, warehouseId: warehouse.id, inventoryId: inventory.id });
@@ -1890,8 +1890,8 @@ await prisma.notification.createMany({
     {
       userId: admin.id,
       type: "DISPATCH_CAPACITY_EXCEEDED",
-      title: "Kapazitaet ueberschritten",
-      message: `${dispatchDistributorC.firstName} ${dispatchDistributorC.lastName}: Seed-Auftrag ueberschreitet die Kapazitaet.`,
+      title: "Kapazität überschritten",
+      message: `${dispatchDistributorC.firstName} ${dispatchDistributorC.lastName}: Seed-Auftrag überschreitet die Kapazität.`,
     },
   ],
 });
@@ -1918,16 +1918,16 @@ for (let orderIndex = 0; orderIndex < recommendationOrders.length; orderIndex +=
       update: {
         score,
         status,
-        reasons: ["Seed: freigegeben", distributorIndex === 0 ? "Seed: Einsatzgebiet passt" : "Seed: Kapazitaet verfuegbar"],
-        warnings: distributorIndex === 2 ? ["Seed: Kapazitaetswarnung", "Seed: offene Touren"] : [],
+        reasons: ["Seed: freigegeben", distributorIndex === 0 ? "Seed: Einsatzgebiet passt" : "Seed: Kapazität verfügbar"],
+        warnings: distributorIndex === 2 ? ["Seed: Kapazitätswarnung", "Seed: offene Touren"] : [],
       },
       create: {
         orderId: inventory.orderId,
         distributorId: distributor.id,
         score,
         status,
-        reasons: ["Seed: freigegeben", distributorIndex === 0 ? "Seed: Einsatzgebiet passt" : "Seed: Kapazitaet verfuegbar"],
-        warnings: distributorIndex === 2 ? ["Seed: Kapazitaetswarnung", "Seed: offene Touren"] : [],
+        reasons: ["Seed: freigegeben", distributorIndex === 0 ? "Seed: Einsatzgebiet passt" : "Seed: Kapazität verfügbar"],
+        warnings: distributorIndex === 2 ? ["Seed: Kapazitätswarnung", "Seed: offene Touren"] : [],
       },
     });
   }
@@ -1971,8 +1971,8 @@ await prisma.notification.createMany({
     {
       userId: admin.id,
       type: "DISPATCH_AUTO_ASSIGN_SKIPPED",
-      title: "Auto-Dispatch uebersprungen",
-      message: "Seed: Auto-Dispatch wurde wegen MinScore uebersprungen.",
+      title: "Auto-Dispatch übersprungen",
+      message: "Seed: Auto-Dispatch wurde wegen MinScore übersprungen.",
     },
     {
       userId: dispatchDistributorA.userId,
@@ -2023,7 +2023,7 @@ const areaSeed = [
   ["Andernach Mitte", "DISTRICT", "Andernach", "56626", "Mitte", 3900, 4212, 9100, 50.438, 7.401, 980],
   ["Lahnstein Oberlahnstein", "DISTRICT", "Lahnstein", "56112", "Oberlahnstein", 2800, 3024, 7600, 50.300, 7.607, 820],
   ["Vallendar Rheinufer", "POLYGON", "Vallendar", "56179", "Rheinufer", 1200, 1296, 3600, 50.398, 7.615, 650],
-  ["Muelheim-Kaerlich Gewerbegebiet", "POLYGON", "Muelheim-Kaerlich", "56218", "Gewerbegebiet", 900, 972, 5200, 50.386, 7.492, 900],
+  ["Mülheim-Kärlich Gewerbegebiet", "POLYGON", "Mülheim-Kärlich", "56218", "Gewerbegebiet", 900, 972, 5200, 50.386, 7.492, 900],
   ["Urmitz Bahnhof", "POLYGON", "Urmitz", "56220", "Bahnhof", 1100, 1188, 3300, 50.417, 7.518, 650],
   ["Weissenthurm Mitte", "CITY", "Weissenthurm", "56575", null, 2400, 2592, 6800, 50.417, 7.462, 850],
   ["Plaidt Nord", "DISTRICT", "Plaidt", "56637", "Nord", 1700, 1836, 4500, 50.395, 7.390, 700],
@@ -2236,7 +2236,7 @@ await prisma.notification.createMany({
       userId: admin.id,
       type: "PRICING_CHANGED",
       title: "Preisregel geaendert",
-      message: "Seed: Preisregeln fuer Modul 12 sind aktiv.",
+      message: "Seed: Preisregeln für Modul 12 sind aktiv.",
     },
     {
       userId: admin.id,
@@ -2340,32 +2340,32 @@ await prisma.notification.createMany({
       userId: admin.id,
       type: "ACCOUNTING_EXPORT_FAILED",
       title: "Export fehlgeschlagen",
-      message: "Seed: Beispiel fuer fehlgeschlagenen Buchhaltungsexport.",
+      message: "Seed: Beispiel für fehlgeschlagenen Buchhaltungsexport.",
     },
   ],
 });
 
 const module15Templates = [
-  ["CUSTOMER_REGISTERED", "CUSTOMER", "Kunde Registrierung", "Willkommen bei Flyero, {{customerName}}", "Hallo {{customerName}}, dein Konto fuer {{companyName}} wurde erstellt. Dein Dashboard: {{dashboardUrl}}"],
+  ["CUSTOMER_REGISTERED", "CUSTOMER", "Kunde Registrierung", "Willkommen bei Flyero, {{customerName}}", "Hallo {{customerName}}, dein Konto für {{companyName}} wurde erstellt. Dein Dashboard: {{dashboardUrl}}"],
   ["CUSTOMER_VERIFY_EMAIL", "CUSTOMER", "Kunde E-Mail bestaetigen", "Bitte bestaetige deine E-Mail", "Hallo {{customerName}}, bestaetige deine E-Mail und oeffne danach {{dashboardUrl}}."],
   ["CUSTOMER_ORDER_CREATED", "CUSTOMER", "Auftrag erstellt", "Auftrag {{orderNumber}} wurde erstellt", "Hallo {{customerName}}, dein Auftrag {{orderNumber}} wurde angelegt."],
-  ["CUSTOMER_PAYMENT_SUCCESS", "CUSTOMER", "Zahlung erfolgreich", "Zahlung fuer {{orderNumber}} erhalten", "Wir haben {{paymentAmount}} fuer Auftrag {{orderNumber}} erhalten."],
-  ["CUSTOMER_PAYMENT_FAILED", "CUSTOMER", "Zahlung fehlgeschlagen", "Zahlung fuer {{orderNumber}} fehlgeschlagen", "Bitte pruefe deine Zahlung fuer Auftrag {{orderNumber}} im Dashboard {{dashboardUrl}}."],
+  ["CUSTOMER_PAYMENT_SUCCESS", "CUSTOMER", "Zahlung erfolgreich", "Zahlung für {{orderNumber}} erhalten", "Wir haben {{paymentAmount}} für Auftrag {{orderNumber}} erhalten."],
+  ["CUSTOMER_PAYMENT_FAILED", "CUSTOMER", "Zahlung fehlgeschlagen", "Zahlung für {{orderNumber}} fehlgeschlagen", "Bitte prüfe deine Zahlung für Auftrag {{orderNumber}} im Dashboard {{dashboardUrl}}."],
   ["CUSTOMER_ORDER_APPROVED", "CUSTOMER", "Auftrag genehmigt", "Auftrag {{orderNumber}} wurde genehmigt", "Dein Auftrag {{orderNumber}} wurde genehmigt. Tracking: {{trackingUrl}}"],
   ["CUSTOMER_ORDER_REJECTED", "CUSTOMER", "Auftrag abgelehnt", "Rueckfrage zu Auftrag {{orderNumber}}", "Zu Auftrag {{orderNumber}} gibt es eine Rueckfrage. Support: {{supportEmail}}"],
-  ["CUSTOMER_SEND_FLYERS", "CUSTOMER", "Flyer einsenden", "Flyer fuer {{orderNumber}} einsenden", "Bitte sende die Flyer fuer Auftrag {{orderNumber}} an unser Lager."],
-  ["CUSTOMER_REPORT_AVAILABLE", "CUSTOMER", "Bericht verfuegbar", "Bericht {{reportNumber}} ist verfuegbar", "Der Bericht {{reportNumber}} fuer Auftrag {{orderNumber}} ist im Dashboard verfuegbar."],
-  ["CUSTOMER_INVOICE_AVAILABLE", "CUSTOMER", "Rechnung verfuegbar", "Rechnung {{invoiceNumber}} ist verfuegbar", "Deine Rechnung {{invoiceNumber}} steht im Dashboard {{dashboardUrl}} bereit."],
+  ["CUSTOMER_SEND_FLYERS", "CUSTOMER", "Flyer einsenden", "Flyer für {{orderNumber}} einsenden", "Bitte sende die Flyer für Auftrag {{orderNumber}} an unser Lager."],
+  ["CUSTOMER_REPORT_AVAILABLE", "CUSTOMER", "Bericht verfügbar", "Bericht {{reportNumber}} ist verfügbar", "Der Bericht {{reportNumber}} für Auftrag {{orderNumber}} ist im Dashboard verfügbar."],
+  ["CUSTOMER_INVOICE_AVAILABLE", "CUSTOMER", "Rechnung verfügbar", "Rechnung {{invoiceNumber}} ist verfügbar", "Deine Rechnung {{invoiceNumber}} steht im Dashboard {{dashboardUrl}} bereit."],
   ["DISTRIBUTOR_REGISTERED", "DISTRIBUTOR", "Verteiler Registrierung", "Willkommen bei Flyero", "Hallo {{customerName}}, dein Verteilerprofil wurde registriert."],
   ["DISTRIBUTOR_APPROVED", "DISTRIBUTOR", "Verteiler Freigabe", "Dein Profil wurde freigegeben", "Du kannst jetzt Touren im Dashboard {{dashboardUrl}} annehmen."],
-  ["DISTRIBUTOR_NEW_TOUR", "DISTRIBUTOR", "Neue Tour", "Neue Tour fuer Auftrag {{orderNumber}}", "Eine neue Tour fuer Auftrag {{orderNumber}} wartet auf dich."],
-  ["DISTRIBUTOR_TOUR_CHANGED", "DISTRIBUTOR", "Tour geaendert", "Tour zu {{orderNumber}} wurde geaendert", "Bitte pruefe die aktualisierte Tour im Dashboard {{dashboardUrl}}."],
+  ["DISTRIBUTOR_NEW_TOUR", "DISTRIBUTOR", "Neue Tour", "Neue Tour für Auftrag {{orderNumber}}", "Eine neue Tour für Auftrag {{orderNumber}} wartet auf dich."],
+  ["DISTRIBUTOR_TOUR_CHANGED", "DISTRIBUTOR", "Tour geaendert", "Tour zu {{orderNumber}} wurde geaendert", "Bitte prüfe die aktualisierte Tour im Dashboard {{dashboardUrl}}."],
   ["DISTRIBUTOR_TOUR_CANCELLED", "DISTRIBUTOR", "Tour storniert", "Tour zu {{orderNumber}} wurde storniert", "Die Tour zu Auftrag {{orderNumber}} wurde storniert."],
-  ["DISTRIBUTOR_REMINDER", "DISTRIBUTOR", "Erinnerung", "Erinnerung fuer Auftrag {{orderNumber}}", "Bitte pruefe deine naechste Aktion fuer Auftrag {{orderNumber}}."],
+  ["DISTRIBUTOR_REMINDER", "DISTRIBUTOR", "Erinnerung", "Erinnerung für Auftrag {{orderNumber}}", "Bitte prüfe deine naechste Aktion für Auftrag {{orderNumber}}."],
   ["ADMIN_NEW_ORDER", "ADMIN", "Admin neuer Auftrag", "Neuer Auftrag {{orderNumber}}", "{{companyName}} hat Auftrag {{orderNumber}} erstellt."],
-  ["ADMIN_PAYMENT_RECEIVED", "ADMIN", "Admin Zahlung eingegangen", "Zahlung eingegangen", "{{paymentAmount}} fuer Auftrag {{orderNumber}} wurden bezahlt."],
-  ["ADMIN_AUTO_DISPATCH", "ADMIN", "Admin Auto-Dispatch", "Auto-Dispatch fuer {{orderNumber}}", "Auto-Dispatch wurde fuer Auftrag {{orderNumber}} vorbereitet."],
-  ["ADMIN_REPORT_GENERATED", "ADMIN", "Admin Bericht erzeugt", "Bericht {{reportNumber}} erzeugt", "Bericht {{reportNumber}} fuer Auftrag {{orderNumber}} wurde erzeugt."],
+  ["ADMIN_PAYMENT_RECEIVED", "ADMIN", "Admin Zahlung eingegangen", "Zahlung eingegangen", "{{paymentAmount}} für Auftrag {{orderNumber}} wurden bezahlt."],
+  ["ADMIN_AUTO_DISPATCH", "ADMIN", "Admin Auto-Dispatch", "Auto-Dispatch für {{orderNumber}}", "Auto-Dispatch wurde für Auftrag {{orderNumber}} vorbereitet."],
+  ["ADMIN_REPORT_GENERATED", "ADMIN", "Admin Bericht erzeugt", "Bericht {{reportNumber}} erzeugt", "Bericht {{reportNumber}} für Auftrag {{orderNumber}} wurde erzeugt."],
   ["ADMIN_ERROR", "ADMIN", "Admin Fehler", "Fehler bei {{orderNumber}}", "Bei Auftrag {{orderNumber}} ist ein Fehler aufgetreten. Support: {{supportEmail}}"],
 ];
 
@@ -2377,7 +2377,7 @@ for (const [key, audience, name, subject, body] of module15Templates) {
       audience,
       channel: "EMAIL",
       name,
-      description: `Seed-Vorlage fuer Modul 15: ${name}`,
+      description: `Seed-Vorlage für Modul 15: ${name}`,
       subject,
       body,
       placeholders,
@@ -2388,7 +2388,7 @@ for (const [key, audience, name, subject, body] of module15Templates) {
       audience,
       channel: "EMAIL",
       name,
-      description: `Seed-Vorlage fuer Modul 15: ${name}`,
+      description: `Seed-Vorlage für Modul 15: ${name}`,
       subject,
       body,
       placeholders,
@@ -2475,7 +2475,7 @@ for (let index = 0; index < 60; index += 1) {
       userId: user.id,
       action: index % 5 === 2 ? "notification.sent" : index % 5 === 3 ? "notification.failed" : "notification.created",
       status,
-      detail: "Seed-Log fuer Modul 15 Kommunikationsplattform.",
+      detail: "Seed-Log für Modul 15 Kommunikationsplattform.",
       metadata: { module: 15, index },
     },
   });
@@ -2499,25 +2499,25 @@ for (const action of ["notification.created", "notification.sent", "notification
 await prisma.lead.deleteMany({ where: { source: "seed:module16" } });
 await prisma.lead.createMany({
   data: [
-    ["CUSTOMER", "Anna Schneider", "Rhein-Mosel Immobilien GmbH", "anna.schneider@example.com", "+49 261 200001", "Koblenz", "Wir planen eine Immobilienkampagne fuer mehrere Stadtteile.", "NEW"],
-    ["CUSTOMER", "Markus Weber", "Autohaus Mittelrhein KG", "markus.weber@example.com", "+49 2631 200002", "Neuwied", "Bitte Angebot fuer 6.000 Flyer mit GPS-Nachweis.", "CONTACTED"],
+    ["CUSTOMER", "Anna Schneider", "Rhein-Mosel Immobilien GmbH", "anna.schneider@example.com", "+49 261 200001", "Koblenz", "Wir planen eine Immobilienkampagne für mehrere Stadtteile.", "NEW"],
+    ["CUSTOMER", "Markus Weber", "Autohaus Mittelrhein KG", "markus.weber@example.com", "+49 2631 200002", "Neuwied", "Bitte Angebot für 6.000 Flyer mit GPS-Nachweis.", "CONTACTED"],
     ["CUSTOMER", "Sarah Klein", "PflegePlus Lahnstein", "sarah.klein@example.com", "+49 2621 200003", "Lahnstein", "Wir moechten eine lokale Recruiting-Aktion bewerben.", "QUALIFIED"],
     ["CUSTOMER", "David Braun", "Fitwerk Koblenz", "david.braun@example.com", "+49 261 200004", "Koblenz", "Interesse an regelmaessiger Studio-Werbung.", "WON"],
-    ["CUSTOMER", "Miriam Schulz", "Restaurant Hafenblick", "miriam.schulz@example.com", "+49 2632 200005", "Andernach", "Flyer fuer neue Mittagskarte in Andernach.", "NEW"],
-    ["CUSTOMER", "Timo Beck", "Elektro Beck", "timo.beck@example.com", "+49 2622 200006", "Bendorf", "Haushaltsverteilung fuer Handwerksleistungen.", "CONTACTED"],
+    ["CUSTOMER", "Miriam Schulz", "Restaurant Hafenblick", "miriam.schulz@example.com", "+49 2632 200005", "Andernach", "Flyer für neue Mittagskarte in Andernach.", "NEW"],
+    ["CUSTOMER", "Timo Beck", "Elektro Beck", "timo.beck@example.com", "+49 2622 200006", "Bendorf", "Haushaltsverteilung für Handwerksleistungen.", "CONTACTED"],
     ["CUSTOMER", "Laura Stein", "Concept Store Vallendar", "laura.stein@example.com", "+49 261 200007", "Vallendar", "Eroeffnungskampagne mit kurzem Zeitraum.", "QUALIFIED"],
-    ["CUSTOMER", "Nina Reuter", "Eventverein Rhein", "nina.reuter@example.com", "+49 2631 200008", "Neuwied", "Flyer fuer Vereinsfest und Sponsorenlauf.", "LOST"],
+    ["CUSTOMER", "Nina Reuter", "Eventverein Rhein", "nina.reuter@example.com", "+49 2631 200008", "Neuwied", "Flyer für Vereinsfest und Sponsorenlauf.", "LOST"],
     ["DISTRIBUTOR", "Leon Hartmann", null, "leon.lead@example.com", "+49 170 200009", "Koblenz", "Ich moechte als Verteiler am Wochenende arbeiten.", "NEW"],
     ["DISTRIBUTOR", "Mira Scholz", null, "mira.lead@example.com", "+49 171 200010", "Neuwied", "Ich habe ein Fahrrad und kann abends verteilen.", "CONTACTED"],
     ["DISTRIBUTOR", "Yasin Aydin", null, "yasin.lead@example.com", "+49 172 200011", "Bendorf", "Interesse an Touren in Bendorf und Vallendar.", "QUALIFIED"],
     ["DISTRIBUTOR", "Clara Fischer", null, "clara.lead@example.com", "+49 173 200012", "Lahnstein", "Bitte Infos zur Verteilerregistrierung.", "NEW"],
-    ["PARTNER", "Julia Kramer", "Print Partner Koblenz", "julia.kramer@example.com", "+49 261 200013", "Koblenz", "Kooperation fuer Druck und Logistik moeglich.", "CONTACTED"],
-    ["PARTNER", "Felix Roth", "Medienhaus Mittelrhein", "felix.roth@example.com", "+49 2631 200014", "Neuwied", "Partnerschaft fuer regionale Kampagnen.", "QUALIFIED"],
+    ["PARTNER", "Julia Kramer", "Print Partner Koblenz", "julia.kramer@example.com", "+49 261 200013", "Koblenz", "Kooperation für Druck und Logistik möglich.", "CONTACTED"],
+    ["PARTNER", "Felix Roth", "Medienhaus Mittelrhein", "felix.roth@example.com", "+49 2631 200014", "Neuwied", "Partnerschaft für regionale Kampagnen.", "QUALIFIED"],
     ["OTHER", "Svenja Maier", "Marketing Beratung Maier", "svenja.maier@example.com", "+49 2621 200015", "Lahnstein", "Frage zu Agenturzugang und Kundenverwaltung.", "NEW"],
-    ["CUSTOMER", "Okan Yilmaz", "Pizza Kurier Bendorf", "okan.yilmaz@example.com", "+49 2622 200016", "Bendorf", "2.500 Flyer fuer Liefergebiet Bendorf.", "NEW"],
-    ["CUSTOMER", "Helena Wolf", "Gebaeudeservice Wolf", "helena.wolf@example.com", "+49 261 200017", "Muelheim-Kaerlich", "B2B-Flyer im Gewerbegebiet verteilen.", "CONTACTED"],
+    ["CUSTOMER", "Okan Yilmaz", "Pizza Kurier Bendorf", "okan.yilmaz@example.com", "+49 2622 200016", "Bendorf", "2.500 Flyer für Liefergebiet Bendorf.", "NEW"],
+    ["CUSTOMER", "Helena Wolf", "Gebaeudeservice Wolf", "helena.wolf@example.com", "+49 261 200017", "Mülheim-Kärlich", "B2B-Flyer im Gewerbegebiet verteilen.", "CONTACTED"],
     ["CUSTOMER", "Patrick Jung", "Franchise Demo West", "patrick.jung@example.com", "+49 261 200018", "Koblenz", "Mehrere Standorte sollen vergleichbar reporten.", "QUALIFIED"],
-    ["DISTRIBUTOR", "Nadine Krueger", null, "nadine.lead@example.com", "+49 174 200019", "Muelheim-Kaerlich", "Ich kann tagsueber groessere Touren uebernehmen.", "WON"],
+    ["DISTRIBUTOR", "Nadine Krüger", null, "nadine.lead@example.com", "+49 174 200019", "Mülheim-Kärlich", "Ich kann tagsüber größere Touren übernehmen.", "WON"],
     ["OTHER", "Robert Kaiser", "Stadtteilinitiative", "robert.kaiser@example.com", "+49 2632 200020", "Andernach", "Allgemeine Frage zu Vereinen und Sonderkonditionen.", "LOST"],
   ].map(([type, name, companyName, email, phone, city, message, status]) => ({
     type,
@@ -2556,7 +2556,7 @@ await prisma.systemLog.createMany({
   data: Array.from({ length: 30 }, (_value, index) => ({
     level: systemLevels[index % systemLevels.length],
     source: `seed.module17.${["api", "payment", "warehouse", "report", "notification"][index % 5]}`,
-    message: `Seed SystemLog ${index + 1}: Betriebsereignis fuer Monitoring.`,
+    message: `Seed SystemLog ${index + 1}: Betriebsereignis für Monitoring.`,
     metadata: { source: "seed.module17", module: 17, index },
     createdAt: new Date(Date.now() - index * 60 * 60 * 1000),
   })),
@@ -2646,7 +2646,7 @@ await prisma.notification.createMany({
       userId: admin.id,
       type: "MONITORING_CRITICAL_ERROR",
       title: "Kritischer Fehler erkannt",
-      message: "Seed: Kritischer Fehler fuer Monitoring-Demo.",
+      message: "Seed: Kritischer Fehler für Monitoring-Demo.",
     },
     {
       userId: admin.id,
@@ -2724,7 +2724,7 @@ for (let index = 0; index < 16; index += 1) {
       userId: user.id,
       action: status === "SENT" ? "email.sent" : status === "FAILED" ? "email.failed" : "notification.created",
       status,
-      detail: "Seed-Log fuer Modul 18 E-Mail Queue.",
+      detail: "Seed-Log für Modul 18 E-Mail Queue.",
       metadata: { source: "seed.module18", module: 18, index },
     },
   });
@@ -2747,7 +2747,7 @@ for (let index = 0; index < 24; index += 1) {
       email: `analytics-lead-${index + 1}@example.com`,
       phone: `0261${String(500000 + index).padStart(6, "0")}`,
       city: module19Cities[index % module19Cities.length],
-      message: "Seed Modul 19: Lead fuer Analytics-Auswertung.",
+      message: "Seed Modul 19: Lead für Analytics-Auswertung.",
       status: module19LeadStatuses[index % module19LeadStatuses.length],
       source: "seed.module19",
       createdAt,
@@ -2918,7 +2918,7 @@ for (let index = 0; index < 50; index += 1) {
       email: wonCustomer ? `crm-won-${index + 1}@example.com` : `crm-lead-${index + 1}@example.com`,
       phone: `0261${String(700000 + index).padStart(6, "0")}`,
       city,
-      message: `Seed Modul 20: Anfrage fuer eine lokale Flyerverteilung in ${city}.`,
+      message: `Seed Modul 20: Anfrage für eine lokale Flyerverteilung in ${city}.`,
       status,
       priority,
       source: "seed.module20",
@@ -2943,7 +2943,7 @@ for (let index = 0; index < 50; index += 1) {
     data: {
       leadId: lead.id,
       authorId: assignees[index % assignees.length]?.id,
-      body: `Erste CRM-Notiz fuer ${lead.companyName}. Naechster Schritt: ${nextFollowUpAt ? "Follow-up planen" : "Status beobachten"}.`,
+      body: `Erste CRM-Notiz für ${lead.companyName}. Naechster Schritt: ${nextFollowUpAt ? "Follow-up planen" : "Status beobachten"}.`,
       createdAt: new Date(createdAt.getTime() + 2 * 60 * 60 * 1000),
     },
   });
@@ -2978,7 +2978,7 @@ for (let index = 0; index < 50; index += 1) {
         leadId: lead.id,
         actorId: assignees[index % assignees.length]?.id,
         event: "lead.followup_set",
-        detail: "Follow-up fuer CRM Seed gesetzt.",
+        detail: "Follow-up für CRM Seed gesetzt.",
         metadata: { source: "seed.module20", due: nextFollowUpAt.toISOString() },
         createdAt: new Date(createdAt.getTime() + 3 * 60 * 60 * 1000),
       },
@@ -2988,7 +2988,7 @@ for (let index = 0; index < 50; index += 1) {
 
 for (const user of assignees) {
   for (const [type, title, message] of [
-    ["LEAD_CREATED", "Neuer Lead", "Seed Modul 20: Neuer Lead fuer CRM-Demo."],
+    ["LEAD_CREATED", "Neuer Lead", "Seed Modul 20: Neuer Lead für CRM-Demo."],
     ["LEAD_FOLLOWUP_DUE", "Follow-up faellig", "Seed Modul 20: Ein Lead muss nachgefasst werden."],
     ["LEAD_WON", "Lead gewonnen", "Seed Modul 20: Ein Lead wurde gewonnen."],
     ["LEAD_LOST", "Lead verloren", "Seed Modul 20: Ein Lead wurde verloren."],
@@ -3056,9 +3056,9 @@ for (let index = 0; index < 30; index += 1) {
       assignedToId: assignees[index % assignees.length]?.id ?? null,
       createdById: index % 4 === 0 ? distributor?.userId ?? support.id : customer?.userId ?? support.id,
       subject: `Seed Modul 21 Ticket ${index + 1}`,
-      description: `Seed Modul 21: Prueffall ${index + 1} fuer ${type}.`,
-      message: `Seed Modul 21: Prueffall ${index + 1} fuer ${type}.`,
-      resolution: closedAt ? "Seed-Abschluss: Fall wurde fuer die Demo dokumentiert." : null,
+      description: `Seed Modul 21: Prüffall ${index + 1} für ${type}.`,
+      message: `Seed Modul 21: Prüffall ${index + 1} für ${type}.`,
+      resolution: closedAt ? "Seed-Abschluss: Fall wurde für die Demo dokumentiert." : null,
       createdAt,
       updatedAt: closedAt ?? createdAt,
       closedAt,
@@ -3072,7 +3072,7 @@ for (let index = 0; index < 30; index += 1) {
         senderId: ticket.createdById,
         senderRole: index % 4 === 0 ? "DISTRIBUTOR" : "CUSTOMER",
         visibility: "PUBLIC",
-        message: `Seed Modul 21: Oeffentliche Eingangsnachricht fuer Ticket ${index + 1}.`,
+        message: `Seed Modul 21: Öffentliche Eingangsnachricht für Ticket ${index + 1}.`,
         createdAt,
       },
       {
@@ -3080,7 +3080,7 @@ for (let index = 0; index < 30; index += 1) {
         senderId: support.id,
         senderRole: "SUPPORT_DISPATCHER",
         visibility: "INTERNAL",
-        message: `Seed Modul 21: Interne Notiz mit Pruefhinweis fuer Ticket ${index + 1}.`,
+        message: `Seed Modul 21: Interne Notiz mit Prüfhinweis für Ticket ${index + 1}.`,
         createdAt: new Date(createdAt.getTime() + 60 * 60 * 1000),
       },
       {
@@ -3197,7 +3197,7 @@ for (let index = 0; index < 80; index += 1) {
       documentId: document.id,
       userId: status === "UNDER_REVIEW" ? support.id : order.customer.userId,
       visibility: index % 3 === 0 ? "INTERNAL" : "PUBLIC",
-      message: `Seed Modul 22 Kommentar fuer Dokument ${index + 1}.`,
+      message: `Seed Modul 22 Kommentar für Dokument ${index + 1}.`,
       createdAt: new Date(uploadedAt.getTime() + 2 * 60 * 60 * 1000),
     },
   });
@@ -3275,7 +3275,7 @@ for (let index = 0; index < Math.min(15, module23Orders.length); index += 1) {
     data: {
       assignedWarehouseId: targetWarehouse.id,
       warehouseAssignedAt: new Date(Date.now() - (index + 1) * 60 * 60 * 1000),
-      warehouseAssignmentReason: `seed.module23 Region/Fallback fuer ${order.postalCode}`,
+      warehouseAssignmentReason: `seed.module23 Region/Fallback für ${order.postalCode}`,
     },
   });
   const shipmentStatus = ["CREATED", "IN_TRANSIT", "DELIVERED", "RECEIVED", "DAMAGED"][index % 5];
@@ -3368,10 +3368,58 @@ await prisma.auditLog.createMany({
 await prisma.notification.createMany({
   data: [
     { userId: admin.id, type: "LOGISTICS_SHIPMENT_CREATED", title: "Neue Lieferung erwartet", message: "Seed Modul 23: Eine neue Lieferung wird erwartet." },
-    { userId: admin.id, type: "LOGISTICS_CAPACITY_WARNING", title: "Kapazitaetswarnung", message: "Seed Modul 23: Lager Koeln erreicht hohe Auslastung." },
-    { userId: warehouseStaff.id, type: "LOGISTICS_TRANSFER_INBOUND", title: "Umlagerung eingetroffen", message: "Seed Modul 23: Eine Umlagerung ist fuer dein Lager vorgesehen." },
-    { userId: warehouseStaff.id, type: "LOGISTICS_STOCK_COUNT_REQUIRED", title: "Inventur erforderlich", message: "Seed Modul 23: Bitte Bestand pruefen." },
+    { userId: admin.id, type: "LOGISTICS_CAPACITY_WARNING", title: "Kapazitätswarnung", message: "Seed Modul 23: Lager Koeln erreicht hohe Auslastung." },
+    { userId: warehouseStaff.id, type: "LOGISTICS_TRANSFER_INBOUND", title: "Umlagerung eingetroffen", message: "Seed Modul 23: Eine Umlagerung ist für dein Lager vorgesehen." },
+    { userId: warehouseStaff.id, type: "LOGISTICS_STOCK_COUNT_REQUIRED", title: "Inventur erforderlich", message: "Seed Modul 23: Bitte Bestand prüfen." },
   ],
+});
+
+await prisma.orderExperienceEvent.deleteMany({ where: { source: "seed.module24" } });
+const module24Orders = await prisma.order.findMany({
+  include: { customer: true, distributionArea: true, assignedWarehouse: true },
+  orderBy: { createdAt: "desc" },
+  take: 18,
+});
+for (let index = 0; index < module24Orders.length; index += 1) {
+  const order = module24Orders[index];
+  await prisma.orderExperienceEvent.create({
+    data: {
+      orderId: order.id,
+      customerId: order.customerId,
+      userId: order.customer.userId,
+      eventType: index % 5 === 0 ? "WIZARD_STARTED" : "ORDER_CREATED",
+      source: "seed.module24",
+      city: order.city,
+      postalCode: order.postalCode,
+      areaName: order.targetAreaName,
+      areaType: order.distributionArea?.type ?? "POLYGON",
+      durationMs: 75_000 + index * 9_000,
+      clickCount: 7 + (index % 6),
+      fieldCount: 9,
+      usedAutocomplete: index % 2 === 0,
+      usedSavedArea: Boolean(order.distributionAreaId),
+      polygonPoints: 4 + (index % 3),
+      households: order.estimatedHouseholds,
+      flyerQuantity: order.flyerQuantity,
+      coverageAreaSqm: order.coverageAreaSqm,
+      routeDistanceMeters: order.estimatedDistanceMeters,
+      routeDurationMinutes: order.estimatedDistanceMeters ? Math.max(20, Math.round(order.estimatedDistanceMeters / 68 + (order.estimatedHouseholds ?? 0) * 0.38)) : null,
+      metadata: {
+        module: 24,
+        assignedWarehouseId: order.assignedWarehouseId,
+        ux: "smart-order-wizard",
+      },
+    },
+  });
+}
+await prisma.auditLog.create({
+  data: {
+    userId: admin.id,
+    action: "module24.seeded",
+    entityType: "OrderExperienceEvent",
+    entityId: "seed.module24",
+    newValues: { events: module24Orders.length, autocomplete: true, heatmap: true, routing: true },
+  },
 });
 
 await prisma.$disconnect();

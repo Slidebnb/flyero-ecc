@@ -2,7 +2,8 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
-import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
+import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { DataSection, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { addTicketMessage, getTicket, SUPPORT_PRIORITY_LABELS, SUPPORT_STATUS_LABELS, SUPPORT_TYPE_LABELS } from "@/lib/support";
@@ -24,17 +25,13 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
   if (!ticket) notFound();
 
   return (
-    <PortalShell
-      eyebrow="Kundenportal"
-      title={`${ticket.ticketNumber}`}
-      description={ticket.subject}
-      navItems={[
-        { href: "/customer/support", label: "Support" },
-        { href: "/customer/reports", label: "Berichte" },
-        { href: "/customer/orders", label: "Aufträge" },
-        { href: "/customer/dashboard", label: "Dashboard" },
-      ]}
-    >
+    <CustomerPortalShell active="/customer/support" title={ticket.ticketNumber} description={ticket.subject}>
+      <div className="customerActionRow">
+        <Link className="secondaryButton" href="/customer/support">Support</Link>
+        <Link className="secondaryButton" href="/customer/reports">Berichte</Link>
+        <Link className="secondaryButton" href="/customer/orders">Aufträge</Link>
+      </div>
+
       <DataSection title="Ticketdetails">
         <div className="tableWrap">
           <table>
@@ -70,6 +67,6 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
           <button type="submit">Antwort senden</button>
         </form>
       </DataSection>
-    </PortalShell>
+    </CustomerPortalShell>
   );
 }

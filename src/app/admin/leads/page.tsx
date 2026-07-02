@@ -1,6 +1,7 @@
 import { LeadStatus, LeadType, UserRole } from "@prisma/client";
-import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { updateLead } from "@/lib/leads";
 import { prisma } from "@/lib/prisma";
@@ -58,24 +59,11 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: S
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Leads</h1>
-          <p className="muted">Anfragen aus Landingpage und Kontaktformular.</p>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/orders">Auftraege</Link>
-          <Link href="/admin/settings">Einstellungen</Link>
-          <form action="/api/auth/logout" method="post">
-            <button type="submit">Abmelden</button>
-          </form>
-        </nav>
-      </header>
-
-      <section className="panel widePanel stack">
+    <AdminPortalShell
+      title="Leads"
+      description="Anfragen aus Landingpage, Kontaktformular und Verteilungsanfrage sauber qualifizieren."
+    >
+      <DataSection title="Filter" description="Neue, aktive, archivierte oder thematisch passende Leads schnell eingrenzen.">
         <form className="form grid" method="get">
           <label>
             Status
@@ -109,7 +97,9 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: S
           </label>
           <button type="submit">Filtern</button>
         </form>
+      </DataSection>
 
+      <DataSection title="Lead-Liste">
         <div className="tableWrap">
           <table>
             <thead>
@@ -137,7 +127,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: S
                     <small>{lead.createdAt.toLocaleString("de-DE")} / {lead.source}</small>
                   </td>
                   <td>
-                    <span className="badge">{lead.type}</span>
+                    <StatusBadge>{lead.type}</StatusBadge>
                     {lead.archivedAt ? <p className="muted">Archiviert</p> : null}
                   </td>
                   <td>{lead.message}</td>
@@ -170,13 +160,13 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: S
               ))}
               {!leads.length ? (
                 <tr>
-                  <td colSpan={4}>Keine Leads fuer diesen Filter.</td>
+                  <td colSpan={4}><EmptyState title="Keine Leads für diesen Filter." description="Passe Status, Typ, Archiv oder Suchbegriff an." /></td>
                 </tr>
               ) : null}
             </tbody>
           </table>
         </div>
-      </section>
-    </main>
+      </DataSection>
+    </AdminPortalShell>
   );
 }

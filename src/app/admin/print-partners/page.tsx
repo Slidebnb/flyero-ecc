@@ -29,7 +29,7 @@ export default async function AdminPrintPartnersPage() {
   await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const partners = await listPrintPartners();
   return (
-    <PortalShell eyebrow="Adminbereich" title="Druckpartner" description="Partner vorbereiten, Kontakt pflegen und deaktivieren. Preislisten werden später mit echten FLYERO-Konditionen ergänzt." navItems={[{ href: "/admin/documents", label: "Dokumente" }, { href: "/admin/print-orders", label: "Druckaufträge" }, { href: "/admin/dashboard", label: "Dashboard" }]}>
+    <PortalShell eyebrow="Adminbereich" title="Druckpartner" description="Partnerkontakte, Status und Konditionen sauber pflegen." navItems={[{ href: "/admin/documents", label: "Dokumente" }, { href: "/admin/print-orders", label: "Druckaufträge" }, { href: "/admin/dashboard", label: "Dashboard" }]}>
       <ActionPanel title="Druckpartner anlegen">
         <form action={createAction} className="form grid">
           <label>Firma<input name="companyName" required /></label>
@@ -41,7 +41,7 @@ export default async function AdminPrintPartnersPage() {
         </form>
       </ActionPanel>
       <DataSection title="Partner">
-        <div className="tableWrap"><table><thead><tr><th>Firma</th><th>Kontakt</th><th>E-Mail</th><th>Status</th><th></th></tr></thead><tbody>
+        <div className="tableWrap"><table><thead><tr><th>Firma</th><th>Kontakt</th><th>E-Mail</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
           {partners.map((partner) => <tr key={partner.id}><td>{partner.companyName}</td><td>{partner.contactName ?? "-"}</td><td>{partner.email}</td><td><StatusBadge tone={partner.isActive ? "success" : "neutral"}>{partner.isActive ? "Aktiv" : "Inaktiv"}</StatusBadge></td><td><form action={toggleAction}><input type="hidden" name="id" value={partner.id} /><input type="hidden" name="isActive" value={partner.isActive ? "false" : "true"} /><button type="submit">{partner.isActive ? "Deaktivieren" : "Aktivieren"}</button></form></td></tr>)}
           {partners.length === 0 ? <tr><td colSpan={5}><EmptyState title="Noch keine Druckpartner." /></td></tr> : null}
         </tbody></table></div>

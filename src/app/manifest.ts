@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "ECC Verteiler-App",
     short_name: "ECC Touren",
-    description: "Mobile Touren-, QR- und GPS-App fuer Verteiler.",
+    description: "Mobile Touren-, QR- und GPS-App für Verteiler.",
     start_url: "/distributor/dashboard",
     display: "standalone",
     background_color: "#f5f7fb",

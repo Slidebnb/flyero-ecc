@@ -44,7 +44,7 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
         <h2 className="sectionTitle">Aktionen</h2>
         <div className="actions">
           <form action={`/api/admin/reports/${report.id}/regenerate`} method="post"><button type="submit">Bericht neu generieren</button></form>
-          <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veroeffentlichen</button></form>
+          <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veröffentlichen</button></form>
           <form action={`/api/admin/reports/${report.id}/archive`} method="post"><button type="submit">Bericht archivieren</button></form>
           {report.pdfUrl ? <a href={report.pdfUrl}>PDF ansehen</a> : null}
         </div>
@@ -60,7 +60,7 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
               <tr><th>Gebiet</th><td>{report.order.targetAreaName}</td></tr>
               <tr><th>Generated</th><td>{formatDateTime(report.generatedAt)}</td></tr>
               <tr><th>Approved</th><td>{formatDateTime(report.approvedAt)}</td></tr>
-              <tr><th>Pruefcode</th><td>{report.verificationCode}</td></tr>
+              <tr><th>Prüfcode</th><td>{report.verificationCode}</td></tr>
               <tr><th>Checksum</th><td>{report.checksum ?? "-"}</td></tr>
               <tr><th>Admin-Flags</th><td>{data.analysis.flags.join(", ") || "-"}</td></tr>
             </tbody>

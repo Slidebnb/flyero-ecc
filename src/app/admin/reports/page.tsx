@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -12,38 +14,33 @@ export default async function AdminReportsPage() {
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Berichte</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/tours">Touren</Link>
-        </nav>
-      </header>
-      <section className="panel stack widePanel">
+    <AdminPortalShell
+      title="Berichte"
+      description="Verteilberichte prüfen, veröffentlichen und PDF-Status kontrollieren."
+    >
+      <DataSection title="Berichtsliste">
         <div className="tableWrap">
           <table>
-            <thead><tr><th>Bericht</th><th>Auftrag</th><th>Kunde</th><th>Status</th><th>PDF</th><th>Aktualisiert</th><th></th></tr></thead>
+            <thead><tr><th>Bericht</th><th>Auftrag</th><th>Kunde</th><th>Status</th><th>PDF</th><th>Aktualisiert</th><th>Aktion</th></tr></thead>
             <tbody>
               {reports.map((report) => (
                 <tr key={report.id}>
                   <td>{report.reportNumber}</td>
                   <td>{report.order.orderNumber}</td>
                   <td>{report.order.customer.companyName}</td>
-                  <td><span className="badge">{report.status}</span></td>
+                  <td><StatusBadge>{report.status}</StatusBadge></td>
                   <td>{report.pdfUrl ? "Ja" : "Nein"}</td>
                   <td>{formatDateTime(report.updatedAt)}</td>
-                  <td><Link className="textLink" href={`/admin/reports/${report.id}`}>Oeffnen</Link></td>
+                  <td><Link className="textLink" href={`/admin/reports/${report.id}`}>Öffnen</Link></td>
                 </tr>
               ))}
-              {reports.length === 0 ? <tr><td colSpan={7}>Noch keine Berichte.</td></tr> : null}
+              {reports.length === 0 ? (
+                <tr><td colSpan={7}><EmptyState title="Noch keine Berichte." description="Berichte entstehen nach geprüften Touren." /></td></tr>
+              ) : null}
             </tbody>
           </table>
         </div>
-      </section>
-    </main>
+      </DataSection>
+    </AdminPortalShell>
   );
 }

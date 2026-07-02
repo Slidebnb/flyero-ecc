@@ -47,7 +47,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
     <main className="appShell">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Tourpruefung</p>
+          <p className="eyebrow">Tourprüfung</p>
           <h1>{tour.order.orderNumber}</h1>
           <span className="badge">{TOUR_STATUS_LABELS[tour.status]}</span>
         </div>
@@ -65,7 +65,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Pruefentscheidung</h2>
+        <h2 className="sectionTitle">Prüfentscheidung</h2>
         <div className="reviewActions">
           <form action={`/api/admin/tours/${tour.id}/approve`} method="post" className="form">
             <textarea name="note" placeholder="Interne Freigabenotiz" />
@@ -74,12 +74,12 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
           </form>
           <form action={`/api/admin/tours/${tour.id}/reject`} method="post" className="form">
             <textarea name="note" placeholder="Ablehnungsgrund intern" />
-            <textarea name="customerMessage" placeholder="Kundenhinweis nur wenn gewuenscht" />
+            <textarea name="customerMessage" placeholder="Kundenhinweis nur wenn gewünscht" />
             <button type="submit">Tour ablehnen</button>
           </form>
           <form action={`/api/admin/tours/${tour.id}/clarify`} method="post" className="form">
-            <textarea name="note" placeholder="Rueckfrage an Verteiler" />
-            <button type="submit">Rueckfrage an Verteiler</button>
+            <textarea name="note" placeholder="Rückfrage an Verteiler" />
+            <button type="submit">Rückfrage an Verteiler</button>
           </form>
         </div>
         <form action={`/api/admin/tours/${tour.id}/note`} method="post" className="form grid">
@@ -97,7 +97,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
               <h2 className="sectionTitle">Verteilbericht erzeugen</h2>
               <p className="muted">
                 Nach der Tourfreigabe kann ein Online-Bericht mit PDF-Nachweis erzeugt,
-                aktualisiert und fuer den Kunden veroeffentlicht werden.
+                aktualisiert und für den Kunden veröffentlicht werden.
               </p>
             </div>
             {latestReport ? <span className="badge">{latestReport.status}</span> : <span className="badge warning">Noch kein Bericht</span>}
@@ -108,7 +108,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
                 <tbody>
                   <tr><th>Bericht</th><td>{latestReport.reportNumber}</td></tr>
                   <tr><th>Version</th><td>{latestReport.version}</td></tr>
-                  <tr><th>Online</th><td><Link className="textLink" href={`/admin/reports/${latestReport.id}`}>Admin-Detail oeffnen</Link></td></tr>
+                  <tr><th>Online</th><td><Link className="textLink" href={`/admin/reports/${latestReport.id}`}>Admin-Detail öffnen</Link></td></tr>
                   <tr><th>PDF</th><td>{latestReport.pdfUrl ? <a className="textLink" href={latestReport.pdfUrl}>PDF ansehen</a> : "Noch nicht erzeugt"}</td></tr>
                 </tbody>
               </table>
@@ -124,7 +124,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
                   <button type="submit">Neu generieren</button>
                 </form>
                 <form action={`/api/admin/reports/${latestReport.id}/publish`} method="post">
-                  <button type="submit">Veroeffentlichen</button>
+                  <button type="submit">Veröffentlichen</button>
                 </form>
                 <form action={`/api/admin/reports/${latestReport.id}/archive`} method="post">
                   <button type="submit">Archivieren</button>
@@ -193,7 +193,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
         <div className="photoGrid">
           {tour.photoProofs.map((photo) => (
             <figure key={photo.id}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- Foto-Nachweise koennen Data-URLs aus der PWA sein. */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- Foto-Nachweise können Data-URLs aus der PWA sein. */}
               <img src={photo.url} alt="Tourfoto" />
               <figcaption>{formatDateTime(photo.takenAt ?? photo.createdAt)} / {photo.lat?.toString() ?? "-"}, {photo.lng?.toString() ?? "-"}</figcaption>
             </figure>

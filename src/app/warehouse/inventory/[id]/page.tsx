@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { PrintButton } from "./PrintButton";
@@ -52,7 +52,7 @@ export default async function WarehouseInventoryDetailPage({ params }: PageProps
           <h2 className="sectionTitle">QR-Code</h2>
           {inventory.qrCodePngDataUrl ? (
             // eslint-disable-next-line @next/next/no-img-element -- QR-Codes werden als Data-URL gespeichert.
-            <img className="qrImage" src={inventory.qrCodePngDataUrl} alt={`QR-Code fuer ${inventory.order.orderNumber}`} />
+            <img className="qrImage" src={inventory.qrCodePngDataUrl} alt={`QR-Code für ${inventory.order.orderNumber}`} />
           ) : (
             <p className="notice">Noch kein QR-Code vorhanden.</p>
           )}
@@ -150,3 +150,4 @@ export default async function WarehouseInventoryDetailPage({ params }: PageProps
     </main>
   );
 }
+

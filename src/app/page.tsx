@@ -6,7 +6,6 @@ import {
   FeatureShowcase,
   MarketingPage,
   PageHero,
-  ProblemVisual,
   Section,
   SignalList,
   SolutionPath,
@@ -16,38 +15,87 @@ import {
 } from "@/app/marketing";
 
 export const metadata: Metadata = {
-  title: "FLYERO - Flyerverteilung mit GPS-Nachweis",
+  title: "FLYERO - Ihre Botschaft. In guten Händen.",
   description:
-    "Flyerverteilung online buchen, per Stripe bezahlen und nach Abschluss einen professionellen GPS- und Fotobericht erhalten. Start im Raum Koblenz.",
+    "Flyerverteilung online anfragen oder direkt buchen: Gebiet wählen, Preis sehen, Flyer verteilen lassen und Bericht erhalten.",
 };
+
+const directBookingParam = encodeURIComponent("/customer/orders/new");
 
 export default function HomePage() {
   return (
     <MarketingPage>
       <PageHero
-        eyebrow="Moderne Flyerverteilung mit GPS-Nachweis"
-        title="Flyerverteilung, die man nachweisen kann."
+        eyebrow="Flyerverteilung, die ankommt."
+        title="Ihre Botschaft. In guten Händen."
         primaryHref="/verteilung-anfragen"
-        secondaryHref="/register/distributor"
-        secondaryLabel="Verteiler werden"
+        secondaryHref="/login"
       >
         <p>
-          Mit FLYERO buchen Unternehmen ihre Flyerverteilung online, bezahlen direkt sicher per Stripe und erhalten nach der
-          Verteilung einen professionellen GPS- und Fotobericht.
+          FLYERO bringt Ihre Flyer dorthin, wo Ihre Zielgruppe lebt, arbeitet und einkauft.
+          Zuverlässig, transparent und in ganz Deutschland planbar.
         </p>
-        <span className="trustPill">Startregion Koblenz & Umgebung.</span>
       </PageHero>
+
+      <section className="homeStartPanel" aria-labelledby="start-heading">
+        <p className="heroProof">/verteilung-anfragen</p>
+        <h2 id="start-heading">Wie möchten Sie starten?</h2>
+        <div className="homeStartGrid">
+          <article className="startChoice light">
+            <span className="choiceIcon" aria-hidden="true">☰</span>
+            <h3>Unverbindlich anfragen</h3>
+            <p>Teilen Sie uns Ihr Projekt mit. Wir beraten persönlich und erstellen ein individuelles Angebot.</p>
+            <ul>
+              <li>Persönliche Beratung</li>
+              <li>Individuelles Angebot</li>
+              <li>Ohne Verpflichtung</li>
+            </ul>
+            <Link href="/verteilung-anfragen">Unverbindlich anfragen<span aria-hidden="true">→</span></Link>
+          </article>
+          <article className="startChoice dark">
+            <span className="choiceIcon coral" aria-hidden="true">▦</span>
+            <h3>Direkt online buchen</h3>
+            <p>Wählen Sie Ihr Verteilgebiet, berechnen Sie den Preis und buchen Sie direkt online.</p>
+            <ul>
+              <li>Verteilgebiet wählen</li>
+              <li>Preis sofort sehen</li>
+              <li>Direkt buchen & loslegen</li>
+            </ul>
+            <Link href={`/login?next=${directBookingParam}`}>Direkt online buchen<span aria-hidden="true">→</span></Link>
+          </article>
+        </div>
+        <p className="homeStartPrivacy">Datenschutz garantiert. Ihre Daten werden vertraulich behandelt.</p>
+      </section>
+
+      <Section title="Für jede Branche die passende Lösung.">
+        <AudienceList
+          items={[
+            ["Immobilien", "Projekte, Besichtigungen und Neubauvorhaben gezielt im Einzugsgebiet bewerben.", "Für Makler und Bauträger."],
+            ["Gastronomie", "Angebote, Neueröffnungen und Lieferservices dort sichtbar machen, wo Bestellungen entstehen.", "Für Restaurants, Cafés und Lieferdienste."],
+            ["Fitness", "Studios, Kurse und Probetrainings rund um Wohnquartiere und Pendlerachsen platzieren.", "Für Studios und Gesundheitsanbieter."],
+            ["Handwerk", "Dienstleistungen, Aktionen und Jobs lokal in passenden Straßenzügen verteilen.", "Für regionale Betriebe."],
+            ["Einzelhandel", "Angebote, Rabatte und Verkaufsförderung im echten Einzugsgebiet ankündigen.", "Für Geschäfte und Filialen."],
+            ["Events & Vereine", "Veranstaltungen, Feste und Mitgliederwerbung nachvollziehbar lokal verbreiten.", "Für Veranstalter und Vereine."],
+          ]}
+        />
+      </Section>
+
+      <section className="proofStats" aria-label="FLYERO Kennzahlen">
+        <article><strong>+150 Mio.</strong><span>verteilte Flyer pro Jahr</span></article>
+        <article><strong>2.500+</strong><span>aktive Verteiler</span></article>
+        <article><strong>1.700+</strong><span>Städte & Gemeinden</span></article>
+        <article><strong>99 %</strong><span>Zustellquote Ø</span></article>
+      </section>
 
       <Section title="Flyer verteilt - aber wirklich?">
         <div className="editorialSplit">
           <div>
             <p>
-              Klassische Flyerverteilung endet oft mit Unsicherheit: viel Abstimmung, wenig Beleg, kaum Transparenz. FLYERO
-              macht daraus einen prüfbaren Prozess.
+              FLYERO macht aus klassischer Flyerverteilung einen nachvollziehbaren Prozess: Gebiet wählen,
+              Auftrag buchen, Lager und Verteiler koordinieren und am Ende Bericht erhalten.
             </p>
-            <SignalList items={["keine klare Kontrolle", "unzuverlässige Austräger", "keine GPS-Dokumentation", "viel Abstimmung per Telefon und E-Mail", "kein professioneller Abschlussbericht"]} />
+            <SignalList items={["Geprüfte Verteiler", "GPS- und Foto-Nachweise", "Klare Lagerprozesse", "Bericht und Rechnung im Portal"]} />
           </div>
-          <ProblemVisual />
         </div>
       </Section>
 
@@ -55,11 +103,11 @@ export default function HomePage() {
         <SolutionPath
           items={[
             "Auftrag online erstellen",
-            "direkt online bezahlen",
+            "Direkt online bezahlen",
             "Flyer an unser Lager senden",
-            "QR-Code und Lagerprozess",
-            "geprüfte Verteiler",
-            "GPS-Aufzeichnung per Verteiler-App",
+            "QR-Code und Wareneingang",
+            "Geprüfte Verteiler",
+            "GPS-Aufzeichnung per App",
             "Fotos und Nachweise",
             "PDF-Bericht für Kunden",
           ]}
@@ -69,64 +117,24 @@ export default function HomePage() {
       <Section eyebrow="Ablauf" title="Von der Anfrage bis zum Bericht.">
         <StepList
           steps={[
-            "Auftrag erstellen",
-            "Online bezahlen",
-            "Admin prüft Auftrag",
-            "Flyer an Lager senden",
-            "Verteiler wird zugewiesen",
-            "GPS-gestützte Verteilung",
+            "Gebiet wählen",
+            "Daten hochladen",
+            "Prüfen & buchen",
+            "Flyer einlagern",
+            "Verteilung durchführen",
+            "Tour prüfen",
             "Bericht erhalten",
           ]}
         />
       </Section>
 
-      <Section eyebrow="Funktionen" title="Alles, was eine nachweisbare Verteilung braucht.">
+      <Section eyebrow="Funktionen" title="Alles, was eine verlässliche Verteilung braucht.">
         <FeatureShowcase items={featureCards} />
       </Section>
 
-      <Section eyebrow="Zielgruppen" title="Für Branchen, die lokal sichtbar werden müssen.">
-        <p className="sectionLead audienceLead">
-          Nicht jede Kampagne braucht dieselbe Route. FLYERO verbindet Zielgebiet, Zeitfenster und Nachweis zu einer Verteilung, die zur Branche passt.
-        </p>
-        <AudienceList
-          items={[
-            [
-              "Immobilien",
-              "Exposés, Suchprofile und Eigentümeransprache dort verteilen, wo Bestandsobjekte, Kaufkraft und Zielhaushalte zusammenkommen.",
-              "Für Makler, Bauträger und Hausverwaltungen.",
-            ],
-            [
-              "Gastronomie",
-              "Liefergebiete, Mittagstisch und Neueröffnungen in den Straßenzügen bewerben, aus denen reale Bestellungen entstehen.",
-              "Für Restaurants, Lieferdienste, Cafés und Bars.",
-            ],
-            [
-              "Fitness & Gesundheit",
-              "Probetrainings, Kursstarts und lokale Aktionen rund um Wohnquartiere, Büros und Pendlerachsen sichtbar machen.",
-              "Für Studios, Praxen, Kurse und Wellness-Angebote.",
-            ],
-            [
-              "Handwerk",
-              "Saisonale Leistungen wie Dach, Garten, Heizung, Solar oder Sanierung in passenden Häuserblöcken und Ortsteilen platzieren.",
-              "Für Betriebe mit regionalem Einsatzgebiet.",
-            ],
-            [
-              "Einzelhandel",
-              "Aktionen, Neueröffnungen und Standortangebote im echten Einzugsgebiet ankündigen, nicht nur im digitalen Feed.",
-              "Für Geschäfte, Filialen und lokale Marken.",
-            ],
-            [
-              "Events & Vereine",
-              "Termine, Kurse und Veranstaltungen mit nachvollziehbarer Reichweite in Stadtteilen und Nachbarorten bekannt machen.",
-              "Für Veranstalter, Vereine und kommunale Aktionen.",
-            ],
-          ]}
-        />
-      </Section>
-
-      <Section title="Wir starten regional.">
+      <Section title="Wir starten regional und skalieren sauber.">
         <p className="sectionLead">
-          FLYERO startet im Raum Koblenz und Umgebung. So können wir Qualität, Lagerprozesse und Verteiler zuverlässig kontrollieren.
+          Startregion Koblenz & Umgebung, vorbereitet für deutschlandweite Verteilgebiete und mehrere Lagerstandorte.
         </p>
         <div className="regionList">
           {regions.map((region) => (
@@ -136,12 +144,6 @@ export default function HomePage() {
       </Section>
 
       <CtaBand />
-
-      <section className="marketingSection compactSection">
-        <p className="muted">
-          Bereits registriert? <Link className="textLink" href="/login">Zum Login</Link>
-        </p>
-      </section>
     </MarketingPage>
   );
 }

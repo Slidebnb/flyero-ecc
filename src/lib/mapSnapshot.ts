@@ -25,7 +25,7 @@ export async function createMapSnapshotPlaceholder(input: MapSnapshotInput) {
     provider: hasServerKey ? "google-static-maps-prepared" : "fallback",
     url,
     message: url
-      ? "Static-Maps-URL fuer den PDF-Bericht vorbereitet."
+      ? "Static-Maps-URL für den PDF-Bericht vorbereitet."
       : "Google Maps Server-Key fehlt oder Route ist leer. Der PDF-Bericht nutzt den stabilen Karten-Fallback.",
     pointCount: routePath.length,
   };

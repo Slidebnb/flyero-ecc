@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     verificationToken.usedAt ||
     verificationToken.expiresAt < new Date()
   ) {
-    return errorResponse("Verifizierungstoken ist ungueltig oder abgelaufen.", 400);
+    return errorResponse("Verifizierungstoken ist ungültig oder abgelaufen.", 400);
   }
 
   const user = await prisma.$transaction(async (tx) => {
@@ -67,14 +67,14 @@ export async function POST(request: NextRequest) {
     title: "E-Mail bestaetigt",
     message:
       user.role === "DISTRIBUTOR"
-        ? "Dein Profil wird jetzt geprueft."
+        ? "Dein Profil wird jetzt geprüft."
         : "Dein Kundenkonto ist jetzt aktiv.",
   });
 
   if (user.role === "DISTRIBUTOR") {
     await notifyAdmins({
       type: "DISTRIBUTOR_PENDING_REVIEW",
-      title: "Verteiler wartet auf Pruefung",
+      title: "Verteiler wartet auf Prüfung",
       message: `${user.email} hat die E-Mail bestaetigt und wartet auf Freigabe.`,
     });
   }

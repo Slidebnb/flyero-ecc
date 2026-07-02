@@ -313,7 +313,7 @@ export async function updateDistributionArea(input: AreaInput & { id: string; us
   });
   await notifyAdmins({
     type: "AREA_UPDATED",
-    title: "Gebiet geaendert",
+    title: "Gebiet geändert",
     message: `Gebiet ${area.name} wurde aktualisiert.`,
   });
 
@@ -339,7 +339,7 @@ export async function deleteDistributionArea(input: { id: string; userId?: strin
   });
   await notifyAdmins({
     type: "AREA_DELETED",
-    title: "Gebiet geloescht",
+    title: "Gebiet gelöscht",
     message: `Gebiet ${area.name} wurde deaktiviert.`,
   });
 
@@ -454,7 +454,7 @@ export async function notifyAreaChangedForCustomers(areaId: string, type: "updat
   await Promise.all(orders.map((order) => createNotification({
       userId: order.customer.userId,
       type: type === "updated" ? "AREA_UPDATED" : "AREA_DELETED",
-      title: type === "updated" ? "Gebiet geaendert" : "Gebiet geloescht",
-      message: `Das Gebiet fuer Auftrag ${order.orderNumber} wurde ${type === "updated" ? "geaendert" : "deaktiviert"}.`,
+      title: type === "updated" ? "Gebiet geändert" : "Gebiet gelöscht",
+      message: `Das Gebiet für Auftrag ${order.orderNumber} wurde ${type === "updated" ? "geändert" : "deaktiviert"}.`,
     })));
 }

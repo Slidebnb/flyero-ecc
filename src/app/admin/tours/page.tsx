@@ -39,7 +39,7 @@ export default async function AdminToursPage() {
         <nav className="nav">
           <Link href="/admin/dashboard">Dashboard</Link>
           <Link href="/admin/warehouse">Lager</Link>
-          <Link href="/admin/orders">Auftraege</Link>
+          <Link href="/admin/orders">Aufträge</Link>
         </nav>
       </header>
 
@@ -88,7 +88,7 @@ export default async function AdminToursPage() {
                   <td>{tour.gpsPoints.length}</td>
                   <td>{tour.photoProofs.length}</td>
                   <td>{tour.fraudFlags ? "Ja" : "Nein"}</td>
-                  <td><Link className="textLink" href={`/admin/tours/${tour.id}`}>Pruefen</Link></td>
+                  <td><Link className="textLink" href={`/admin/tours/${tour.id}`}>Prüfen</Link></td>
                 </tr>
               ))}
               {tours.length === 0 ? <tr><td colSpan={9}>Keine Touren vorhanden.</td></tr> : null}

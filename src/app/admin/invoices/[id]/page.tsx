@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
@@ -51,7 +51,7 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
           </form>
           <form action={`/api/admin/invoices/${invoice.id}/cancel`} method="post">
             <input type="hidden" name="prepareCreditNote" value="true" />
-            <input name="reason" placeholder="Grund fuer Storno/Gutschrift" />
+            <input name="reason" placeholder="Grund für Storno/Gutschrift" />
             <button type="submit">Storno und Gutschrift vorbereiten</button>
           </form>
         </div>
@@ -116,3 +116,4 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
     </main>
   );
 }
+

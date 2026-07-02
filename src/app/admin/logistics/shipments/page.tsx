@@ -21,7 +21,7 @@ export default async function AdminLogisticsShipmentsPage({ searchParams }: Page
     prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: { id: true, orderNumber: true, targetAreaName: true } }),
   ]);
   return (
-    <PortalShell eyebrow="Admin Logistik" title="Sendungsverwaltung" description="Sendungen filtern, anlegen und Status im MVP manuell pflegen." navItems={[{ href: "/admin/logistics", label: "Logistik" }, { href: "/admin/dashboard", label: "Dashboard" }]}>
+    <PortalShell eyebrow="Admin Logistik" title="Sendungsverwaltung" description="Sendungen filtern, anlegen und Status zentral pflegen." navItems={[{ href: "/admin/logistics", label: "Logistik" }, { href: "/admin/dashboard", label: "Dashboard" }]}>
       <DataSection title="Sendung anlegen">
         <form className="form grid" action="/api/admin/logistics/shipments" method="post">
           <label>Auftrag<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} / {order.targetAreaName}</option>)}</select></label>

@@ -87,7 +87,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           <div className="splitHeader">
             <div>
               <p className="eyebrow">Bezahlter Auftrag</p>
-              <h2 className="sectionTitle">Adminpruefung nach Zahlung</h2>
+              <h2 className="sectionTitle">Adminprüfung nach Zahlung</h2>
               <p className="muted">
                 Dieser Auftrag wurde per Vorkasse bezahlt. Erst nach Genehmigung darf er in Lager, Disposition und Verteilung weiterlaufen.
               </p>
@@ -115,7 +115,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                 <select name="refundReason" required defaultValue="Gebiet nicht bedienbar">
                   <option>Gebiet nicht bedienbar</option>
                   <option>Auftrag unvollstaendig</option>
-                  <option>Leistung nicht verfuegbar</option>
+                  <option>Leistung nicht verfügbar</option>
                   <option>Sonstiges</option>
                 </select>
               </label>
@@ -300,3 +300,5 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
     </main>
   );
 }
+
+

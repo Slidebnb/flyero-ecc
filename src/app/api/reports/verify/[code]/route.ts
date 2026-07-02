@@ -16,7 +16,7 @@ export async function GET(_request: Request, context: RouteContext) {
     entityId: report?.id ?? code,
     newValues: { found: Boolean(report), code },
   });
-  if (!report) return errorResponse("Pruefcode wurde nicht gefunden.", 404);
+  if (!report) return errorResponse("Prüfcode wurde nicht gefunden.", 404);
   return Response.json({
     ok: true,
     data: {

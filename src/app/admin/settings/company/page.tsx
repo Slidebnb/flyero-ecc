@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
@@ -34,7 +34,7 @@ export default async function CompanySettingsPage() {
 
   return (
     <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Firma</h1></div><nav className="nav"><Link href="/admin/settings">Zurueck</Link></nav></header>
+      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Firma</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
       <form action={saveCompany} className="panel stack widePanel">
         <div className="formGrid">
           {fields.map(([name, label]) => (
@@ -46,3 +46,4 @@ export default async function CompanySettingsPage() {
     </main>
   );
 }
+

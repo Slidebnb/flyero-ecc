@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
+import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { requireRole } from "@/lib/auth";
 import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -17,18 +18,11 @@ export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
   if (!invoice) notFound();
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Rechnung</p>
-          <h1>{invoice.invoiceNumber}</h1>
-          <span className="badge success">{invoice.status}</span>
-        </div>
-        <nav className="nav">
-          <Link href="/customer/invoices">Alle Rechnungen</Link>
-          {invoice.pdfUrl ? <a href={`/api/customer/invoices/${invoice.id}/download`}>PDF herunterladen</a> : null}
-        </nav>
-      </header>
+    <CustomerPortalShell active="/customer/invoices" eyebrow="Rechnung" title={invoice.invoiceNumber} description={invoice.status}>
+      <div className="customerActionRow">
+        <Link className="secondaryButton" href="/customer/invoices">Alle Rechnungen</Link>
+        {invoice.pdfUrl ? <a className="primaryButton" href={`/api/customer/invoices/${invoice.id}/download`}>PDF herunterladen</a> : null}
+      </div>
 
       <section className="gridCards">
         <article className="card"><strong>{formatCurrency(invoice.subtotalNet)}</strong><span>Netto</span></article>
@@ -72,6 +66,6 @@ export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
           </table>
         </div>
       </section>
-    </main>
+    </CustomerPortalShell>
   );
 }

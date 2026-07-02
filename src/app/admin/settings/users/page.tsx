@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { UserRole, UserStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
@@ -20,7 +20,7 @@ export default async function UsersSettingsPage() {
   const users = await listInternalUsers();
   return (
     <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Benutzer</h1></div><nav className="nav"><Link href="/admin/settings">Zurueck</Link></nav></header>
+      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Benutzer</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
       <section className="panel stack widePanel">
         <div className="tableWrap">
           <table><thead><tr><th>E-Mail</th><th>Rolle</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
@@ -47,3 +47,4 @@ export default async function UsersSettingsPage() {
     </main>
   );
 }
+

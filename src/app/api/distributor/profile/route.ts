@@ -93,15 +93,15 @@ export async function POST(request: NextRequest) {
     type: "PROFILE_UPDATED",
     title: "Profil aktualisiert",
     message: shouldReturnToReview
-      ? "Dein Profil wurde gespeichert und wird erneut geprueft."
+      ? "Dein Profil wurde gespeichert und wird erneut geprüft."
       : "Dein Verteilerprofil wurde gespeichert.",
   });
 
   if (shouldReturnToReview) {
     await notifyAdmins({
       type: "DISTRIBUTOR_PENDING_REVIEW",
-      title: "Verteilerprofil geaendert",
-      message: `${profile.firstName} ${profile.lastName} wartet erneut auf Pruefung.`,
+      title: "Verteilerprofil geändert",
+      message: `${profile.firstName} ${profile.lastName} wartet erneut auf Prüfung.`,
     });
   }
 

@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     if (error instanceof ZodError) {
-      return errorResponse("Bitte pruefe deine Angaben im Kontaktformular.", 400);
+      return errorResponse("Bitte prüfe deine Angaben im Kontaktformular.", 400);
     }
 
     await createErrorLogFromUnknown(error, {

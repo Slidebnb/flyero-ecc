@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { OrderStatus, UserRole } from "@prisma/client";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { ADMIN_ORDER_STATUS_OPTIONS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -35,21 +37,11 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Alle Aufträge</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/orders?status=PAID_WAITING_FOR_ADMIN_REVIEW">Bezahlte Auftraege</Link>
-          <Link href="/admin/payments">Payments</Link>
-          <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/distributors">Verteilerprüfung</Link>
-        </nav>
-      </header>
-
-      <section className="panel stack">
+    <AdminPortalShell
+      title="Alle Aufträge"
+      description="Aufträge filtern, prüfen und ohne Seitenwechsel in die Detailbearbeitung springen."
+    >
+      <DataSection title="Filter" description="Suche nach Auftrag, Kunde, Gebiet, Stadt oder Status.">
         <form className="form grid" action="/admin/orders" method="get">
           <label>
             Suche
@@ -72,7 +64,9 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           </label>
           <button type="submit">Filtern</button>
         </form>
+      </DataSection>
 
+      <DataSection title="Auftragsliste">
         <div className="tableWrap">
           <table>
             <thead>
@@ -91,7 +85,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                 <tr key={order.id}>
                   <td>{order.orderNumber}</td>
                   <td>{order.customer.companyName}</td>
-                  <td><span className="badge">{ORDER_STATUS_LABELS[order.status]}</span></td>
+                  <td><StatusBadge>{ORDER_STATUS_LABELS[order.status]}</StatusBadge></td>
                   <td>{order.city}</td>
                   <td>{formatDate(order.createdAt)}</td>
                   <td>{formatCurrency(order.manualPriceOverride ?? order.calculatedGrossPrice)}</td>
@@ -104,13 +98,13 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
               ))}
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>Keine Aufträge gefunden.</td>
+                  <td colSpan={7}><EmptyState title="Keine Aufträge gefunden." description="Passe Filter oder Suchbegriff an." /></td>
                 </tr>
               ) : null}
             </tbody>
           </table>
         </div>
-      </section>
-    </main>
+      </DataSection>
+    </AdminPortalShell>
   );
 }

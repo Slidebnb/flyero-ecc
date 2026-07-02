@@ -19,7 +19,7 @@ export default async function AdminInvoicesPage() {
           <h1>Rechnungen</h1>
         </div>
         <nav className="nav">
-          <Link href="/admin/orders">Auftraege</Link>
+          <Link href="/admin/orders">Aufträge</Link>
           <Link href="/admin/payments">Payments</Link>
           <Link href="/admin/dashboard">Dashboard</Link>
         </nav>
@@ -49,7 +49,7 @@ export default async function AdminInvoicesPage() {
                 <td><span className="badge">{invoice.status}</span></td>
                 <td>{formatCurrency(invoice.totalGross)}</td>
                 <td>{invoice.pdfUrl ? "Ja" : "Nein"}</td>
-                <td><Link className="textLink" href={`/admin/invoices/${invoice.id}`}>Oeffnen</Link></td>
+                <td><Link className="textLink" href={`/admin/invoices/${invoice.id}`}>Öffnen</Link></td>
               </tr>
             ))}
             {invoices.length === 0 ? <tr><td colSpan={8}>Keine Rechnungen gefunden.</td></tr> : null}
@@ -59,3 +59,4 @@ export default async function AdminInvoicesPage() {
     </main>
   );
 }
+

@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TicketPriority, TicketType, UserRole } from "@prisma/client";
-import { ActionPanel, DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
+import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { ActionPanel, DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -63,16 +64,10 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
   const complaints = tickets.filter((ticket) => ticket.type === TicketType.COMPLAINT).length;
 
   return (
-    <PortalShell
-      eyebrow="Kundenportal"
+    <CustomerPortalShell
+      active="/customer/support"
       title="Support & Reklamationen"
       description="Fragen, Reklamationen und Rückfragen zu Aufträgen oder Berichten zentral verfolgen."
-      navItems={[
-        { href: "/customer/dashboard", label: "Dashboard" },
-        { href: "/customer/orders", label: "Aufträge" },
-        { href: "/customer/reports", label: "Berichte" },
-        { href: "/customer/invoices", label: "Rechnungen" },
-      ]}
     >
       <section className="portalMetrics">
         <MetricTile label="Tickets" value={tickets.length} />
@@ -149,6 +144,6 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
           </div>
         </DataSection>
       </div>
-    </PortalShell>
+    </CustomerPortalShell>
   );
 }

@@ -180,7 +180,7 @@ export async function assignWarehouseForOrder(input: { orderId: string; userId?:
     });
     await notifyAdmins({
       type: "LOGISTICS_CAPACITY_WARNING",
-      title: "Kapazitaetswarnung",
+      title: "Kapazitätswarnung",
       message: `${best.warehouse.name}: ${capacity.utilization}/${capacity.limit ?? "-"} Flyer Auslastung.`,
       data: { warehouseId: best.warehouse.id },
     });
@@ -283,7 +283,7 @@ export async function createLogisticsShipment(input: {
   await notifyAdmins({
     type: "LOGISTICS_SHIPMENT_CREATED",
     title: "Neue Lieferung erwartet",
-    message: `${shipment.order.orderNumber}: ${shipment.shipmentType} fuer ${shipment.warehouse.name}.`,
+    message: `${shipment.order.orderNumber}: ${shipment.shipmentType} für ${shipment.warehouse.name}.`,
     data: { shipmentId: shipment.id },
   });
   return shipment;
@@ -330,7 +330,7 @@ export async function updateLogisticsShipment(input: {
       userId: shipment.order.customer.userId,
       type: "LOGISTICS_SHIPMENT_RECEIVED",
       title: "Flyer im Lager angekommen",
-      message: `Lieferung fuer Auftrag ${shipment.order.orderNumber} ist in ${shipment.warehouse.name} eingegangen.`,
+      message: `Lieferung für Auftrag ${shipment.order.orderNumber} ist in ${shipment.warehouse.name} eingegangen.`,
       data: { shipmentId: shipment.id, orderId: shipment.orderId },
     });
   }
@@ -490,7 +490,7 @@ export async function getLogisticsAnalytics() {
 
 export async function ensureShipmentForCustomerFlyers(input: { orderId: string; userId?: string | null }) {
   const assigned = await assignWarehouseForOrder({ orderId: input.orderId, userId: input.userId ?? null, reserveCapacity: true });
-  if (!assigned.warehouse) throw new Error("Kein Lager fuer Auftrag gefunden.");
+  if (!assigned.warehouse) throw new Error("Kein Lager für Auftrag gefunden.");
   const order = await prisma.order.findUniqueOrThrow({ where: { id: input.orderId }, include: { customer: true } });
   const existing = await prisma.logisticsShipment.findFirst({
     where: { orderId: order.id, shipmentType: "CUSTOMER_TO_WAREHOUSE" },
@@ -511,7 +511,7 @@ export async function ensureShipmentForCustomerFlyers(input: { orderId: string; 
     userId: order.customer.userId,
     type: "LOGISTICS_CUSTOMER_DELIVERY_EXPECTED",
     title: "Flyerlieferung erwartet",
-    message: `Bitte sende deine Flyer fuer ${order.orderNumber} an ${assigned.warehouse.name}, ${warehouseAddressText(assigned.warehouse)}.`,
+    message: `Bitte sende deine Flyer für ${order.orderNumber} an ${assigned.warehouse.name}, ${warehouseAddressText(assigned.warehouse)}.`,
     data: { shipmentId: shipment.id, warehouseId: assigned.warehouse.id },
   });
   return shipment;

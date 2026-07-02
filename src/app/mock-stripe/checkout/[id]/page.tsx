@@ -21,7 +21,7 @@ export default async function MockStripeCheckoutPage({ params }: PageProps) {
       <main className="appShell">
         <section className="panel stack">
           <h1>Testzahlung nicht gefunden</h1>
-          <Link href="/customer/orders">Zurueck zu den Auftraegen</Link>
+          <Link href="/customer/orders">Zurück zu den Aufträgen</Link>
         </section>
       </main>
     );
@@ -33,7 +33,7 @@ export default async function MockStripeCheckoutPage({ params }: PageProps) {
         <p className="eyebrow">Stripe Testmodus</p>
         <h1>Mock Checkout</h1>
         <p className="lead">
-          Lokaler Test-Checkout fuer Auftrag {payment.order.orderNumber}. Es werden keine echten Kartendaten verarbeitet.
+          Lokaler Test-Checkout für Auftrag {payment.order.orderNumber}. Es werden keine echten Kartendaten verarbeitet.
         </p>
         <div className="gridCards">
           <article className="card"><strong>{formatCurrency(payment.amount)}</strong><span>Betrag</span></article>

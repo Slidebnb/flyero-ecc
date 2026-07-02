@@ -100,7 +100,7 @@ export async function requireRole(roles: UserRole[]) {
   const session = await requireSession();
 
   if (!roles.includes(session.role)) {
-    throw new AuthError("Keine Berechtigung fuer diese Aktion.", 403);
+    throw new AuthError("Keine Berechtigung für diese Aktion.", 403);
   }
 
   return session;

@@ -180,3 +180,35 @@
 - Kunden sehen nur Lieferadresse und Sendungsstatus des zustaendigen Lagers. Kapazitaetslimit, Auslastung, Umlagerungen und interne Notizen bleiben Admin-/Warehouse-Daten.
 - Es gibt bewusst noch keine externe Carrier-API. Im MVP sind Carrier und Trackingnummer manuell, damit Rechte, AuditLogs, Prozesse und Datenmodell stabil werden, bevor DHL/DPD/GLS-Integrationen technische Komplexitaet hinzufuegen.
 - Routenoptimierung, KI-Optimierung, Franchise/White-Label und native Apps bleiben ausserhalb von Modul 23. Modul 23 schafft nur die Logistikdatenbasis fuer Modul 24.
+
+## Modul 24: UX-first Auftragserstellung und Smart Maps
+
+### Entscheidung
+
+Die Auftragserstellung wird als Kartenplanung modelliert, nicht als klassischer Formular-Wizard. Die Karte ist das Zentrum des Prozesses; Eingaben sind nur noch Steuerflächen für Ort, Gebiet, Menge und Termin.
+
+### Warum UX-first?
+
+Der Kunde soll nicht verstehen müssen, wie FLYERO intern Aufträge, Gebiete, Lager und Disposition organisiert. Er soll nur sagen: Wo verteilen? Welches Gebiet? Wann? Der Rest wird live vorgeschlagen oder berechnet.
+
+### Warum Karten im Mittelpunkt stehen
+
+Flyerverteilung ist räumlich. Eine große Karte reduziert Denkaufwand, zeigt Gebiet, Route, Heatmap und Grenzen direkt im Kontext und spart Klicks gegenüber separaten Formularschritten.
+
+### Warum Live-Berechnungen
+
+Preis, Haushalte, Flyer, Laufstrecke, Laufzeit, Lager und Verteilerbedarf werden sofort angezeigt. Dadurch entfällt die alte Zusammenfassungslogik als separater Schritt und der Nutzer bekommt direkte Sicherheit.
+
+### Warum Service Layer
+
+Routing, Autocomplete, Geocoding, Heatmap und Tourkombinationen liegen in `src/lib/routing.ts` und `src/lib/smartMaps.ts`. React-Komponenten bleiben zustands- und darstellungsorientiert. Google-REST-Aufrufe bleiben serverseitig vorbereitet.
+
+### Warum weniger Klicks wichtiger sind als mehr Funktionen
+
+Modul 24 erweitert nicht primär Businessmodule, sondern reduziert Reibung: Vorschläge während der Eingabe, automatischer Kartensprung, gespeicherte Gebiete, Live Business Card, Undo/Redo im Polygon und direkte Buchung aus derselben Oberfläche.
+
+### Offene Produktionspunkte
+
+- Echte Google Places-/Geocoding-Billing-Konfiguration muss mit produktiven Keys geprüft werden.
+- Route Optimization API kann später statt der aktuellen Cluster-/Fallbacklogik angeschlossen werden.
+- Browserbasierte Drag-Gesten für einzelne Polygonpunkte können weiter ausgebaut werden; aktuell sind Punktsteuerung, Hinzufügen, Löschen, Verschieben, Undo und Redo verfügbar.

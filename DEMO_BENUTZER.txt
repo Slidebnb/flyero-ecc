@@ -10,7 +10,7 @@ Admin
 -----
 E-Mail: admin@example.com
 Rolle: ADMIN
-Bereiche: Admin-Dashboard, Auftraege, Payments, Rechnungen, Lager, Dispatch, Touren, Reports, Verteilerpruefung.
+Bereiche: Admin-Dashboard, Aufträge, Payments, Rechnungen, Lager, Dispatch, Touren, Reports, Verteilerprüfung.
 Start: /admin/dashboard
 
 
@@ -24,16 +24,16 @@ Start: /warehouse/dashboard
 E-Mail: warehouse.inaktiv@example.com
 Rolle: WAREHOUSE_STAFF
 Status: DISABLED
-Bereiche: Demo fuer deaktivierte interne Benutzer.
+Bereiche: Demo für deaktivierte interne Benutzer.
 
 
 Support / Dispatch
 ------------------
 E-Mail: support@example.com
 Rolle: SUPPORT_DISPATCHER
-Bereiche: Admin-nahe Pruef-, Report- und Dispatch-Workflows.
+Bereiche: Admin-nahe Prüf-, Report- und Dispatch-Workflows.
 Start: /admin/dispatch
-Hinweis: Support/Dispatch darf in den Admin-Bereich hinein, konkrete Admin-APIs und Seiten bleiben zusaetzlich rollenbeschraenkt.
+Hinweis: Support/Dispatch darf in den Admin-Bereich hinein, konkrete Admin-APIs und Seiten bleiben zusätzlich rollenbeschraenkt.
 
 
 Kunden
@@ -71,33 +71,33 @@ Hinweis: Noch nicht freigegeben.
 E-Mail: verteiler.approved1@example.com
 Rolle: DISTRIBUTOR
 Status: APPROVED
-Hinweis: Freigegeben fuer Touren und Dispatch.
+Hinweis: Freigegeben für Touren und Dispatch.
 Start: /distributor/dashboard
 
 E-Mail: verteiler.approved2@example.com
 Rolle: DISTRIBUTOR
 Status: APPROVED
-Hinweis: Freigegeben fuer Touren und Dispatch.
+Hinweis: Freigegeben für Touren und Dispatch.
 
 E-Mail: verteiler.approved3@example.com
 Rolle: DISTRIBUTOR
 Status: APPROVED
-Hinweis: Freigegeben fuer Touren und Dispatch.
+Hinweis: Freigegeben für Touren und Dispatch.
 
 E-Mail: verteiler.approved4@example.com
 Rolle: DISTRIBUTOR
 Status: APPROVED
-Hinweis: Freigegeben fuer Touren und Dispatch.
+Hinweis: Freigegeben für Touren und Dispatch.
 
 E-Mail: verteiler.approved5@example.com
 Rolle: DISTRIBUTOR
 Status: APPROVED
-Hinweis: Freigegeben fuer Touren und Dispatch.
+Hinweis: Freigegeben für Touren und Dispatch.
 
 E-Mail: verteiler.approved6@example.com
 Rolle: DISTRIBUTOR
 Status: APPROVED
-Hinweis: Freigegeben fuer Touren und Dispatch.
+Hinweis: Freigegeben für Touren und Dispatch.
 
 E-Mail: verteiler.rejected@example.com
 Rolle: DISTRIBUTOR
@@ -117,11 +117,11 @@ http://localhost:3000/login
 
 Beta-Hauptflow
 --------------
-Der technische Beta-Smoke laeuft mit:
+Der technische Beta-Smoke läuft mit:
 
 npm run test:beta
 
-Er prueft Registrierung, E-Mail-Verifizierung, Auftrag, lokalen Stripe-Testcheckout,
+Er prüft Registrierung, E-Mail-Verifizierung, Auftrag, lokalen Stripe-Testcheckout,
 Admin-Genehmigung, Rechnung, Lager-Check-in, QR-Code, Dispatch, Verteiler-Tour,
 GPS/Fotos, Tourfreigabe, Bericht, PDF-Downloads, Rollenweiterleitungen und wichtige
 Sicherheitsgrenzen.

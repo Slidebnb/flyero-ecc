@@ -14,6 +14,6 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (request.headers.get("accept")?.includes("text/html")) return NextResponse.redirect(new URL(`/admin/reports/${id}`, request.url), { status: 303 });
     return Response.json({ ok: true, data: report });
   } catch (error) {
-    try { return routeErrorResponse(error); } catch { return errorResponse(error instanceof Error ? error.message : "Bericht konnte nicht veroeffentlicht werden.", 400); }
+    try { return routeErrorResponse(error); } catch { return errorResponse(error instanceof Error ? error.message : "Bericht konnte nicht veröffentlicht werden.", 400); }
   }
 }

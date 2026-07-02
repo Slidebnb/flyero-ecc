@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { PaymentStatus, UserRole } from "@prisma/client";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -11,7 +13,7 @@ type PageProps = {
 const FILTERS: Array<{ value: PaymentStatus | "REFUND"; label: string }> = [
   { value: "PAID", label: "Bezahlt" },
   { value: "CHECKOUT_CREATED", label: "Ausstehend" },
-  { value: "REFUND", label: "Refund" },
+  { value: "REFUND", label: "Erstattungen" },
   { value: "FAILED", label: "Fehlgeschlagen" },
 ];
 
@@ -36,19 +38,11 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Payments</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/orders?status=PAID_WAITING_FOR_ADMIN_REVIEW">Bezahlte Auftraege</Link>
-          <Link href="/admin/dashboard">Dashboard</Link>
-        </nav>
-      </header>
-
-      <section className="panel stack widePanel">
+    <AdminPortalShell
+      title="Zahlungen"
+      description="Stripe-Status, Webhookhistorie und Erstattungen zentral prüfen."
+    >
+      <DataSection title="Filter" description="Zahlungen nach Status oder Erstattungen eingrenzen.">
         <form className="form grid" action="/admin/payments" method="get">
           <label>
             Status
@@ -59,7 +53,9 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
           </label>
           <button type="submit">Filtern</button>
         </form>
+      </DataSection>
 
+      <DataSection title="Zahlungsliste">
         <div className="tableWrap">
           <table>
             <thead>
@@ -71,7 +67,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
                 <th>Betrag</th>
                 <th>Stripe</th>
                 <th>Webhookhistorie</th>
-                <th>Refund ausloesen</th>
+                <th>Erstattung</th>
               </tr>
             </thead>
             <tbody>
@@ -80,7 +76,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
                   <td>{payment.id.slice(-8).toUpperCase()}</td>
                   <td><Link className="textLink" href={`/admin/orders/${payment.orderId}`}>{payment.order.orderNumber}</Link></td>
                   <td>{payment.order.customer.companyName}</td>
-                  <td><span className="badge">{payment.status}</span></td>
+                  <td><StatusBadge>{payment.status}</StatusBadge></td>
                   <td>{formatCurrency(payment.amount)}</td>
                   <td>{payment.stripePaymentIntentId ?? payment.stripeCheckoutSessionId ?? "-"}</td>
                   <td>
@@ -90,24 +86,26 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
                   </td>
                   <td>
                     {["PAID", "PARTIALLY_REFUNDED"].includes(payment.status) ? (
-                      <form action={`/api/admin/payments/${payment.id}/refund`} method="post" className="form">
+                      <form action={`/api/admin/payments/${payment.id}/refund`} method="post" className="form compactForm">
                         <select name="reason" required defaultValue="Admin-Ablehnung">
                           <option>Admin-Ablehnung</option>
                           <option>Kunde storniert</option>
                           <option>Doppelte Zahlung</option>
                           <option>Sonstiges</option>
                         </select>
-                        <button type="submit">Refund ausloesen</button>
+                        <button type="submit">Erstattung auslösen</button>
                       </form>
-                    ) : payment.refunds.length ? `${payment.refunds.length} Refund(s)` : "-"}
+                    ) : payment.refunds.length ? `${payment.refunds.length} Erstattung(en)` : "-"}
                   </td>
                 </tr>
               ))}
-              {payments.length === 0 ? <tr><td colSpan={8}>Keine Zahlungen gefunden.</td></tr> : null}
+              {payments.length === 0 ? (
+                <tr><td colSpan={8}><EmptyState title="Keine Zahlungen gefunden." description="Passe den Filter an oder prüfe später erneut." /></td></tr>
+              ) : null}
             </tbody>
           </table>
         </div>
-      </section>
-    </main>
+      </DataSection>
+    </AdminPortalShell>
   );
 }

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { DispatchAssignmentStatus, UserRole } from "@prisma/client";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 import { requireRole } from "@/lib/auth";
 import { DISPATCH_STATUS_LABELS, TOUR_STATUS_LABELS } from "@/lib/constants";
 import { getDispatchDashboard } from "@/lib/dispatch";
 import { formatDateTime } from "@/lib/format";
+import { combineOrders } from "@/lib/routing";
 
 type PageProps = {
   searchParams: Promise<{
@@ -16,31 +18,25 @@ type PageProps = {
 };
 
 function warningText(value: boolean) {
-  return value ? "Kapazitaet ueberschritten" : "Kapazitaet ok";
+  return value ? "Kapazität überschritten" : "Kapazität ok";
 }
 
 export default async function AdminDispatchPage({ searchParams }: PageProps) {
   await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const filters = await searchParams;
-  const dashboard = await getDispatchDashboard(filters);
+  const [dashboard, combinations] = await Promise.all([
+    getDispatchDashboard(filters),
+    combineOrders({ city: filters.city, postalCode: undefined }),
+  ]);
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Disposition</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/orders">Auftraege</Link>
-          <Link href="/admin/tours">Touren</Link>
-          <Link href="/admin/warehouse">Lager</Link>
-        </nav>
-      </header>
+    <AdminPortalShell
+      title="Disposition"
+      description="Offene Aufträge, Verteilerempfehlungen, Tour-Kombinationen und laufende Zustellungen koordinieren."
+    >
 
       <section className="gridCards">
-        <article className="card"><strong>{dashboard.metrics.openOrders}</strong><span>Offene Auftraege</span></article>
+        <article className="card"><strong>{dashboard.metrics.openOrders}</strong><span>Offene Aufträge</span></article>
         <article className="card"><strong>{dashboard.metrics.unassigned}</strong><span>Nicht zugewiesen</span></article>
         <article className="card"><strong>{dashboard.metrics.reserved}</strong><span>Reserviert</span></article>
         <article className="card"><strong>{dashboard.metrics.readyForPickup}</strong><span>Abholbereit</span></article>
@@ -93,7 +89,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Nicht zugewiesene Auftraege</h2>
+        <h2 className="sectionTitle">Nicht zugewiesene Aufträge</h2>
         {dashboard.unassignedInventories.map((inventory) => {
           const recommendations = dashboard.recommendationsByOrderId[inventory.orderId] ?? [];
           return (
@@ -105,7 +101,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                     {inventory.order.customer.companyName} / {inventory.order.city} / {inventory.expectedFlyers} Flyer / {inventory.warehouseLocation?.warehouse.name ?? "Lager"}
                   </p>
                 </div>
-                <Link className="textLink" href={`/admin/orders/${inventory.orderId}`}>Auftrag oeffnen</Link>
+                <Link className="textLink" href={`/admin/orders/${inventory.orderId}`}>Auftrag öffnen</Link>
               </div>
               <div className="inlineActions">
                 <form action={`/api/admin/dispatch/recommend/${inventory.orderId}`} method="post">
@@ -118,7 +114,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
               {dashboard.persistedRecommendations.filter((item) => item.orderId === inventory.orderId).length > 0 ? (
                 <div className="tableWrap">
                   <table>
-                    <thead><tr><th>Top Empfehlung</th><th>Score</th><th>Gruende</th><th>Warnungen</th><th>Aktionen</th></tr></thead>
+                    <thead><tr><th>Top Empfehlung</th><th>Score</th><th>Gründe</th><th>Warnungen</th><th>Aktionen</th></tr></thead>
                     <tbody>
                       {dashboard.persistedRecommendations.filter((item) => item.orderId === inventory.orderId).slice(0, 5).map((item) => (
                         <tr key={item.id}>
@@ -149,12 +145,12 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                     <tr>
                       <th>Verteiler</th>
                       <th>Score</th>
-                      <th>Gruende</th>
+                      <th>Gründe</th>
                       <th>Warnungen</th>
                       <th>Stadt</th>
                       <th>Distanz</th>
                       <th>Offene Touren</th>
-                      <th>Kapazitaet</th>
+                      <th>Kapazität</th>
                       <th>Rating</th>
                       <th>Erledigt</th>
                       <th></th>
@@ -199,15 +195,45 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
             </article>
           );
         })}
-        {dashboard.unassignedInventories.length === 0 ? <p className="muted">Aktuell gibt es keine offenen Dispatch-Auftraege.</p> : null}
+        {dashboard.unassignedInventories.length === 0 ? <p className="muted">Aktuell gibt es keine offenen Dispatch-Aufträge.</p> : null}
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Zugewiesene Auftraege</h2>
+        <div className="splitHeader">
+          <div>
+            <h2 className="sectionTitle">Tour-Kombinationen</h2>
+            <p className="muted">Automatische Vorschläge, wenn mehrere Kunden im gleichen Gebiet gebucht haben.</p>
+          </div>
+          <Link className="textLink" href="/api/admin/dispatch/combinations">API öffnen</Link>
+        </div>
         <div className="tableWrap">
           <table>
             <thead>
-              <tr><th>Auftrag</th><th>Verteiler</th><th>Status</th><th>Lager</th><th>Kapazitaet</th><th>Aktualisiert</th></tr>
+              <tr><th>Gebiet</th><th>Aufträge</th><th>Flyer</th><th>Strecke sparen</th><th>Zeit sparen</th><th>Kosten sparen</th></tr>
+            </thead>
+            <tbody>
+              {combinations.slice(0, 8).map((combination) => (
+                <tr key={combination.key}>
+                  <td>{combination.postalCodePrefix} {combination.city}</td>
+                  <td>{combination.orders.length}</td>
+                  <td>{combination.totalFlyers}</td>
+                  <td>{(combination.savedDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km</td>
+                  <td>{combination.savedMinutes} min</td>
+                  <td>{combination.savedCostEstimate} €</td>
+                </tr>
+              ))}
+              {combinations.length === 0 ? <tr><td colSpan={6}>Noch keine sinnvollen Kombinationen gefunden.</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
+        <h2 className="sectionTitle">Zugewiesene Aufträge</h2>
+        <div className="tableWrap">
+          <table>
+            <thead>
+              <tr><th>Auftrag</th><th>Verteiler</th><th>Status</th><th>Lager</th><th>Kapazität</th><th>Aktualisiert</th></tr>
             </thead>
             <tbody>
               {dashboard.assignments.map((assignment) => (
@@ -216,7 +242,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                   <td>{assignment.distributor.firstName} {assignment.distributor.lastName}</td>
                   <td>{DISPATCH_STATUS_LABELS[assignment.status]}</td>
                   <td>{assignment.inventory?.warehouseLocation?.warehouse.name ?? "-"}</td>
-                  <td>{assignment.capacityWarning ? "Kapazitaet ueberschritten" : "OK"}</td>
+                  <td>{assignment.capacityWarning ? "Kapazität überschritten" : "OK"}</td>
                   <td>{formatDateTime(assignment.updatedAt)}</td>
                 </tr>
               ))}
@@ -248,6 +274,8 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
           {dashboard.completedTours.length === 0 ? <p className="muted">Keine abgeschlossenen Touren.</p> : null}
         </article>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }
+
+

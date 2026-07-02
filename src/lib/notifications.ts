@@ -204,7 +204,7 @@ export async function createNotification(input: NotificationInput) {
       userId: input.userId,
       action: "notification.created",
       status: queue?.status,
-      detail: queueAllowed ? "Nachricht wurde erstellt und fuer Versand vorgemerkt." : "Nachricht wurde erstellt, Versand laut Preference deaktiviert.",
+      detail: queueAllowed ? "Nachricht wurde erstellt und für Versand vorgemerkt." : "Nachricht wurde erstellt, Versand laut Preference deaktiviert.",
       metadata: { type: input.type, channel, legacyNotificationId: legacyNotification?.id ?? null },
     },
   });

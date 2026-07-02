@@ -123,7 +123,7 @@ export async function ensureInventoryForApprovedOrder(input: {
   }
 
   if (order.status !== "APPROVED" && order.status !== "READY_FOR_FLYERS") {
-    throw new Error("Nur genehmigte Auftraege duerfen in den Lagerprozess.");
+    throw new Error("Nur genehmigte Aufträge dürfen in den Lagerprozess.");
   }
 
   if (order.status === "APPROVED") {
@@ -184,7 +184,7 @@ export async function ensureInventoryForApprovedOrder(input: {
   await notifyAdmins({
     type: "WAREHOUSE_QR_GENERATED",
     title: "QR-Code erzeugt",
-    message: `QR-Code fuer ${order.orderNumber} wurde erzeugt.`,
+    message: `QR-Code für ${order.orderNumber} wurde erzeugt.`,
   });
 
   return updatedInventory;

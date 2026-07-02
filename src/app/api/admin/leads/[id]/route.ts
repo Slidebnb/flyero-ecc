@@ -18,7 +18,7 @@ async function handleUpdate(request: NextRequest, context: RouteContext) {
     return successResponse(lead);
   } catch (error) {
     if (error instanceof ZodError) {
-      return errorResponse("Lead-Aktualisierung ist ungueltig.", 400);
+      return errorResponse("Lead-Aktualisierung ist ungültig.", 400);
     }
 
     if (error instanceof Error && error.message === "Lead wurde nicht gefunden.") {

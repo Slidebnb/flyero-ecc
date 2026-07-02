@@ -185,6 +185,31 @@ export async function POST(request: NextRequest) {
       title: "Auftrag erstellt",
         message: `Auftrag ${order.orderNumber} wurde erstellt. Bitte starte jetzt die Zahlung per Stripe Checkout.`,
       });
+    await prisma.orderExperienceEvent.create({
+      data: {
+        orderId: order.id,
+        customerId: customer.id,
+        userId: session.id,
+        eventType: "ORDER_CREATED",
+        city: order.city,
+        postalCode: order.postalCode,
+        areaName: order.targetAreaName,
+        areaType: data.areaType ?? (data.targetAreaGeoJson ? "POLYGON" : "POSTAL_CODE"),
+        usedSavedArea: Boolean(data.distributionAreaId),
+        households: order.estimatedHouseholds,
+        flyerQuantity: order.flyerQuantity,
+        coverageAreaSqm: order.coverageAreaSqm,
+        routeDistanceMeters: order.estimatedDistanceMeters,
+        routeDurationMinutes: order.estimatedDistanceMeters
+          ? Math.max(20, Math.round(order.estimatedDistanceMeters / 68 + (order.estimatedHouseholds ?? 0) * 0.38))
+          : null,
+        metadata: {
+          source: "api/customer/orders",
+          needsPrintService: order.needsPrintService,
+          assignedWarehouseId: order.assignedWarehouseId,
+        },
+      },
+    });
 
     if (request.headers.get("accept")?.includes("text/html")) {
       return NextResponse.redirect(new URL(`/customer/orders/${order.id}`, request.url), {

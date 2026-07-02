@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { TicketPriority, TicketType, UserRole } from "@prisma/client";
 import { RouteMap } from "@/app/components/RouteMap";
+import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { formatDateTime } from "@/lib/format";
@@ -57,28 +58,16 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
   await createAuditLog({ userId: session.id, action: "report.viewed", entityType: "Report", entityId: report.id });
 
   return (
-    <main className="appShell reportShell">
-      <header className="reportHero">
-        <div>
-          <p className="eyebrow">Flyero Verteilnachweis</p>
-          <h1>Verteilbericht</h1>
-          <p className="lead">{report.reportNumber} / Auftrag {customerView.order.orderNumber}</p>
-        </div>
-        <div className="reportSeal">
-          <strong>{customerView.gpsQuality.label}</strong>
-          <span>GPS-Qualitaet {customerView.gpsQuality.score}/100</span>
-        </div>
-      </header>
-
-      <nav className="nav" style={{ marginBottom: 18 }}>
-        <Link href="/customer/reports">Alle Berichte</Link>
-        {report.pdfUrl ? <a href={`/api/customer/reports/${report.id}/download`}>PDF herunterladen</a> : null}
+    <CustomerPortalShell active="/customer/reports" eyebrow="FLYERO Verteilnachweis" title="Verteilbericht" description={`${report.reportNumber} / Auftrag ${customerView.order.orderNumber}`}>
+      <div className="customerActionRow">
+        <Link className="secondaryButton" href="/customer/reports">Alle Berichte</Link>
+        {report.pdfUrl ? <a className="primaryButton" href={`/api/customer/reports/${report.id}/download`}>PDF herunterladen</a> : null}
         <form action={createComplaintTicket}>
           <input type="hidden" name="reportId" value={report.id} />
           <button type="submit">Problem melden</button>
         </form>
-        <Link href="/customer/dashboard">Dashboard</Link>
-      </nav>
+        <span className="statusBadge success">GPS-Qualität {customerView.gpsQuality.score}/100</span>
+      </div>
 
       <section className="gridCards">
         <article className="card"><strong>{customerView.order.flyerQuantity}</strong><span>Flyer</span></article>
@@ -136,15 +125,15 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Pruefung</h2>
+        <h2 className="sectionTitle">Prüfung</h2>
         <div className="notice">
           <strong>Adminfreigabe dokumentiert</strong>
-          <p>Pruefdatum: {formatDateTime(report.approvedAt ?? report.generatedAt)}</p>
-          <p>Digitale Pruefnummer: {report.verificationCode}</p>
+          <p>Prüfdatum: {formatDateTime(report.approvedAt ?? report.generatedAt)}</p>
+          <p>Digitale Prüfnummer: {report.verificationCode}</p>
           <p>Digitale Kennung: {report.checksum ?? "-"}</p>
           <p>Bericht-ID: {report.id}</p>
         </div>
       </section>
-    </main>
+    </CustomerPortalShell>
   );
 }

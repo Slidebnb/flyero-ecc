@@ -1,37 +1,44 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 export const regions = ["Koblenz", "Neuwied", "Bendorf", "Lahnstein", "Vallendar", "Andernach", "Mülheim-Kärlich"];
 
 export const featureCards = [
-  ["Online-Buchung", "Auftrag, Gebiet und Menge strukturiert erfassen."],
-  ["Stripe-Zahlung", "Sichere Vorkasse vor der operativen Prüfung."],
-  ["Lager mit QR-Code", "Flyer werden eindeutig eingelagert und abgeholt."],
-  ["Geprüfte Verteiler", "Profile werden vor Freischaltung kontrolliert."],
-  ["GPS-Tracking", "Touren werden mobil und nachvollziehbar dokumentiert."],
-  ["Foto-Nachweise", "Bilder ergänzen den digitalen Verteilnachweis."],
-  ["Adminprüfung", "Auftrag und Tour werden vor Freigabe geprüft."],
-  ["PDF-Bericht", "Kunden erhalten einen professionellen Abschlussbericht."],
-  ["Kundenportal", "Berichte, Rechnungen und Zahlungen an einem Ort."],
+  ["Gebiet wählen", "PLZ, Ort oder Wunschgebiet auf der Karte festlegen."],
+  ["Flyer hochladen", "Druckdaten, Menge und Format strukturiert übergeben."],
+  ["Prüfen & buchen", "Preis, Zeitraum und Lagerweg vor der Zahlung sehen."],
+  ["Verteilen lassen", "Verteiler, Lager und Nachweis laufen im Portal zusammen."],
 ];
+
+export function FlyeroLogo({ dark = false }: { dark?: boolean }) {
+  return (
+    <span className={`flyeroLogo${dark ? " dark" : ""}`} aria-label="FLYERO">
+      <span className="flyeroMark" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <strong>FLYERO</strong>
+    </span>
+  );
+}
 
 export function PublicNav() {
   return (
     <header className="marketingNav">
       <Link href="/" className="brandMark" aria-label="FLYERO Startseite">
-        <span>FLYERO</span>
+        <FlyeroLogo />
       </Link>
       <nav>
-        <Link href="/fuer-unternehmen">Für Unternehmen</Link>
-        <Link href="/fuer-verteiler">Für Verteiler</Link>
-        <Link href="/preise">Preise</Link>
+        <Link href="/fuer-unternehmen">Leistungen</Link>
+        <Link href="/so-funktionierts">Verteilgebiete</Link>
+        <Link href="/fuer-unternehmen#zielgruppen">Zielgruppen</Link>
         <Link href="/so-funktionierts">So funktioniert&apos;s</Link>
-        <Link href="/kontakt">Kontakt</Link>
-        <Link href="/login">Login</Link>
-        <Link className="navCta" href="/verteilung-anfragen">
-          Verteilung anfragen
-        </Link>
+        <Link href="/preise">Preise</Link>
+        <Link href="/kontakt">Wissen</Link>
+        <Link className="navLogin" href="/login">Login</Link>
+        <Link className="navCta" href="/verteilung-anfragen">Unverbindlich anfragen</Link>
       </nav>
     </header>
   );
@@ -41,8 +48,8 @@ export function PublicFooter() {
   return (
     <footer className="marketingFooter">
       <div>
-        <strong>FLYERO</strong>
-        <p>Moderne Flyerverteilung mit GPS-Nachweis. Startregion Koblenz.</p>
+        <FlyeroLogo />
+        <p>Flyerverteilung mit Gebietsauswahl, Lagerprozess und nachvollziehbarem Bericht.</p>
       </div>
       <nav>
         <Link href="/kontakt">Kontakt</Link>
@@ -56,7 +63,7 @@ export function PublicFooter() {
 
 export function MarketingPage({ children }: { children: ReactNode }) {
   return (
-    <main className="marketingShell">
+    <main className="marketingShell flyeroPublic">
       <PublicNav />
       {children}
       <PublicFooter />
@@ -66,10 +73,11 @@ export function MarketingPage({ children }: { children: ReactNode }) {
 
 export function HeroVisual() {
   return (
-    <div className="heroVisual" aria-label="FLYERO Plattformvorschau">
+    <div className="flyeroHeroVisual" aria-label="FLYERO Flyer und Kartenmotiv">
+      <div className="heroMapLines" aria-hidden="true" />
       <Image
         src="/generated/marketing/flyero-hero-proof.png"
-        alt="GPS-Karte, QR-Lieferschein, Flyer und Verteilbericht als hochwertige FLYERO Plattformvorschau"
+        alt="Flyer, Kartenroute und FLYERO Plattformmotiv"
         width={1600}
         height={1000}
         className="heroAsset"
@@ -84,9 +92,9 @@ export function PageHero({
   title,
   children,
   primaryHref = "/verteilung-anfragen",
-  primaryLabel = "Verteilung anfragen",
-  secondaryHref = "/kontakt",
-  secondaryLabel = "Kontakt aufnehmen",
+  primaryLabel = "Unverbindlich anfragen",
+  secondaryHref = "/login",
+  secondaryLabel = "Login",
 }: {
   eyebrow: string;
   title: string;
@@ -104,23 +112,18 @@ export function PageHero({
         <div className="heroLead">{children}</div>
         <div className="heroBenefits">
           <div>
-            <span className="benefitIcon calendarIcon" />
-            <p><strong>Online buchen</strong><br />Gebiete wählen, Auflage definieren, Termin festlegen.</p>
+            <span className="benefitIcon">◎</span>
+            <p>Über 2.500 aktive Verteiler</p>
           </div>
           <div>
-            <span className="benefitIcon cardIcon" />
-            <p><strong>Sicher bezahlen</strong><br />Zahlung bequem und sicher über Stripe.</p>
-          </div>
-          <div>
-            <span className="benefitIcon pinIcon" />
-            <p><strong>Nachweis erhalten</strong><br />GPS-Tracking und Foto-Report als PDF.</p>
+            <span className="benefitIcon">⌂</span>
+            <p>Seit 2011 für lokale Unternehmen</p>
           </div>
         </div>
         <div className="actions">
-          <Link href={primaryHref}>{primaryLabel}</Link>
+          <Link href={primaryHref}>{primaryLabel}<span aria-hidden="true">→</span></Link>
           <Link href={secondaryHref}>{secondaryLabel}</Link>
         </div>
-        <p className="securityNote">DSGVO-konform. Daten sicher in Deutschland gespeichert.</p>
       </div>
       <HeroVisual />
     </section>
@@ -129,10 +132,10 @@ export function PageHero({
 
 export function ProblemVisual() {
   return (
-    <div className="problemVisual" aria-label="Ungeprüfte Flyerverteilung ohne Nachweis">
+    <div className="problemVisual" aria-label="Flyer und Verteilnachweis">
       <Image
         src="/generated/marketing/flyero-problem-proof.png"
-        alt="Flyer ohne Nachweis vor einem Briefkasten als Problemmotiv"
+        alt="Flyer und Verteilnachweis als FLYERO Motiv"
         width={1600}
         height={1000}
         className="problemAsset"
@@ -146,7 +149,7 @@ export function SignalList({ items }: { items: string[] }) {
     <ul className="signalList">
       {items.map((item) => (
         <li key={item}>
-          <span aria-hidden="true" />
+          <span aria-hidden="true">✓</span>
           <strong>{item}</strong>
         </li>
       ))}
@@ -156,7 +159,7 @@ export function SignalList({ items }: { items: string[] }) {
 
 export function SolutionPath({ items }: { items: string[] }) {
   return (
-    <div className="solutionPath">
+    <div className="solutionPath flyeroProcessLine">
       {items.map((item, index) => (
         <article key={item}>
           <span>{String(index + 1).padStart(2, "0")}</span>
@@ -169,7 +172,7 @@ export function SolutionPath({ items }: { items: string[] }) {
 
 export function FeatureShowcase({ items }: { items: string[][] }) {
   return (
-    <div className="featureShowcase">
+    <div className="featureShowcase flyeroFeatureSteps">
       {items.map(([title, text], index) => (
         <article key={title}>
           <span>{String(index + 1).padStart(2, "0")}</span>
@@ -185,15 +188,13 @@ export function FeatureShowcase({ items }: { items: string[][] }) {
 
 export function AudienceList({ items }: { items: string[][] }) {
   return (
-    <div className="audienceList">
-      {items.map(([title, text, signal], index) => (
+    <div className="audienceList flyeroAudienceGrid">
+      {items.map(([title, text, signal]) => (
         <article key={title}>
-          <span className="audienceIndex">{String(index + 1).padStart(2, "0")}</span>
-          <div>
-            <strong>{title}</strong>
-            <p>{text}</p>
-            {signal ? <em>{signal}</em> : null}
-          </div>
+          <span className="audienceIcon" aria-hidden="true" />
+          <strong>{title}</strong>
+          <p>{text}</p>
+          {signal ? <em>{signal}</em> : null}
         </article>
       ))}
     </div>
@@ -213,12 +214,11 @@ export function Section({ eyebrow, title, children }: { eyebrow?: string; title:
 export function CardGrid({ items }: { items: string[] | string[][] }) {
   return (
     <div className="marketingCards">
-      {items.map((item, index) => {
+      {items.map((item) => {
         const title = Array.isArray(item) ? item[0] : item;
         const text = Array.isArray(item) ? item[1] : "";
         return (
           <article className="marketingCard" key={title}>
-            <span>{String(index + 1).padStart(2, "0")}</span>
             <strong>{title}</strong>
             {text ? <p>{text}</p> : null}
           </article>
@@ -230,10 +230,10 @@ export function CardGrid({ items }: { items: string[] | string[][] }) {
 
 export function StepList({ steps }: { steps: string[] }) {
   return (
-    <ol className="stepList">
+    <ol className="stepList flyeroTimeline">
       {steps.map((step, index) => (
         <li key={step}>
-          <span>{String(index + 1).padStart(2, "0")}</span>
+          <span>{String(index + 1)}</span>
           <strong>{step}</strong>
         </li>
       ))}
@@ -243,15 +243,14 @@ export function StepList({ steps }: { steps: string[] }) {
 
 export function CtaBand() {
   return (
-    <section className="ctaBand">
+    <section className="ctaBand flyeroTrustBand">
       <div>
-        <p className="eyebrow">Start in Koblenz & Umgebung</p>
-        <h2>Bereit für transparente Flyerverteilung?</h2>
+        <p className="eyebrow">Deutschlandweite Abdeckung</p>
+        <h2>Von Hamburg bis München lokal stark, bundesweit vernetzt.</h2>
       </div>
       <div className="actions">
-        <Link href="/verteilung-anfragen">Verteilung anfragen</Link>
-        <Link href="/login">Demo ansehen</Link>
-        <Link href="/register/distributor">Verteiler werden</Link>
+        <Link href="/verteilung-anfragen">Neue Kampagne erstellen<span aria-hidden="true">→</span></Link>
+        <Link href="/login">Portal öffnen</Link>
       </div>
     </section>
   );

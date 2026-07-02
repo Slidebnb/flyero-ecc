@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { Prisma, UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
@@ -46,7 +46,7 @@ export default async function PricingSettingsPage() {
 
   return (
     <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Preise</h1></div><nav className="nav"><Link href="/admin/settings">Zurueck</Link></nav></header>
+      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Preise</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
       <form action={savePricing} className="panel stack widePanel">
         <div className="formGrid">
           <label>MwSt.<input name={PRICING_SETTING_KEYS.vatRate} defaultValue={settingValue(PRICING_SETTING_KEYS.vatRate)} /></label>
@@ -75,3 +75,4 @@ export default async function PricingSettingsPage() {
     </main>
   );
 }
+

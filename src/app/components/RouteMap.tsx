@@ -106,7 +106,7 @@ export function RouteMap({ points, photos = [], targetArea = null, height = 360 
     return (
       <div className="mapFallback">
         <strong>{!browserKey ? "Google Maps Key fehlt." : "Keine GPS-Punkte vorhanden."}</strong>
-        <p>Fallback-Ansicht ohne Karten-API. Die Route bleibt als Koordinatenliste verfuegbar.</p>
+        <p>Fallback-Ansicht ohne Karten-API. Die Route bleibt als Koordinatenliste verfügbar.</p>
         <ol>
           {validPoints.map((point, index) => (
             <li key={`${point.lat}-${point.lng}-${index}`}>
