@@ -1,5 +1,17 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import {
+  Bell,
+  CircleHelp,
+  CreditCard,
+  FileStack,
+  FileText,
+  LayoutDashboard,
+  ListChecks,
+  Plus,
+  ReceiptText,
+  Settings,
+} from "lucide-react";
 
 type CustomerPortalShellProps = {
   title: string;
@@ -10,16 +22,16 @@ type CustomerPortalShellProps = {
 };
 
 const navItems = [
-  { href: "/customer/orders/new", label: "Neue Bestellung", icon: "+" },
-  { href: "/customer/dashboard", label: "Dashboard", icon: "D" },
-  { href: "/customer/orders", label: "Bestellungen", icon: "B" },
-  { href: "/customer/documents", label: "Dokumente", icon: "F" },
-  { href: "/customer/payments", label: "Zahlungen", icon: "EUR" },
-  { href: "/customer/invoices", label: "Rechnungen", icon: "R" },
-  { href: "/customer/reports", label: "Berichte", icon: "P" },
-  { href: "/customer/notifications", label: "Nachrichten", icon: "!" },
-  { href: "/customer/support", label: "Support", icon: "?" },
-  { href: "/customer/profile", label: "Einstellungen", icon: "*" },
+  { href: "/customer/orders/new", label: "Neue Bestellung", icon: Plus },
+  { href: "/customer/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/customer/orders", label: "Bestellungen", icon: ListChecks },
+  { href: "/customer/documents", label: "Dokumente", icon: FileStack },
+  { href: "/customer/payments", label: "Zahlungen", icon: CreditCard },
+  { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText },
+  { href: "/customer/reports", label: "Berichte", icon: FileText },
+  { href: "/customer/notifications", label: "Nachrichten", icon: Bell },
+  { href: "/customer/support", label: "Support", icon: CircleHelp },
+  { href: "/customer/profile", label: "Einstellungen", icon: Settings },
 ];
 
 function FlyeroDarkLogo() {
@@ -55,16 +67,19 @@ export function CustomerPortalShell({
       <div className="customerUnifiedBody">
         <aside className="orderSideNav customerSideNav" aria-label="Kundennavigation">
           <FlyeroDarkLogo />
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={active === item.href ? "sideNavActive" : ""}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </Link>
-          ))}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={active === item.href ? "sideNavActive" : ""}
+              >
+                <span><Icon aria-hidden="true" /></span>
+                {item.label}
+              </Link>
+            );
+          })}
           <div className="sideNavFooter">
             <form action="/api/auth/logout" method="post">
               <button type="submit">Ausloggen</button>
