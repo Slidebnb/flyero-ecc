@@ -32,6 +32,9 @@ yarn-error.log*
 dev-server*.log
 .tmp/
 /storage/
+check-db.js
+create-db.js
+debug-errorlogs.js
 
 # env files (can opt-in for committing if needed)
 .env*
