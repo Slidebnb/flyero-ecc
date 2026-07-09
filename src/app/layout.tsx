@@ -1,18 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegister } from "./ServiceWorkerRegister";
 import { createJsonLd, siteMetadata } from "./seo";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = siteMetadata;
 export const viewport: Viewport = {
@@ -29,7 +18,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={`${geistSans.variable} ${geistMono.variable}`}>
+    <html lang="de">
       <body>
         <script
           type="application/ld+json"

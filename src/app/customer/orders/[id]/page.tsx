@@ -165,7 +165,7 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
             <tbody>
               <tr><th>Name</th><td>{order.distributionArea?.name ?? order.targetAreaName}</td></tr>
               <tr><th>Typ</th><td>{order.distributionArea?.type ?? "-"}</td></tr>
-              <tr><th>Haushalte</th><td>{order.estimatedHouseholds ?? order.distributionArea?.estimatedHouseholds ?? "-"}</td></tr>
+              <tr><th>Haushalte geschätzt</th><td>{order.estimatedHouseholds ?? order.distributionArea?.estimatedHouseholds ?? "-"}</td></tr>
               <tr><th>Flyer geschätzt</th><td>{order.estimatedFlyers ?? order.distributionArea?.estimatedFlyers ?? "-"}</td></tr>
               <tr><th>Fläche</th><td>{order.coverageAreaSqm ? `${Number(order.coverageAreaSqm).toLocaleString("de-DE")} m²` : "-"}</td></tr>
               <tr><th>Strecke geschätzt</th><td>{order.estimatedDistanceMeters ? `${(order.estimatedDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : "-"}</td></tr>

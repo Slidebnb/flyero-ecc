@@ -131,7 +131,10 @@ export async function POST(request: NextRequest) {
             calculatedNetPrice: price.net,
             calculatedVat: price.vat,
             calculatedGrossPrice: price.gross,
-            priceRuleSnapshot: price.snapshot,
+            priceRuleSnapshot: {
+              ...price.snapshot,
+              areaCalculationSnapshot: data.areaCalculationSnapshot ?? null,
+            },
           },
         });
         break;

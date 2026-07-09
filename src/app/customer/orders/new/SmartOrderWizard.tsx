@@ -1,6 +1,6 @@
 "use client";
 
-/* eslint-disable react-hooks/set-state-in-effect -- The order wizard intentionally restores a saved browser draft into controlled fields once on mount. */
+/* eslint-disable react-hooks/set-state-in-effect -- The order wizard intentionally restores a saved browser draft and keeps recommended flyer quantities aligned with the current area calculation. */
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
@@ -66,6 +66,18 @@ type Intelligence = {
     confidence?: "high" | "medium" | "low";
     calculatedAt?: string;
     calculationVersion?: string;
+    householdCountSource?: string;
+    pricingVersion?: string;
+    areaReference?: {
+      distributionAreaId: string | null;
+      name: string | null;
+      city: string | null;
+      postalCode: string | null;
+      coverageAreaSqm: number | null;
+      estimateMethod: string | null;
+      estimateSource: string | null;
+      estimateConfidence: number | null;
+    };
   };
   warehouse: { id: string; name: string; code: string; city: string; reason: string } | null;
   combinations: Array<{ key: string; orders: unknown[]; savedDistanceMeters: number; savedMinutes: number; savedCostEstimate: string }>;
@@ -97,6 +109,21 @@ type OrderDraft = {
     source: string;
     confidence: "high" | "medium" | "low";
     calculatedAt: string;
+    calculationVersion: string;
+    householdCountSource: string;
+    pricingVersion: string;
+    areaReference: {
+      distributionAreaId: string | null;
+      targetAreaName: string;
+      city: string;
+      postalCode: string;
+      polygonSource: PolygonSource;
+      coverageAreaSqm: number;
+      sourceAreaCoverageAreaSqm: number | null;
+      estimateMethod: string | null;
+      estimateSource: string | null;
+      estimateConfidence: number | null;
+    };
   };
   flyerQuantity?: number;
   flyerQuantityTouched?: boolean;
@@ -258,9 +285,17 @@ function recommendedFlyersForHouseholds(households: number) {
 }
 
 function confidenceLabel(confidence?: "high" | "medium" | "low") {
-  if (confidence === "high") return "Datenbasis: gespeicherte Gebietsdaten";
-  if (confidence === "medium") return "Datenbasis: Schätzung auf Basis verfügbarer Gebietsdaten";
+  if (confidence === "high") return "Datenbasis: geprüfte Importdaten";
+  if (confidence === "medium") return "Datenbasis: berechnet aus verfügbaren Gebietsdaten";
   return "Datenbasis: wird nach Prüfung bestätigt";
+}
+
+function syncStateLabel(status: "local" | "updating" | "live" | "error", confidence?: "high" | "medium" | "low", pending?: boolean) {
+  if (status === "updating" || pending) return "Wird aktualisiert";
+  if (status === "live" && confidence === "high") return "Geprüft berechnet";
+  if (status === "live") return "Berechnet aus Gebietsdaten";
+  if (status === "error") return "Geschätzt";
+  return "Geschätzt";
 }
 
 function polygonToSvg(points: LatLng[], center: LatLng) {
@@ -445,11 +480,14 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const deliverabilityScore = intelligence?.metrics.score ?? null;
   const calculationConfidence = intelligence?.metrics.confidence ?? (intelligenceStatus === "live" ? "medium" : "low");
   const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
+  const householdCountSource = intelligence?.metrics.householdCountSource ?? (intelligenceStatus === "live" ? "area-density-formula" : "client-area-estimate");
+  const pricingVersion = intelligence?.metrics.pricingVersion ?? "pricing-rule-pending";
   const intelligenceRequestQuery = useMemo(() => new URLSearchParams({
     city,
     postalCode,
     street,
     houseNumber,
+    distributionAreaId: selectedAreaId,
     flyerQuantity: String(flyerQuantity),
     coverageAreaSqm: String(coverageAreaSqm),
     distanceMeters: String(localRouteDistanceMeters),
@@ -462,6 +500,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     localRouteDistanceMeters,
     perimeterMeters,
     postalCode,
+    selectedAreaId,
     street,
   ]);
   const geoJson = useMemo(() => polygonToGeoJson(polygon), [polygon]);
@@ -479,20 +518,47 @@ export function SmartOrderWizard({ areas, today }: Props) {
     source: calculationSource,
     confidence: calculationConfidence,
     calculatedAt: intelligence?.metrics.calculatedAt ?? new Date().toISOString(),
+    calculationVersion: intelligence?.metrics.calculationVersion ?? "client-area-estimate-v1",
+    householdCountSource,
+    pricingVersion,
+    areaReference: {
+      distributionAreaId: intelligence?.metrics.areaReference?.distributionAreaId ?? selectedAreaId ?? null,
+      targetAreaName,
+      city,
+      postalCode,
+      polygonSource,
+      coverageAreaSqm,
+      sourceAreaCoverageAreaSqm: intelligence?.metrics.areaReference?.coverageAreaSqm ?? null,
+      estimateMethod: intelligence?.metrics.areaReference?.estimateMethod ?? null,
+      estimateSource: intelligence?.metrics.areaReference?.estimateSource ?? null,
+      estimateConfidence: intelligence?.metrics.areaReference?.estimateConfidence ?? null,
+    },
   }), [
     calculationConfidence,
     calculationSource,
     coverageAreaSqm,
+    city,
     deliverabilityScore,
     distributorNeed,
     grossPrice,
     households,
+    householdCountSource,
+    intelligence?.metrics.areaReference?.coverageAreaSqm,
+    intelligence?.metrics.areaReference?.distributionAreaId,
+    intelligence?.metrics.areaReference?.estimateConfidence,
+    intelligence?.metrics.areaReference?.estimateMethod,
+    intelligence?.metrics.areaReference?.estimateSource,
     intelligence?.metrics.calculatedAt,
+    intelligence?.metrics.calculationVersion,
     intelligence?.warehouse?.city,
     polygonSource,
+    postalCode,
+    pricingVersion,
+    selectedAreaId,
     recommendedFlyerQuantity,
     routeDistanceMeters,
     routeDurationMinutes,
+    targetAreaName,
   ]);
 
   const smartAreas = useMemo(() => {
@@ -1203,7 +1269,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
           <div className="overviewHead">
             <h2>Gebietsübersicht</h2>
             <span className={`overviewSyncState ${intelligenceStatus}`}>
-              {intelligenceStatus === "updating" || isPending ? "Wird aktualisiert" : intelligenceStatus === "live" ? "Live berechnet" : "Geschätzt"}
+              {syncStateLabel(intelligenceStatus, areaStats.confidence, isPending)}
             </span>
           </div>
           <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>

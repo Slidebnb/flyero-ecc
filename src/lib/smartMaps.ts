@@ -1,4 +1,4 @@
-import { Prisma, type DistributionAreaType } from "@prisma/client";
+import { HouseholdEstimateMethod, Prisma, type DistributionAreaType } from "@prisma/client";
 import { estimateHouseholds, estimateRouteDistanceMeters, calculateDistributionTime, scoreArea, combineOrders } from "@/lib/routing";
 import { findBestWarehouseForArea } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
@@ -151,11 +151,37 @@ function compactArea(area: {
   };
 }
 
+function estimateSourceLabel(method?: HouseholdEstimateMethod | null, source?: string | null) {
+  if (method === "SEED") return source ? `seed:${source}` : "seed:distribution-area";
+  if (method === "IMPORT") return source ? `import:${source}` : "import:area-household-estimate";
+  if (method === "MANUAL") return source ? `manual:${source}` : "manual:area-form";
+  if (method === "AUTOMATIC") return source ? `automatic:${source}` : "automatic:area-formula";
+  return "area-density-formula";
+}
+
+function confidenceForEstimate(method?: HouseholdEstimateMethod | null, source?: string | null, hasAreaData = false) {
+  if (method === "IMPORT" && source && !source.toLowerCase().includes("seed")) return "high" as const;
+  if (method === "SEED" || source?.toLowerCase().includes("seed")) return "medium" as const;
+  if (method === "MANUAL" || method === "AUTOMATIC" || hasAreaData) return "medium" as const;
+  return "low" as const;
+}
+
+function densityFromArea(area?: {
+  coverageAreaSqm: Prisma.Decimal | null;
+  estimatedHouseholds: number | null;
+}) {
+  const coverage = area?.coverageAreaSqm ? Number(area.coverageAreaSqm) : 0;
+  const households = area?.estimatedHouseholds ?? 0;
+  if (!coverage || !households) return null;
+  return Math.max(35, Math.min(5000, coverage / households));
+}
+
 export async function getOrderIntelligence(input: {
   city?: string | null;
   postalCode?: string | null;
   street?: string | null;
   houseNumber?: string | null;
+  distributionAreaId?: string | null;
   flyerQuantity?: number | null;
   households?: number | null;
   coverageAreaSqm?: number | null;
@@ -163,6 +189,7 @@ export async function getOrderIntelligence(input: {
   perimeterMeters?: number | null;
 }) {
   const areaFilters = [
+    input.distributionAreaId ? { id: input.distributionAreaId } : null,
     input.city ? { city: { equals: input.city, mode: "insensitive" as const } } : null,
     input.postalCode ? { postalCode: { startsWith: input.postalCode.slice(0, 3) } } : null,
     input.street ? { name: { contains: input.street, mode: "insensitive" as const } } : null,
@@ -175,6 +202,7 @@ export async function getOrderIntelligence(input: {
         ...(areaFilters.length ? { OR: areaFilters } : {}),
       },
       orderBy: [{ city: "asc" }, { name: "asc" }],
+      include: { estimates: { orderBy: { createdAt: "desc" }, take: 1 } },
       take: 8,
     }),
     findBestWarehouseForArea({ city: input.city, postalCode: input.postalCode }).catch(() => null),
@@ -187,9 +215,15 @@ export async function getOrderIntelligence(input: {
       return areaSqm > 0 && households > 0 ? areaSqm / households : null;
     })
     .filter((value): value is number => Boolean(value) && Number.isFinite(value));
-  const densityFactor = densitySamples.length
-    ? Math.max(70, Math.min(220, Math.round(densitySamples.reduce((sum, value) => sum + value, 0) / densitySamples.length)))
-    : 125;
+  const referenceArea =
+    (input.distributionAreaId ? matchingAreas.find((area) => area.id === input.distributionAreaId) : null) ??
+    matchingAreas.find((area) => area.coverageAreaSqm && area.estimatedHouseholds) ??
+    null;
+  const referenceEstimate = referenceArea?.estimates?.[0] ?? null;
+  const densityFactor = densityFromArea(referenceArea ?? undefined) ??
+    (densitySamples.length
+      ? Math.max(35, Math.min(5000, densitySamples.reduce((sum, value) => sum + value, 0) / densitySamples.length))
+      : 125);
   const households = estimateHouseholds({
     coverageAreaSqm: input.coverageAreaSqm,
     cityDensityFactor: densityFactor,
@@ -217,7 +251,8 @@ export async function getOrderIntelligence(input: {
     distributorCount: distributorNeed,
   });
   const price = await calculateOrderPrice({ serviceType: "FLYER_DISTRIBUTION", flyerQuantity });
-  const confidence = matchingAreas.some((area) => area.coverageAreaSqm && area.estimatedHouseholds) ? "high" : input.coverageAreaSqm ? "medium" : "low";
+  const householdCountSource = estimateSourceLabel(referenceEstimate?.method, referenceEstimate?.source);
+  const confidence = confidenceForEstimate(referenceEstimate?.method, referenceEstimate?.source, Boolean(referenceArea?.estimatedHouseholds));
 
   return {
     suggestions: matchingAreas.map(compactArea),
@@ -231,10 +266,33 @@ export async function getOrderIntelligence(input: {
       netPrice: price.net.toString(),
       distributorNeed,
       score: scoreArea({ city: input.city, postalCode: input.postalCode, households, flyerQuantity, coverageAreaSqm: input.coverageAreaSqm, distanceMeters: routeDistanceMeters }),
-      source: confidence === "high" ? "coverage-area-table" : "area-formula",
+      source: referenceArea?.estimatedHouseholds ? "area-household-estimate" : "area-formula",
       confidence,
       calculatedAt: new Date().toISOString(),
       calculationVersion: "order-area-v1",
+      householdCountSource,
+      pricingVersion: price.snapshot.pricingVersion,
+      areaReference: referenceArea
+        ? {
+            distributionAreaId: referenceArea.id,
+            name: referenceArea.name,
+            city: referenceArea.city,
+            postalCode: referenceArea.postalCode,
+            coverageAreaSqm: referenceArea.coverageAreaSqm ? Number(referenceArea.coverageAreaSqm) : null,
+            estimateMethod: referenceEstimate?.method ?? null,
+            estimateSource: referenceEstimate?.source ?? null,
+            estimateConfidence: referenceEstimate?.confidence ? Number(referenceEstimate.confidence) : null,
+          }
+        : {
+            distributionAreaId: input.distributionAreaId ?? null,
+            name: null,
+            city: input.city ?? null,
+            postalCode: input.postalCode ?? null,
+            coverageAreaSqm: input.coverageAreaSqm ?? null,
+            estimateMethod: null,
+            estimateSource: null,
+            estimateConfidence: null,
+          },
     },
     warehouse: warehouseMatch?.warehouse
       ? {

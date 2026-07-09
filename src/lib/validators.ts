@@ -162,6 +162,7 @@ export const orderCreateSchema = z
     estimatedFlyers: optionalNonNegativeInt,
     estimatedDistanceMeters: optionalNonNegativeInt,
     coverageAreaSqm: optionalPositiveNumber,
+    areaCalculationSnapshot: optionalJson,
     centerLat: z.coerce.number().optional(),
     centerLng: z.coerce.number().optional(),
     radiusMeters: optionalNonNegativeInt,

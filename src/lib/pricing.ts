@@ -16,6 +16,7 @@ export type PriceCalculation = {
     minimumNetPrice: string;
     vatRate: string;
     ruleId: string | null;
+    pricingVersion: string;
   };
 };
 
@@ -73,6 +74,7 @@ export async function calculateOrderPrice(input: {
       minimumNetPrice: minimumNetPrice.toString(),
       vatRate: vatRate.toString(),
       ruleId: rule?.id ?? null,
+      pricingVersion: "pricing-rule-v1",
     },
   };
 }

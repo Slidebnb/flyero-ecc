@@ -77,7 +77,7 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
 
       <section className="gridCards">
         <article className="card"><strong>{customerView.order.flyerQuantity}</strong><span>Flyer</span></article>
-        <article className="card"><strong>{customerView.order.estimatedHouseholds ?? "-"}</strong><span>Haushalte</span></article>
+        <article className="card"><strong>{customerView.order.estimatedHouseholds ?? "-"}</strong><span>Haushalte geschätzt</span></article>
         <article className="card"><strong>{(customerView.tour.distanceMeters / 1000).toFixed(1)} km</strong><span>GPS-Strecke</span></article>
         <article className="card"><strong>{secondsLabel(customerView.tour.activeSeconds)}</strong><span>Aktive Zustellzeit</span></article>
       </section>

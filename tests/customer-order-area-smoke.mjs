@@ -101,11 +101,13 @@ try {
   }
 
   const smartMaps = includes("src/lib/smartMaps.ts", [
-    "coverage-area-table",
+    "householdCountSource",
     "order-area-v1",
+    "pricingVersion",
     "singleDistributorMinutes",
     "local-56170",
   ]);
+  includes("src/lib/pricing.ts", ["pricing-rule-v1"]);
   assert(!smartMaps.includes("input.households ??"), "Server darf Browser-Haushalte nicht als Wahrheit uebernehmen.");
 
   const areas = await prisma.distributionArea.findMany({
@@ -145,6 +147,9 @@ try {
   for (const item of intelligence) {
     assert(item.data.metrics.confidence, "Confidence fehlt.");
     assert(item.data.metrics.source, "Berechnungsquelle fehlt.");
+    assert(item.data.metrics.householdCountSource, "Household-Quelle fehlt.");
+    assert(item.data.metrics.pricingVersion === "pricing-rule-v1", "Pricing-Version fehlt.");
+    assert(item.data.metrics.areaReference, "Area-Referenz fehlt.");
     assert(item.data.metrics.calculatedAt, "Berechnungszeitpunkt fehlt.");
     assert(item.data.metrics.calculationVersion === "order-area-v1", "Calculation-Version fehlt.");
     assert(item.data.metrics.distributorNeed >= 1, "Verteilerbedarf fehlt.");
