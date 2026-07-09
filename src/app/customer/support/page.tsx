@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TicketPriority, TicketType, UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { customerOrderName, customerReportName } from "@/app/customer/customerUx";
 import { ActionPanel, DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -13,23 +14,64 @@ import {
   SUPPORT_TYPE_LABELS,
 } from "@/lib/support";
 
+const customerTicketTypes = [
+  TicketType.CUSTOMER_SUPPORT,
+  TicketType.COMPLAINT,
+  TicketType.BILLING_ISSUE,
+  TicketType.TECHNICAL_ISSUE,
+  TicketType.OTHER,
+];
+
+const customerPriorities = [
+  TicketPriority.NORMAL,
+  TicketPriority.HIGH,
+  TicketPriority.LOW,
+  TicketPriority.URGENT,
+];
+
+async function customerOrderOptions(sessionId: string) {
+  return prisma.order.findMany({
+    where: { customer: { userId: sessionId } },
+    select: { id: true, orderNumber: true, targetAreaName: true },
+    orderBy: { updatedAt: "desc" },
+    take: 25,
+  });
+}
+
+async function customerReportOptions(sessionId: string) {
+  return prisma.report.findMany({
+    where: { customer: { userId: sessionId } },
+    include: { order: { select: { orderNumber: true, targetAreaName: true } } },
+    orderBy: { updatedAt: "desc" },
+    take: 25,
+  });
+}
+
 async function createCustomerTicket(formData: FormData) {
   "use server";
   const session = await requireRole([UserRole.CUSTOMER]);
-  const reportId = String(formData.get("reportId") || "");
-  const report = reportId
+  const [orders, reports] = await Promise.all([
+    customerOrderOptions(session.id),
+    customerReportOptions(session.id),
+  ]);
+  const type = customerTicketTypes[Number(formData.get("typeKey") || 0)] ?? TicketType.CUSTOMER_SUPPORT;
+  const priority = customerPriorities[Number(formData.get("priorityKey") || 0)] ?? TicketPriority.NORMAL;
+  const selectedReport = reports[Number(formData.get("reportKey") || -1)] ?? null;
+  const selectedOrder = orders[Number(formData.get("orderKey") || -1)] ?? null;
+  const report = selectedReport
     ? await prisma.report.findFirst({
-        where: { id: reportId, customer: { userId: session.id } },
-        select: { orderId: true, tourId: true },
+        where: { id: selectedReport.id, customer: { userId: session.id } },
+        select: { id: true, orderId: true, tourId: true },
       })
     : null;
+
   const ticket = await createTicket(session, {
-    type: String(formData.get("type") || TicketType.CUSTOMER_SUPPORT),
-    priority: String(formData.get("priority") || TicketPriority.NORMAL),
+    type,
+    priority,
     subject: String(formData.get("subject") || ""),
     description: String(formData.get("description") || ""),
-    orderId: String(formData.get("orderId") || report?.orderId || "") || undefined,
-    reportId: reportId || undefined,
+    orderId: report?.orderId ?? selectedOrder?.id,
+    reportId: report?.id,
     tourId: report?.tourId,
   });
   redirect(`/customer/support/tickets/${ticket.id}`);
@@ -46,20 +88,11 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
   const { reportId } = await searchParams;
   const [tickets, orders, reports] = await Promise.all([
     listTickets(session),
-    prisma.order.findMany({
-      where: { customer: { userId: session.id } },
-      select: { id: true, orderNumber: true, targetAreaName: true },
-      orderBy: { updatedAt: "desc" },
-      take: 25,
-    }),
-    prisma.report.findMany({
-      where: { customer: { userId: session.id } },
-      include: { order: { select: { orderNumber: true, targetAreaName: true } } },
-      orderBy: { updatedAt: "desc" },
-      take: 25,
-    }),
+    customerOrderOptions(session.id),
+    customerReportOptions(session.id),
   ]);
 
+  const selectedReportIndex = reportId ? reports.findIndex((report) => report.id === reportId) : -1;
   const open = tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length;
   const complaints = tickets.filter((ticket) => ticket.type === TicketType.COMPLAINT).length;
 
@@ -67,7 +100,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
     <CustomerPortalShell
       active="/customer/support"
       title="Support & Reklamationen"
-      description="Fragen, Reklamationen und Rückfragen zu Aufträgen oder Berichten zentral verfolgen."
+      description="Fragen, Reklamationen und Rückfragen zu Kampagnen oder Berichten zentral verfolgen."
     >
       <section className="portalMetrics">
         <MetricTile label="Tickets" value={tickets.length} />
@@ -76,49 +109,49 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
       </section>
 
       <div className="portalDashboardGrid">
-        <ActionPanel title="Neues Ticket erstellen" description="Wähle optional einen Auftrag oder Bericht aus, damit der Support schneller prüfen kann.">
+        <ActionPanel title="Neues Ticket erstellen" description="Wählen Sie optional eine Kampagne oder einen Bericht aus, damit der Support schneller prüfen kann.">
           <form action={createCustomerTicket} className="form">
             <label>
               Thema
               <input name="subject" required placeholder="Kurzer Betreff" />
             </label>
             <label>
-              Typ
-              <select name="type" defaultValue={reportId ? TicketType.COMPLAINT : TicketType.CUSTOMER_SUPPORT}>
-                {Object.values(TicketType).map((typeValue) => (
-                  <option key={typeValue} value={typeValue}>{SUPPORT_TYPE_LABELS[typeValue]}</option>
+              Anliegen
+              <select name="typeKey" defaultValue={selectedReportIndex >= 0 ? "1" : "0"}>
+                {customerTicketTypes.map((typeValue, index) => (
+                  <option key={String(index)} value={String(index)}>{SUPPORT_TYPE_LABELS[typeValue]}</option>
                 ))}
               </select>
             </label>
             <label>
-              Priorität
-              <select name="priority" defaultValue={TicketPriority.NORMAL}>
-                {Object.values(TicketPriority).map((priority) => (
-                  <option key={priority} value={priority}>{SUPPORT_PRIORITY_LABELS[priority]}</option>
+              Dringlichkeit
+              <select name="priorityKey" defaultValue={TicketPriority.NORMAL === customerPriorities[0] ? "0" : "1"}>
+                {customerPriorities.map((priority, index) => (
+                  <option key={String(index)} value={String(index)}>{SUPPORT_PRIORITY_LABELS[priority]}</option>
                 ))}
               </select>
             </label>
             <label>
-              Auftrag
-              <select name="orderId" defaultValue="">
-                <option value="">Kein Auftrag ausgewählt</option>
-                {orders.map((order) => (
-                  <option key={order.id} value={order.id}>{order.orderNumber} - {order.targetAreaName}</option>
+              Kampagne
+              <select name="orderKey" defaultValue="">
+                <option value="">Keine Kampagne ausgewählt</option>
+                {orders.map((order, index) => (
+                  <option key={String(index)} value={String(index)}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>
                 ))}
               </select>
             </label>
             <label>
               Bericht
-              <select name="reportId" defaultValue={reportId ?? ""}>
+              <select name="reportKey" defaultValue={selectedReportIndex >= 0 ? String(selectedReportIndex) : ""}>
                 <option value="">Kein Bericht ausgewählt</option>
-                {reports.map((report) => (
-                  <option key={report.id} value={report.id}>{report.reportNumber} - {report.order.targetAreaName}</option>
+                {reports.map((report, index) => (
+                  <option key={String(index)} value={String(index)}>{customerReportName(report.reportNumber)} - {report.order.targetAreaName}</option>
                 ))}
               </select>
             </label>
             <label>
               Nachricht
-              <textarea name="description" required rows={5} placeholder="Beschreibe kurz, was geprüft werden soll." />
+              <textarea name="description" required rows={5} placeholder="Beschreiben Sie kurz, was geprüft werden soll." />
             </label>
             <button type="submit">Ticket senden</button>
           </form>
@@ -127,7 +160,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
         <DataSection title="Meine Tickets" description="Interne Notizen sind hier bewusst nicht sichtbar.">
           <div className="tableWrap">
             <table>
-              <thead><tr><th>Ticket</th><th>Typ</th><th>Status</th><th>Priorität</th><th></th></tr></thead>
+              <thead><tr><th>Ticket</th><th>Anliegen</th><th>Status</th><th>Dringlichkeit</th><th></th></tr></thead>
               <tbody>
                 {tickets.map((ticket) => (
                   <tr key={ticket.id}>
@@ -138,7 +171,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
                     <td><Link className="textLink" href={`/customer/support/tickets/${ticket.id}`}>Öffnen</Link></td>
                   </tr>
                 ))}
-                {tickets.length === 0 ? <tr><td colSpan={5}><EmptyState title="Noch keine Support-Tickets." description="Wenn etwas unklar ist, kannst du hier direkt ein Ticket eröffnen." /></td></tr> : null}
+                {tickets.length === 0 ? <tr><td colSpan={5}><EmptyState title="Noch keine Support-Tickets." description="Wenn etwas unklar ist, können Sie hier direkt ein Ticket eröffnen." /></td></tr> : null}
               </tbody>
             </table>
           </div>

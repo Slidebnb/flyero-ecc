@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_REPORT_STATUS_LABELS, customerOrderName } from "@/app/customer/customerUx";
+import { CUSTOMER_REPORT_STATUS_LABELS, customerOrderName, customerReportName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -35,7 +35,7 @@ export default async function CustomerReportsPage() {
             <tbody>
               {reports.map((report) => (
                 <tr key={report.id}>
-                  <td data-label="Bericht"><strong>{report.reportNumber}</strong><br /><small>GPS + Fotos geprüft</small></td>
+                  <td data-label="Bericht"><strong>{customerReportName(report.reportNumber)}</strong><br /><small>GPS + Fotos geprüft</small></td>
                   <td data-label="Kampagne">{customerOrderName(report.order.orderNumber)}</td>
                   <td data-label="Status"><StatusBadge tone="success">{CUSTOMER_REPORT_STATUS_LABELS[report.status]}</StatusBadge></td>
                   <td data-label="Gebiet">{report.order.targetAreaName}</td>

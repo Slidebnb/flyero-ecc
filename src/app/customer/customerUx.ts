@@ -109,7 +109,15 @@ const CUSTOMER_PREFERENCE_LABELS: Record<string, string> = {
 export function customerOrderName(orderNumber: string) {
   return orderNumber
     .replace(/^DEMO-ORD-/i, "Auftrag #")
+    .replace(/^DEMO-WH-/i, "Kampagne #")
+    .replace(/^DEMO-/i, "Kampagne #")
     .replace(/^ORD-/i, "Auftrag #");
+}
+
+export function customerReportName(reportNumber: string) {
+  return reportNumber
+    .replace(/^RPT-SEED-/i, "Verteilbericht #")
+    .replace(/^RPT-/i, "Verteilbericht #");
 }
 
 export function customerOrderAction(status: OrderStatus, orderId: string) {
@@ -141,10 +149,10 @@ export function customerPreferenceLabel(type: string) {
 
 export function safeCustomerSubject(type: string, subject: string) {
   const mapped = customerNotificationTypeLabel(type);
-  return /MODULE|SEED|QUEUE|CUSTOMER_|ADMIN_|DISTRIBUTOR_/i.test(subject) ? mapped : subject;
+  return /MODULE|SEED|QUEUE|CUSTOMER_|ADMIN_|DISTRIBUTOR_|DEMO-/i.test(subject) ? mapped : subject;
 }
 
 export function safeCustomerMessage(type: string, body: string) {
-  if (!/MODULE|SEED|QUEUE|Smoke-Fixture|CUSTOMER_|ADMIN_|DISTRIBUTOR_/i.test(body)) return body;
+  if (!/MODULE|SEED|QUEUE|Smoke-Fixture|CUSTOMER_|ADMIN_|DISTRIBUTOR_|DEMO-/i.test(body)) return body;
   return `${customerNotificationTypeLabel(type)}. Wir melden uns, sobald ein nächster Schritt für Sie nötig ist.`;
 }

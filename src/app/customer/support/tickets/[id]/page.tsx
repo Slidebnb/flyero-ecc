@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { customerOrderName, customerReportName } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -29,7 +30,7 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
       <div className="customerActionRow">
         <Link className="secondaryButton" href="/customer/support">Support</Link>
         <Link className="secondaryButton" href="/customer/reports">Berichte</Link>
-        <Link className="secondaryButton" href="/customer/orders">Aufträge</Link>
+        <Link className="secondaryButton" href="/customer/orders">Kampagnen</Link>
       </div>
 
       <DataSection title="Ticketdetails">
@@ -37,10 +38,10 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
           <table>
             <tbody>
               <tr><th>Status</th><td><StatusBadge>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge></td></tr>
-              <tr><th>Typ</th><td>{SUPPORT_TYPE_LABELS[ticket.type]}</td></tr>
-              <tr><th>Priorität</th><td>{SUPPORT_PRIORITY_LABELS[ticket.priority]}</td></tr>
-              <tr><th>Auftrag</th><td>{ticket.order ? <Link className="textLink" href={`/customer/orders/${ticket.order.id}`}>{ticket.order.orderNumber}</Link> : "-"}</td></tr>
-              <tr><th>Bericht</th><td>{ticket.report ? <Link className="textLink" href={`/customer/reports/${ticket.report.id}`}>{ticket.report.reportNumber}</Link> : "-"}</td></tr>
+              <tr><th>Anliegen</th><td>{SUPPORT_TYPE_LABELS[ticket.type]}</td></tr>
+              <tr><th>Dringlichkeit</th><td>{SUPPORT_PRIORITY_LABELS[ticket.priority]}</td></tr>
+              <tr><th>Kampagne</th><td>{ticket.order ? <Link className="textLink" href={`/customer/orders/${ticket.order.id}`}>{customerOrderName(ticket.order.orderNumber)}</Link> : "-"}</td></tr>
+              <tr><th>Bericht</th><td>{ticket.report ? <Link className="textLink" href={`/customer/reports/${ticket.report.id}`}>{customerReportName(ticket.report.reportNumber)}</Link> : "-"}</td></tr>
               <tr><th>Erstellt</th><td>{formatDateTime(ticket.createdAt)}</td></tr>
               <tr><th>Lösung</th><td>{ticket.resolution ?? "-"}</td></tr>
             </tbody>

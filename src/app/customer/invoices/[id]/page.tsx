@@ -2,11 +2,20 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { customerOrderName } from "@/app/customer/customerUx";
 import { requireRole } from "@/lib/auth";
 import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 type PageProps = { params: Promise<{ id: string }> };
+
+const INVOICE_STATUS_LABELS: Record<string, string> = {
+  DRAFT: "Entwurf",
+  ISSUED: "Ausgestellt",
+  PAID: "Bezahlt",
+  CANCELLED: "Storniert",
+  OVERDUE: "Überfällig",
+};
 
 export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
   const session = await requireRole([UserRole.CUSTOMER]);
@@ -16,11 +25,14 @@ export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
     include: { customer: true, order: true, payment: true, items: true },
   });
   if (!invoice) notFound();
+  const invoiceStatus = INVOICE_STATUS_LABELS[invoice.status] ?? "In Prüfung";
+  const paidAt = invoice.paidAt ?? invoice.payment?.paidAt ?? null;
 
   return (
-    <CustomerPortalShell active="/customer/invoices" eyebrow="Rechnung" title={invoice.invoiceNumber} description={invoice.status}>
+    <CustomerPortalShell active="/customer/invoices" eyebrow="Rechnung" title={invoice.invoiceNumber} description={invoiceStatus}>
       <div className="customerActionRow">
         <Link className="secondaryButton" href="/customer/invoices">Alle Rechnungen</Link>
+        <Link className="secondaryButton" href={`/customer/orders/${invoice.orderId}`}>Kampagne öffnen</Link>
         {invoice.pdfUrl ? <a className="primaryButton" href={`/api/customer/invoices/${invoice.id}/download`}>PDF herunterladen</a> : null}
       </div>
 
@@ -38,10 +50,11 @@ export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
             <tbody>
               <tr><th>Kunde</th><td>{invoice.customer.companyName}</td></tr>
               <tr><th>Rechnungsadresse</th><td style={{ whiteSpace: "pre-line" }}>{formatAddress(invoice.customer.billingAddress)}</td></tr>
-              <tr><th>Auftrag</th><td>{invoice.order.orderNumber}</td></tr>
+              <tr><th>Kampagne</th><td>{customerOrderName(invoice.order.orderNumber)}</td></tr>
+              <tr><th>Status</th><td>{invoiceStatus}</td></tr>
               <tr><th>Zahlungsreferenz</th><td>{invoice.payment?.stripePaymentIntentId ?? invoice.payment?.stripeCheckoutSessionId ?? "-"}</td></tr>
-              <tr><th>Bezahlt am</th><td>{formatDateTime(invoice.paidAt)}</td></tr>
-              <tr><th>Hinweis</th><td>Bereits bezahlt</td></tr>
+              <tr><th>Bezahlt am</th><td>{paidAt ? formatDateTime(paidAt) : "-"}</td></tr>
+              <tr><th>Hinweis</th><td>{invoice.status === "PAID" ? "Bereits bezahlt" : "Bitte Zahlungsstatus prüfen"}</td></tr>
             </tbody>
           </table>
         </div>

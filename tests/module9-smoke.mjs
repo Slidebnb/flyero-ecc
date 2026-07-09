@@ -79,7 +79,7 @@ for (const filePath of [
 const customerReportPage = await includes("src/app/customer/reports/[id]/page.tsx", ["Standort anonymisiert", "Verteiler"]);
 includesAny(customerReportPage, ["Flyero Verteilnachweis", "FLYERO Verteilnachweis"], "src/app/customer/reports/[id]/page.tsx");
 includesAny(customerReportPage, ["GPS-Qualitaet", "GPS-Qualität", "GPS-QualitÃ¤t"], "src/app/customer/reports/[id]/page.tsx");
-includesAny(customerReportPage, ["Digitale Pruefnummer", "Digitale Prüfnummer", "Digitale PrÃ¼fnummer"], "src/app/customer/reports/[id]/page.tsx");
+includesAny(customerReportPage, ["Pruefcode", "Pr�fcode", "Prüfcode"], "src/app/customer/reports/[id]/page.tsx");
 for (const forbidden of ["distributor.user.email", "distributor.phone", "birthDate", "adminInternalNote", "fraudFlags"]) {
   assert(!customerReportPage.includes(forbidden), `Kundenseite enthaelt private Daten: ${forbidden}`);
 }
