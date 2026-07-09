@@ -10,10 +10,12 @@ import {
   CreditCard,
   FileStack,
   FileText,
+  LocateFixed,
   LayoutDashboard,
   ListChecks,
   Plus,
   ReceiptText,
+  Search,
   Settings,
 } from "lucide-react";
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
@@ -177,6 +179,13 @@ function polygonToGeoJson(points: LatLng[]) {
     type: "FeatureCollection",
     features: [{ type: "Feature", properties: {}, geometry: { type: "Polygon", coordinates: [ring] } }],
   };
+}
+
+function polygonAroundCenter(nextCenter: LatLng) {
+  return DEFAULT_POLYGON.map((point) => ({
+    lat: point.lat + (nextCenter.lat - DEFAULT_CENTER.lat),
+    lng: point.lng + (nextCenter.lng - DEFAULT_CENTER.lng),
+  }));
 }
 
 function polygonAreaSqm(points: LatLng[]) {
@@ -347,6 +356,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const [usedAutocomplete, setUsedAutocomplete] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
+  const [intelligenceStatus, setIntelligenceStatus] = useState<"local" | "updating" | "live" | "error">("local");
   const [draftStatus, setDraftStatus] = useState("Entwurf wird vorbereitet");
 
   const coverageAreaSqm = useMemo(() => polygonAreaSqm(polygon), [polygon]);
@@ -498,11 +508,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
         const nextCenter = { lat: Number(result.lat), lng: Number(result.lng) };
         if (Number.isFinite(nextCenter.lat) && Number.isFinite(nextCenter.lng)) {
           setCenter(nextCenter);
-          const nextPolygon = DEFAULT_POLYGON.map((point) => ({
-            lat: point.lat + (nextCenter.lat - DEFAULT_CENTER.lat),
-            lng: point.lng + (nextCenter.lng - DEFAULT_CENTER.lng),
-          }));
-          pushPolygon(nextPolygon);
+          pushPolygon(polygonAroundCenter(nextCenter));
         }
         setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
       })
@@ -526,7 +532,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
 
   useEffect(() => {
     const controller = new AbortController();
-    setIntelligence(null);
+    setIntelligenceStatus("updating");
     const params = new URLSearchParams({
       city,
       postalCode,
@@ -542,21 +548,29 @@ export function SmartOrderWizard({ areas, today }: Props) {
       fetch(`/api/maps/order-intelligence?${params.toString()}`, { signal: controller.signal })
         .then((response) => response.ok ? response.json() : null)
         .then((payload) => {
-          if (payload?.data) setIntelligence(payload.data);
+          if (payload?.data) {
+            setIntelligence(payload.data);
+            setIntelligenceStatus("live");
+          } else {
+            setIntelligenceStatus("error");
+          }
         })
-        .catch(() => undefined);
+        .catch((error) => {
+          if (error?.name !== "AbortError") setIntelligenceStatus("error");
+        });
     });
     return () => controller.abort();
   }, [city, postalCode, street, houseNumber, flyerQuantity, coverageAreaSqm, localHouseholds, localRouteDistanceMeters, perimeterMeters]);
 
   useEffect(() => {
     startedAtRef.current = Date.now();
-    navigator.sendBeacon?.("/api/maps/experience", JSON.stringify({
+    const startedPayload = JSON.stringify({
       eventType: "WIZARD_STARTED",
       city,
       postalCode,
       source: "order-wizard-reference-redesign",
-    }));
+    });
+    navigator.sendBeacon?.("/api/maps/experience", new Blob([startedPayload], { type: "application/json" }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -630,7 +644,9 @@ export function SmartOrderWizard({ areas, today }: Props) {
     setTargetAreaName(suggestion.label.replace(/^\d+\s*/, ""));
     setSuggestions([]);
     if (suggestion.lat && suggestion.lng) {
-      setCenter({ lat: suggestion.lat, lng: suggestion.lng });
+      const nextCenter = { lat: suggestion.lat, lng: suggestion.lng };
+      setCenter(nextCenter);
+      pushPolygon(polygonAroundCenter(nextCenter));
     } else {
       geocodeAddress(suggestion.label);
     }
@@ -723,7 +739,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
                 placeholder="z. B. 56068 Koblenz"
                 autoComplete="off"
               />
-              <button type="button" onClick={() => geocodeAddress()}>⌕</button>
+              <button type="button" onClick={() => geocodeAddress()} aria-label="Adresse suchen"><Search aria-hidden="true" /></button>
             </div>
           </label>
           <div className="selectedLocationBar">
@@ -767,7 +783,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
           <div className="quantityControl">
             <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
             <input value={flyerQuantity} onChange={(event) => setFlyerQuantity(Number(event.target.value) || 0)} inputMode="numeric" />
-            <button type="button" onClick={() => moveQuantity(1000)}>＋</button>
+            <button type="button" onClick={() => moveQuantity(1000)}>+</button>
             <span>Stück</span>
           </div>
         </section>
@@ -931,21 +947,23 @@ export function SmartOrderWizard({ areas, today }: Props) {
         <div ref={mapElementRef} className="orderGoogleMap" aria-hidden={!mapsReady} />
         {!mapsReady ? <MiniMapFallback center={center} polygon={polygon} showHeatmap={showHeatmap} /> : null}
         <div className="mapZoomRail" aria-label="Kartensteuerung">
-          <button type="button" onClick={() => geocodeAddress()}>⌖</button>
-          <button type="button" onClick={() => mapRef.current?.setZoom(15)}>＋</button>
+          <button type="button" onClick={() => geocodeAddress()} aria-label="Aktuelle Adresse zentrieren"><LocateFixed aria-hidden="true" /></button>
+          <button type="button" onClick={() => mapRef.current?.setZoom(15)}>+</button>
           <button type="button" onClick={() => mapRef.current?.setZoom(13)}>−</button>
           <button type="button" onClick={() => document.documentElement.requestFullscreen?.()}>⛶</button>
         </div>
         <aside className="areaOverview">
           <div className="overviewHead">
             <h2>Gebietsübersicht</h2>
-            <span>{isPending ? "Wird aktualisiert" : "Live"}</span>
+            <span className={`overviewSyncState ${intelligenceStatus}`}>
+              {intelligenceStatus === "updating" || isPending ? "Wird aktualisiert" : intelligenceStatus === "live" ? "Live berechnet" : intelligenceStatus === "error" ? "Lokaler Fallback" : "Sofort-Schätzung"}
+            </span>
           </div>
           <dl>
             <div><dt>Haushalte</dt><dd>{formatNumber(households)}</dd></div>
             <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
             <div><dt>Flyer</dt><dd>{formatNumber(flyerQuantity)} Stück</dd></div>
-            <div><dt>Geschätzter Preis</dt><dd>{formatCurrency(grossPrice)}</dd></div>
+            <div><dt>Geschätzter Preis</dt><dd>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</dd></div>
             <div><dt>ca. Laufstrecke</dt><dd>{(routeDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km</dd></div>
             <div><dt>Geschätzte Zustelldauer</dt><dd>{formatDuration(routeDurationMinutes)}</dd></div>
             <div><dt>Lager</dt><dd>{intelligence?.warehouse?.city ?? "automatisch"}</dd></div>

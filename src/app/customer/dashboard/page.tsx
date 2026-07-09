@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { ArrowRight, Camera, FileText, MapPinned, Navigation, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { ActionPanel, DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
+import { ORDER_STATUS_LABELS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 function formatNumber(value: number) {
@@ -11,6 +13,56 @@ function formatNumber(value: number) {
 
 function formatPercent(value: number) {
   return `${Math.round(value)} %`;
+}
+
+function formatCurrency(value: unknown) {
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(Number(value ?? 0));
+}
+
+function formatDate(value?: Date | null) {
+  return value ? value.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "Termin offen";
+}
+
+function statusTone(status?: string): "success" | "warning" | "neutral" {
+  if (!status) return "neutral";
+  if (["DISTRIBUTION_APPROVED", "REPORT_READY_PREVIEW"].includes(status)) return "success";
+  if (["PAYMENT_PENDING", "PAYMENT_FAILED", "WAITING_FOR_CUSTOMER", "PAID_WAITING_FOR_ADMIN_REVIEW"].includes(status)) return "warning";
+  return "neutral";
+}
+
+function ProofPreview({ hasRealReport }: { hasRealReport: boolean }) {
+  const proofItems = [
+    { icon: Navigation, label: "GPS-Spur", value: hasRealReport ? "geprüft" : "Beispiel Koblenz" },
+    { icon: Camera, label: "Foto-Nachweise", value: hasRealReport ? "im Bericht" : "Pins sichtbar" },
+    { icon: ShieldCheck, label: "Tour geprüft", value: hasRealReport ? "freigegeben" : "Demo-Status" },
+    { icon: FileText, label: "PDF-Bericht", value: hasRealReport ? "bereit" : "Vorschau" },
+  ];
+
+  return (
+    <div className="customerProofPreview" aria-label="FLYERO GPS- und Berichtsvorschau">
+      <div className="proofMapCanvas" aria-hidden="true">
+        <span className="proofRouteLine proofRouteLineA" />
+        <span className="proofRouteLine proofRouteLineB" />
+        <span className="proofRouteLine proofRouteLineC" />
+        <i className="proofPin proofPinA" />
+        <i className="proofPin proofPinB" />
+        <i className="proofPin proofPinC" />
+        <strong>Koblenz Süd</strong>
+      </div>
+      <div className="proofChecklist">
+        {proofItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label}>
+              <span><Icon aria-hidden="true" /></span>
+              <p>{item.label}</p>
+              <strong>{item.value}</strong>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 export default async function CustomerDashboardPage() {
@@ -32,13 +84,15 @@ export default async function CustomerDashboardPage() {
     activeOrders,
     plannedOrders,
     completedOrders,
-    reports,
+    approvedReports,
     invoices,
     openSupportTickets,
     lastOrder,
+    latestReport,
+    latestInvoice,
   ] = await Promise.all([
     prisma.order.count({
-      where: { customerId: profile.id, status: { in: ["PAYMENT_PENDING", "PAYMENT_FAILED", "PAID_WAITING_FOR_ADMIN_REVIEW", "WAITING_FOR_CUSTOMER", "APPROVED", "READY_FOR_FLYERS", "READY_FOR_PICKUP"] } },
+      where: { customerId: profile.id, status: { in: ["PAYMENT_PENDING", "PAYMENT_FAILED", "PAID_WAITING_FOR_ADMIN_REVIEW", "WAITING_FOR_CUSTOMER", "APPROVED", "READY_FOR_FLYERS", "READY_FOR_PICKUP", "READY_FOR_DISTRIBUTION"] } },
     }),
     prisma.order.count({
       where: { customerId: profile.id, preferredStartDate: { gte: new Date() } },
@@ -51,7 +105,8 @@ export default async function CustomerDashboardPage() {
     }),
     prisma.invoice.findMany({
       where: { customerId: profile.id },
-      select: { totalGross: true, status: true },
+      select: { id: true, totalGross: true, status: true, invoiceDate: true, invoiceNumber: true, pdfUrl: true },
+      orderBy: { createdAt: "desc" },
     }),
     prisma.supportTicket.count({
       where: { customerId: profile.id, status: { notIn: ["RESOLVED", "CLOSED"] } },
@@ -64,88 +119,128 @@ export default async function CustomerDashboardPage() {
         orderNumber: true,
         targetAreaName: true,
         city: true,
+        postalCode: true,
         flyerQuantity: true,
         status: true,
         preferredStartDate: true,
         calculatedGrossPrice: true,
       },
     }),
+    prisma.report.findFirst({
+      where: { status: { in: ["GENERATED", "APPROVED", "PUBLISHED"] }, order: { customerId: profile.id }, tour: { status: "APPROVED" } },
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        reportNumber: true,
+        status: true,
+        pdfUrl: true,
+        createdAt: true,
+        order: { select: { orderNumber: true, targetAreaName: true, city: true } },
+      },
+    }),
+    prisma.invoice.findFirst({
+      where: { customerId: profile.id },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, invoiceNumber: true, status: true, totalGross: true, invoiceDate: true, pdfUrl: true },
+    }),
   ]);
 
   const paidInvoices = invoices.filter((invoice) => invoice.status === "PAID").length;
-  const paidRate = invoices.length ? (paidInvoices / invoices.length) * 100 : 99;
+  const paidRate = invoices.length ? (paidInvoices / invoices.length) * 100 : 100;
   const distributedFlyers = lastOrder?.flyerQuantity ? completedOrders * lastOrder.flyerQuantity : 0;
+  const primaryReportHref = latestReport ? `/customer/reports/${latestReport.id}` : latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/reports";
 
   return (
     <CustomerPortalShell
       active="/customer/dashboard"
-      title={`Guten Morgen${profile.contactName ? `, ${profile.contactName}` : ""}!`}
-      description={profile.companyName ? `${profile.companyName} - Übersicht Ihrer aktuellen Aktivitäten.` : "Übersicht Ihrer aktuellen Aktivitäten."}
+      title={`Hallo${profile.contactName ? `, ${profile.contactName}` : ""}`}
+      description={profile.companyName ? `${profile.companyName} - Kampagnen starten, Nachweise prüfen und Rechnungen finden.` : "Kampagnen starten, Nachweise prüfen und Rechnungen finden."}
     >
-      <section className="portalMetrics dashboardReferenceMetrics">
-        <MetricTile label="Aktive Kampagnen" value={activeOrders} tone="success" />
-        <MetricTile label="Geplante Verteilungen" value={plannedOrders} />
-        <MetricTile label="Verteilte Flyer" value={formatNumber(distributedFlyers)} />
-        <MetricTile label="Zahlungsquote" value={formatPercent(paidRate)} tone="success" />
+      <section className="customerCommandHero" aria-label="Schnellstart">
+        <div className="customerCommandCopy">
+          <span>FLYERO Kundenportal</span>
+          <h2>Neue Verteilung in wenigen Schritten starten.</h2>
+          <p>Gebiet wählen, Flyerzahl festlegen und direkt mit Live-Preis, Lager und Verteilerbedarf weiterarbeiten.</p>
+          <div className="customerCommandActions">
+            <Link className="primaryCommand" href="/customer/orders/new">Neue Verteilung starten<ArrowRight aria-hidden="true" /></Link>
+            <Link href={lastOrder ? `/customer/orders/${lastOrder.id}` : "/customer/orders"}>Aktuelle Kampagne ansehen</Link>
+            <Link href={primaryReportHref}>Bericht oder Rechnung öffnen</Link>
+          </div>
+        </div>
+        <ProofPreview hasRealReport={Boolean(latestReport)} />
       </section>
 
-      <ActionPanel
-        title="Schnellstart"
-        description="Die wichtigsten naechsten Schritte fuer Ihre Kampagnen."
-        actions={[
-          { href: "/customer/orders/new", label: "Neue Kampagne" },
-          { href: "/customer/documents", label: "Druckdaten" },
-          { href: "/customer/invoices", label: "Rechnungen" },
-        ]}
-      />
+      <section className="portalMetrics customerOutcomeMetrics">
+        <MetricTile label="Aktuell in Arbeit" value={activeOrders} tone={activeOrders > 0 ? "success" : "neutral"} />
+        <MetricTile label="Nächste Verteilungen" value={plannedOrders} />
+        <MetricTile label="Nachweise bereit" value={approvedReports} tone={approvedReports > 0 ? "success" : "neutral"} />
+        <MetricTile label="Zahlungen im Griff" value={formatPercent(paidRate)} tone="success" />
+      </section>
 
-      <div className="portalDashboardGrid dashboardReferenceGrid">
-        <DataSection title="Letzte Kampagne" description="Die aktuellste Kampagne aus Ihrem Kundenkonto.">
+      <div className="customerMissionGrid">
+        <section className="customerMissionPanel currentCampaignPanel">
+          <div className="missionPanelHeader">
+            <span>Was läuft gerade?</span>
+            <h2>{lastOrder ? lastOrder.targetAreaName : "Noch keine Kampagne gestartet"}</h2>
+          </div>
           {lastOrder ? (
-            <article className="campaignSummaryCard">
-              <div>
-                <h3>{lastOrder.targetAreaName}</h3>
-                <StatusBadge tone={lastOrder.status === "DISTRIBUTION_APPROVED" ? "success" : "warning"}>{lastOrder.status}</StatusBadge>
+            <>
+              <div className="currentCampaignStatus">
+                <StatusBadge tone={statusTone(lastOrder.status)}>{ORDER_STATUS_LABELS[lastOrder.status]}</StatusBadge>
+                <strong>{lastOrder.postalCode} {lastOrder.city}</strong>
               </div>
-              <dl>
-                <div><dt>Verteilgebiet</dt><dd>{lastOrder.city}</dd></div>
-                <div><dt>Startdatum</dt><dd>{lastOrder.preferredStartDate ? lastOrder.preferredStartDate.toLocaleDateString("de-DE") : "-"}</dd></div>
-                <div><dt>Verteilte Flyer</dt><dd>{formatNumber(lastOrder.flyerQuantity)}</dd></div>
-                <div><dt>Preis</dt><dd>{new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(Number(lastOrder.calculatedGrossPrice))}</dd></div>
+              <dl className="customerFactList">
+                <div><dt>Auftrag</dt><dd>{lastOrder.orderNumber}</dd></div>
+                <div><dt>Start</dt><dd>{formatDate(lastOrder.preferredStartDate)}</dd></div>
+                <div><dt>Flyer</dt><dd>{formatNumber(lastOrder.flyerQuantity)}</dd></div>
+                <div><dt>Preis</dt><dd>{formatCurrency(lastOrder.calculatedGrossPrice)}</dd></div>
               </dl>
-              <Link href={`/customer/orders/${lastOrder.id}`}>Kampagne ansehen<span aria-hidden="true">→</span></Link>
-            </article>
+              <Link className="customerPanelLink" href={`/customer/orders/${lastOrder.id}`}>Kampagne öffnen<ArrowRight aria-hidden="true" /></Link>
+            </>
           ) : (
-            <EmptyState title="Noch keine Kampagne vorhanden." description="Erstellen Sie Ihre erste Kampagne und erreichen Sie neue Kunden in Ihrer Region." action={{ href: "/customer/orders/new", label: "Neue Kampagne erstellen" }} />
+            <EmptyState
+              title="Starte deine erste Verteilung."
+              description="Der Karten-Flow berechnet Gebiet, Preis und Bedarf live."
+              action={{ href: "/customer/orders/new", label: "Jetzt starten" }}
+            />
           )}
-        </DataSection>
+        </section>
 
-        <DataSection title="Verteilungen" description="Ihre Gebiete, Touren und Nachweise laufen im Portal zusammen.">
-          <div className="dashboardMapPreview" aria-label="Verteilgebiet Vorschau">
-            <span />
-            <span />
-            <span />
+        <section className="customerMissionPanel proofPanel">
+          <div className="missionPanelHeader">
+            <span>Welche Nachweise liegen vor?</span>
+            <h2>{latestReport ? latestReport.reportNumber : "Beispiel-Nachweis Koblenz"}</h2>
           </div>
-          <Link className="dashboardOutlineButton" href="/customer/orders">Alle Verteilgebiete anzeigen<span aria-hidden="true">→</span></Link>
-        </DataSection>
+          <ProofPreview hasRealReport={Boolean(latestReport)} />
+          {latestReport ? (
+            <div className="proofPanelFooter">
+              <p>{latestReport.order.targetAreaName} / {latestReport.order.city}</p>
+              <Link className="customerPanelLink" href={`/customer/reports/${latestReport.id}`}>Bericht ansehen<ArrowRight aria-hidden="true" /></Link>
+            </div>
+          ) : (
+            <p className="proofExampleNote">Beispielvorschau: echte GPS-Spuren, Fotos und PDF-Berichte erscheinen hier nach einer geprüften Tour.</p>
+          )}
+        </section>
 
-        <DataSection title="Aufgaben" description="Was als Nächstes Aufmerksamkeit braucht.">
-          <div className="taskList">
-            <Link href="/customer/orders/new"><span>○</span>Neue Kampagne vorbereiten</Link>
-            <Link href="/customer/documents"><span>○</span>Druckdaten hochladen</Link>
-            <Link href="/customer/invoices"><span>○</span>Rechnungen prüfen</Link>
-            <Link href="/customer/support"><span>○</span>Support offen: {openSupportTickets}</Link>
+        <section className="customerMissionPanel nextActionPanel">
+          <div className="missionPanelHeader">
+            <span>Was ist als Nächstes zu tun?</span>
+            <h2>Alles in maximal 3 Klicks.</h2>
           </div>
-        </DataSection>
-
-        <DataSection title="Ergebnisse" description="Berichte und Rechnungen aus abgeschlossenen Kampagnen.">
-          <div className="dashboardResultStrip">
-            <article><strong>{reports}</strong><span>freigegebene Berichte</span></article>
-            <article><strong>{completedOrders}</strong><span>abgeschlossene Kampagnen</span></article>
-            <article><strong>{invoices.length}</strong><span>Rechnungen</span></article>
+          <div className="customerActionStack">
+            <Link href="/customer/orders/new"><MapPinned aria-hidden="true" /><span>Gebiet planen</span><strong>1 Klick</strong></Link>
+            <Link href="/customer/documents"><UploadCloud aria-hidden="true" /><span>Druckdaten hochladen</span><strong>2 Klicks</strong></Link>
+            <Link href={latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/invoices"}><ReceiptText aria-hidden="true" /><span>Rechnung prüfen</span><strong>{latestInvoice ? formatCurrency(latestInvoice.totalGross) : "bereit sobald vorhanden"}</strong></Link>
+            <Link href="/customer/support"><ShieldCheck aria-hidden="true" /><span>Support klären</span><strong>{openSupportTickets} offen</strong></Link>
           </div>
-        </DataSection>
+        </section>
       </div>
+
+      <section className="customerResultRail" aria-label="Ergebnisse">
+        <article><strong>{formatNumber(distributedFlyers)}</strong><span>verteilte Flyer</span></article>
+        <article><strong>{completedOrders}</strong><span>abgeschlossene Kampagnen</span></article>
+        <article><strong>{invoices.length}</strong><span>Rechnungen</span></article>
+      </section>
     </CustomerPortalShell>
   );
 }
