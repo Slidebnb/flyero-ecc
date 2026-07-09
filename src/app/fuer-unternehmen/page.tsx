@@ -7,6 +7,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
+  ProofMockup,
   StepCard,
   TrustBadge,
   defaultProofIcons,
@@ -66,7 +67,7 @@ export default function BusinessPage() {
               <TrustBadge icon={defaultProofIcons.report}>Kundenbericht</TrustBadge>
             </div>
           </div>
-          <div className="mkProofMockup" aria-hidden="true" />
+          <ProofMockup area="Koblenz Süd" />
         </MarketingContainer>
       </section>
 
@@ -106,11 +107,11 @@ export default function BusinessPage() {
             <LeadForm source="fuer-unternehmen" />
           </article>
           <CTAChoiceCard
-            title="Direkt online buchen"
+            title="Online Buchung ansehen"
             text="Wenn Gebiet, Menge und Timing feststehen, starten Sie direkt im Kundenkonto."
             bullets={["Verteilgebiet wählen", "Preis vor Zahlung prüfen", "Nachweis im Portal erhalten"]}
             href="/login?next=%2Fcustomer%2Forders%2Fnew"
-            buttonLabel="Direkt buchen"
+            buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}
           />

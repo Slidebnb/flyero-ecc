@@ -2,7 +2,7 @@ import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
-const baseUrl = process.env.VISUAL_BASE_URL || "http://127.0.0.1:3000";
+const baseUrl = process.env.VISUAL_BASE_URL || "http://localhost:3000";
 const outDir = join(process.cwd(), ".tmp", "visual-qa");
 
 const targets = [
@@ -57,6 +57,12 @@ for (const target of targets) {
       "�",
     ].filter((snippet) => bodyText.includes(snippet));
 
+    const hasErrorOverlay = [...document.querySelectorAll("[data-nextjs-dialog-overlay], nextjs-portal")].some((el) => {
+      const rect = el.getBoundingClientRect();
+      const text = (el.textContent || "").trim();
+      return rect.width > 0 || rect.height > 0 || text.length > 0;
+    });
+
     return {
       title: document.title,
       viewportWidth: window.innerWidth,
@@ -64,7 +70,7 @@ for (const target of targets) {
       clientWidth: document.documentElement.clientWidth,
       offenders,
       brokenSnippets,
-      hasErrorOverlay: Boolean(document.querySelector("[data-nextjs-dialog-overlay], nextjs-portal")),
+      hasErrorOverlay,
     };
   });
 

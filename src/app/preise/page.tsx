@@ -5,6 +5,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
+  ProofMockup,
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
@@ -39,14 +40,14 @@ export default function PricingPage() {
             </p>
             <div className="mkHeroActions">
               <MarketingButton href="/verteilung-anfragen">Preis anfragen</MarketingButton>
-              <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="ghost">Direkt berechnen</MarketingButton>
+              <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="ghost">Online Buchung ansehen</MarketingButton>
             </div>
             <div className="mkTrustRow">
               <TrustBadge icon={defaultProofIcons.report}>Preis vor Zahlung</TrustBadge>
               <TrustBadge icon={defaultProofIcons.gps}>Gebietsbasiert</TrustBadge>
             </div>
           </div>
-          <div className="mkProofMockup" aria-hidden="true" />
+          <ProofMockup area="Preisprüfung" />
         </MarketingContainer>
       </section>
 
@@ -73,7 +74,7 @@ export default function PricingPage() {
             text="Für konkrete Buchungen wird der Preis im Kundenportal vor der Zahlung angezeigt."
             bullets={["Gebiet wählen", "Menge prüfen", "Preis vor Buchung sehen"]}
             href="/login?next=%2Fcustomer%2Forders%2Fnew"
-            buttonLabel="Online buchen"
+            buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}
           />

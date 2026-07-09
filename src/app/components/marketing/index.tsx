@@ -86,7 +86,10 @@ export function PublicFooter() {
     <footer className="mkFooter">
       <div className="mkFooterBrand">
         <FlyeroLogo />
-        <p>Flyerverteilung mit GPS-Tourspur, Foto-Nachweis, Admin-Prüfung und Kundenbericht.</p>
+        <p>Flyerverteilung mit GPS-Nachweis, Foto-Dokumentation und Kundenbericht.</p>
+        <p className="mkFooterTrust">
+          Für Unternehmen, Vereine und lokale Kampagnen, die nicht nur verteilt, sondern sauber belegt werden sollen.
+        </p>
       </div>
       <FooterColumn
         title="FLYERO"
@@ -231,6 +234,12 @@ export function HeroVisual() {
         className="mkHeroImage"
         priority
       />
+      <div className="mkHeroProofStack" aria-hidden="true">
+        <span>GPS-Nachweis</span>
+        <span>Foto-Nachweise</span>
+        <span>PDF-Bericht</span>
+        <span>Tour geprüft</span>
+      </div>
       <div className="mkHeroFloat mkHeroFloatGps">
         <span>GPS-Nachweis aktiv</span>
         <strong>Tour wird geprüft</strong>
@@ -238,6 +247,38 @@ export function HeroVisual() {
       <div className="mkHeroFloat mkHeroFloatReport">
         <span>Bericht freigegeben</span>
         <strong>PDF + Fotos</strong>
+      </div>
+    </div>
+  );
+}
+
+export function ProofMockup({ area = "Koblenz Süd" }: { area?: string }) {
+  const proofItems = ["GPS-Spur aktiv", "12 Fotos geprüft", "PDF-Bericht bereit", "Tour freigegeben"];
+
+  return (
+    <div className="mkProofMockup" aria-label={`FLYERO Nachweisvorschau für ${area}`}>
+      <div className="mkProofBrand">
+        <FlyeroLogo dark />
+        <span>Nachweisportal</span>
+      </div>
+      <div className="mkProofMap" aria-hidden="true">
+        <span className="mkProofPin mkProofPin-a" />
+        <span className="mkProofPin mkProofPin-b" />
+        <span className="mkProofPin mkProofPin-c" />
+        <span className="mkProofPin mkProofPin-d" />
+      </div>
+      <div className="mkProofChecklist">
+        {proofItems.map((item) => (
+          <span key={item}>
+            <Check aria-hidden="true" />
+            {item}
+          </span>
+        ))}
+      </div>
+      <div className="mkProofReport">
+        <span>Bericht freigegeben</span>
+        <strong>Tour {area}</strong>
+        <p>GPS-Punkte, Fotos, Zeiten und Zustellquote geprüft.</p>
       </div>
     </div>
   );
@@ -259,7 +300,7 @@ export function FeatureCard({
       <span className="mkCardIcon" aria-hidden="true">
         <Icon aria-hidden={true} />
       </span>
-      {typeof index === "number" ? <small>{String(index + 1).padStart(2, "0")}</small> : null}
+      {typeof index === "number" ? <small hidden>{String(index + 1).padStart(2, "0")}</small> : null}
       <h3>{title}</h3>
       <p>{text}</p>
     </article>
@@ -285,7 +326,6 @@ export function StepCard({ title, text, index }: { title: string; text: string; 
   const Icon = icons[index] ?? BadgeCheck;
   return (
     <li className="mkStepCard">
-      <span className="mkStepNumber">{String(index + 1).padStart(2, "0")}</span>
       <Icon aria-hidden={true} />
       <h3>{title}</h3>
       <p>{text}</p>

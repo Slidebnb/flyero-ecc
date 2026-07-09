@@ -286,6 +286,40 @@
   box-shadow: var(--flyero-shadow-dark);
 }
 
+.mkHeroProofStack {
+  position: absolute;
+  z-index: 3;
+  right: 5%;
+  bottom: 6%;
+  width: min(280px, 58%);
+  display: grid;
+  gap: 8px;
+}
+
+.mkHeroProofStack span {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid rgba(167, 255, 0, 0.25);
+  border-radius: 999px;
+  background: rgba(4, 8, 10, 0.78);
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(18px);
+}
+
+.mkHeroProofStack span::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  margin-right: 10px;
+  border-radius: 999px;
+  background: var(--flyero-green);
+  box-shadow: 0 0 16px rgba(167, 255, 0, 0.72);
+}
+
 .mkHeroFloat {
   position: absolute;
   z-index: 2;
@@ -440,11 +474,7 @@
 }
 
 .mkFeatureCard small {
-  position: absolute;
-  top: 28px;
-  right: 28px;
-  color: rgba(15, 23, 42, 0.28);
-  font-weight: 950;
+  display: none;
 }
 
 .mkFeatureCard h3,
@@ -493,18 +523,6 @@
   background: #ffffff;
 }
 
-.mkStepNumber {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 999px;
-  background: var(--flyero-text);
-  color: #ffffff;
-  font-weight: 950;
-}
-
 .mkStepCard svg {
   position: absolute;
   top: 28px;
@@ -515,7 +533,7 @@
 }
 
 .mkStepCard h3 {
-  margin: 34px 0 9px;
+  margin: 46px 0 9px;
   font-size: 1.08rem;
   line-height: 1.18;
   letter-spacing: -0.025em;
@@ -579,30 +597,132 @@
   border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--flyero-radius-media);
   background:
-    radial-gradient(circle at 38% 34%, rgba(47, 133, 255, 0.55), transparent 10rem),
-    linear-gradient(135deg, #07111f, #0a1c30 56%, #040607);
+    radial-gradient(circle at 78% 18%, rgba(167, 255, 0, 0.23), transparent 14rem),
+    radial-gradient(circle at 34% 36%, rgba(47, 133, 255, 0.42), transparent 12rem),
+    linear-gradient(135deg, #06101d, #0a1c30 58%, #030607);
   box-shadow: var(--flyero-shadow-dark);
 }
 
-.mkProofMockup::before {
-  content: "";
+.mkProofBrand {
   position: absolute;
-  inset: 54px 44px 96px;
-  border: 3px solid #58a6ff;
-  border-radius: 44% 56% 47% 53%;
-  box-shadow: 0 0 34px rgba(88, 166, 255, 0.65);
+  z-index: 3;
+  top: 28px;
+  left: 28px;
+  right: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
 }
 
-.mkProofMockup::after {
+.mkProofBrand .mkLogo {
+  font-size: 1.1rem;
+}
+
+.mkProofBrand .mkLogoMark {
+  width: 24px;
+  gap: 3px;
+}
+
+.mkProofBrand .mkLogoMark i {
+  height: 5px;
+}
+
+.mkProofBrand .mkLogoMark i:nth-child(1) {
+  width: 24px;
+}
+
+.mkProofBrand .mkLogoMark i:nth-child(2) {
+  width: 18px;
+}
+
+.mkProofBrand .mkLogoMark i:nth-child(3) {
+  width: 12px;
+}
+
+.mkProofBrand > span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.mkProofMap {
+  position: absolute;
+  inset: 92px 44px 134px;
+  border: 3px solid #58a6ff;
+  border-radius: 44% 56% 47% 53%;
+  box-shadow: 0 0 34px rgba(88, 166, 255, 0.58), inset 0 0 42px rgba(88, 166, 255, 0.18);
+}
+
+.mkProofMap::before {
   content: "";
   position: absolute;
-  left: 20%;
-  right: 17%;
-  bottom: 42px;
-  height: 116px;
-  border-radius: 22px;
-  background: #ffffff;
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+  inset: 20%;
+  border: 2px dashed rgba(88, 166, 255, 0.72);
+  border-radius: 52% 48% 46% 54%;
+}
+
+.mkProofPin {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #ffffff;
+  border-radius: 999px;
+  background: var(--flyero-green);
+  box-shadow: 0 0 20px rgba(167, 255, 0, 0.72);
+}
+
+.mkProofPin-a {
+  left: 11%;
+  top: 36%;
+}
+
+.mkProofPin-b {
+  right: 18%;
+  top: 22%;
+}
+
+.mkProofPin-c {
+  left: 45%;
+  bottom: 13%;
+}
+
+.mkProofPin-d {
+  right: 9%;
+  bottom: 31%;
+}
+
+.mkProofChecklist {
+  position: absolute;
+  z-index: 3;
+  right: 28px;
+  top: 92px;
+  width: min(230px, 46%);
+  display: grid;
+  gap: 8px;
+}
+
+.mkProofChecklist span {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 0.78rem;
+  font-weight: 850;
+  backdrop-filter: blur(14px);
+}
+
+.mkProofChecklist svg {
+  width: 14px;
+  height: 14px;
+  color: var(--flyero-green);
 }
 
 .mkProofReport {
@@ -613,7 +733,11 @@
   z-index: 2;
   display: grid;
   gap: 5px;
+  padding: 22px 24px;
+  border-radius: 22px;
+  background: #ffffff;
   color: var(--flyero-text);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
 }
 
 .mkProofReport span {
@@ -771,6 +895,12 @@
   line-height: 1.6;
 }
 
+.mkFooterTrust {
+  margin-top: 12px;
+  color: #4f6f00 !important;
+  font-weight: 850;
+}
+
 .mkFooter nav {
   display: grid;
   align-content: start;
@@ -900,6 +1030,94 @@
   gap: 12px;
 }
 
+.mkLeadForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.mkLeadForm label {
+  display: grid;
+  gap: 8px;
+  color: var(--flyero-text);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.mkLeadForm .mkFull,
+.mkLeadForm button,
+.mkFormSuccess,
+.mkFormError {
+  grid-column: 1 / -1;
+}
+
+.mkLeadForm input,
+.mkLeadForm select,
+.mkLeadForm textarea {
+  width: 100%;
+  min-height: 50px;
+  border: 1px solid var(--flyero-border);
+  border-radius: 14px;
+  background: #ffffff;
+  color: var(--flyero-text);
+  padding: 0 14px;
+  font: inherit;
+  outline: none;
+}
+
+.mkLeadForm textarea {
+  min-height: 142px;
+  padding-top: 14px;
+  resize: vertical;
+}
+
+.mkLeadForm input:focus,
+.mkLeadForm select:focus,
+.mkLeadForm textarea:focus {
+  border-color: rgba(167, 255, 0, 0.95);
+  box-shadow: 0 0 0 4px rgba(167, 255, 0, 0.18);
+}
+
+.mkLeadForm button {
+  min-height: 54px;
+  border: 0;
+  border-radius: var(--flyero-radius-button);
+  background: var(--flyero-green);
+  color: var(--flyero-text);
+  font-weight: 950;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  box-shadow: 0 16px 38px rgba(126, 190, 0, 0.18);
+}
+
+.mkLeadForm button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 44px rgba(126, 190, 0, 0.25);
+}
+
+.mkLeadForm button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.mkFormSuccess,
+.mkFormError {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  font-weight: 850;
+}
+
+.mkFormSuccess {
+  background: var(--flyero-green-soft);
+  color: #365000;
+}
+
+.mkFormError {
+  background: rgba(255, 103, 91, 0.12);
+  color: #9f1f17;
+}
+
 .mkLegalPage .mkSectionHeader {
   max-width: 860px;
   grid-template-columns: 1fr;
@@ -1022,6 +1240,14 @@
     min-height: 300px;
   }
 
+  .mkHeroProofStack {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    margin-top: 12px;
+  }
+
   .mkHeroFloat {
     position: relative;
     inset: auto;
@@ -1079,6 +1305,33 @@
   .mkFooter {
     grid-template-columns: 1fr;
   }
+
+  .mkProofChecklist {
+    left: 24px;
+    right: 24px;
+    top: 88px;
+    width: auto;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .mkProofBrand {
+    left: 24px;
+    right: 24px;
+  }
+
+  .mkProofMap {
+    inset: 150px 32px 128px;
+  }
+
+  .mkProofReport {
+    left: 24px;
+    right: 24px;
+    bottom: 28px;
+  }
+
+  .mkLeadForm {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 460px) {
@@ -1094,5 +1347,13 @@
 
   .mkProofMockup {
     min-height: 340px;
+  }
+
+  .mkProofChecklist {
+    grid-template-columns: 1fr;
+  }
+
+  .mkProofMap {
+    inset: 184px 28px 120px;
   }
 }

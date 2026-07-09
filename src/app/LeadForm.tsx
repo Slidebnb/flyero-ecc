@@ -30,7 +30,7 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website" }: LeadF
   }
 
   return (
-    <form className="form grid marketingForm" onSubmit={onSubmit}>
+    <form className="mkLeadForm" onSubmit={onSubmit}>
       <input type="hidden" name="source" value={source} />
       <input
         aria-hidden="true"
@@ -68,15 +68,15 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website" }: LeadF
           <option value="OTHER">Sonstiges</option>
         </select>
       </label>
-      <label className="full">
+      <label className="mkFull">
         Nachricht
         <textarea name="message" minLength={5} required />
       </label>
       <button type="submit" disabled={state === "sending"}>
         {state === "sending" ? "Wird gesendet..." : "Anfrage senden"}
       </button>
-      {state === "success" ? <p className="formSuccess">Danke, deine Anfrage ist eingegangen.</p> : null}
-      {state === "error" ? <p className="formError">Bitte prüfe die Angaben und versuche es erneut.</p> : null}
+      {state === "success" ? <p className="mkFormSuccess">Danke, deine Anfrage ist eingegangen.</p> : null}
+      {state === "error" ? <p className="mkFormError">Bitte prüfe die Angaben und versuche es erneut.</p> : null}
     </form>
   );
 }

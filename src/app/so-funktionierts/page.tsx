@@ -5,6 +5,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
+  ProofMockup,
   StepCard,
   TrustBadge,
   defaultProofIcons,
@@ -54,7 +55,7 @@ export default function HowItWorksPage() {
               <TrustBadge icon={defaultProofIcons.report}>PDF-Bericht</TrustBadge>
             </div>
           </div>
-          <div className="mkProofMockup" aria-hidden="true" />
+          <ProofMockup area="Koblenz Süd" />
         </MarketingContainer>
       </section>
 
@@ -85,11 +86,11 @@ export default function HowItWorksPage() {
             icon={defaultProofIcons.shield}
           />
           <CTAChoiceCard
-            title="Direkt online buchen"
+            title="Online Buchung ansehen"
             text="Wenn die Kampagne konkret ist und der Auftrag direkt angelegt werden soll."
             bullets={["Konto nutzen", "Gebiet wählen", "Preis prüfen"]}
             href="/login?next=%2Fcustomer%2Forders%2Fnew"
-            buttonLabel="Direkt buchen"
+            buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}
           />

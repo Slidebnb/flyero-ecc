@@ -5,6 +5,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
+  ProofMockup,
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
@@ -39,7 +40,7 @@ export default function ContactPage() {
               <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweis möglich</TrustBadge>
             </div>
           </div>
-          <div className="mkProofMockup" aria-hidden="true" />
+          <ProofMockup area="Anfrage" />
         </MarketingContainer>
       </section>
 
@@ -49,11 +50,11 @@ export default function ContactPage() {
             <LeadForm source="kontakt" />
           </article>
           <CTAChoiceCard
-            title="Direkt online buchen"
+            title="Online Buchung ansehen"
             text="Wenn Gebiet, Menge und Zeitraum bereits feststehen, können Sie direkt im Kundenkonto starten."
             bullets={["Konto erstellen", "Gebiet wählen", "Preis prüfen"]}
             href="/login?next=%2Fcustomer%2Forders%2Fnew"
-            buttonLabel="Direkt buchen"
+            buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}
           />

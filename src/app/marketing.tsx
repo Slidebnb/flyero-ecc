@@ -9,6 +9,7 @@ export {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
+  ProofMockup,
   PublicFooter,
   PublicNavbar,
   SectionHeader,

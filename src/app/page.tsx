@@ -8,6 +8,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
+  ProofMockup,
   SectionHeader,
   StepCard,
   TrustBadge,
@@ -68,6 +69,9 @@ const advantages = [
 const faqs = [
   ["Muss ich mich registrieren, um anzufragen?", "Nein. Eine unverbindliche Anfrage ist öffentlich möglich. Für eine direkte Buchung und den späteren Bericht wird ein Kundenkonto benötigt."],
   ["Wie entsteht der Nachweis?", "Verteiler starten die Tour mobil, GPS-Punkte und Fotos werden gespeichert und danach durch das Admin-Team geprüft."],
+  ["Kann ich Druck und Verteilung zusammen buchen?", "Ja. Druckdaten, Lagerung und Verteilung können im Ablauf zusammen geplant werden. Bei individuellen Druckanforderungen klären wir die Details vor der Buchung."],
+  ["Wie schnell kann eine Verteilung starten?", "Das hängt von Gebiet, Auflage, Druckdaten und Verfügbarkeit der Verteiler ab. Für einfache Kampagnen kann die Planung kurzfristig starten, sobald Daten und Gebiet klar sind."],
+  ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Der Nachweis besteht aus GPS-Tourdaten, Foto-Dokumentation und einem geprüften Bericht, sobald die Tour abgeschlossen und freigegeben wurde."],
   ["Kann ich den Preis vorher sehen?", "Ja. Bei der direkten Online-Buchung werden Gebiet, Menge und Zeitraum vor der Zahlung geprüft."],
   ["Ist FLYERO nur für Koblenz gedacht?", "Die Startregion ist Koblenz und Umgebung. Die Plattform ist aber für weitere Regionen, Lager und Teams vorbereitet."],
 ] as const;
@@ -81,12 +85,13 @@ export default function HomePage() {
             <p className="mkEyebrow">Flyerverteilung mit Nachweis</p>
             <h1 id="home-hero-title">Flyer verteilen. Beweise liefern.</h1>
             <p className="mkHeroLead">
+              Flyer verteilen kann jeder. Nachweisen nicht.{" "}
               FLYERO verbindet Gebietsauswahl, Zahlung, Lager, GPS-Tour, Foto-Nachweise und Kundenbericht
               in einem professionellen Ablauf für lokale Kampagnen.
             </p>
             <div className="mkHeroActions">
               <MarketingButton href="/verteilung-anfragen">Verteilung anfragen</MarketingButton>
-              <MarketingButton href={`/login?next=${directBookingParam}`} variant="ghost">Direkt online buchen</MarketingButton>
+              <MarketingButton href={`/login?next=${directBookingParam}`} variant="ghost">Online Buchung ansehen</MarketingButton>
             </div>
             <div className="mkTrustRow" aria-label="FLYERO Nachweise">
               <TrustBadge icon={defaultProofIcons.gps}>GPS-verifiziert</TrustBadge>
@@ -163,13 +168,7 @@ export default function HomePage() {
               <span><strong>PDF</strong>Bericht</span>
             </div>
           </div>
-          <div className="mkProofMockup" aria-label="Beispielhafte Berichtsvorschau">
-            <div className="mkProofReport">
-              <span>Bericht freigegeben</span>
-              <strong>Tour Koblenz Süd</strong>
-              <p>GPS-Punkte, Fotos und Zustellquote geprüft.</p>
-            </div>
-          </div>
+          <ProofMockup area="Koblenz Süd" />
         </div>
       </MarketingSection>
 
@@ -203,11 +202,11 @@ export default function HomePage() {
             icon={defaultProofIcons.shield}
           />
           <CTAChoiceCard
-            title="Direkt online buchen"
+            title="Online Buchung ansehen"
             text="Für konkrete Kampagnen mit Kundenkonto, Gebietsauswahl, Preisprüfung und Auftrag."
             bullets={["Verteilgebiet wählen", "Preis vorab sehen", "Nachweis im Portal erhalten"]}
             href={`/login?next=${directBookingParam}`}
-            buttonLabel="Direkt buchen"
+            buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}
           />

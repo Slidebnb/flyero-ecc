@@ -29,10 +29,10 @@ export default function DistributionRequestPage() {
       <section className="mkRequestHero">
         <MarketingContainer>
           <p className="mkEyebrow">Verteilung anfragen</p>
-          <h1>Erst beraten lassen oder direkt online buchen.</h1>
+          <h1>Erst beraten lassen oder Online-Buchung ansehen.</h1>
           <p>
             Wählen Sie den passenden Start: Eine unverbindliche Anfrage funktioniert ohne Registrierung.
-            Die direkte Online-Buchung führt zum Kundenkonto mit Auftrag, GPS-Nachweis und Bericht.
+            Die Online-Buchung führt zum Kundenkonto mit Auftrag, GPS-Nachweis und Bericht.
           </p>
         </MarketingContainer>
       </section>
@@ -60,9 +60,9 @@ export default function DistributionRequestPage() {
             <span className="mkCardIcon" aria-hidden="true">
               <GpsIcon aria-hidden="true" />
             </span>
-            <h3>Direkt online buchen</h3>
+          <h3>Online Buchung ansehen</h3>
             <p>
-              Für konkrete Kampagnen: anmelden, Verteilgebiet auswählen, Preis sehen und den Auftrag strukturiert anlegen.
+              Für konkrete Kampagnen: anmelden, Verteilgebiet auswählen, Preis ansehen und den Auftrag strukturiert anlegen.
             </p>
             <ul>
               <li>Verteilgebiet wählen</li>
@@ -80,7 +80,7 @@ export default function DistributionRequestPage() {
                 Kundenkonto erstellen
               </MarketingButton>
               <MarketingButton href={`/login?next=${directBookingParam}`} variant="ghost">
-                Einloggen und buchen
+                Einloggen und ansehen
               </MarketingButton>
             </div>
           </article>

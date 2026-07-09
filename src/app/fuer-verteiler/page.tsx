@@ -5,6 +5,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
+  ProofMockup,
   StepCard,
   TrustBadge,
   defaultProofIcons,
@@ -56,7 +57,7 @@ export default function DistributorPage() {
               <TrustBadge icon={defaultProofIcons.shield}>Admin-Prüfung</TrustBadge>
             </div>
           </div>
-          <div className="mkProofMockup" aria-hidden="true" />
+          <ProofMockup area="Verteiler-Tour" />
         </MarketingContainer>
       </section>
 
