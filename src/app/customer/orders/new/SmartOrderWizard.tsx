@@ -21,6 +21,17 @@ import {
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
 
 type LatLng = { lat: number; lng: number };
+type PolygonSource = "postal_code" | "manual" | "saved_area" | "drawn";
+
+type LocationResult = {
+  city?: string | null;
+  postalCode?: string | null;
+  street?: string | null;
+  houseNumber?: string | null;
+  label?: string | null;
+  lat: number;
+  lng: number;
+};
 
 type Props = {
   areas: ReusableAreaOption[];
@@ -67,6 +78,7 @@ type OrderDraft = {
   targetAreaName?: string;
   center?: LatLng;
   polygon?: LatLng[];
+  polygonSource?: PolygonSource;
   flyerQuantity?: number;
   productFormat?: string;
   flyerSource?: string;
@@ -321,6 +333,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const startedAtRef = useRef<number | null>(null);
   const draftRestoredRef = useRef(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const forceLocationReplaceRef = useRef(false);
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
@@ -338,6 +351,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const [targetAreaName, setTargetAreaName] = useState("Koblenz Zentrum");
   const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
   const [polygon, setPolygon] = useState<LatLng[]>(DEFAULT_POLYGON);
+  const [polygonSource, setPolygonSource] = useState<PolygonSource>("postal_code");
+  const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
   const [, setHistory] = useState<LatLng[][]>([DEFAULT_POLYGON]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [flyerQuantity, setFlyerQuantity] = useState(10_000);
@@ -375,6 +390,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const routeDurationMinutes = intelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
   const grossPrice = intelligence?.metrics.grossPrice ?? "0";
   const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(flyerQuantity / 3500));
+  const recommendedFlyerQuantity = Math.max(500, Math.ceil((households * 1.1) / 100) * 100);
   const geoJson = useMemo(() => polygonToGeoJson(polygon), [polygon]);
 
   const smartAreas = useMemo(() => {
@@ -387,8 +403,9 @@ export function SmartOrderWizard({ areas, today }: Props) {
     return [...intelligenceAreas, ...local].filter((area, index, list) => list.findIndex((item) => item.id === area.id) === index).slice(0, 4);
   }, [areas, city, intelligence, postalCode, query]);
 
-  const pushPolygon = useCallback((next: LatLng[]) => {
+  const pushPolygon = useCallback((next: LatLng[], source: PolygonSource = "drawn") => {
     setPolygon(next);
+    setPolygonSource(source);
     setHistory((current) => [...current.slice(0, historyIndex + 1), next]);
     setHistoryIndex((index) => index + 1);
   }, [historyIndex]);
@@ -416,6 +433,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
         setPolygon(draft.polygon);
         setHistory([draft.polygon]);
       }
+      if (draft.polygonSource) setPolygonSource(draft.polygonSource);
       if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
       if (draft.productFormat) setProductFormat(draft.productFormat);
       if (draft.flyerSource) setFlyerSource(draft.flyerSource);
@@ -449,6 +467,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       targetAreaName,
       center,
       polygon,
+      polygonSource,
       flyerQuantity,
       productFormat,
       flyerSource,
@@ -477,6 +496,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     houseNumber,
     notes,
     polygon,
+    polygonSource,
     postalCode,
     productFormat,
     query,
@@ -486,6 +506,32 @@ export function SmartOrderWizard({ areas, today }: Props) {
     targetAreaName,
     targetGroup,
   ]);
+
+  const applyLocationResult = useCallback((result: LocationResult, options?: { forceReplace?: boolean }) => {
+    if (options?.forceReplace) {
+      forceLocationReplaceRef.current = true;
+      window.setTimeout(() => {
+        forceLocationReplaceRef.current = false;
+      }, 900);
+    }
+    if (polygonSource === "manual" && !options?.forceReplace) {
+      setPendingLocation(result);
+      return;
+    }
+    if (result.city) setCity(result.city);
+    if (result.postalCode) setPostalCode(result.postalCode);
+    if (result.street) setStreet(result.street);
+    if (result.houseNumber) setHouseNumber(result.houseNumber);
+    if (result.label) setQuery(result.label);
+    const nextCenter = { lat: Number(result.lat), lng: Number(result.lng) };
+    if (Number.isFinite(nextCenter.lat) && Number.isFinite(nextCenter.lng)) {
+      setCenter(nextCenter);
+      pushPolygon(polygonAroundCenter(nextCenter), "postal_code");
+    }
+    setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
+    setSelectedAreaId("");
+    setPendingLocation(null);
+  }, [polygonSource, pushPolygon]);
 
   const geocodeAddress = useCallback((input?: string) => {
     const params = new URLSearchParams({
@@ -500,20 +546,10 @@ export function SmartOrderWizard({ areas, today }: Props) {
       .then((payload) => {
         const result = payload?.data;
         if (!result) return;
-        if (result.city) setCity(result.city);
-        if (result.postalCode) setPostalCode(result.postalCode);
-        if (result.street) setStreet(result.street);
-        if (result.houseNumber) setHouseNumber(result.houseNumber);
-        if (result.label) setQuery(result.label);
-        const nextCenter = { lat: Number(result.lat), lng: Number(result.lng) };
-        if (Number.isFinite(nextCenter.lat) && Number.isFinite(nextCenter.lng)) {
-          setCenter(nextCenter);
-          pushPolygon(polygonAroundCenter(nextCenter));
-        }
-        setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
+        applyLocationResult(result, { forceReplace: forceLocationReplaceRef.current });
       })
       .catch(() => undefined);
-  }, [city, houseNumber, postalCode, pushPolygon, query, street]);
+  }, [applyLocationResult, city, houseNumber, postalCode, query, street]);
 
   const fetchSuggestions = useMemo(() => debounce((value: string) => {
     if (value.trim().length < 2) {
@@ -615,7 +651,10 @@ export function SmartOrderWizard({ areas, today }: Props) {
       polygonRef.current.setMap(mapRef.current);
       const syncPath = () => {
         const next = pathToPoints(polygonRef.current?.getPath() ?? { getLength: () => 0, getAt: () => ({ lat: () => 0, lng: () => 0 }), forEach: () => undefined });
-        if (next.length >= 3) setPolygon(next);
+        if (next.length >= 3) {
+          setPolygon(next);
+          setPolygonSource("manual");
+        }
       };
       const path = polygonRef.current.getPath();
       window.google.maps.event.addListener(path, "set_at", syncPath);
@@ -637,16 +676,16 @@ export function SmartOrderWizard({ areas, today }: Props) {
   function applySuggestion(suggestion: Suggestion) {
     setUsedAutocomplete(true);
     setShowSuggestions(false);
-    setQuery(suggestion.label);
-    if (suggestion.city) setCity(suggestion.city);
-    if (suggestion.postalCode) setPostalCode(suggestion.postalCode);
-    if (suggestion.street) setStreet(suggestion.street);
-    setTargetAreaName(suggestion.label.replace(/^\d+\s*/, ""));
     setSuggestions([]);
     if (suggestion.lat && suggestion.lng) {
-      const nextCenter = { lat: suggestion.lat, lng: suggestion.lng };
-      setCenter(nextCenter);
-      pushPolygon(polygonAroundCenter(nextCenter));
+      applyLocationResult({
+        city: suggestion.city,
+        postalCode: suggestion.postalCode,
+        street: suggestion.street,
+        label: suggestion.label,
+        lat: suggestion.lat,
+        lng: suggestion.lng,
+      });
     } else {
       geocodeAddress(suggestion.label);
     }
@@ -671,11 +710,23 @@ export function SmartOrderWizard({ areas, today }: Props) {
     if (area.postalCode) setPostalCode(area.postalCode);
     if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
     const nextPoints = featurePoints(area.geoJson);
-    if (nextPoints.length >= 3) pushPolygon(nextPoints);
+    if (nextPoints.length >= 3) pushPolygon(nextPoints, "saved_area");
   }
 
   function moveQuantity(delta: number) {
     setFlyerQuantity((value) => Math.max(500, Math.min(250_000, value + delta)));
+  }
+
+  function polygonSourceLabel() {
+    if (polygonSource === "manual") return "Manuell angepasst";
+    if (polygonSource === "saved_area") return "Gespeichertes Gebiet";
+    if (polygonSource === "drawn") return "Gezeichnetes Gebiet";
+    return "Vorschlag aus PLZ/Adresse";
+  }
+
+  function keepCurrentArea() {
+    setPendingLocation(null);
+    setQuery(street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}, ${postalCode} ${city}` : `${postalCode} ${city}`);
   }
 
   function trackSubmit() {
@@ -707,7 +758,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   }
 
   const stepState = [
-    { id: 1, title: "Gebiet festlegen", detail: "Wähle und zeichne das Verteilgebiet", value: `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` },
+    { id: 1, title: "Gebiet wählen", detail: "Dieses markierte Gebiet wird für deine Verteilung verwendet", value: `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` },
     { id: 2, title: "Flyer & Stückzahl", detail: "Wähle dein Produkt und die Menge", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung & Zielgruppe", detail: "Lege Verteilart und Zielgruppe fest", value: distributionType },
     { id: 4, title: "Zeitraum & Auslieferung", detail: "Bestimme Zeitraum und Auslieferung", value: startDate },
@@ -718,6 +769,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     if (stepId === 1) {
       return (
         <section className="orderPanelBlock primary inlineStepBlock">
+          <p className="orderStepHint">Dieses markierte Gebiet wird für deine Verteilung verwendet. Du kannst es auf der Karte jederzeit anpassen.</p>
           <label>
             PLZ, Ort oder Adresse
             <div className="searchInputShell">
@@ -746,6 +798,16 @@ export function SmartOrderWizard({ areas, today }: Props) {
             <strong>{postalCode} {city}</strong>
             <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : "Gebiet wird direkt auf der Karte aktualisiert"}</span>
           </div>
+          {pendingLocation ? (
+            <div className="replaceAreaNotice" role="alert">
+              <strong>Du hast dein Gebiet manuell angepasst.</strong>
+              <p>Wenn du eine neue PLZ übernimmst, wird das aktuelle Gebiet ersetzt.</p>
+              <div>
+                <button type="button" onClick={() => applyLocationResult(pendingLocation, { forceReplace: true })}>Neues Gebiet übernehmen</button>
+                <button type="button" onClick={keepCurrentArea}>Aktuelles Gebiet behalten</button>
+              </div>
+            </div>
+          ) : null}
           {showSuggestions && suggestions.length > 0 ? (
             <div className="orderSuggestions">
               {suggestions.map((suggestion) => (
@@ -764,6 +826,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
             <div>
               <span>Gewähltes Gebiet</span>
               <strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>
+              <small>{polygonSourceLabel()}</small>
             </div>
             <div className="miniPolygon" aria-hidden="true" />
           </div>
@@ -780,11 +843,20 @@ export function SmartOrderWizard({ areas, today }: Props) {
               {productOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
             </select>
           </label>
+          <div className="modeTabs flyerSourceTabs">
+            <button type="button" className={flyerSource === "CUSTOMER_OWN" ? "selected" : ""} onClick={() => setFlyerSource("CUSTOMER_OWN")}>Flyer vorhanden</button>
+            <button type="button" className={flyerSource === "PRINT_SERVICE" ? "selected" : ""} onClick={() => setFlyerSource("PRINT_SERVICE")}>Druck über FLYERO</button>
+          </div>
           <div className="quantityControl">
             <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
             <input value={flyerQuantity} onChange={(event) => setFlyerQuantity(Number(event.target.value) || 0)} inputMode="numeric" />
             <button type="button" onClick={() => moveQuantity(1000)}>+</button>
             <span>Stück</span>
+          </div>
+          <div className="flyerRecommendation">
+            <span>Empfohlen</span>
+            <strong>{formatNumber(households)} Haushalte + 10 % Reserve = {formatNumber(recommendedFlyerQuantity)} Flyer</strong>
+            <button type="button" onClick={() => setFlyerQuantity(recommendedFlyerQuantity)}>Empfehlung übernehmen</button>
           </div>
         </section>
       );
@@ -876,6 +948,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       <input type="hidden" name="areaType" value="POLYGON" />
       <input type="hidden" name="distributionAreaId" value={selectedAreaId} />
       <input type="hidden" name="targetAreaGeoJson" value={JSON.stringify(geoJson)} />
+      <input type="hidden" name="polygonSource" value={polygonSource} />
       <input type="hidden" name="coverageAreaSqm" value={coverageAreaSqm} />
       <input type="hidden" name="estimatedHouseholds" value={households} />
       <input type="hidden" name="estimatedFlyers" value={flyerQuantity} />
@@ -962,12 +1035,12 @@ export function SmartOrderWizard({ areas, today }: Props) {
           <dl>
             <div><dt>Haushalte</dt><dd>{formatNumber(households)}</dd></div>
             <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
-            <div><dt>Flyer</dt><dd>{formatNumber(flyerQuantity)} Stück</dd></div>
+            <div><dt>Empfohlene Flyerzahl</dt><dd>{formatNumber(recommendedFlyerQuantity)} Stück</dd></div>
             <div><dt>Geschätzter Preis</dt><dd>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</dd></div>
             <div><dt>ca. Laufstrecke</dt><dd>{(routeDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km</dd></div>
-            <div><dt>Geschätzte Zustelldauer</dt><dd>{formatDuration(routeDurationMinutes)}</dd></div>
-            <div><dt>Lager</dt><dd>{intelligence?.warehouse?.city ?? "automatisch"}</dd></div>
-            <div><dt>Verteiler benötigt</dt><dd>{distributorNeed}</dd></div>
+            <div><dt>Geplante Zustelldauer</dt><dd>{formatDuration(routeDurationMinutes)}</dd></div>
+            <div><dt>Nächstes Lager</dt><dd>{intelligence?.warehouse?.city ?? "automatisch"}</dd></div>
+            <div><dt>Benötigte Verteiler</dt><dd>{distributorNeed}</dd></div>
           </dl>
           <p className="availabilityGood">Sehr gute Verteilbarkeit</p>
         </aside>

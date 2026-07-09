@@ -3874,6 +3874,13 @@ body {
   font-weight: 800;
 }
 
+.orderStepHint {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
 .orderPanelBlock input,
 .orderPanelBlock select,
 .orderDetails input,
@@ -4003,6 +4010,53 @@ body {
   line-height: 1.15;
 }
 
+.savedAreaMini small {
+  color: #4a90ff;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.replaceAreaNotice {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(255, 190, 92, 0.24);
+  border-radius: 12px;
+  background: rgba(255, 190, 92, 0.1);
+  padding: 12px;
+}
+
+.replaceAreaNotice strong {
+  color: #ffd79a;
+  font-size: 0.88rem;
+}
+
+.replaceAreaNotice p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.45;
+}
+
+.replaceAreaNotice div {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.replaceAreaNotice button {
+  min-height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  font-weight: 850;
+}
+
+.replaceAreaNotice button:first-child {
+  border-color: rgba(183, 232, 0, 0.4);
+  background: #b7e800;
+  color: #07100a;
+}
+
 .miniPolygon {
   width: 54px;
   height: 38px;
@@ -4018,6 +4072,37 @@ body {
 
 .quantityControl input {
   text-align: center;
+}
+
+.flyerRecommendation {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(74, 144, 255, 0.22);
+  border-radius: 12px;
+  background: rgba(74, 144, 255, 0.08);
+  padding: 12px;
+}
+
+.flyerRecommendation span {
+  color: #74adff;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.flyerRecommendation strong {
+  color: #ffffff;
+  line-height: 1.35;
+}
+
+.flyerRecommendation button {
+  min-height: 38px;
+  border: 1px solid rgba(74, 144, 255, 0.32);
+  border-radius: 9px;
+  background: rgba(74, 144, 255, 0.14);
+  color: #ffffff;
+  font-weight: 850;
 }
 
 .dateGrid {
