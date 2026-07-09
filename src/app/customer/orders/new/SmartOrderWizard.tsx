@@ -62,6 +62,10 @@ type Intelligence = {
     netPrice: string;
     distributorNeed: number;
     score: number;
+    source?: string;
+    confidence?: "high" | "medium" | "low";
+    calculatedAt?: string;
+    calculationVersion?: string;
   };
   warehouse: { id: string; name: string; code: string; city: string; reason: string } | null;
   combinations: Array<{ key: string; orders: unknown[]; savedDistanceMeters: number; savedMinutes: number; savedCostEstimate: string }>;
@@ -79,7 +83,23 @@ type OrderDraft = {
   center?: LatLng;
   polygon?: LatLng[];
   polygonSource?: PolygonSource;
+  areaStats?: {
+    polygonSource: PolygonSource;
+    areaKm2: number;
+    householdCount: number;
+    recommendedFlyerQuantity: number;
+    pricePreview: string;
+    walkingDistanceKm: number;
+    deliveryDurationMinutes: number;
+    warehouseSuggestion: string | null;
+    distributorDemand: number;
+    deliverabilityScore: number | null;
+    source: string;
+    confidence: "high" | "medium" | "low";
+    calculatedAt: string;
+  };
   flyerQuantity?: number;
+  flyerQuantityTouched?: boolean;
   productFormat?: string;
   flyerSource?: string;
   targetGroup?: string;
@@ -115,6 +135,7 @@ type GoogleMap = {
   setCenter: (center: LatLng) => void;
   setZoom: (zoom: number) => void;
   fitBounds: (bounds: unknown) => void;
+  setMapTypeId: (mapTypeId: "roadmap" | "satellite") => void;
 };
 type GooglePolygon = {
   setMap: (map: GoogleMap | null) => void;
@@ -224,6 +245,24 @@ function featurePoints(geoJson: unknown) {
     .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
 }
 
+function normalizeLocationPart(value?: string | null) {
+  return (value ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function areaCenter(area: ReusableAreaOption, fallback: LatLng) {
+  return area.centerLat && area.centerLng ? { lat: area.centerLat, lng: area.centerLng } : fallback;
+}
+
+function recommendedFlyersForHouseholds(households: number) {
+  return Math.max(500, Math.ceil((Math.max(0, households) * 1.1) / 100) * 100);
+}
+
+function confidenceLabel(confidence?: "high" | "medium" | "low") {
+  if (confidence === "high") return "Datenbasis: gespeicherte Gebietsdaten";
+  if (confidence === "medium") return "Datenbasis: Schätzung auf Basis verfügbarer Gebietsdaten";
+  return "Datenbasis: wird nach Prüfung bestätigt";
+}
+
 function polygonToSvg(points: LatLng[], center: LatLng) {
   const scale = 11_000;
   return points.map((point) => {
@@ -284,6 +323,14 @@ function formatDuration(minutes: number) {
   return restMinutes ? `${hours} h ${restMinutes} Min.` : `${hours} h`;
 }
 
+function deliverabilityLabel(score?: number | null) {
+  if (!Number.isFinite(score ?? NaN)) return "Verteilbarkeit wird geprüft";
+  if ((score ?? 0) >= 82) return "Sehr gute Verteilbarkeit";
+  if ((score ?? 0) >= 65) return "Gute Verteilbarkeit";
+  if ((score ?? 0) >= 45) return "Prüfung empfohlen";
+  return "Schwieriges Gebiet";
+}
+
 function loadGoogleMaps() {
   const browserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   if (!browserKey || typeof window === "undefined") return Promise.resolve(false);
@@ -334,6 +381,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const draftRestoredRef = useRef(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const forceLocationReplaceRef = useRef(false);
+  const lastIntelligenceRequestRef = useRef<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
@@ -356,6 +405,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const [, setHistory] = useState<LatLng[][]>([DEFAULT_POLYGON]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [flyerQuantity, setFlyerQuantity] = useState(10_000);
+  const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
   const [productFormat, setProductFormat] = useState(productOptions[0].value);
   const [flyerSource, setFlyerSource] = useState("CUSTOMER_OWN");
   const [targetGroup, setTargetGroup] = useState("Alle Haushalte");
@@ -368,6 +418,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const [notes, setNotes] = useState("");
   const [mapMode, setMapMode] = useState<"map" | "satellite">("map");
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [heatmapNotice, setHeatmapNotice] = useState("");
   const [usedAutocomplete, setUsedAutocomplete] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
@@ -389,9 +440,60 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const routeDistanceMeters = intelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
   const routeDurationMinutes = intelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
   const grossPrice = intelligence?.metrics.grossPrice ?? "0";
-  const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(flyerQuantity / 3500));
-  const recommendedFlyerQuantity = Math.max(500, Math.ceil((households * 1.1) / 100) * 100);
+  const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
+  const recommendedFlyerQuantity = recommendedFlyersForHouseholds(households);
+  const deliverabilityScore = intelligence?.metrics.score ?? null;
+  const calculationConfidence = intelligence?.metrics.confidence ?? (intelligenceStatus === "live" ? "medium" : "low");
+  const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
+  const intelligenceRequestQuery = useMemo(() => new URLSearchParams({
+    city,
+    postalCode,
+    street,
+    houseNumber,
+    flyerQuantity: String(flyerQuantity),
+    coverageAreaSqm: String(coverageAreaSqm),
+    distanceMeters: String(localRouteDistanceMeters),
+    perimeterMeters: String(perimeterMeters),
+  }).toString(), [
+    city,
+    coverageAreaSqm,
+    flyerQuantity,
+    houseNumber,
+    localRouteDistanceMeters,
+    perimeterMeters,
+    postalCode,
+    street,
+  ]);
   const geoJson = useMemo(() => polygonToGeoJson(polygon), [polygon]);
+  const areaStats = useMemo(() => ({
+    polygonSource,
+    areaKm2: coverageAreaSqm / 1_000_000,
+    householdCount: households,
+    recommendedFlyerQuantity,
+    pricePreview: grossPrice,
+    walkingDistanceKm: routeDistanceMeters / 1000,
+    deliveryDurationMinutes: routeDurationMinutes,
+    warehouseSuggestion: intelligence?.warehouse?.city ?? null,
+    distributorDemand: distributorNeed,
+    deliverabilityScore,
+    source: calculationSource,
+    confidence: calculationConfidence,
+    calculatedAt: intelligence?.metrics.calculatedAt ?? new Date().toISOString(),
+  }), [
+    calculationConfidence,
+    calculationSource,
+    coverageAreaSqm,
+    deliverabilityScore,
+    distributorNeed,
+    grossPrice,
+    households,
+    intelligence?.metrics.calculatedAt,
+    intelligence?.warehouse?.city,
+    polygonSource,
+    recommendedFlyerQuantity,
+    routeDistanceMeters,
+    routeDurationMinutes,
+  ]);
 
   const smartAreas = useMemo(() => {
     const intelligenceAreas = intelligence?.suggestions?.length ? intelligence.suggestions : [];
@@ -402,6 +504,27 @@ export function SmartOrderWizard({ areas, today }: Props) {
     });
     return [...intelligenceAreas, ...local].filter((area, index, list) => list.findIndex((item) => item.id === area.id) === index).slice(0, 4);
   }, [areas, city, intelligence, postalCode, query]);
+
+  const findAreaForLocation = useCallback((result: LocationResult) => {
+    const resultCity = normalizeLocationPart(result.city);
+    const resultPostalCode = (result.postalCode ?? "").trim();
+    const scored = areas
+      .map((area) => {
+        const areaCity = normalizeLocationPart(area.city);
+        const areaPostalCode = (area.postalCode ?? "").trim();
+        const points = featurePoints(area.geoJson);
+        const score =
+          (resultPostalCode && areaPostalCode === resultPostalCode ? 60 : 0) +
+          (resultPostalCode && areaPostalCode.startsWith(resultPostalCode.slice(0, 3)) ? 18 : 0) +
+          (resultCity && areaCity === resultCity ? 30 : 0) +
+          (points.length >= 3 ? 10 : 0) +
+          (area.estimatedHouseholds ? 4 : 0);
+        return { area, points, score };
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score);
+    return scored[0] ?? null;
+  }, [areas]);
 
   const pushPolygon = useCallback((next: LatLng[], source: PolygonSource = "drawn") => {
     setPolygon(next);
@@ -435,6 +558,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       }
       if (draft.polygonSource) setPolygonSource(draft.polygonSource);
       if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
+      if (typeof draft.flyerQuantityTouched === "boolean") setFlyerQuantityTouched(draft.flyerQuantityTouched);
       if (draft.productFormat) setProductFormat(draft.productFormat);
       if (draft.flyerSource) setFlyerSource(draft.flyerSource);
       if (draft.targetGroup) setTargetGroup(draft.targetGroup);
@@ -468,7 +592,9 @@ export function SmartOrderWizard({ areas, today }: Props) {
       center,
       polygon,
       polygonSource,
+      areaStats,
       flyerQuantity,
+      flyerQuantityTouched,
       productFormat,
       flyerSource,
       targetGroup,
@@ -484,6 +610,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     setDraftStatus("Entwurf gespeichert");
   }, [
     activeStep,
+    areaStats,
     center,
     city,
     contactPerson,
@@ -491,6 +618,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     distributionType,
     endDate,
     flexibleScheduling,
+    flyerQuantityTouched,
     flyerQuantity,
     flyerSource,
     houseNumber,
@@ -518,6 +646,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
       setPendingLocation(result);
       return;
     }
+    setIntelligence(null);
+    setIntelligenceStatus("updating");
     if (result.city) setCity(result.city);
     if (result.postalCode) setPostalCode(result.postalCode);
     if (result.street) setStreet(result.street);
@@ -525,17 +655,29 @@ export function SmartOrderWizard({ areas, today }: Props) {
     if (result.label) setQuery(result.label);
     const nextCenter = { lat: Number(result.lat), lng: Number(result.lng) };
     if (Number.isFinite(nextCenter.lat) && Number.isFinite(nextCenter.lng)) {
-      setCenter(nextCenter);
-      pushPolygon(polygonAroundCenter(nextCenter), "postal_code");
+      const matchedArea = findAreaForLocation(result);
+      if (matchedArea?.points.length) {
+        const matchedCenter = areaCenter(matchedArea.area, nextCenter);
+        setCenter(matchedCenter);
+        setSelectedAreaId(matchedArea.area.id);
+        setTargetAreaName(matchedArea.area.name);
+        pushPolygon(matchedArea.points, "saved_area");
+        if (!flyerQuantityTouched && matchedArea.area.estimatedFlyers) setFlyerQuantity(matchedArea.area.estimatedFlyers);
+      } else {
+        setCenter(nextCenter);
+        setSelectedAreaId("");
+        setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
+        pushPolygon(polygonAroundCenter(nextCenter), "postal_code");
+        setFlyerQuantityTouched(false);
+      }
     }
-    setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
-    setSelectedAreaId("");
     setPendingLocation(null);
-  }, [polygonSource, pushPolygon]);
+  }, [findAreaForLocation, flyerQuantityTouched, polygonSource, pushPolygon]);
 
   const geocodeAddress = useCallback((input?: string) => {
+    const currentQuery = input ?? searchInputRef.current?.value ?? query;
     const params = new URLSearchParams({
-      q: input ?? query,
+      q: currentQuery,
       city,
       postalCode,
       street,
@@ -567,23 +709,22 @@ export function SmartOrderWizard({ areas, today }: Props) {
   }, [fetchSuggestions, query]);
 
   useEffect(() => {
-    const controller = new AbortController();
+    if (!flyerQuantityTouched && recommendedFlyerQuantity !== flyerQuantity) {
+      setFlyerQuantity(recommendedFlyerQuantity);
+    }
+  }, [flyerQuantity, flyerQuantityTouched, recommendedFlyerQuantity]);
+
+  useEffect(() => {
+    if (lastIntelligenceRequestRef.current === intelligenceRequestQuery) {
+      return;
+    }
+    lastIntelligenceRequestRef.current = intelligenceRequestQuery;
     setIntelligenceStatus("updating");
-    const params = new URLSearchParams({
-      city,
-      postalCode,
-      street,
-      houseNumber,
-      flyerQuantity: String(flyerQuantity),
-      households: String(localHouseholds),
-      coverageAreaSqm: String(coverageAreaSqm),
-      distanceMeters: String(localRouteDistanceMeters),
-      perimeterMeters: String(perimeterMeters),
-    });
     startTransition(() => {
-      fetch(`/api/maps/order-intelligence?${params.toString()}`, { signal: controller.signal })
+      fetch(`/api/maps/order-intelligence?${intelligenceRequestQuery}`)
         .then((response) => response.ok ? response.json() : null)
         .then((payload) => {
+          if (lastIntelligenceRequestRef.current !== intelligenceRequestQuery) return;
           if (payload?.data) {
             setIntelligence(payload.data);
             setIntelligenceStatus("live");
@@ -592,11 +733,12 @@ export function SmartOrderWizard({ areas, today }: Props) {
           }
         })
         .catch((error) => {
-          if (error?.name !== "AbortError") setIntelligenceStatus("error");
+          if (lastIntelligenceRequestRef.current === intelligenceRequestQuery && error?.name !== "AbortError") {
+            setIntelligenceStatus("error");
+          }
         });
     });
-    return () => controller.abort();
-  }, [city, postalCode, street, houseNumber, flyerQuantity, coverageAreaSqm, localHouseholds, localRouteDistanceMeters, perimeterMeters]);
+  }, [intelligenceRequestQuery]);
 
   useEffect(() => {
     startedAtRef.current = Date.now();
@@ -665,13 +807,14 @@ export function SmartOrderWizard({ areas, today }: Props) {
 
   useEffect(() => {
     if (!mapsReady || !mapRef.current || !polygonRef.current || !window.google?.maps) return;
+    mapRef.current.setMapTypeId(mapMode === "satellite" ? "satellite" : "roadmap");
     mapRef.current.setCenter(center);
     mapRef.current.setZoom(street ? 16 : 14);
     polygonRef.current.setPath(polygon);
     const bounds = new window.google.maps.LatLngBounds();
     polygon.forEach((point) => bounds.extend(point));
     mapRef.current.fitBounds(bounds);
-  }, [center, mapsReady, polygon, street]);
+  }, [center, mapMode, mapsReady, polygon, street]);
 
   function applySuggestion(suggestion: Suggestion) {
     setUsedAutocomplete(true);
@@ -704,6 +847,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
   }
 
   function applyArea(area: ReusableAreaOption) {
+    setIntelligence(null);
+    setIntelligenceStatus("updating");
     setSelectedAreaId(area.id);
     setTargetAreaName(area.name);
     if (area.city) setCity(area.city);
@@ -711,9 +856,11 @@ export function SmartOrderWizard({ areas, today }: Props) {
     if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
     const nextPoints = featurePoints(area.geoJson);
     if (nextPoints.length >= 3) pushPolygon(nextPoints, "saved_area");
+    if (!flyerQuantityTouched && area.estimatedFlyers) setFlyerQuantity(area.estimatedFlyers);
   }
 
   function moveQuantity(delta: number) {
+    setFlyerQuantityTouched(true);
     setFlyerQuantity((value) => Math.max(500, Math.min(250_000, value + delta)));
   }
 
@@ -727,6 +874,11 @@ export function SmartOrderWizard({ areas, today }: Props) {
   function keepCurrentArea() {
     setPendingLocation(null);
     setQuery(street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}, ${postalCode} ${city}` : `${postalCode} ${city}`);
+  }
+
+  function requestHeatmap() {
+    setShowHeatmap(false);
+    setHeatmapNotice("Heatmap für dieses Gebiet noch nicht verfügbar.");
   }
 
   function trackSubmit() {
@@ -775,6 +927,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
             <div className="searchInputShell">
               <input
                 value={query}
+                ref={searchInputRef}
                 onChange={(event) => {
                   setQuery(event.target.value);
                   setShowSuggestions(true);
@@ -791,7 +944,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
                 placeholder="z. B. 56068 Koblenz"
                 autoComplete="off"
               />
-              <button type="button" onClick={() => geocodeAddress()} aria-label="Adresse suchen"><Search aria-hidden="true" /></button>
+              <button type="button" onClick={() => geocodeAddress(searchInputRef.current?.value)} aria-label="Adresse suchen"><Search aria-hidden="true" /></button>
             </div>
           </label>
           <div className="selectedLocationBar">
@@ -849,14 +1002,24 @@ export function SmartOrderWizard({ areas, today }: Props) {
           </div>
           <div className="quantityControl">
             <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
-            <input value={flyerQuantity} onChange={(event) => setFlyerQuantity(Number(event.target.value) || 0)} inputMode="numeric" />
+            <input
+              value={flyerQuantity}
+              onChange={(event) => {
+                setFlyerQuantityTouched(true);
+                setFlyerQuantity(Number(event.target.value) || 0);
+              }}
+              inputMode="numeric"
+            />
             <button type="button" onClick={() => moveQuantity(1000)}>+</button>
             <span>Stück</span>
           </div>
           <div className="flyerRecommendation">
             <span>Empfohlen</span>
             <strong>{formatNumber(households)} Haushalte + 10 % Reserve = {formatNumber(recommendedFlyerQuantity)} Flyer</strong>
-            <button type="button" onClick={() => setFlyerQuantity(recommendedFlyerQuantity)}>Empfehlung übernehmen</button>
+            <button type="button" onClick={() => {
+              setFlyerQuantityTouched(true);
+              setFlyerQuantity(recommendedFlyerQuantity);
+            }}>Empfehlung übernehmen</button>
           </div>
         </section>
       );
@@ -953,6 +1116,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       <input type="hidden" name="estimatedHouseholds" value={households} />
       <input type="hidden" name="estimatedFlyers" value={flyerQuantity} />
       <input type="hidden" name="estimatedDistanceMeters" value={routeDistanceMeters} />
+      <input type="hidden" name="areaCalculationSnapshot" value={JSON.stringify(areaStats)} />
       <input type="hidden" name="centerLat" value={center.lat} />
       <input type="hidden" name="centerLng" value={center.lng} />
       <input type="hidden" name="flyerQuantity" value={flyerQuantity} />
@@ -976,7 +1140,16 @@ export function SmartOrderWizard({ areas, today }: Props) {
           );
         })}
         <div className="sideNavFooter">
-          <button type="submit" formAction="/api/auth/logout">Ausloggen</button>
+          <button
+            type="button"
+            onClick={() => {
+              void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+                window.location.href = "/login";
+              });
+            }}
+          >
+            Ausloggen
+          </button>
         </div>
       </aside>
 
@@ -1015,8 +1188,9 @@ export function SmartOrderWizard({ areas, today }: Props) {
         <div className="mapTabs">
           <button type="button" className={mapMode === "map" ? "selected" : ""} onClick={() => setMapMode("map")}>Karte</button>
           <button type="button" className={mapMode === "satellite" ? "selected" : ""} onClick={() => setMapMode("satellite")}>Satellit</button>
-          <button type="button" className={showHeatmap ? "selected" : ""} onClick={() => setShowHeatmap((value) => !value)}>Heatmap</button>
+          <button type="button" className={showHeatmap ? "selected" : ""} onClick={requestHeatmap}>Heatmap</button>
         </div>
+        {heatmapNotice ? <div className="heatmapNotice" role="status">{heatmapNotice}</div> : null}
         <div ref={mapElementRef} className="orderGoogleMap" aria-hidden={!mapsReady} />
         {!mapsReady ? <MiniMapFallback center={center} polygon={polygon} showHeatmap={showHeatmap} /> : null}
         <div className="mapZoomRail" aria-label="Kartensteuerung">
@@ -1029,20 +1203,21 @@ export function SmartOrderWizard({ areas, today }: Props) {
           <div className="overviewHead">
             <h2>Gebietsübersicht</h2>
             <span className={`overviewSyncState ${intelligenceStatus}`}>
-              {intelligenceStatus === "updating" || isPending ? "Wird aktualisiert" : intelligenceStatus === "live" ? "Live berechnet" : intelligenceStatus === "error" ? "Lokaler Fallback" : "Sofort-Schätzung"}
+              {intelligenceStatus === "updating" || isPending ? "Wird aktualisiert" : intelligenceStatus === "live" ? "Live berechnet" : "Geschätzt"}
             </span>
           </div>
+          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
           <dl>
-            <div><dt>Haushalte</dt><dd>{formatNumber(households)}</dd></div>
+            <div><dt>Haushalte</dt><dd>{households > 0 ? formatNumber(households) : "werden geprüft"}</dd></div>
             <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
-            <div><dt>Empfohlene Flyerzahl</dt><dd>{formatNumber(recommendedFlyerQuantity)} Stück</dd></div>
+            <div><dt>Empfohlene Flyerzahl</dt><dd>{recommendedFlyerQuantity > 0 ? `${formatNumber(recommendedFlyerQuantity)} Stück` : "wird geprüft"}</dd></div>
             <div><dt>Geschätzter Preis</dt><dd>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</dd></div>
-            <div><dt>ca. Laufstrecke</dt><dd>{(routeDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km</dd></div>
+            <div><dt>ca. Laufstrecke</dt><dd>{routeDistanceMeters > 0 ? `${(routeDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : "wird geprüft"}</dd></div>
             <div><dt>Geplante Zustelldauer</dt><dd>{formatDuration(routeDurationMinutes)}</dd></div>
-            <div><dt>Nächstes Lager</dt><dd>{intelligence?.warehouse?.city ?? "automatisch"}</dd></div>
-            <div><dt>Benötigte Verteiler</dt><dd>{distributorNeed}</dd></div>
+            <div><dt>Nächstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird geprüft"}</dd></div>
+            <div><dt>Benötigte Verteiler</dt><dd>{distributorNeed > 0 ? distributorNeed : "wird geprüft"}</dd></div>
           </dl>
-          <p className="availabilityGood">Sehr gute Verteilbarkeit</p>
+          <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore)}</p>
         </aside>
       </section>
     </form>

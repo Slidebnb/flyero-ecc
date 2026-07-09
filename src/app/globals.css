@@ -4301,6 +4301,22 @@ body {
   background: rgba(255,255,255,0.14);
 }
 
+.heatmapNotice {
+  position: absolute;
+  top: 78px;
+  right: 150px;
+  z-index: 5;
+  max-width: 320px;
+  border: 1px solid rgba(183, 232, 0, 0.28);
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: rgba(10, 16, 24, 0.82);
+  color: #e8f2ff;
+  font-size: 0.82rem;
+  font-weight: 750;
+  backdrop-filter: blur(14px);
+}
+
 .mapZoomRail {
   top: 140px;
   right: 26px;
@@ -4363,6 +4379,13 @@ body {
   border-color: rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.07);
   color: rgba(255, 255, 255, 0.74);
+}
+
+.overviewDataBasis {
+  margin: 8px 0 4px;
+  color: rgba(232, 242, 255, 0.68);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 .areaOverview dl div {

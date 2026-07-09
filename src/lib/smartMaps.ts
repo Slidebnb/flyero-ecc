@@ -20,6 +20,7 @@ const LOCAL_PLACES: SmartPlaceSuggestion[] = [
   { id: "local-56068", label: "56068 Koblenz Zentrum", description: "Altstadt, Mitte, Rheinanlagen", city: "Koblenz", postalCode: "56068", lat: 50.3569, lng: 7.589, source: "local" },
   { id: "local-56070", label: "56070 Koblenz-Lützel", description: "Lützel, Neuendorf, Wallersheim", city: "Koblenz", postalCode: "56070", lat: 50.3761, lng: 7.5897, source: "local" },
   { id: "local-56072", label: "56072 Koblenz-Metternich", description: "Metternich, Rübenach, Güls", city: "Koblenz", postalCode: "56072", lat: 50.3669, lng: 7.5251, source: "local" },
+  { id: "local-56170", label: "56170 Bendorf", description: "Bendorf und Sayn", city: "Bendorf", postalCode: "56170", lat: 50.437, lng: 7.575, source: "local" },
   { id: "local-56564", label: "56564 Neuwied Innenstadt", description: "Neuwied Mitte und Rheinquartier", city: "Neuwied", postalCode: "56564", lat: 50.4285, lng: 7.4607, source: "local" },
   { id: "local-56112", label: "56112 Lahnstein", description: "Oberlahnstein und Niederlahnstein", city: "Lahnstein", postalCode: "56112", lat: 50.3067, lng: 7.6079, source: "local" },
   { id: "local-56626", label: "56626 Andernach", description: "Innenstadt und Südstadt", city: "Andernach", postalCode: "56626", lat: 50.4398, lng: 7.4009, source: "local" },
@@ -189,14 +190,12 @@ export async function getOrderIntelligence(input: {
   const densityFactor = densitySamples.length
     ? Math.max(70, Math.min(220, Math.round(densitySamples.reduce((sum, value) => sum + value, 0) / densitySamples.length)))
     : 125;
-  const households =
-    input.households ??
-    estimateHouseholds({
-      flyerQuantity: input.flyerQuantity,
-      coverageAreaSqm: input.coverageAreaSqm,
-      cityDensityFactor: densityFactor,
-    });
-  const flyerQuantity = input.flyerQuantity ?? Math.ceil(households * 1.08);
+  const households = estimateHouseholds({
+    coverageAreaSqm: input.coverageAreaSqm,
+    cityDensityFactor: densityFactor,
+  });
+  const recommendedFlyerQuantity = Math.max(500, Math.ceil((households * 1.1) / 100) * 100);
+  const flyerQuantity = input.flyerQuantity ?? recommendedFlyerQuantity;
   const routeDistanceMeters =
     input.distanceMeters ??
     estimateRouteDistanceMeters({
@@ -204,7 +203,13 @@ export async function getOrderIntelligence(input: {
       perimeterMeters: input.perimeterMeters,
       households,
     });
-  const distributorNeed = Math.max(1, Math.ceil(flyerQuantity / 3500));
+  const singleDistributorMinutes = calculateDistributionTime({
+    distanceMeters: routeDistanceMeters,
+    flyerQuantity,
+    households,
+    distributorCount: 1,
+  });
+  const distributorNeed = Math.max(1, Math.ceil(singleDistributorMinutes / 240), Math.ceil(flyerQuantity / 3500));
   const routeDurationMinutes = calculateDistributionTime({
     distanceMeters: routeDistanceMeters,
     flyerQuantity,
@@ -212,6 +217,7 @@ export async function getOrderIntelligence(input: {
     distributorCount: distributorNeed,
   });
   const price = await calculateOrderPrice({ serviceType: "FLYER_DISTRIBUTION", flyerQuantity });
+  const confidence = matchingAreas.some((area) => area.coverageAreaSqm && area.estimatedHouseholds) ? "high" : input.coverageAreaSqm ? "medium" : "low";
 
   return {
     suggestions: matchingAreas.map(compactArea),
@@ -225,6 +231,10 @@ export async function getOrderIntelligence(input: {
       netPrice: price.net.toString(),
       distributorNeed,
       score: scoreArea({ city: input.city, postalCode: input.postalCode, households, flyerQuantity, coverageAreaSqm: input.coverageAreaSqm, distanceMeters: routeDistanceMeters }),
+      source: confidence === "high" ? "coverage-area-table" : "area-formula",
+      confidence,
+      calculatedAt: new Date().toISOString(),
+      calculationVersion: "order-area-v1",
     },
     warehouse: warehouseMatch?.warehouse
       ? {
