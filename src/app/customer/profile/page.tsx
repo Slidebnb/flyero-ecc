@@ -14,7 +14,7 @@ export default async function CustomerProfilePage() {
 
   if (!profile) {
     return (
-      <CustomerPortalShell active="/customer/profile" title="Profil" description="Kontodaten, Rechnungsadresse und Sicherheit verwalten.">
+      <CustomerPortalShell active="/customer/profile" title="Einstellungen" description="Kontodaten, Rechnungsadresse und Sicherheit verwalten.">
         <EmptyState title="Kundenprofil wurde nicht gefunden." description="Bitte melden Sie sich erneut an oder kontaktieren Sie den Support." />
       </CustomerPortalShell>
     );
@@ -24,8 +24,8 @@ export default async function CustomerProfilePage() {
   const delivery = asObject(profile.deliveryAddress);
 
   return (
-    <CustomerPortalShell active="/customer/profile" title="Profil" description="Kontodaten, Rechnungsadresse und Sicherheit verwalten.">
-      <ActionPanel title="Kundendaten" description="Diese Daten werden für Aufträge, Rechnungen und Rückfragen verwendet.">
+    <CustomerPortalShell active="/customer/profile" title="Einstellungen" description="Kontodaten, Rechnungsadresse und Sicherheit verwalten.">
+      <ActionPanel title="Kundendaten" description="Diese Daten werden für Kampagnen, Rechnungen und Rückfragen verwendet.">
         <form action="/api/customer/profile" method="post" className="form grid">
           <label>
             Firma
@@ -80,7 +80,7 @@ export default async function CustomerProfilePage() {
             <input name="vatId" defaultValue={profile.vatId || ""} />
           </label>
           <label>
-            Logo-URL optional
+            Logo optional
             <input name="logoUrl" type="url" defaultValue={profile.logoUrl || ""} />
           </label>
           <label>
@@ -91,7 +91,7 @@ export default async function CustomerProfilePage() {
             Neues Passwort
             <input name="newPassword" type="password" autoComplete="new-password" minLength={10} />
           </label>
-          <button type="submit">Profil speichern</button>
+          <button type="submit">Einstellungen speichern</button>
         </form>
       </ActionPanel>
     </CustomerPortalShell>

@@ -120,7 +120,7 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
       ) : null}
 
       <section className="panel stack" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Auftrag</h2>
+        <h2 className="sectionTitle">Kampagne</h2>
         <div className="tableWrap">
           <table>
             <tbody>

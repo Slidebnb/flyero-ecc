@@ -149,10 +149,10 @@ export function customerPreferenceLabel(type: string) {
 
 export function safeCustomerSubject(type: string, subject: string) {
   const mapped = customerNotificationTypeLabel(type);
-  return /MODULE|SEED|QUEUE|CUSTOMER_|ADMIN_|DISTRIBUTOR_|DEMO-/i.test(subject) ? mapped : subject;
+  return /MODULE|SEED|QUEUE|CUSTOMER_|ADMIN_|DISTRIBUTOR_|DEMO-|Auto-Dispatch|localhost|Touren im Dashboard/i.test(subject) ? mapped : subject;
 }
 
 export function safeCustomerMessage(type: string, body: string) {
-  if (!/MODULE|SEED|QUEUE|Smoke-Fixture|CUSTOMER_|ADMIN_|DISTRIBUTOR_|DEMO-/i.test(body)) return body;
+  if (!/MODULE|SEED|QUEUE|Smoke-Fixture|CUSTOMER_|ADMIN_|DISTRIBUTOR_|DEMO-|Auto-Dispatch|localhost|Touren im Dashboard|Auftrag\s+[A-Z0-9-]+/i.test(body)) return body;
   return `${customerNotificationTypeLabel(type)}. Wir melden uns, sobald ein nächster Schritt für Sie nötig ist.`;
 }

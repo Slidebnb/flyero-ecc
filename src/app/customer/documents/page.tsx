@@ -82,7 +82,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
 
       <DataSection title="Suchen & filtern" description="Alles bleibt mit der passenden Kampagne verknüpft.">
         <form className="form grid">
-          <label>Suche<input name="q" defaultValue={params.q ?? ""} placeholder="Titel, Datei oder Auftragsnummer" /></label>
+          <label>Suche<input name="q" defaultValue={params.q ?? ""} placeholder="Titel, Datei oder Kampagne" /></label>
           <label>Kampagne<select name="orderId" defaultValue={params.orderId ?? ""}><option value="">Alle Kampagnen</option>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
           <label>Ordner<select name="folderId" defaultValue={params.folderId ?? ""}><option value="">Alle Ordner</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name} / {customerOrderName(folder.order.orderNumber)}</option>)}</select></label>
           <label>Status<select name="status" defaultValue={params.status ?? ""}><option value="">Alle Status</option>{Object.entries(CUSTOMER_DOCUMENT_STATUS_LABELS).map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label>
