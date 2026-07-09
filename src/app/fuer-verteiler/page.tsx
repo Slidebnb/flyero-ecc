@@ -6,6 +6,7 @@ import {
   MarketingPage,
   MarketingSection,
   ProofMockup,
+  PremiumFlyerField,
   StepCard,
   TrustBadge,
   defaultProofIcons,
@@ -39,6 +40,7 @@ export default function DistributorPage() {
   return (
     <MarketingPage>
       <section className="mkHero" aria-labelledby="distributor-hero-title">
+        <PremiumFlyerField />
         <MarketingContainer className="mkHeroLayout">
           <div className="mkHeroCopy">
             <p className="mkEyebrow">Für Verteiler</p>

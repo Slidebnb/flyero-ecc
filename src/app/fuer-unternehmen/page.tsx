@@ -8,6 +8,7 @@ import {
   MarketingPage,
   MarketingSection,
   ProofMockup,
+  PremiumFlyerField,
   StepCard,
   TrustBadge,
   defaultProofIcons,
@@ -49,6 +50,7 @@ export default function BusinessPage() {
   return (
     <MarketingPage>
       <section className="mkHero" aria-labelledby="business-hero-title">
+        <PremiumFlyerField />
         <MarketingContainer className="mkHeroLayout">
           <div className="mkHeroCopy">
             <p className="mkEyebrow">Für Unternehmen</p>

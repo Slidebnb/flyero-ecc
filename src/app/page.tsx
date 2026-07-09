@@ -9,6 +9,7 @@ import {
   MarketingPage,
   MarketingSection,
   ProofMockup,
+  PremiumFlyerField,
   SectionHeader,
   StepCard,
   TrustBadge,
@@ -80,6 +81,7 @@ export default function HomePage() {
   return (
     <MarketingPage>
       <section className="mkHero" aria-labelledby="home-hero-title">
+        <PremiumFlyerField />
         <MarketingContainer className="mkHeroLayout">
           <div className="mkHeroCopy">
             <p className="mkEyebrow">Flyerverteilung mit Nachweis</p>

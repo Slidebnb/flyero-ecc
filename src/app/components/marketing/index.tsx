@@ -143,6 +143,19 @@ export function MarketingPage({ children }: { children: ReactNode }) {
   );
 }
 
+export function PremiumFlyerField() {
+  return (
+    <div className="mkFlyerField" aria-hidden="true">
+      {["GPS", "FOTO", "PDF", "TOUR", "FLYERO", "BERICHT"].map((label, index) => (
+        <span key={`${label}-${index}`} className={`mkFlyingFlyer mkFlyingFlyer-${index + 1}`}>
+          <i />
+          <b>{label}</b>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function MarketingContainer({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`mkContainer ${className}`.trim()}>{children}</div>;
 }

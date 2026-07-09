@@ -6,6 +6,7 @@ import {
   MarketingPage,
   MarketingSection,
   ProofMockup,
+  PremiumFlyerField,
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
@@ -26,10 +27,18 @@ const priceFactors = [
   ["Zusatzleistungen", "Druckdaten, Lager, Fotos und besondere Vorgaben werden transparent berücksichtigt.", defaultProofIcons.report],
 ] as const;
 
+const priceDetails = [
+  ["Gebiet", "PLZ, Ort oder gezeichnete Fläche bestimmen Haushalte, Laufwege und Verteilerbedarf."],
+  ["Material", "Format, Gewicht, Druckdaten und Lagerung beeinflussen Vorbereitung und Handling."],
+  ["Zeitfenster", "Standardverteilung, enge Termine oder Expresswünsche verändern die operative Planung."],
+  ["Nachweis", "GPS-Spur, Foto-Dokumentation, Admin-Prüfung und PDF-Bericht sind Teil des Qualitätsprozesses."],
+] as const;
+
 export default function PricingPage() {
   return (
     <MarketingPage>
       <section className="mkHero" aria-labelledby="pricing-hero-title">
+        <PremiumFlyerField />
         <MarketingContainer className="mkHeroLayout">
           <div className="mkHeroCopy">
             <p className="mkEyebrow">Preise</p>
@@ -55,6 +64,17 @@ export default function PricingPage() {
         <div className="mkGrid mkGrid-4">
           {priceFactors.map(([title, text, Icon], index) => (
             <FeatureCard key={title} title={title} text={text} icon={Icon} index={index} />
+          ))}
+        </div>
+      </MarketingSection>
+
+      <MarketingSection eyebrow="Transparenz" title="Was vor der Buchung geprüft wird." tone="light">
+        <div className="mkPriceSystem">
+          {priceDetails.map(([title, text]) => (
+            <article key={title}>
+              <span>{title}</span>
+              <p>{text}</p>
+            </article>
           ))}
         </div>
       </MarketingSection>

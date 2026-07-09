@@ -6,6 +6,7 @@ import {
   MarketingPage,
   MarketingSection,
   ProofMockup,
+  PremiumFlyerField,
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
@@ -19,10 +20,17 @@ export const metadata = createSeoMetadata({
   keywords: ["Flyerverteilung Kontakt", "Flyer verteilen Anfrage", "FLYERO Kontakt"],
 });
 
+const contactSteps = [
+  ["1", "Anfrage senden", "Gebiet, Auflage, Timing oder offene Fragen kurz beschreiben."],
+  ["2", "Ablauf klären", "Wir prüfen, ob Beratung, Angebot oder Online-Buchung besser passt."],
+  ["3", "Nachweis planen", "GPS, Fotos, Bericht und Rechnung werden passend zum Auftrag vorbereitet."],
+] as const;
+
 export default function ContactPage() {
   return (
     <MarketingPage>
       <section className="mkHero" aria-labelledby="contact-hero-title">
+        <PremiumFlyerField />
         <MarketingContainer className="mkHeroLayout">
           <div className="mkHeroCopy">
             <p className="mkEyebrow">Kontakt</p>
@@ -58,6 +66,18 @@ export default function ContactPage() {
             tone="dark"
             icon={defaultProofIcons.gps}
           />
+        </div>
+      </MarketingSection>
+
+      <MarketingSection eyebrow="Nach dem Absenden" title="So geht es weiter." tone="green">
+        <div className="mkContactFlow">
+          {contactSteps.map(([number, title, text]) => (
+            <article key={title}>
+              <span>{number}</span>
+              <h3>{title}</h3>
+              <p>{text}</p>
+            </article>
+          ))}
         </div>
       </MarketingSection>
     </MarketingPage>

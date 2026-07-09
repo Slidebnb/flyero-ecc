@@ -4,6 +4,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
+  PremiumFlyerField,
   SectionHeader,
   defaultProofIcons,
 } from "@/app/components/marketing";
@@ -27,6 +28,7 @@ export default function DistributionRequestPage() {
   return (
     <MarketingPage>
       <section className="mkRequestHero">
+        <PremiumFlyerField />
         <MarketingContainer>
           <p className="mkEyebrow">Verteilung anfragen</p>
           <h1>Erst beraten lassen oder Online-Buchung ansehen.</h1>

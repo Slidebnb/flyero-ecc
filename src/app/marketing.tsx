@@ -10,6 +10,7 @@ export {
   MarketingPage,
   MarketingSection,
   ProofMockup,
+  PremiumFlyerField,
   PublicFooter,
   PublicNavbar,
   SectionHeader,

@@ -6,6 +6,7 @@ import {
   MarketingPage,
   MarketingSection,
   ProofMockup,
+  PremiumFlyerField,
   StepCard,
   TrustBadge,
   defaultProofIcons,
@@ -38,6 +39,7 @@ export default function HowItWorksPage() {
   return (
     <MarketingPage>
       <section className="mkHero" aria-labelledby="flow-hero-title">
+        <PremiumFlyerField />
         <MarketingContainer className="mkHeroLayout">
           <div className="mkHeroCopy">
             <p className="mkEyebrow">Ablauf</p>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { FlyeroLogo, PremiumFlyerField } from "@/app/components/marketing";
 import { noIndexMetadata } from "@/app/seo";
 
 export const metadata: Metadata = {
@@ -24,11 +25,25 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     : "/register/customer";
 
   return (
-    <main className="authShell">
-      <section className="authPanel compact">
-        <Link href="/" className="authBack">Zur Startseite</Link>
-        <h1>Login</h1>
-        <p className="muted">Melden Sie sich an, um Aufträge, Berichte und Rechnungen zu verwalten.</p>
+    <main className="authShell flyeroAuthShell">
+      <PremiumFlyerField />
+      <section className="authPanel compact flyeroAuthPanel">
+        <div className="authBrandRow">
+          <Link href="/" className="authLogoLink" aria-label="Zur FLYERO Startseite">
+            <FlyeroLogo dark />
+          </Link>
+          <Link href="/" className="authBack">Startseite</Link>
+        </div>
+        <p className="authEyebrow">Kundenportal</p>
+        <h1>Einloggen und Nachweise prüfen.</h1>
+        <p className="muted">
+          Melden Sie sich an, um Aufträge, GPS-Berichte, Foto-Dokumentation und Rechnungen zentral zu verwalten.
+        </p>
+        <div className="authProofStrip" aria-label="FLYERO Nachweisfunktionen">
+          <span>GPS-Nachweis</span>
+          <span>Foto-Dokumentation</span>
+          <span>PDF-Bericht</span>
+        </div>
         <form action="/api/auth/login" method="post" className="form">
           {next ? <input type="hidden" name="next" value={next} /> : null}
           <label>
