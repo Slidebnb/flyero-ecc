@@ -2,9 +2,9 @@ import Link from "next/link";
 import { ArrowRight, Camera, FileText, MapPinned, Navigation, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { CUSTOMER_ORDER_STATUS_LABELS, customerOrderName } from "@/app/customer/customerUx";
 import { EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
-import { ORDER_STATUS_LABELS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 function formatNumber(value: number) {
@@ -34,7 +34,7 @@ function ProofPreview({ hasRealReport }: { hasRealReport: boolean }) {
   const proofItems = [
     { icon: Navigation, label: "GPS-Spur", value: hasRealReport ? "geprüft" : "Beispiel Koblenz" },
     { icon: Camera, label: "Foto-Nachweise", value: hasRealReport ? "im Bericht" : "Pins sichtbar" },
-    { icon: ShieldCheck, label: "Tour geprüft", value: hasRealReport ? "freigegeben" : "Demo-Status" },
+    { icon: ShieldCheck, label: "Tour geprüft", value: hasRealReport ? "freigegeben" : "Beispiel-Prüfung" },
     { icon: FileText, label: "PDF-Bericht", value: hasRealReport ? "bereit" : "Vorschau" },
   ];
 
@@ -186,11 +186,11 @@ export default async function CustomerDashboardPage() {
           {lastOrder ? (
             <>
               <div className="currentCampaignStatus">
-                <StatusBadge tone={statusTone(lastOrder.status)}>{ORDER_STATUS_LABELS[lastOrder.status]}</StatusBadge>
+                <StatusBadge tone={statusTone(lastOrder.status)}>{CUSTOMER_ORDER_STATUS_LABELS[lastOrder.status]}</StatusBadge>
                 <strong>{lastOrder.postalCode} {lastOrder.city}</strong>
               </div>
               <dl className="customerFactList">
-                <div><dt>Auftrag</dt><dd>{lastOrder.orderNumber}</dd></div>
+                <div><dt>Kampagne</dt><dd>{customerOrderName(lastOrder.orderNumber)}</dd></div>
                 <div><dt>Start</dt><dd>{formatDate(lastOrder.preferredStartDate)}</dd></div>
                 <div><dt>Flyer</dt><dd>{formatNumber(lastOrder.flyerQuantity)}</dd></div>
                 <div><dt>Preis</dt><dd>{formatCurrency(lastOrder.calculatedGrossPrice)}</dd></div>

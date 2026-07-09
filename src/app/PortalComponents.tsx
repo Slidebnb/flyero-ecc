@@ -102,18 +102,20 @@ export function MetricTile({
 }
 
 export function ActionPanel({
+  id,
   title,
   description,
   actions = [],
   children,
 }: {
+  id?: string;
   title: string;
   description?: string;
   actions?: PortalAction[];
   children?: ReactNode;
 }) {
   return (
-    <section className="actionPanel">
+    <section id={id} className="actionPanel">
       <div className="panelTitleRow">
         <span aria-hidden="true" />
         <div>
@@ -136,16 +138,18 @@ export function ActionPanel({
 }
 
 export function DataSection({
+  id,
   title,
   description,
   children,
 }: {
+  id?: string;
   title: string;
   description?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="dataSection">
+    <section id={id} className="dataSection">
       <div className="dataSectionHeader">
         <div className="panelTitleRow">
           <span aria-hidden="true" />

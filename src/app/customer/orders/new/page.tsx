@@ -36,7 +36,7 @@ export default async function NewCustomerOrderPage() {
   return (
     <main className="orderExperienceShell">
       <header className="orderExperienceTopbar">
-        <h1>Neue Bestellung erstellen</h1>
+        <h1>Neue Kampagne starten</h1>
         <span>Automatische Speicherung</span>
         <div className="orderTopActions" aria-label="Kontoaktionen">
           <span>Darkmode</span>

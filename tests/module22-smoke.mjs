@@ -132,8 +132,8 @@ await includes("README.md", ["Modul 22", "Dokumentenmanagement", "Druckprozess"]
 await includes("ARCHITECTURE_DECISIONS.md", ["Modul 22", "DMS", "Druckmodul"]);
 await includes("package.json", ["test:module22"]);
 await includes("src/app/customer/documents/page.tsx", [
-  "Erst Bestellung erstellen",
-  "Druckdaten können erst hochgeladen werden",
+  "Erst Kampagne starten",
+  "Druckdaten können hochgeladen werden",
   "disabled={orders.length === 0}",
 ]);
 
@@ -161,7 +161,7 @@ try {
   const distributorCookie = await login("verteiler.approved1@example.com");
 
   for (const [path, cookie, marker] of [
-    ["/customer/documents", customerCookie, "Dokumente"],
+    ["/customer/documents", customerCookie, "Dateien &amp; Druck"],
     ["/admin/documents", adminCookie, "Dokumentenzentrale"],
     ["/admin/print-partners", adminCookie, "Druckpartner"],
     ["/admin/print-orders", adminCookie, "Druckaufträge"],

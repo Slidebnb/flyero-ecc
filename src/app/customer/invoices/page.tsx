@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { customerOrderName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -23,7 +24,7 @@ export default async function CustomerInvoicesPage() {
   });
 
   return (
-    <CustomerPortalShell active="/customer/invoices" title="Rechnungen" description="PDFs, Zahlungsstatus und Auftragsbezug an einem Ort.">
+    <CustomerPortalShell active="/customer/invoices" title="Rechnungen" description="PDFs, Zahlungsstatus und Kampagnenbezug an einem Ort.">
       <section className="portalMetrics">
         <MetricTile label="Rechnungen" value={invoices.length} />
         <MetricTile label="Bezahlt" value={invoices.filter((invoice) => invoice.status === "PAID").length} tone="success" />
@@ -31,15 +32,15 @@ export default async function CustomerInvoicesPage() {
         <MetricTile label="PDFs" value={invoices.filter((invoice) => invoice.pdfUrl).length} />
       </section>
 
-      <DataSection title="Alle Rechnungen">
+      <DataSection title="Alle Rechnungen" description="Öffnen, herunterladen oder die zugehörige Zahlung prüfen.">
         <div className="tableWrap customerTable">
           <table>
-            <thead><tr><th>Rechnung</th><th>Auftrag</th><th>Status</th><th>Datum</th><th>Betrag</th><th>PDF</th><th>Aktion</th></tr></thead>
+            <thead><tr><th>Rechnung</th><th>Kampagne</th><th>Status</th><th>Datum</th><th>Betrag</th><th>PDF</th><th>Aktion</th></tr></thead>
             <tbody>
               {invoices.map((invoice) => (
                 <tr key={invoice.id}>
                   <td data-label="Rechnung"><strong>{invoice.invoiceNumber}</strong></td>
-                  <td data-label="Auftrag">{invoice.order.orderNumber}</td>
+                  <td data-label="Kampagne">{customerOrderName(invoice.order.orderNumber)}</td>
                   <td data-label="Status"><StatusBadge tone={invoice.status === "PAID" ? "success" : "warning"}>{INVOICE_STATUS_LABELS[invoice.status] ?? invoice.status}</StatusBadge></td>
                   <td data-label="Datum">{formatDate(invoice.invoiceDate ?? invoice.createdAt)}</td>
                   <td data-label="Betrag">{formatCurrency(invoice.totalGross)}</td>
@@ -53,7 +54,7 @@ export default async function CustomerInvoicesPage() {
                     <EmptyState
                       title="Noch keine Rechnungen vorhanden."
                       description="Rechnungen werden nach erfolgreicher Zahlung und Freigabe automatisch erzeugt."
-                      action={{ href: "/customer/orders", label: "Bestellungen prüfen" }}
+                      action={{ href: "/customer/orders", label: "Kampagnen prüfen" }}
                     />
                   </td>
                 </tr>

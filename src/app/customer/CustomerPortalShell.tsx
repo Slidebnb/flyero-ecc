@@ -22,10 +22,10 @@ type CustomerPortalShellProps = {
 };
 
 const navItems = [
-  { href: "/customer/orders/new", label: "Neue Bestellung", icon: Plus },
-  { href: "/customer/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/customer/orders", label: "Bestellungen", icon: ListChecks },
-  { href: "/customer/documents", label: "Dokumente", icon: FileStack },
+  { href: "/customer/orders/new", label: "Neue Kampagne", icon: Plus },
+  { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard },
+  { href: "/customer/orders", label: "Kampagnen", icon: ListChecks },
+  { href: "/customer/documents", label: "Dateien & Druck", icon: FileStack },
   { href: "/customer/payments", label: "Zahlungen", icon: CreditCard },
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText },
   { href: "/customer/reports", label: "Berichte", icon: FileText },

@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { CUSTOMER_DOCUMENT_STATUS_LABELS, CUSTOMER_PRINT_STATUS_LABELS, customerOrderName } from "@/app/customer/customerUx";
 import { ActionPanel, DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
-import { createDocument, createPrintOrder, DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, listDocuments, listPrintOrders, PRINT_STATUS_LABELS } from "@/lib/documents";
+import { createDocument, createPrintOrder, DOCUMENT_TYPE_LABELS, listDocuments, listPrintOrders } from "@/lib/documents";
 import { prisma } from "@/lib/prisma";
 
 async function uploadDocument(formData: FormData) {
@@ -15,7 +16,7 @@ async function uploadDocument(formData: FormData) {
     title: String(formData.get("title") || ""),
     originalFilename: String(formData.get("originalFilename") || "upload.pdf"),
     mimeType: String(formData.get("mimeType") || "application/pdf"),
-    content: String(formData.get("content") || "Upload im Dokumentenspeicher vorgemerkt."),
+    content: String(formData.get("content") || "Flyerdatei wurde für die Prüfung vorgemerkt."),
   });
   redirect("/customer/documents");
 }
@@ -62,51 +63,58 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
   return (
     <CustomerPortalShell
       active="/customer/documents"
-      title="Dokumente"
-      description="Druckdaten, Versionen, Rechnungen, Berichte und Druckstatus an einem Ort."
+      title="Dateien & Druck"
+      description="Flyerdateien hochladen, Druck beauftragen, Freigaben prüfen und fertige Nachweise herunterladen."
     >
       <section className="portalMetrics">
-        <MetricTile label="Dokumente" value={documents.length} />
+        <MetricTile label="Flyerdateien" value={documents.length} />
         <MetricTile label="In Prüfung" value={documents.filter((item) => item.status === "UNDER_REVIEW").length} tone="warning" />
         <MetricTile label="Freigegeben" value={documents.filter((item) => item.status === "APPROVED").length} tone="success" />
         <MetricTile label="Druckaufträge" value={printOrders.length} />
       </section>
 
-      <DataSection title="Suchen & filtern" description="Alle Dokumente bleiben am jeweiligen Auftrag verknüpft.">
+      <div className="customerActionRow">
+        <a className="secondaryButton" href="#flyer-upload">Flyerdatei hochladen</a>
+        <a className="secondaryButton" href="#print-request">Druck beauftragen</a>
+        <a className="secondaryButton" href="#print-status">Druckstatus prüfen</a>
+        <a className="secondaryButton" href="#documents-list">Freigaben ansehen</a>
+      </div>
+
+      <DataSection title="Suchen & filtern" description="Alles bleibt mit der passenden Kampagne verknüpft.">
         <form className="form grid">
           <label>Suche<input name="q" defaultValue={params.q ?? ""} placeholder="Titel, Datei oder Auftragsnummer" /></label>
-          <label>Auftrag<select name="orderId" defaultValue={params.orderId ?? ""}><option value="">Alle Aufträge</option>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} - {order.targetAreaName}</option>)}</select></label>
-          <label>Ordner<select name="folderId" defaultValue={params.folderId ?? ""}><option value="">Alle Ordner</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name} / {folder.order.orderNumber}</option>)}</select></label>
-          <label>Status<select name="status" defaultValue={params.status ?? ""}><option value="">Alle Status</option>{Object.entries(DOCUMENT_STATUS_LABELS).map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label>
+          <label>Kampagne<select name="orderId" defaultValue={params.orderId ?? ""}><option value="">Alle Kampagnen</option>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
+          <label>Ordner<select name="folderId" defaultValue={params.folderId ?? ""}><option value="">Alle Ordner</option>{folders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name} / {customerOrderName(folder.order.orderNumber)}</option>)}</select></label>
+          <label>Status<select name="status" defaultValue={params.status ?? ""}><option value="">Alle Status</option>{Object.entries(CUSTOMER_DOCUMENT_STATUS_LABELS).map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label>
           <label>Typ<select name="documentType" defaultValue={params.documentType ?? ""}><option value="">Alle Typen</option>{Object.entries(DOCUMENT_TYPE_LABELS).map(([type, label]) => <option key={type} value={type}>{label}</option>)}</select></label>
           <button type="submit">Filtern</button>
         </form>
       </DataSection>
 
       <div className="portalDashboardGrid">
-        <ActionPanel title="Dokument hochladen" description="Druckdateien oder Nachweise direkt dem Auftrag zuordnen.">
+        <ActionPanel title="Flyerdatei hochladen" description="PDF, Bild oder Druckdatei der richtigen Kampagne zuordnen." id="flyer-upload">
           {hasOrders ? (
             <form action={uploadDocument} className="form">
-              <label>Auftrag<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} - {order.targetAreaName}</option>)}</select></label>
+              <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
               <label>Titel<input name="title" required placeholder="Flyer Vorderseite" /></label>
               <label>Dateiname<input name="originalFilename" required defaultValue="flyer.pdf" /></label>
               <label>Typ<select name="documentType" defaultValue="PRINT_FILE">{Object.entries(DOCUMENT_TYPE_LABELS).map(([type, label]) => <option key={type} value={type}>{label}</option>)}</select></label>
-              <label>Inhalt/Notiz<textarea name="content" rows={3} defaultValue="Upload-Datei wird im Dokumentenspeicher vorbereitet." /></label>
+              <label>Hinweis<textarea name="content" rows={3} defaultValue="Flyerdatei wurde für die Prüfung vorgemerkt." /></label>
               <button type="submit" disabled={orders.length === 0}>Hochladen</button>
             </form>
           ) : (
             <EmptyState
-              title="Erst Bestellung erstellen"
-              description="Druckdaten können erst hochgeladen werden, wenn eine Kampagne angelegt ist."
-              action={{ href: "/customer/orders/new", label: "Neue Bestellung erstellen" }}
+              title="Erst Kampagne starten"
+              description="Druckdaten können hochgeladen werden, sobald eine Kampagne angelegt ist."
+              action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }}
             />
           )}
         </ActionPanel>
 
-        <ActionPanel title="Druck beauftragen" description="Druckauftrag ohne Medienbruch aus einer Kampagne starten.">
+        <ActionPanel title="Druck beauftragen" description="FLYERO kann den Druck direkt zur passenden Verteilung einplanen." id="print-request">
           {hasOrders ? (
             <form action={requestPrint} className="form">
-              <label>Auftrag<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} - {order.targetAreaName}</option>)}</select></label>
+              <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
               <label>Format<select name="printFormat" defaultValue="DIN_A5"><option value="DIN_A4">DIN A4</option><option value="DIN_A5">DIN A5</option><option value="DIN_LANG">DIN Lang</option><option value="SQUARE">Quadratisch</option><option value="CUSTOM">Individuell</option></select></label>
               <label>Papier<select name="paperWeight" defaultValue="135">{[90, 115, 135, 170, 250, 300].map((weight) => <option key={weight} value={weight}>{weight}g</option>)}</select></label>
               <label>Farbe<select name="colorMode" defaultValue="4/4"><option>4/4</option><option>4/0</option><option>1/1</option></select></label>
@@ -117,9 +125,9 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
             </form>
           ) : (
             <EmptyState
-              title="Erst Bestellung erstellen"
+              title="Erst Kampagne starten"
               description="Ein Druckauftrag braucht eine Kampagne, damit Menge, Format und Lagerweg sauber zugeordnet werden können."
-              action={{ href: "/customer/orders/new", label: "Neue Bestellung erstellen" }}
+              action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }}
             />
           )}
         </ActionPanel>
@@ -130,48 +138,48 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
           <div className="portalActions">
             {folders.map((folder) => (
               <a key={folder.id} href={`/customer/documents?folderId=${folder.id}`}>
-                {folder.name} · {folder.order.orderNumber} · {folder._count.documents}
+                {folder.name} · {customerOrderName(folder.order.orderNumber)} · {folder._count.documents}
               </a>
             ))}
           </div>
         ) : (
-          <EmptyState title="Noch keine Ordner." description="Auftragsbezogene Ordner werden automatisch vorbereitet." />
+          <EmptyState title="Noch keine Ordner." description="Kampagnenordner werden automatisch vorbereitet." />
         )}
       </DataSection>
 
-      <DataSection title="Alle Dokumente">
+      <DataSection title="Freigaben & Dateien" id="documents-list">
         <div className="tableWrap customerTable">
           <table>
-            <thead><tr><th>Titel</th><th>Auftrag</th><th>Typ</th><th>Status</th><th>Version</th><th>Aktion</th></tr></thead>
+            <thead><tr><th>Titel</th><th>Kampagne</th><th>Typ</th><th>Status</th><th>Version</th><th>Aktion</th></tr></thead>
             <tbody>
               {documents.map((document) => (
                 <tr key={document.id}>
                   <td data-label="Titel"><strong>{document.title}</strong><br /><small>{document.originalFilename}</small></td>
-                  <td data-label="Auftrag">{document.order.orderNumber}</td>
+                  <td data-label="Kampagne">{customerOrderName(document.order.orderNumber)}</td>
                   <td data-label="Typ">{DOCUMENT_TYPE_LABELS[document.documentType]}</td>
-                  <td data-label="Status"><StatusBadge>{DOCUMENT_STATUS_LABELS[document.status]}</StatusBadge></td>
+                  <td data-label="Status"><StatusBadge>{CUSTOMER_DOCUMENT_STATUS_LABELS[document.status]}</StatusBadge></td>
                   <td data-label="Version">v{document.version}</td>
                   <td data-label="Aktion"><a className="textLink" href={`/api/customer/documents/${document.id}/download`}>Download</a></td>
                 </tr>
               ))}
-              {documents.length === 0 ? <tr><td colSpan={6}><EmptyState title="Noch keine Dokumente." /></td></tr> : null}
+              {documents.length === 0 ? <tr><td colSpan={6}><EmptyState title="Noch keine Dateien." /></td></tr> : null}
             </tbody>
           </table>
         </div>
       </DataSection>
 
-      <DataSection title="Druckstatus">
+      <DataSection title="Druckstatus" id="print-status">
         <div className="tableWrap customerTable">
           <table>
-            <thead><tr><th>Auftrag</th><th>Status</th><th>Format</th><th>Menge</th><th>Tracking</th></tr></thead>
+            <thead><tr><th>Kampagne</th><th>Status</th><th>Format</th><th>Menge</th><th>Sendung</th></tr></thead>
             <tbody>
               {printOrders.map((printOrder) => (
                 <tr key={printOrder.id}>
-                  <td data-label="Auftrag">{printOrder.order.orderNumber}</td>
-                  <td data-label="Status"><StatusBadge>{PRINT_STATUS_LABELS[printOrder.status]}</StatusBadge></td>
+                  <td data-label="Kampagne">{customerOrderName(printOrder.order.orderNumber)}</td>
+                  <td data-label="Status"><StatusBadge>{CUSTOMER_PRINT_STATUS_LABELS[printOrder.status]}</StatusBadge></td>
                   <td data-label="Format">{printOrder.printFormat}</td>
-                  <td data-label="Menge">{printOrder.quantity}</td>
-                  <td data-label="Tracking">{printOrder.trackingNumber ?? "-"}</td>
+                  <td data-label="Menge">{printOrder.quantity.toLocaleString("de-DE")}</td>
+                  <td data-label="Sendung">{printOrder.trackingNumber ?? "Noch nicht versendet"}</td>
                 </tr>
               ))}
               {printOrders.length === 0 ? <tr><td colSpan={5}><EmptyState title="Noch keine Druckaufträge." /></td></tr> : null}

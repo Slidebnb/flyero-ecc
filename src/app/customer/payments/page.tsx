@@ -1,15 +1,16 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { customerOrderName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 const PAYMENT_LABELS = {
-  CREATED: "Ausstehend",
-  CHECKOUT_CREATED: "Ausstehend",
-  PENDING: "Ausstehend",
+  CREATED: "Offen",
+  CHECKOUT_CREATED: "Offen",
+  PENDING: "Offen",
   PAID: "Bezahlt",
   FAILED: "Fehlgeschlagen",
   CANCELLED: "Abgebrochen",
@@ -33,7 +34,7 @@ export default async function CustomerPaymentsPage() {
   });
 
   return (
-    <CustomerPortalShell active="/customer/payments" title="Zahlungen" description="Alle Zahlungen, Stripe-Referenzen und Erstattungen in einer Übersicht.">
+    <CustomerPortalShell active="/customer/payments" title="Zahlungen" description="Offene Beträge, bezahlte Kampagnen, Belege und Erstattungen in einer Übersicht.">
       <section className="portalMetrics">
         <MetricTile label="Zahlungen" value={payments.length} />
         <MetricTile label="Bezahlt" value={payments.filter((payment) => payment.status === "PAID").length} tone="success" />
@@ -41,18 +42,18 @@ export default async function CustomerPaymentsPage() {
         <MetricTile label="Erstattungen" value={payments.reduce((sum, payment) => sum + payment.refunds.length, 0)} />
       </section>
 
-      <DataSection title="Zahlungsübersicht">
+      <DataSection title="Zahlungsübersicht" description="Technische Zahlungsdaten bleiben im Hintergrund. Für Sie zählen Status, Beleg und nächste Aktion.">
         <div className="tableWrap customerTable">
           <table>
-            <thead><tr><th>Auftrag</th><th>Status</th><th>Betrag</th><th>Datum</th><th>Referenz</th><th>Erstattungen</th></tr></thead>
+            <thead><tr><th>Kampagne</th><th>Status</th><th>Betrag</th><th>Datum</th><th>Zahlungsreferenz</th><th>Erstattungen</th></tr></thead>
             <tbody>
               {payments.map((payment) => (
                 <tr key={payment.id}>
-                  <td data-label="Auftrag"><Link className="textLink" href={`/customer/orders/${payment.orderId}`}>{payment.order.orderNumber}</Link></td>
+                  <td data-label="Kampagne"><Link className="textLink" href={`/customer/orders/${payment.orderId}`}>{customerOrderName(payment.order.orderNumber)}</Link></td>
                   <td data-label="Status"><StatusBadge tone={tone(payment.status)}>{PAYMENT_LABELS[payment.status]}</StatusBadge></td>
                   <td data-label="Betrag">{formatCurrency(payment.amount)}</td>
                   <td data-label="Datum">{formatDateTime(payment.paidAt ?? payment.failedAt ?? payment.refundedAt ?? payment.updatedAt)}</td>
-                  <td data-label="Referenz">{payment.stripePaymentIntentId ?? payment.stripeCheckoutSessionId ?? "-"}</td>
+                  <td data-label="Zahlungsreferenz">{payment.stripePaymentIntentId ?? payment.stripeCheckoutSessionId ?? "-"}</td>
                   <td data-label="Erstattungen">{payment.refunds.length}</td>
                 </tr>
               ))}
@@ -61,8 +62,8 @@ export default async function CustomerPaymentsPage() {
                   <td colSpan={6}>
                     <EmptyState
                       title="Noch keine Zahlungen vorhanden."
-                      description="Zahlungen entstehen, sobald eine neue Bestellung zur Buchung vorbereitet wird."
-                      action={{ href: "/customer/orders/new", label: "Neue Bestellung erstellen" }}
+                      description="Zahlungen entstehen, sobald eine Kampagne zur Buchung vorbereitet wird."
+                      action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }}
                     />
                   </td>
                 </tr>

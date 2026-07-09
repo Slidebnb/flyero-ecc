@@ -142,7 +142,7 @@ try {
   const page = await fetchWithTimeout(`${baseUrl}/customer/orders/new`, { headers: { cookie: customerCookie } });
   const html = await page.text();
   assert(page.status === 200, `Smart Order Wizard Seite liefert ${page.status}`);
-  assert(html.includes("Neue Bestellung erstellen") && html.includes("orderExperience"), "Smart Order Wizard rendert nicht.");
+  assert(html.includes("Neue Kampagne starten") && html.includes("orderExperience"), "Smart Order Wizard rendert nicht.");
 
   console.log("Modul 24 Smoke-Test erfolgreich abgeschlossen.");
 } finally {
