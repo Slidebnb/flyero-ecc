@@ -109,7 +109,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
                   <tr><th>Bericht</th><td>{latestReport.reportNumber}</td></tr>
                   <tr><th>Version</th><td>{latestReport.version}</td></tr>
                   <tr><th>Online</th><td><Link className="textLink" href={`/admin/reports/${latestReport.id}`}>Admin-Detail öffnen</Link></td></tr>
-                  <tr><th>PDF</th><td>{latestReport.pdfUrl ? <a className="textLink" href={latestReport.pdfUrl}>PDF ansehen</a> : "Noch nicht erzeugt"}</td></tr>
+                  <tr><th>PDF</th><td>{latestReport.pdfUrl ? <a className="textLink" href={`/api/admin/reports/${latestReport.id}/download`}>PDF ansehen</a> : "Noch nicht erzeugt"}</td></tr>
                 </tbody>
               </table>
             </div>

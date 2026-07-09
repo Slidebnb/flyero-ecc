@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
+import { EmptyState } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { TOUR_STATUS_LABELS } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
@@ -45,6 +46,13 @@ export default async function AdminToursPage() {
 
       <section className="panel stack widePanel">
         <h2 className="sectionTitle">Tour zuweisen</h2>
+        {inventories.length === 0 || distributors.length === 0 ? (
+          <div className="notice">
+            {inventories.length === 0
+              ? "Es gibt aktuell keinen abholbereiten Lagerbestand. Prüfe Lagerstatus und Wareneingang."
+              : "Es gibt aktuell keinen freigegebenen Verteiler. Prüfe die Verteilerfreigaben."}
+          </div>
+        ) : null}
         <form className="form grid" action="/api/admin/tours" method="post">
           <label>
             Abholbereiter Bestand
@@ -91,7 +99,17 @@ export default async function AdminToursPage() {
                   <td><Link className="textLink" href={`/admin/tours/${tour.id}`}>Prüfen</Link></td>
                 </tr>
               ))}
-              {tours.length === 0 ? <tr><td colSpan={9}>Keine Touren vorhanden.</td></tr> : null}
+              {tours.length === 0 ? (
+                <tr>
+                  <td colSpan={9}>
+                    <EmptyState
+                      title="Keine Touren vorhanden."
+                      description="Touren entstehen, sobald ein abholbereiter Lagerbestand einem freigegebenen Verteiler zugewiesen wird."
+                      action={{ href: "/admin/dispatch", label: "Dispatch öffnen" }}
+                    />
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

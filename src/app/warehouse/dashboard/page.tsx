@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
-import { ActionPanel, DataSection, MetricTile, PortalShell } from "@/app/PortalComponents";
+import { ActionPanel, DataSection, EmptyState, MetricTile, PortalShell } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { WAREHOUSE_INVENTORY_STATUS_LABELS } from "@/lib/constants";
 import { inventoryScopeForUser, shipmentScopeForUser, transferScopeForUser } from "@/lib/logistics";
@@ -96,7 +96,15 @@ export default async function WarehouseDashboardPage() {
                 </tr>
               ))}
               {recent.length === 0 ? (
-                <tr><td colSpan={6}>Noch keine Lagerbestände vorhanden.</td></tr>
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      title="Noch keine Lagerbestände vorhanden."
+                      description="Sobald Flyer im Wareneingang eingecheckt werden, erscheinen sie hier mit Lagerplatz und Status."
+                      action={{ href: "/warehouse/checkin", label: "Wareneingang öffnen" }}
+                    />
+                  </td>
+                </tr>
               ) : null}
             </tbody>
           </table>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
+import { mockPaymentsEnabled } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 
 type PageProps = {
@@ -9,6 +10,16 @@ type PageProps = {
 };
 
 export default async function MockStripeCheckoutPage({ params }: PageProps) {
+  if (!mockPaymentsEnabled()) {
+    return (
+      <main className="appShell">
+        <section className="panel stack">
+          <h1>Mock Checkout deaktiviert</h1>
+          <Link href="/customer/orders">Zurueck zu den Auftraegen</Link>
+        </section>
+      </main>
+    );
+  }
   const session = await requireRole([UserRole.CUSTOMER]);
   const { id } = await params;
   const payment = await prisma.payment.findFirst({

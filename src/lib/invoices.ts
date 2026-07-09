@@ -1,14 +1,11 @@
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { formatAddress, formatDate, formatDateTime } from "@/lib/format";
+import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { generateSettingsNumber, getBrandingSettings, getCompanySettings, getSystemSettings } from "@/lib/settings";
-
-const INVOICE_DIR = path.join(process.cwd(), "public", "generated", "invoices");
 
 function pad(value: number, length = 6) {
   return String(value).padStart(length, "0");
@@ -91,12 +88,10 @@ export async function generateInvoicePdf(invoiceId: string, options?: { regenera
     `Footer: ${branding.invoiceFooterText || `${company.legalName} / ${company.street} / ${company.postalCode} ${company.city} / ${company.vatId ?? "-"}`}`,
   ];
   const pdf = buildSimplePdf(lines);
-  await mkdir(INVOICE_DIR, { recursive: true });
   const fileName = `${invoice.invoiceNumber.toLowerCase()}.pdf`;
-  const filePath = path.join(INVOICE_DIR, fileName);
-  await writeFile(filePath, pdf);
+  const stored = await writeGeneratedAsset({ kind: "invoices", fileName, buffer: pdf });
   const checksum = createHash("sha256").update(pdf).digest("hex");
-  const pdfUrl = `/generated/invoices/${fileName}`;
+  const pdfUrl = stored.storagePath;
   await prisma.invoice.update({ where: { id: invoice.id }, data: { pdfUrl } });
   await createAuditLog({
     userId: options?.regeneratedById ?? null,
@@ -112,7 +107,7 @@ export async function generateInvoicePdf(invoiceId: string, options?: { regenera
       message: `${invoice.invoiceNumber} wurde neu erzeugt.`,
     });
   }
-  return { pdfUrl, filePath, checksum };
+  return { pdfUrl, filePath: stored.absolutePath, checksum };
 }
 
 export async function createInvoiceForOrder(input: { orderId: string; adminUserId?: string | null }) {

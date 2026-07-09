@@ -1,5 +1,5 @@
 import { UserRole } from "@prisma/client";
-import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { inventoryScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
@@ -41,10 +41,32 @@ export default async function WarehouseStockCountsPage() {
         </form>
       </DataSection>
       <DataSection title="Letzte Inventuren">
-        <div className="tableWrap"><table><thead><tr><th>Auftrag</th><th>Lager</th><th>Erwartet</th><th>Gezählt</th><th>Differenz</th></tr></thead><tbody>
-          {counts.map((count) => <tr key={count.id}><td>{count.inventory.order.orderNumber}</td><td>{count.warehouse.name}</td><td>{count.expectedQuantity}</td><td>{count.countedQuantity}</td><td><StatusBadge tone={count.difference === 0 ? "success" : "warning"}>{count.difference}</StatusBadge></td></tr>)}
-          {counts.length === 0 ? <tr><td colSpan={5}>Noch keine Inventur erfasst.</td></tr> : null}
-        </tbody></table></div>
+        <div className="tableWrap">
+          <table>
+            <thead><tr><th>Auftrag</th><th>Lager</th><th>Erwartet</th><th>Gezählt</th><th>Differenz</th></tr></thead>
+            <tbody>
+              {counts.map((count) => (
+                <tr key={count.id}>
+                  <td>{count.inventory.order.orderNumber}</td>
+                  <td>{count.warehouse.name}</td>
+                  <td>{count.expectedQuantity}</td>
+                  <td>{count.countedQuantity}</td>
+                  <td><StatusBadge tone={count.difference === 0 ? "success" : "warning"}>{count.difference}</StatusBadge></td>
+                </tr>
+              ))}
+              {counts.length === 0 ? (
+                <tr>
+                  <td colSpan={5}>
+                    <EmptyState
+                      title="Noch keine Inventur erfasst."
+                      description="Neue Zählungen erscheinen hier, sobald ein Bestand im Lager geprüft wurde."
+                    />
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </DataSection>
     </PortalShell>
   );

@@ -32,6 +32,13 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website" }: LeadF
   return (
     <form className="form grid marketingForm" onSubmit={onSubmit}>
       <input type="hidden" name="source" value={source} />
+      <input
+        aria-hidden="true"
+        autoComplete="off"
+        name="website"
+        style={{ display: "none" }}
+        tabIndex={-1}
+      />
       <label>
         Name
         <input name="name" minLength={2} required />

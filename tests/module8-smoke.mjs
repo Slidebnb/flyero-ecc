@@ -37,7 +37,8 @@ await includes("src/app/components/DistributionAreaEditor.tsx", [
   "setDraggable",
   "Polygon löschen",
   "Auto Zoom",
-  "Google Maps Key fehlt",
+  "Kartenbearbeitung im Fallback-Modus",
+  "Gebiete können weiterhin gespeichert werden",
 ]);
 
 await includes("src/lib/areas.ts", [

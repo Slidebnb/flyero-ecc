@@ -1,14 +1,11 @@
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { AccountingExportFormat, AccountingExportStatus, AccountingExportType, Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { formatAddress } from "@/lib/format";
+import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { logBackgroundJobFailure, logBackgroundJobStart, logBackgroundJobSuccess } from "@/lib/monitoring";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-
-const EXPORT_DIR = path.join(process.cwd(), "public", "generated", "accounting");
 
 type InvoiceExport = Prisma.InvoiceGetPayload<{
   include: { customer: true; order: true; payment: true; items: true };
@@ -244,10 +241,8 @@ export async function createAccountingExport(input: {
           ? generateDatevCsv(payload)
           : generateGenericCsv(payload);
 
-    await mkdir(EXPORT_DIR, { recursive: true });
     const fileName = `flyero-accounting-export-${exportNumber}.csv`;
-    const filePath = path.join(EXPORT_DIR, fileName);
-    await writeFile(filePath, csvContent, "utf8");
+    const stored = await writeGeneratedAsset({ kind: "accounting", fileName, buffer: Buffer.from(csvContent, "utf8") });
     const checksum = calculateChecksum(csvContent);
     const itemRows = [
       ...invoices.map((invoice) => ({ exportId: created.id, entityType: "Invoice", entityId: invoice.id })),
@@ -257,7 +252,7 @@ export async function createAccountingExport(input: {
     if (itemRows.length) await prisma.accountingExportItem.createMany({ data: itemRows });
     const completed = await markExportCompleted({
       exportId: created.id,
-      fileUrl: `/generated/accounting/${fileName}`,
+      fileUrl: stored.storagePath,
       rowCount: itemRows.length,
       checksum,
       userId: input.createdById,

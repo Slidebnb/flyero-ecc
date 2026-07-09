@@ -353,6 +353,8 @@ export const tourGpsPointSchema = z.object({
   battery: z.coerce.number().int().min(0).max(100).optional(),
   recordedAt: z.coerce.date().optional(),
   source: z.string().optional(),
+  clientId: z.string().max(120).optional(),
+  sequence: z.coerce.number().int().nonnegative().optional(),
   status: z.string().optional(),
 });
 
@@ -362,13 +364,12 @@ export const tourGpsUploadSchema = z.object({
 
 export const tourPhotoSchema = z.object({
   imageDataUrl: z.string().min(1).optional(),
-  url: z.string().min(1).optional(),
   lat: optionalGpsNumber,
   lng: optionalGpsNumber,
   accuracy: optionalGpsNumber,
   takenAt: z.coerce.date().optional(),
-}).refine((data) => data.imageDataUrl || data.url, {
-  message: "Foto oder URL ist erforderlich.",
+}).refine((data) => data.imageDataUrl, {
+  message: "Foto ist erforderlich.",
 });
 
 export const tourCompleteSchema = z.object({

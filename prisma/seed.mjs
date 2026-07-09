@@ -11,8 +11,9 @@ const prisma = new PrismaClient({
 });
 
 const passwordHash = await bcrypt.hash("DemoPasswort123!", 12);
-const reportOutputDir = path.join(process.cwd(), "public", "generated", "reports");
-const invoiceOutputDir = path.join(process.cwd(), "public", "generated", "invoices");
+const reportOutputDir = path.join(process.cwd(), "storage", "generated", "reports");
+const invoiceOutputDir = path.join(process.cwd(), "storage", "generated", "invoices");
+const accountingOutputDir = path.join(process.cwd(), "storage", "generated", "accounting");
 
 function buildSeedPdf(reportNumber, orderNumber) {
   const text = `BT /F1 18 Tf 50 790 Td (Flyero Verteilbericht) Tj 0 -28 Td (${reportNumber}) Tj 0 -28 Td (Auftrag ${orderNumber}) Tj 0 -28 Td (Seed-PDF für Modul 9) Tj ET`;
@@ -41,7 +42,7 @@ async function writeSeedReportPdf(reportNumber, orderNumber) {
   const fileName = `${reportNumber.toLowerCase()}.pdf`;
   await writeFile(path.join(reportOutputDir, fileName), pdf);
   return {
-    pdfUrl: `/generated/reports/${fileName}`,
+    pdfUrl: `/private/generated/reports/${fileName}`,
     checksum: createHash("sha256").update(pdf).digest("hex"),
   };
 }
@@ -52,8 +53,27 @@ async function writeSeedInvoicePdf(invoiceNumber, orderNumber) {
   const fileName = `${invoiceNumber.toLowerCase()}.pdf`;
   await writeFile(path.join(invoiceOutputDir, fileName), pdf);
   return {
-    pdfUrl: `/generated/invoices/${fileName}`,
+    pdfUrl: `/private/generated/invoices/${fileName}`,
     checksum: createHash("sha256").update(pdf).digest("hex"),
+  };
+}
+
+async function writeSeedProofImage(label, fill = "#f0f4f8") {
+  const proofId = randomBytes(12).toString("hex");
+  const fileName = `${proofId}.svg`;
+  const proofOutputDir = path.join(process.cwd(), "storage", "generated", "proofs");
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480"><rect width="640" height="480" fill="${fill}"/><text x="320" y="240" text-anchor="middle" fill="#102033" font-size="28" font-family="Arial">${label}</text></svg>`;
+  await mkdir(proofOutputDir, { recursive: true });
+  await writeFile(path.join(proofOutputDir, fileName), Buffer.from(svg));
+  return {
+    proofId,
+    url: `/api/proofs/${proofId}`,
+    metadata: {
+      seed: true,
+      storedAs: "generated-asset",
+      storagePath: `/private/generated/proofs/${fileName}`,
+      mimeType: "image/svg+xml",
+    },
   };
 }
 
@@ -1417,18 +1437,20 @@ for (let index = 0; index < tourInventory.length; index += 1) {
   }
 
   if (["PAUSED", "UNDER_REVIEW"].includes(status)) {
+    const seedProof = await writeSeedProofImage("Demo-Tourfoto");
     await prisma.photoProof.create({
       data: {
+        id: seedProof.proofId,
         tourId: tour.id,
         orderId: inventory.orderId,
         uploadedBy: distributor.userId,
-        url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NDAiIGhlaWdodD0iNDgwIj48cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9IjQ4MCIgZmlsbD0iI2YwZjRmOCIvPjx0ZXh0IHg9IjMyMCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMTAyMDMzIiBmb250LXNpemU9IjI4IiBmb250LWZhbWlseT0iQXJpYWwiPkRlbW8tVG91cmZvdG88L3RleHQ+PC9zdmc+",
+        url: seedProof.url,
         lat: new Prisma.Decimal(50.356 + index * 0.01),
         lng: new Prisma.Decimal(7.594 + index * 0.01),
         accuracy: new Prisma.Decimal(14),
         source: "camera",
         takenAt: new Date(),
-        metadata: { seed: true },
+        metadata: seedProof.metadata,
       },
     });
   }
@@ -1542,18 +1564,24 @@ for (let index = 0; index < module6Inventory.length; index += 1) {
       recordedAt: new Date(startTime.getTime() + pointIndex * 15 * 1000),
     })),
   });
+  const seedProof = await writeSeedProofImage("Modul-6-Foto");
   await prisma.photoProof.create({
     data: {
+      id: seedProof.proofId,
       tourId: tour.id,
       orderId: inventory.orderId,
       uploadedBy: distributor.userId,
-      url: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NDAiIGhlaWdodD0iNDgwIj48cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9IjQ4MCIgZmlsbD0iI2U4ZjdlZCIvPjx0ZXh0IHg9IjMyMCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjMTAyMDMzIiBmb250LXNpemU9IjI4IiBmb250LWZhbWlseT0iQXJpYWwiPk1vZHVsLTYtRm90bzwvdGV4dD48L3N2Zz4=",
+      url: seedProof.url,
       lat: new Prisma.Decimal(50.36 + index * 0.015),
       lng: new Prisma.Decimal(7.60 + index * 0.015),
       accuracy: new Prisma.Decimal(12),
       source: "camera",
       takenAt: endTime,
-      metadata: { seed: true, module: 6 },
+      metadata: {
+        ...seedProof.metadata,
+        seed: true,
+        module: 6,
+      },
     },
   });
   if (route.reportStatus) {
@@ -2253,7 +2281,6 @@ await prisma.notification.createMany({
   ],
 });
 
-const accountingOutputDir = path.join(process.cwd(), "public", "generated", "accounting");
 await mkdir(accountingOutputDir, { recursive: true });
 const seedInvoices = await prisma.invoice.findMany({ orderBy: { invoiceNumber: "asc" }, take: 5 });
 const seedPayments = await prisma.payment.findMany({ orderBy: { createdAt: "asc" }, take: 5 });
@@ -2281,7 +2308,7 @@ for (const [exportNumber, type, format, status, rows] of accountingSeed) {
       type,
       format,
       status,
-      fileUrl: status === "FAILED" ? null : `/generated/accounting/${fileName}`,
+      fileUrl: status === "FAILED" ? null : `/private/generated/accounting/${fileName}`,
       rowCount: rows.length,
       checksum: status === "FAILED" ? null : checksum,
       completedAt: status === "FAILED" ? new Date() : new Date(),
@@ -2294,7 +2321,7 @@ for (const [exportNumber, type, format, status, rows] of accountingSeed) {
       periodStart: new Date(new Date().getFullYear(), 0, 1),
       periodEnd: new Date(),
       createdById: admin.id,
-      fileUrl: status === "FAILED" ? null : `/generated/accounting/${fileName}`,
+      fileUrl: status === "FAILED" ? null : `/private/generated/accounting/${fileName}`,
       rowCount: rows.length,
       checksum: status === "FAILED" ? null : checksum,
       completedAt: new Date(),

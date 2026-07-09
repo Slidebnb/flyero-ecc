@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
+import { EmptyState } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -52,7 +53,17 @@ export default async function AdminInvoicesPage() {
                 <td><Link className="textLink" href={`/admin/invoices/${invoice.id}`}>Öffnen</Link></td>
               </tr>
             ))}
-            {invoices.length === 0 ? <tr><td colSpan={8}>Keine Rechnungen gefunden.</td></tr> : null}
+            {invoices.length === 0 ? (
+              <tr>
+                <td colSpan={8}>
+                  <EmptyState
+                    title="Keine Rechnungen gefunden."
+                    description="Rechnungen entstehen nach erfolgreicher Zahlung und Admin-Freigabe eines Auftrags."
+                    action={{ href: "/admin/orders", label: "Aufträge prüfen" }}
+                  />
+                </td>
+              </tr>
+            ) : null}
           </tbody>
         </table>
       </section>

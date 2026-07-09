@@ -38,7 +38,17 @@ export default async function CustomerReportsPage() {
                   <td data-label="Aktion"><Link className="textLink" href={`/customer/reports/${report.id}`}>Ansehen</Link></td>
                 </tr>
               ))}
-              {reports.length === 0 ? <tr><td colSpan={6}><EmptyState title="Noch keine Verteilberichte verfügbar." /></td></tr> : null}
+              {reports.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      title="Noch keine Verteilberichte verfügbar."
+                      description="Berichte erscheinen automatisch, sobald eine Tour geprüft und freigegeben wurde."
+                      action={{ href: "/customer/orders", label: "Bestellungen ansehen" }}
+                    />
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

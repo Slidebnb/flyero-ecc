@@ -1,34 +1,54 @@
-import type { Metadata } from "next";
 import { LeadForm } from "@/app/LeadForm";
-import { CardGrid, MarketingPage, PageHero, Section, StepList } from "@/app/marketing";
+import { EditorialList, MarketingPage, PageHero, Section, StepList } from "@/app/marketing";
+import { createSeoMetadata } from "@/app/seo";
 
-export const metadata: Metadata = {
-  title: "Für Verteiler - FLYERO",
-  description: "Als Verteiler bei FLYERO registrieren, Aufträge per Smartphone annehmen und Touren per GPS dokumentieren.",
-};
+export const metadata = createSeoMetadata({
+  title: "Als Verteiler bei FLYERO starten",
+  description:
+    "Als Verteiler registrieren, Aufträge annehmen, Flyer per QR-Code abholen und Touren per Smartphone dokumentieren.",
+  path: "/fuer-verteiler",
+  keywords: ["Flyer verteilen Job", "Verteiler werden", "Nebenjob Flyer verteilen"],
+});
 
 export default function DistributorPage() {
   return (
     <MarketingPage>
       <PageHero
         eyebrow="Für Verteiler"
-        title="Flexibel Flyer verteilen - mit klaren Aufgaben."
+        title="Flexibel verteilen, klar dokumentieren."
         primaryHref="/register/distributor"
         primaryLabel="Als Verteiler registrieren"
       >
         <p>
-          Verteiler erhalten passende Aufträge, holen Flyer per QR-Code ab und dokumentieren Touren direkt per Smartphone.
+          Verteiler erhalten passende Touren, holen Flyer per QR-Code ab und dokumentieren die Verteilung direkt per Smartphone.
           Vor Freischaltung wird jedes Profil geprüft.
         </p>
       </PageHero>
 
       <Section title="So arbeitest du mit FLYERO">
-        <CardGrid items={["Aufträge per App/PWA", "QR-Code-Abholung im Lager", "GPS-gestützte Touren", "klare Aufgaben", "Einsatzgebiet wählen", "mobil per Smartphone nutzbar"]} />
+        <EditorialList
+          items={[
+            "Touren im Portal ansehen",
+            "Einsatzgebiet passend wählen",
+            "QR-Code-Abholung im Lager",
+            "GPS-gestützte Touren",
+            "Fotos als Nachweis",
+            "Mobil per Smartphone nutzbar",
+          ]}
+        />
       </Section>
 
       <Section title="Registrierung und Freischaltung">
-        <StepList steps={["Profil anlegen", "Einsatzgebiete und Verfügbarkeit eintragen", "Prüfung durch das Admin-Team", "Nach Freigabe Touren annehmen", "Pickup, Tour und Abschluss dokumentieren"]} />
-        <p className="notice">Hinweis: Verteiler werden vor Freischaltung geprüft.</p>
+        <StepList
+          steps={[
+            "Profil anlegen",
+            "Einsatzgebiete und Verfügbarkeit eintragen",
+            "Prüfung durch das Admin-Team",
+            "Nach Freigabe Touren annehmen",
+            "Pickup, Tour und Abschluss dokumentieren",
+          ]}
+        />
+        <p className="notice">Hinweis: Verteiler werden vor der Freischaltung geprüft.</p>
       </Section>
 
       <Section title="Interesse als Verteiler?">

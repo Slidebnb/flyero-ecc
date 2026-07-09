@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { ActionPanel, DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -88,6 +88,16 @@ export default async function CustomerDashboardPage() {
         <MetricTile label="Verteilte Flyer" value={formatNumber(distributedFlyers)} />
         <MetricTile label="Zahlungsquote" value={formatPercent(paidRate)} tone="success" />
       </section>
+
+      <ActionPanel
+        title="Schnellstart"
+        description="Die wichtigsten naechsten Schritte fuer Ihre Kampagnen."
+        actions={[
+          { href: "/customer/orders/new", label: "Neue Kampagne" },
+          { href: "/customer/documents", label: "Druckdaten" },
+          { href: "/customer/invoices", label: "Rechnungen" },
+        ]}
+      />
 
       <div className="portalDashboardGrid dashboardReferenceGrid">
         <DataSection title="Letzte Kampagne" description="Die aktuellste Kampagne aus Ihrem Kundenkonto.">

@@ -1,41 +1,65 @@
-import type { Metadata } from "next";
 import { LeadForm } from "@/app/LeadForm";
-import { CardGrid, CtaBand, MarketingPage, PageHero, Section, StepList } from "@/app/marketing";
+import { AudienceList, CtaBand, EditorialList, MarketingPage, PageHero, Section, StepList } from "@/app/marketing";
+import { createSeoMetadata } from "@/app/seo";
 
-export const metadata: Metadata = {
-  title: "Für Unternehmen - FLYERO",
-  description: "Flyerverteilung für Unternehmen online anfragen, bezahlen und mit GPS- und Fotobericht nachweisen lassen.",
-};
+export const metadata = createSeoMetadata({
+  title: "Flyerverteilung für Unternehmen",
+  description:
+    "Flyerverteilung für Unternehmen: Kampagne anfragen, Gebiet planen, Flyer einlagern und GPS-/Fotobericht erhalten.",
+  path: "/fuer-unternehmen",
+  keywords: ["Flyerverteilung Unternehmen", "Werbeflyer verteilen", "lokales Marketing"],
+});
 
 export default function BusinessPage() {
   return (
     <MarketingPage>
-      <PageHero eyebrow="Für Unternehmen" title="Flyerverteilung mit klarer Kontrolle." primaryLabel="Jetzt Verteilung anfragen">
+      <PageHero eyebrow="Für Unternehmen" title="Flyerverteilung mit klarer Kontrolle." primaryLabel="Verteilung anfragen">
         <p>
-          FLYERO verbindet digitale Auftragserstellung, Vorkasse per Stripe, Lagerprozess, geprüfte Verteiler und
-          Abschlussbericht in einem nachvollziehbaren Ablauf.
+          FLYERO verbindet digitale Auftragserstellung, sichere Zahlung, Lagerprozess, geprüfte Verteiler
+          und Abschlussbericht in einem nachvollziehbaren Ablauf.
         </p>
       </PageHero>
 
       <Section title="Warum FLYERO?">
-        <CardGrid items={[["Mehr Transparenz", "GPS, Fotos und Adminprüfung ersetzen Bauchgefühl."], ["Weniger Abstimmung", "Auftrag, Zahlung, Lager und Bericht laufen strukturiert."], ["Besserer Abschluss", "Kunden erhalten Bericht und Rechnung im Portal."]]} />
+        <EditorialList
+          items={[
+            ["Mehr Transparenz", "GPS, Fotos und Adminprüfung ersetzen Bauchgefühl."],
+            ["Weniger Abstimmung", "Auftrag, Zahlung, Lager und Bericht laufen strukturiert zusammen."],
+            ["Besserer Abschluss", "Kunden erhalten Nachweis, PDF und Rechnung im Portal."],
+          ]}
+        />
       </Section>
 
-      <Section title="Für wen geeignet?">
-        <CardGrid items={["Immobilienmakler", "Restaurants und Lieferdienste", "Fitnessstudios", "Handwerksbetriebe", "Einzelhandel", "Franchise-Unternehmen"]} />
+      <Section id="zielgruppen" title="Für wen eignet sich FLYERO?">
+        <AudienceList
+          items={[
+            ["Immobilien", "Neubauprojekte, Besichtigungen und Objektkampagnen im passenden Wohnumfeld platzieren.", "Für Makler, Bauträger und Projektentwickler."],
+            ["Gastronomie", "Speisekarten, Neueröffnungen und Liefergebiete direkt in relevante Haushalte bringen.", "Für Restaurants, Cafés und Lieferdienste."],
+            ["Fitness", "Probetrainings, Kursstarts und Aktionen rund um Studio- oder Vereinsstandorte bewerben.", "Für Studios, Vereine und Gesundheitsanbieter."],
+            ["Handwerk", "Leistungen, Notdienste, Jobs und saisonale Angebote lokal sichtbar machen.", "Für regionale Betriebe und Serviceteams."],
+            ["Einzelhandel", "Angebote, Neueröffnungen und Rabattaktionen im echten Einzugsgebiet ankündigen.", "Für Geschäfte, Filialen und lokale Marken."],
+            ["Events & Vereine", "Feste, Veranstaltungen und Mitgliederwerbung nachvollziehbar verbreiten.", "Für Veranstalter, Vereine und Kommunen."],
+          ]}
+        />
       </Section>
 
       <Section title="Ablauf für Auftraggeber">
-        <StepList steps={["Account erstellen", "Auftrag und Gebiet anlegen", "Endpreis prüfen und per Stripe bezahlen", "Flyer an das Lager senden", "Verteilung wird geprüft und dokumentiert", "Bericht und Rechnung im Portal abrufen"]} />
+        <StepList
+          steps={[
+            "Anfrage stellen oder Konto erstellen",
+            "Auftrag und Gebiet anlegen",
+            "Endpreis prüfen und bezahlen",
+            "Flyer an das Lager senden",
+            "Verteilung dokumentiert durchführen",
+            "Bericht und Rechnung abrufen",
+          ]}
+        />
       </Section>
 
-      <Section title="Nachweise und Zahlung">
+      <Section title="Projekt anfragen">
         <p className="sectionLead">
-          FLYERO arbeitet mit Vorkasse über Stripe. Nach Abschluss prüft das Admin-Team die Tourdaten und stellt den GPS- und Fotobericht bereit.
+          Beschreiben Sie kurz Gebiet, Auflage und Ziel. Wir melden uns mit einer passenden Einschätzung.
         </p>
-      </Section>
-
-      <Section title="Kontaktformular">
         <LeadForm source="fuer-unternehmen" />
       </Section>
 

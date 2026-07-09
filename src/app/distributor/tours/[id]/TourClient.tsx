@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -18,21 +18,41 @@ type GpsPoint = {
   battery?: number;
   recordedAt: string;
   source: string;
+  clientId: string;
+  sequence: number;
 };
 
+type GpsPermissionState = "unknown" | "checking" | "granted" | "prompt" | "denied" | "unsupported";
+
 const bufferKey = (tourId: string) => `ecc:gps-buffer:${tourId}`;
+const clientKey = "ecc:gps-client-id";
+
+function getClientId() {
+  if (typeof crypto !== "undefined" && typeof localStorage !== "undefined") {
+    const existing = localStorage.getItem(clientKey);
+    if (existing) return existing;
+    const created = crypto.randomUUID();
+    localStorage.setItem(clientKey, created);
+    return created;
+  }
+  return "web-client";
+}
 
 export function TourClient({ tourId, qrCode, status }: Props) {
   const [message, setMessage] = useState("");
   const [manualQr, setManualQr] = useState(qrCode ?? "");
   const [localStatus, setLocalStatus] = useState(status);
   const [watchId, setWatchId] = useState<number | null>(null);
+  const [gpsPermission, setGpsPermission] = useState<GpsPermissionState>("unknown");
+  const [gpsActive, setGpsActive] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const lastPointRef = useRef<GpsPoint | null>(null);
+  const sequenceRef = useRef(0);
 
   async function post(path: string, body?: unknown) {
     const response = await fetch(path, {
@@ -64,6 +84,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
     if (points.length === 0) return;
     await post(`/api/distributor/tours/${tourId}/gps`, { points });
     setBufferedPoints([]);
+    setLastSyncAt(new Date().toISOString());
     setMessage(`${points.length} gepufferte GPS-Punkte hochgeladen.`);
   }
 
@@ -76,6 +97,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
     try {
       await flushBufferedPoints();
       await post(`/api/distributor/tours/${tourId}/gps`, { points: [point] });
+      setLastSyncAt(new Date().toISOString());
       setMessage("GPS gespeichert.");
     } catch {
       setBufferedPoints([...getBufferedPoints(), point]);
@@ -84,6 +106,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
   }
 
   function createPoint(position: GeolocationPosition): GpsPoint {
+    sequenceRef.current += 1;
     return {
       lat: position.coords.latitude,
       lng: position.coords.longitude,
@@ -92,7 +115,9 @@ export function TourClient({ tourId, qrCode, status }: Props) {
       heading: position.coords.heading ?? undefined,
       altitude: position.coords.altitude ?? undefined,
       recordedAt: new Date(position.timestamp).toISOString(),
-      source: "browser",
+      source: "web-pwa",
+      clientId: getClientId(),
+      sequence: sequenceRef.current,
     };
   }
 
@@ -106,6 +131,56 @@ export function TourClient({ tourId, qrCode, status }: Props) {
     return Math.sqrt(latMeters * latMeters + lngMeters * lngMeters) >= 15;
   }
 
+  function requestLocationPermission() {
+    setGpsPermission("checking");
+    if (!navigator.geolocation) {
+      setGpsPermission("unsupported");
+      return Promise.reject(new Error("Standort ist auf diesem Gerät nicht verfügbar."));
+    }
+
+    return new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setGpsPermission("granted");
+          resolve(position);
+        },
+        () => {
+          setGpsPermission("denied");
+          reject(new Error("Standortfreigabe verweigert. Bitte Standortzugriff für FLYERO erlauben."));
+        },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 },
+      );
+    });
+  }
+
+  async function checkGpsPermission() {
+    if (!navigator.geolocation) {
+      setGpsPermission("unsupported");
+      setMessage("Standort ist auf diesem Gerät nicht verfügbar.");
+      return;
+    }
+
+    if (!navigator.permissions?.query) {
+      setGpsPermission("prompt");
+      setMessage("Standortzugriff wird beim Tourstart von iOS abgefragt.");
+      return;
+    }
+
+    try {
+      const permission = await navigator.permissions.query({ name: "geolocation" });
+      setGpsPermission(permission.state);
+      permission.onchange = () => setGpsPermission(permission.state);
+      setMessage(
+        permission.state === "granted"
+          ? "Standortzugriff ist erlaubt."
+          : "Standortzugriff erlauben, bevor du die Tour startest.",
+      );
+    } catch {
+      setGpsPermission("prompt");
+      setMessage("Standortzugriff wird beim Tourstart abgefragt.");
+    }
+  }
+
   async function pickup() {
     try {
       await post(`/api/distributor/tours/${tourId}/pickup`, { qrCode: manualQr });
@@ -117,42 +192,38 @@ export function TourClient({ tourId, qrCode, status }: Props) {
   }
 
   async function start() {
-    if (!navigator.geolocation) {
-      setMessage("Standort ist auf diesem Gerät nicht verfügbar.");
-      return;
+    try {
+      const position = await requestLocationPermission();
+      const firstPoint = createPoint(position);
+      await post(`/api/distributor/tours/${tourId}/start`, firstPoint);
+      lastPointRef.current = firstPoint;
+      const id = navigator.geolocation.watchPosition(
+        async (nextPosition) => {
+          const point = createPoint(nextPosition);
+          if (shouldSend(point)) {
+            lastPointRef.current = point;
+            await sendGpsPoint(point);
+          }
+        },
+        () => {
+          setGpsActive(false);
+          setMessage("GPS deaktiviert oder nicht freigegeben.");
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 },
+      );
+      setWatchId(id);
+      setGpsActive(true);
+      setLocalStatus("STARTED");
+      setMessage("Tour gestartet. GPS läuft.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Tourstart fehlgeschlagen.");
     }
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const firstPoint = createPoint(position);
-          await post(`/api/distributor/tours/${tourId}/start`, firstPoint);
-          lastPointRef.current = firstPoint;
-          const id = navigator.geolocation.watchPosition(
-            async (nextPosition) => {
-              const point = createPoint(nextPosition);
-              if (shouldSend(point)) {
-                lastPointRef.current = point;
-                await sendGpsPoint(point);
-              }
-            },
-            () => setMessage("GPS deaktiviert oder nicht freigegeben."),
-            { enableHighAccuracy: true, maximumAge: 5000, timeout: 12000 },
-          );
-          setWatchId(id);
-          setLocalStatus("STARTED");
-          setMessage("Tour gestartet. GPS läuft.");
-        } catch (error) {
-          setMessage(error instanceof Error ? error.message : "Tourstart fehlgeschlagen.");
-        }
-      },
-      () => setMessage("Standortfreigabe verweigert. Tour kann nicht gestartet werden."),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 12000 },
-    );
   }
 
   async function pause() {
     await post(`/api/distributor/tours/${tourId}/pause`);
     setLocalStatus("PAUSED");
+    setGpsActive(false);
     setMessage("Tour pausiert. GPS-Puffer bleibt aktiv.");
   }
 
@@ -208,6 +279,9 @@ export function TourClient({ tourId, qrCode, status }: Props) {
       try {
         await post(`/api/distributor/tours/${tourId}/photo`, {
           imageDataUrl: String(reader.result),
+          lat: lastPointRef.current?.lat,
+          lng: lastPointRef.current?.lng,
+          accuracy: lastPointRef.current?.accuracy,
           takenAt: new Date().toISOString(),
         });
         setMessage("Foto gespeichert.");
@@ -225,6 +299,7 @@ export function TourClient({ tourId, qrCode, status }: Props) {
         notes: formData.get("notes")?.toString(),
       });
       if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      setGpsActive(false);
       await flushBufferedPoints();
       setMessage("Tour abgeschlossen und an Admin-Prüfung übergeben.");
       window.location.reload();
@@ -251,10 +326,40 @@ export function TourClient({ tourId, qrCode, status }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tourId, watchId]);
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void checkGpsPermission();
+    }, 0);
+    return () => window.clearTimeout(timer);
+    // Nur beim Laden der Tour prüfen; die echte iOS-Erlaubnis wird vom Systemdialog abgefragt.
+  }, []);
+
   return (
     <section className="mobileControls">
-      <div className={isOnline ? "badge success" : "badge warning"}>{isOnline ? "Online" : "Offline-Puffer aktiv"}</div>
+      <div className="tourLiveStatus">
+        <div className={isOnline ? "badge success" : "badge warning"}>{isOnline ? "Online" : "Offline-Puffer aktiv"}</div>
+        <div className={gpsActive ? "badge success" : "badge warning"}>{gpsActive ? "GPS läuft" : "GPS wartet"}</div>
+        <small>{lastSyncAt ? `Letzte Synchronisierung: ${new Date(lastSyncAt).toLocaleTimeString("de-DE")}` : "Noch keine GPS-Synchronisierung"}</small>
+      </div>
       {message ? <p className="notice">{message}</p> : null}
+
+      <div className="mobileCard gpsPermissionCard">
+        <h2 className="sectionTitle">Standortzugriff</h2>
+        <p>
+          Für den Kundennachweis zeichnet FLYERO während einer gestarteten Tour GPS-Punkte auf.
+          Starte die Tour erst, wenn du wirklich verteilst.
+        </p>
+        <ul>
+          <li>Auf iPhone „Beim Verwenden der App erlauben“ auswählen.</li>
+          <li>Safari/FLYERO während der Tour geöffnet lassen.</li>
+          <li>Bei schlechtem Empfang puffert die App Punkte lokal und lädt sie später hoch.</li>
+        </ul>
+        <p className="iosHint"><strong>iPhone-Hinweis:</strong> iOS erlaubt GPS in einer Web-App zuverlässig, solange die App aktiv geöffnet bleibt.</p>
+        <button type="button" onClick={requestLocationPermission}>
+          Standortzugriff erlauben
+        </button>
+        <small>Status: {gpsPermission}</small>
+      </div>
 
       <div className="mobileCard">
         <h2 className="sectionTitle">Abholung</h2>
@@ -303,3 +408,5 @@ export function TourClient({ tourId, qrCode, status }: Props) {
     </section>
   );
 }
+
+

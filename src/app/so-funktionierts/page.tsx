@@ -1,35 +1,36 @@
-import type { Metadata } from "next";
 import { CtaBand, MarketingPage, PageHero, Section, StepList } from "@/app/marketing";
+import { createSeoMetadata } from "@/app/seo";
 
-export const metadata: Metadata = {
-  title: "So funktioniert's - FLYERO",
-  description: "Der komplette FLYERO Ablauf von Account und Auftrag bis GPS-Tour, Bericht und Rechnung.",
-};
+export const metadata = createSeoMetadata({
+  title: "So funktioniert FLYERO",
+  description:
+    "Der FLYERO Ablauf: Verteilgebiet wählen, Auftrag buchen, Flyer einlagern, Tour dokumentieren und Bericht erhalten.",
+  path: "/so-funktionierts",
+  keywords: ["Flyerverteilung Ablauf", "Flyer Gebiet planen", "Flyer Bericht"],
+});
 
 export default function HowItWorksPage() {
   return (
     <MarketingPage>
       <PageHero eyebrow="Ablauf" title="Ein klarer Prozess vom Auftrag bis zum Bericht.">
         <p>
-          FLYERO macht jeden Schritt der Flyerverteilung nachvollziehbar: Auftrag, Zahlung, Lager, Dispatch, Tour und Bericht
-          greifen in einem Portal ineinander.
+          FLYERO führt Kunden Schritt für Schritt durch die Verteilung: von der Gebietsauswahl über Lager und Dispatch
+          bis zum geprüften Nachweis.
         </p>
       </PageHero>
 
-      <Section title="Detaillierter Ablauf">
+      <Section title="Der Ablauf im Überblick">
         <StepList
           steps={[
-            "Account erstellen",
-            "Auftrag erstellen",
-            "Gebiet auswählen",
-            "online bezahlen",
-            "Adminprüfung",
-            "Flyer einsenden",
-            "Lager checkt Flyer ein",
-            "Verteiler holt Flyer per QR-Code ab",
-            "Tour wird per GPS aufgezeichnet",
-            "Admin prüft",
-            "Kunde erhält Bericht und Rechnung",
+            "Anfragen oder Kundenkonto erstellen",
+            "Auftrag und Verteilgebiet anlegen",
+            "Preis, Zeitraum und Menge prüfen",
+            "Flyer an das Lager senden",
+            "Wareneingang per QR-Code erfassen",
+            "Verteiler nimmt die Tour an",
+            "Pickup und Tour per Smartphone dokumentieren",
+            "Admin prüft GPS, Fotos und Status",
+            "Kunde erhält Bericht, PDF und Rechnung",
           ]}
         />
       </Section>

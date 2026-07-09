@@ -50,7 +50,42 @@ await includes("src/app/distributor/tours/[id]/TourClient.tsx", [
   "getUserMedia",
   "capture=\"environment\"",
   "flushBufferedPoints",
+  "gpsPermission",
+  "Standortzugriff erlauben",
+  "iPhone-Hinweis",
 ]);
+
+await includes("src/app/manifest.ts", [
+  "FLYERO Verteiler",
+  "scope: \"/distributor\"",
+  "start_url: \"/distributor/dashboard\"",
+  "maskable",
+  "shortcuts",
+]);
+
+await includes("src/app/seo.ts", [
+  "appleWebApp",
+  "formatDetection",
+]);
+
+await includes("src/app/layout.tsx", [
+  "themeColor",
+]);
+
+await includes("public/sw.js", [
+  "FLYERO_DISTRIBUTOR_CACHE",
+  "isPrivateOrApiRequest",
+  "/distributor/dashboard",
+  "/offline",
+]);
+
+await includes("src/app/offline/page.tsx", [
+  "Offline",
+  "Verteiler-App",
+]);
+
+await includes("src/app/icon.tsx", ["ImageResponse", "FLYERO"]);
+await includes("src/app/apple-icon.tsx", ["ImageResponse", "FLYERO"]);
 
 for (const path of [
   "src/app/api/distributor/tours/route.ts",

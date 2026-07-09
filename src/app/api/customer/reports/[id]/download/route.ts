@@ -1,7 +1,6 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
+import { readGeneratedAsset } from "@/lib/generatedAssets";
 import { markReportDownloaded } from "@/lib/reports";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
@@ -20,10 +19,9 @@ export async function GET(_request: Request, context: RouteContext) {
       },
     });
     if (!report?.pdfUrl) return errorResponse("PDF wurde nicht gefunden.", 404);
-    const relativePath = report.pdfUrl.replace(/^\/+/, "");
-    const file = await readFile(path.join(process.cwd(), "public", relativePath));
+    const file = await readGeneratedAsset(report.pdfUrl);
     await markReportDownloaded({ reportId: report.id, userId: session.id });
-    return new Response(file, {
+    return new Response(file.buffer, {
       headers: {
         "content-type": "application/pdf",
         "content-disposition": `attachment; filename="${report.reportNumber}.pdf"`,

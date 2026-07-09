@@ -35,6 +35,7 @@
     "test:module22": "node -r dotenv/config tests/module22-smoke.mjs",
     "test:module23": "node -r dotenv/config tests/module23-smoke.mjs",
     "test:module24": "node -r dotenv/config tests/module24-smoke.mjs",
+    "test:module25": "node -r dotenv/config tests/module25-launch-hardening-smoke.mjs",
     "test:beta": "node -r dotenv/config tests/beta-e2e-smoke.mjs"
   },
   "dependencies": {

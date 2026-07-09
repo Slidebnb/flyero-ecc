@@ -1,15 +1,25 @@
-const CACHE_NAME = "ecc-tour-shell-v1";
-const SHELL_URLS = ["/", "/login", "/distributor/dashboard"];
+const FLYERO_DISTRIBUTOR_CACHE = "flyero-distributor-shell-v1";
+const SHELL_URLS = ["/", "/login", "/distributor/dashboard", "/offline", "/manifest.webmanifest"];
+
+function isPrivateOrApiRequest(request) {
+  const url = new URL(request.url);
+  return (
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/admin/") ||
+    url.pathname.startsWith("/customer/") ||
+    url.pathname.startsWith("/warehouse/")
+  );
+}
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_URLS)));
+  event.waitUntil(caches.open(FLYERO_DISTRIBUTOR_CACHE).then((cache) => cache.addAll(SHELL_URLS)));
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))),
+      Promise.all(keys.filter((key) => key !== FLYERO_DISTRIBUTOR_CACHE).map((key) => caches.delete(key))),
     ),
   );
   self.clients.claim();
@@ -18,13 +28,21 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
+
+  if (isPrivateOrApiRequest(request)) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        if (response.ok && request.url.startsWith(self.location.origin)) {
+          const clone = response.clone();
+          caches.open(FLYERO_DISTRIBUTOR_CACHE).then((cache) => cache.put(request, clone));
+        }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match("/distributor/dashboard"))),
+      .catch(() => caches.match(request).then((cached) => cached || caches.match("/offline"))),
   );
 });

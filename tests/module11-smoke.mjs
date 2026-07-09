@@ -109,7 +109,9 @@ const invoiceWithPdf = await prisma.invoice.findFirst({ where: { pdfUrl: { not: 
 assert(invoiceWithPdf, "Rechnung mit PDF fehlt.");
 assert(invoiceWithPdf.paymentId, "Rechnung ist nicht mit Payment verbunden.");
 assert(invoiceWithPdf.items.length >= 1, "Rechnung hat keine Positionen.");
-const pdfPath = path.join(process.cwd(), "public", invoiceWithPdf.pdfUrl.replace(/^\/+/, ""));
+const pdfPath = invoiceWithPdf.pdfUrl.startsWith("/private/generated/invoices/")
+  ? path.join(process.cwd(), "storage", invoiceWithPdf.pdfUrl.replace(/^\/+private\/generated\/invoices\//, "generated/invoices/"))
+  : path.join(process.cwd(), "public", invoiceWithPdf.pdfUrl.replace(/^\/+/, ""));
 assert(existsSync(pdfPath), `Rechnungs-PDF fehlt: ${pdfPath}`);
 const pdfHeader = await readFile(pdfPath, "utf8");
 assert(pdfHeader.startsWith("%PDF-"), "Rechnungs-PDF hat keinen PDF-Header.");

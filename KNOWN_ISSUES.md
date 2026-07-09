@@ -12,6 +12,7 @@ Stand: Modul 15.5
 - PDF-Erzeugung ist MVP-nah und muss layout-/rechtlich vor Produktion geprueft werden.
 - Accounting-Exports sind CSV-Dateien, keine Live-API-Synchronisation.
 - Es gibt noch kein zentrales Monitoring/Dashboard fuer Queue-Fehler, Webhook-Fehler oder Exportfehler.
+- Die Verteileransicht ist Web-/PWA-nah. Garantiertes Background-GPS bei gesperrtem iPhone ist ohne natives iOS-Projekt nicht zugesagt.
 
 ## Operative Einschraenkungen
 
@@ -21,11 +22,13 @@ Stand: Modul 15.5
 - Kunden sehen kein Live-Tracking waehrend der Tour.
 - Demo-Daten sind deutschlandweit plausibel, aber keine echte Gebietsdatenbank.
 - Haushaltszahlen und Flaechen sind Seed-/MVP-Werte und muessen fuer echte Kampagnen validiert werden.
+- Verteiler muessen die Touransicht waehrend der Web-GPS-Erfassung aktiv nutzbar halten; Dauer-Hintergrundtracking ist nicht Teil des aktuellen Scopes.
 
 ## Rechtliche offene Punkte
 
 - AGB, Datenschutz, Impressum und AV-Vertraege sind nicht produktionsfertig hinterlegt.
 - GPS-Tracking und Foto-Nachweise benoetigen saubere Einwilligungs- und Aufbewahrungsregeln.
+- Background-GPS waere bei spaeterer nativer App gesondert mit Einwilligung, Datenschutzfolge, App-Store-Pruefung und Betriebsprozess zu klaeren.
 - Rechnungen und DATEV/Lexware-Exports muessen steuerlich geprueft werden.
 - Werbeverteilung kann lokale Genehmigungen, Hausordnungen oder Einwurfverbote betreffen.
 - Rollen- und Datenzugriffe sollten vor Livegang mit einem Datenschutzkonzept abgeglichen werden.

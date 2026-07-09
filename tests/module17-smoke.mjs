@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const BASE_URL = process.env.BETA_BASE_URL || "http://localhost:3000";
+let baseUrl = process.env.BETA_BASE_URL || "http://localhost:3000";
 const PASSWORD = "DemoPasswort123!";
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -27,7 +27,7 @@ async function includes(filePath, snippets) {
 }
 
 async function fetchLocal(path, options = {}) {
-  return fetch(`${BASE_URL}${path}`, {
+  return fetch(`${baseUrl}${path}`, {
     redirect: "manual",
     ...options,
     headers: {
@@ -38,13 +38,27 @@ async function fetchLocal(path, options = {}) {
 }
 
 async function ensureServer() {
-  try {
-    const response = await fetchLocal("/");
-    if (response.status < 500) return null;
-  } catch {
-    // Dev-Server wird unten gestartet.
+  const candidates = [
+    baseUrl,
+    "http://localhost:3025",
+    "http://localhost:3024",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      baseUrl = candidate;
+      const response = await fetchLocal("/");
+      if (response.status < 500) return null;
+    } catch {
+      // Naechsten lokalen Kandidaten pruefen.
+    }
   }
 
+  baseUrl = process.env.BETA_BASE_URL || "http://localhost:3000";
   const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
     cwd: process.cwd(),
     env: process.env,

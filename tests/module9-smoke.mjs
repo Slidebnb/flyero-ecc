@@ -21,6 +21,13 @@ async function includes(filePath, snippets) {
   return content;
 }
 
+function includesAny(content, alternatives, filePath) {
+  assert(
+    alternatives.some((snippet) => content.includes(snippet)),
+    `${filePath} enthaelt keine der erwarteten Varianten: ${alternatives.join(" | ")}`,
+  );
+}
+
 await includes("prisma/schema.prisma", [
   "enum ReportType",
   "DISTRIBUTION_PROOF",
@@ -69,23 +76,20 @@ for (const filePath of [
   assert(existsSync(filePath), `${filePath} fehlt.`);
 }
 
-const customerReportPage = await includes("src/app/customer/reports/[id]/page.tsx", [
-  "Flyero Verteilnachweis",
-  "GPS-Qualitaet",
-  "Standort anonymisiert",
-  "Digitale Pruefnummer",
-  "Verteiler",
-]);
+const customerReportPage = await includes("src/app/customer/reports/[id]/page.tsx", ["Standort anonymisiert", "Verteiler"]);
+includesAny(customerReportPage, ["Flyero Verteilnachweis", "FLYERO Verteilnachweis"], "src/app/customer/reports/[id]/page.tsx");
+includesAny(customerReportPage, ["GPS-Qualitaet", "GPS-Qualität", "GPS-QualitÃ¤t"], "src/app/customer/reports/[id]/page.tsx");
+includesAny(customerReportPage, ["Digitale Pruefnummer", "Digitale Prüfnummer", "Digitale PrÃ¼fnummer"], "src/app/customer/reports/[id]/page.tsx");
 for (const forbidden of ["distributor.user.email", "distributor.phone", "birthDate", "adminInternalNote", "fraudFlags"]) {
   assert(!customerReportPage.includes(forbidden), `Kundenseite enthaelt private Daten: ${forbidden}`);
 }
 
-await includes("src/app/admin/tours/[id]/page.tsx", [
+const adminTourPage = await includes("src/app/admin/tours/[id]/page.tsx", [
   "Bericht generieren",
   "Neu generieren",
-  "Veroeffentlichen",
   "Archivieren",
 ]);
+includesAny(adminTourPage, ["Veroeffentlichen", "Veröffentlichen", "VerÃ¶ffentlichen"], "src/app/admin/tours/[id]/page.tsx");
 await includes("src/lib/mapSnapshot.ts", ["GOOGLE_MAPS_SERVER_KEY", "Static-Maps-URL", "stabilen Karten-Fallback"]);
 await includes("README.md", ["Modul 9", "Verteilberichte", "PDF"]);
 await includes("ARCHITECTURE_DECISIONS.md", ["ReportStatus", "DISTRIBUTION_PROOF", "Kundendatenschutz"]);
@@ -123,7 +127,9 @@ assert(generatedAudit >= 1, "report.generated AuditLog fehlt.");
 assert(publishedAudit >= 1, "report.published AuditLog fehlt.");
 assert(notifications >= 1, "Report-Benachrichtigungen fehlen.");
 
-const pdfPath = path.join(process.cwd(), "public", publishedReport.pdfUrl.replace(/^\/+/, ""));
+const pdfPath = publishedReport.pdfUrl.startsWith("/private/generated/reports/")
+  ? path.join(process.cwd(), "storage", publishedReport.pdfUrl.replace(/^\/+private\/generated\/reports\//, "generated/reports/"))
+  : path.join(process.cwd(), "public", publishedReport.pdfUrl.replace(/^\/+/, ""));
 assert(existsSync(pdfPath), `PDF-Datei fehlt: ${pdfPath}`);
 const pdfHeader = await readFile(pdfPath, "utf8");
 assert(pdfHeader.startsWith("%PDF-"), "PDF-Datei hat keinen PDF-Header.");

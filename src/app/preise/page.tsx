@@ -1,33 +1,43 @@
-import type { Metadata } from "next";
-import { CardGrid, CtaBand, MarketingPage, PageHero, Section } from "@/app/marketing";
+import { CtaBand, EditorialList, MarketingPage, PageHero, Section } from "@/app/marketing";
+import { createSeoMetadata } from "@/app/seo";
 
-export const metadata: Metadata = {
-  title: "Preise - FLYERO",
-  description: "Faire Preise für Flyerverteilung je nach Gebiet, Menge, Zeitraum und Zusatzleistungen.",
-};
+export const metadata = createSeoMetadata({
+  title: "Preise für Flyerverteilung",
+  description:
+    "FLYERO Preise richten sich nach Gebiet, Flyeranzahl, Haushalten, Zeitraum und Zusatzleistungen. Der Preis wird vor der Buchung angezeigt.",
+  path: "/preise",
+  keywords: ["Flyerverteilung Preise", "Flyer verteilen Kosten", "Werbeflyer Kosten"],
+});
 
 export default function PricingPage() {
   return (
     <MarketingPage>
-      <PageHero eyebrow="Preise" title="Faire Preise je nach Gebiet und Menge." primaryLabel="Preis berechnen">
+      <PageHero eyebrow="Preise" title="Klare Kalkulation vor der Buchung." primaryLabel="Preis berechnen">
         <p>
-          Der Endpreis wird im Auftrag automatisch berechnet und vor Zahlung angezeigt. So bleibt die Kalkulation transparent,
-          ohne zu früh starre Tabellen zu versprechen.
+          Der Endpreis wird im Auftrag anhand von Gebiet, Menge, Zeitraum und Zusatzleistungen berechnet.
+          Sie sehen die Kosten, bevor Sie verbindlich buchen.
         </p>
       </PageHero>
 
-      <Section title="Der Preis hängt ab von">
-        <CardGrid items={["Flyeranzahl", "Gebiet", "Haushaltsanzahl", "Zeitraum", "Zusatzleistungen", "Expresswunsch"]} />
+      <Section title="Wovon der Preis abhängt">
+        <EditorialList
+          items={[
+            ["Flyeranzahl", "Mehr Stückzahl bedeutet mehr Laufleistung und Logistik."],
+            ["Verteilgebiet", "Fläche, Haushalte und Erreichbarkeit beeinflussen den Aufwand."],
+            ["Zeitraum", "Expresswünsche oder enge Zeitfenster können Zusatzaufwand erzeugen."],
+            ["Zusatzleistungen", "Druckdaten, Lager, Fotos und besondere Vorgaben werden transparent berücksichtigt."],
+          ]}
+        />
       </Section>
 
       <section className="priceHighlight">
         <div>
-          <span>Beispielhafte Orientierung</span>
+          <span>Orientierung</span>
           <strong>ab 0,12 EUR pro Flyer</strong>
           <p>Mindestauftrag ab 250 EUR netto.</p>
         </div>
         <p>
-          Der finale Preis wird im Kundenauftrag anhand der aktiven Preisregeln berechnet und vor der Stripe-Zahlung angezeigt.
+          Die konkrete Kalkulation entsteht im Kundenauftrag aus den aktiven Preisregeln und wird vor der Zahlung angezeigt.
         </p>
       </section>
 

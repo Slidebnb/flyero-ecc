@@ -1,16 +1,13 @@
 import { createHash, randomBytes } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { Prisma, ReportStatus, ReportTemplate } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { formatDateTime } from "@/lib/format";
+import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createMapSnapshotPlaceholder } from "@/lib/mapSnapshot";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { analyzeRoute, normalizeRoutePoint, type RouteAnalysis } from "@/lib/routeAnalysis";
 import { generateSettingsNumber, getBrandingSettings, getCompanySettings } from "@/lib/settings";
-
-const REPORT_DIR = path.join(process.cwd(), "public", "generated", "reports");
 
 type ReportData = Awaited<ReturnType<typeof collectReportData>>;
 
@@ -200,17 +197,15 @@ export async function generatePdf(reportId: string) {
     `Footer: ${branding.reportFooterText || `${company.companyName} / Seite 1 von 1`} / Bericht-ID ${report.id}`,
   ];
   const pdf = buildSimplePdf(lines);
-  await mkdir(REPORT_DIR, { recursive: true });
   const fileName = `${report.reportNumber.toLowerCase()}.pdf`;
-  const filePath = path.join(REPORT_DIR, fileName);
-  await writeFile(filePath, pdf);
+  const stored = await writeGeneratedAsset({ kind: "reports", fileName, buffer: pdf });
   const checksum = createHash("sha256").update(pdf).digest("hex");
-  const pdfUrl = `/generated/reports/${fileName}`;
+  const pdfUrl = stored.storagePath;
   await prisma.report.update({
     where: { id: report.id },
     data: { pdfUrl, checksum },
   });
-  return { pdfUrl, checksum, filePath };
+  return { pdfUrl, checksum, filePath: stored.absolutePath };
 }
 
 export async function createReportForTour(input: {

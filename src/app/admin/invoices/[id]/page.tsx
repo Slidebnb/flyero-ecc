@@ -32,7 +32,7 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
         <nav className="nav">
           <Link href="/admin/invoices">Alle Rechnungen</Link>
           <Link href={`/admin/orders/${invoice.orderId}`}>Auftrag</Link>
-          {invoice.pdfUrl ? <a href={invoice.pdfUrl}>PDF ansehen</a> : null}
+          {invoice.pdfUrl ? <a href={`/api/admin/invoices/${invoice.id}/download`}>PDF ansehen</a> : null}
         </nav>
       </header>
 
@@ -69,7 +69,7 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
               <tr><th>Rechnungsdatum</th><td>{formatDate(invoice.invoiceDate ?? invoice.createdAt)}</td></tr>
               <tr><th>Leistungsdatum</th><td>{formatDate(invoice.serviceDate ?? invoice.createdAt)}</td></tr>
               <tr><th>Bezahlt</th><td>{formatDateTime(invoice.paidAt)}</td></tr>
-              <tr><th>PDF</th><td>{invoice.pdfUrl ?? "-"}</td></tr>
+              <tr><th>PDF</th><td>{invoice.pdfUrl ? `/api/admin/invoices/${invoice.id}/download` : "-"}</td></tr>
             </tbody>
           </table>
         </div>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserRole, WarehouseInventoryStatus } from "@prisma/client";
+import { EmptyState } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { REMAINING_STOCK_STATUS_LABELS, WAREHOUSE_INVENTORY_STATUS_LABELS } from "@/lib/constants";
 import { inventoryScopeForUser } from "@/lib/logistics";
@@ -96,7 +97,17 @@ export default async function WarehouseInventoryPage({ searchParams }: PageProps
                   <td><Link className="textLink" href={`/warehouse/inventory/${item.id}`}>Details</Link></td>
                 </tr>
               ))}
-              {inventory.length === 0 ? <tr><td colSpan={7}>Keine passenden Lagerbestaende gefunden.</td></tr> : null}
+              {inventory.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState
+                      title="Keine passenden Lagerbestände gefunden."
+                      description="Passe die Filter an oder öffne den Wareneingang, wenn neue Flyer angekommen sind."
+                      action={{ href: "/warehouse/checkin", label: "Wareneingang öffnen" }}
+                    />
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

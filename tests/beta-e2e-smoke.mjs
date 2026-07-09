@@ -40,6 +40,8 @@ async function fetchOk(path, options = {}) {
 async function ensureServer() {
   const candidates = [
     baseUrl,
+    "http://localhost:3025",
+    "http://localhost:3024",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
@@ -303,7 +305,12 @@ async function main() {
     await jsonRequest(`/api/distributor/tours/${assignedTour.id}/photo`, {
       method: "POST",
       cookie: distributorCookie,
-      body: { url: "https://example.com/beta-photo.jpg", lat: 50.358, lng: 7.5901, accuracy: 20 },
+      body: {
+        imageDataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NDAiIGhlaWdodD0iNDgwIj48cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9IjQ4MCIgZmlsbD0iIzBlMTUyNSIvPjx0ZXh0IHg9IjMyMCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LXNpemU9IjI4IiBmb250LWZhbWlseT0iQXJpYWwiPkJldGEtU21va2UtRm90bzwvdGV4dD48L3N2Zz4=",
+        lat: 50.358,
+        lng: 7.5901,
+        accuracy: 20,
+      },
     });
     await jsonRequest(`/api/distributor/tours/${assignedTour.id}/complete`, {
       method: "POST",

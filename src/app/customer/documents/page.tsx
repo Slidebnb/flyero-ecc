@@ -57,6 +57,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
       take: 30,
     }),
   ]);
+  const hasOrders = orders.length > 0;
 
   return (
     <CustomerPortalShell
@@ -84,27 +85,43 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
 
       <div className="portalDashboardGrid">
         <ActionPanel title="Dokument hochladen" description="Druckdateien oder Nachweise direkt dem Auftrag zuordnen.">
-          <form action={uploadDocument} className="form">
-            <label>Auftrag<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} - {order.targetAreaName}</option>)}</select></label>
-            <label>Titel<input name="title" required placeholder="Flyer Vorderseite" /></label>
-            <label>Dateiname<input name="originalFilename" required defaultValue="flyer.pdf" /></label>
-            <label>Typ<select name="documentType" defaultValue="PRINT_FILE">{Object.entries(DOCUMENT_TYPE_LABELS).map(([type, label]) => <option key={type} value={type}>{label}</option>)}</select></label>
-            <label>Inhalt/Notiz<textarea name="content" rows={3} defaultValue="Upload-Datei wird im Storage-Service gespeichert." /></label>
-            <button type="submit">Hochladen</button>
-          </form>
+          {hasOrders ? (
+            <form action={uploadDocument} className="form">
+              <label>Auftrag<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} - {order.targetAreaName}</option>)}</select></label>
+              <label>Titel<input name="title" required placeholder="Flyer Vorderseite" /></label>
+              <label>Dateiname<input name="originalFilename" required defaultValue="flyer.pdf" /></label>
+              <label>Typ<select name="documentType" defaultValue="PRINT_FILE">{Object.entries(DOCUMENT_TYPE_LABELS).map(([type, label]) => <option key={type} value={type}>{label}</option>)}</select></label>
+              <label>Inhalt/Notiz<textarea name="content" rows={3} defaultValue="Upload-Datei wird im Dokumentenspeicher vorbereitet." /></label>
+              <button type="submit" disabled={orders.length === 0}>Hochladen</button>
+            </form>
+          ) : (
+            <EmptyState
+              title="Erst Bestellung erstellen"
+              description="Druckdaten können erst hochgeladen werden, wenn eine Kampagne angelegt ist."
+              action={{ href: "/customer/orders/new", label: "Neue Bestellung erstellen" }}
+            />
+          )}
         </ActionPanel>
 
         <ActionPanel title="Druck beauftragen" description="Druckauftrag ohne Medienbruch aus einer Kampagne starten.">
-          <form action={requestPrint} className="form">
-            <label>Auftrag<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} - {order.targetAreaName}</option>)}</select></label>
-            <label>Format<select name="printFormat" defaultValue="DIN_A5"><option value="DIN_A4">DIN A4</option><option value="DIN_A5">DIN A5</option><option value="DIN_LANG">DIN Lang</option><option value="SQUARE">Quadratisch</option><option value="CUSTOM">Individuell</option></select></label>
-            <label>Papier<select name="paperWeight" defaultValue="135">{[90, 115, 135, 170, 250, 300].map((weight) => <option key={weight} value={weight}>{weight}g</option>)}</select></label>
-            <label>Farbe<select name="colorMode" defaultValue="4/4"><option>4/4</option><option>4/0</option><option>1/1</option></select></label>
-            <label>Veredelung<select name="finishing" defaultValue="NONE"><option value="NONE">Keine</option><option value="VARNISH">Lack</option><option value="MATTE">Matt</option><option value="GLOSS">Glanz</option></select></label>
-            <label>Menge<input name="quantity" type="number" min="1" defaultValue="5000" /></label>
-            <input type="hidden" name="paperType" value="Bilderdruck" />
-            <button type="submit">Druck anfragen</button>
-          </form>
+          {hasOrders ? (
+            <form action={requestPrint} className="form">
+              <label>Auftrag<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} - {order.targetAreaName}</option>)}</select></label>
+              <label>Format<select name="printFormat" defaultValue="DIN_A5"><option value="DIN_A4">DIN A4</option><option value="DIN_A5">DIN A5</option><option value="DIN_LANG">DIN Lang</option><option value="SQUARE">Quadratisch</option><option value="CUSTOM">Individuell</option></select></label>
+              <label>Papier<select name="paperWeight" defaultValue="135">{[90, 115, 135, 170, 250, 300].map((weight) => <option key={weight} value={weight}>{weight}g</option>)}</select></label>
+              <label>Farbe<select name="colorMode" defaultValue="4/4"><option>4/4</option><option>4/0</option><option>1/1</option></select></label>
+              <label>Veredelung<select name="finishing" defaultValue="NONE"><option value="NONE">Keine</option><option value="VARNISH">Lack</option><option value="MATTE">Matt</option><option value="GLOSS">Glanz</option></select></label>
+              <label>Menge<input name="quantity" type="number" min="1" defaultValue="5000" /></label>
+              <input type="hidden" name="paperType" value="Bilderdruck" />
+              <button type="submit" disabled={orders.length === 0}>Druck anfragen</button>
+            </form>
+          ) : (
+            <EmptyState
+              title="Erst Bestellung erstellen"
+              description="Ein Druckauftrag braucht eine Kampagne, damit Menge, Format und Lagerweg sauber zugeordnet werden können."
+              action={{ href: "/customer/orders/new", label: "Neue Bestellung erstellen" }}
+            />
+          )}
         </ActionPanel>
       </div>
 

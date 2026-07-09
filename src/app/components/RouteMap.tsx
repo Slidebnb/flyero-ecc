@@ -105,8 +105,12 @@ export function RouteMap({ points, photos = [], targetArea = null, height = 360 
   if (!browserKey || validPoints.length === 0) {
     return (
       <div className="mapFallback">
-        <strong>{!browserKey ? "Google Maps Key fehlt." : "Keine GPS-Punkte vorhanden."}</strong>
-        <p>Fallback-Ansicht ohne Karten-API. Die Route bleibt als Koordinatenliste verfügbar.</p>
+        <strong>{!browserKey ? "Kartenansicht im Fallback-Modus" : "Noch keine GPS-Punkte vorhanden"}</strong>
+        <p>
+          {!browserKey
+            ? "Die interaktive Karte ist nicht aktiv. Die Route bleibt als Koordinatenliste verfügbar."
+            : "Sobald der Verteiler GPS-Punkte hochlädt, erscheint hier der Tourverlauf."}
+        </p>
         <ol>
           {validPoints.map((point, index) => (
             <li key={`${point.lat}-${point.lng}-${index}`}>

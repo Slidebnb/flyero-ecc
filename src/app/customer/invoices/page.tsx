@@ -47,7 +47,17 @@ export default async function CustomerInvoicesPage() {
                   <td data-label="Aktion"><Link className="textLink" href={`/customer/invoices/${invoice.id}`}>Ansehen</Link></td>
                 </tr>
               ))}
-              {invoices.length === 0 ? <tr><td colSpan={7}><EmptyState title="Noch keine Rechnungen vorhanden." /></td></tr> : null}
+              {invoices.length === 0 ? (
+                <tr>
+                  <td colSpan={7}>
+                    <EmptyState
+                      title="Noch keine Rechnungen vorhanden."
+                      description="Rechnungen werden nach erfolgreicher Zahlung und Freigabe automatisch erzeugt."
+                      action={{ href: "/customer/orders", label: "Bestellungen prüfen" }}
+                    />
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

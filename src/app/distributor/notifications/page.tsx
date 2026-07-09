@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
+import { EmptyState } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -74,7 +75,13 @@ export default async function DistributorNotificationsPage({ searchParams }: Pag
             <small>Queue: {message.queues[0]?.status ?? "nicht geplant"}</small>
           </article>
         ))}
-        {messages.length === 0 ? <p className="muted">Keine Nachrichten gefunden.</p> : null}
+        {messages.length === 0 ? (
+          <EmptyState
+            title="Keine Nachrichten gefunden."
+            description="Neue Aufträge, Tourhinweise und Support-Antworten erscheinen hier automatisch."
+            action={{ href: "/distributor/dashboard", label: "Heute öffnen" }}
+          />
+        ) : null}
       </section>
 
       <section className="mobileList">
@@ -85,7 +92,12 @@ export default async function DistributorNotificationsPage({ searchParams }: Pag
             <p className="muted">{preference.channel}: {preference.enabled ? "aktiv" : "deaktiviert"}</p>
           </article>
         ))}
-        {preferences.length === 0 ? <p className="muted">Standard: wichtige Nachrichten aktiv.</p> : null}
+        {preferences.length === 0 ? (
+          <EmptyState
+            title="Standard-Einstellungen aktiv."
+            description="Wichtige Nachrichten werden automatisch zugestellt."
+          />
+        ) : null}
       </section>
     </main>
   );

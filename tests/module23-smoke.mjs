@@ -108,9 +108,22 @@ async function main() {
     assert(frankfurt?.regions.some((region) => region.city === "Frankfurt am Main"), "Frankfurt Region fehlt.");
     assert(inactive && inactive.isActive === false, "Inaktives Test-Lager fehlt.");
 
-    const shipments = await prisma.logisticsShipment.findMany();
+    let shipments = await prisma.logisticsShipment.findMany();
     const transfers = await prisma.warehouseTransfer.findMany();
     const counts = await prisma.warehouseStockCount.findMany();
+    const reusableDelayedShipment = shipments.find((shipment) => shipment.notes?.includes("seed.module23"));
+    if (reusableDelayedShipment) {
+      await prisma.logisticsShipment.update({
+        where: { id: reusableDelayedShipment.id },
+        data: {
+          status: "IN_TRANSIT",
+          expectedDeliveryDate: new Date(Date.now() - 24 * 60 * 60 * 1000),
+          deliveredAt: null,
+          receivedById: null,
+        },
+      });
+      shipments = await prisma.logisticsShipment.findMany();
+    }
     assert(shipments.length >= 5, "Seed Sendungen fehlen.");
     assert(transfers.length >= 4, "Seed Umlagerungen fehlen.");
     assert(counts.length >= 4, "Seed Inventuren fehlen.");
@@ -137,7 +150,15 @@ async function main() {
     const assignedToInactive = await prisma.order.count({ where: { assignedWarehouseId: inactive.id } });
     assert(assignedToInactive === 0, "Inaktives Lager wurde Auftraegen zugewiesen.");
 
-    const shipmentForUpdate = shipments.find((shipment) => shipment.status !== "RECEIVED") ?? shipments[0];
+    const delayedOpenShipmentIds = new Set(
+      shipments
+        .filter((shipment) => shipment.expectedDeliveryDate && shipment.expectedDeliveryDate < new Date() && ["CREATED", "IN_TRANSIT"].includes(shipment.status))
+        .map((shipment) => shipment.id),
+    );
+    const shipmentForUpdate =
+      shipments.find((shipment) => shipment.status === "DELIVERED") ??
+      shipments.find((shipment) => shipment.status !== "RECEIVED" && !delayedOpenShipmentIds.has(shipment.id)) ??
+      shipments[0];
     await json(`/api/admin/logistics/shipments/${shipmentForUpdate.id}`, {
       method: "PATCH",
       cookie: adminCookie,

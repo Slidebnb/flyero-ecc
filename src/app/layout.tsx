@@ -1,6 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegister } from "./ServiceWorkerRegister";
+import { createJsonLd, siteMetadata } from "./seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,10 +14,14 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "FLYERO",
-  description: "Moderne Flyerverteilung mit Online-Buchung, GPS-Nachweis und Kundenbericht.",
+export const metadata: Metadata = siteMetadata;
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#b7e800",
 };
+const jsonLd = createJsonLd();
 
 export default function RootLayout({
   children,
@@ -26,6 +31,11 @@ export default function RootLayout({
   return (
     <html lang="de" className={`${geistSans.variable} ${geistMono.variable}`}>
       <body>
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
+        />
         <ServiceWorkerRegister />
         {children}
       </body>

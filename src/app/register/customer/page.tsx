@@ -1,4 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { noIndexMetadata } from "@/app/seo";
+
+export const metadata: Metadata = {
+  title: "Kundenkonto erstellen",
+  description: "FLYERO Kundenkonto erstellen.",
+  ...noIndexMetadata,
+};
 
 type CustomerRegisterPageProps = {
   searchParams?: Promise<{ next?: string }>;
@@ -14,9 +22,11 @@ export default async function CustomerRegisterPage({ searchParams }: CustomerReg
   const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : "/login";
 
   return (
-    <main className="shell">
-      <section className="panel">
+    <main className="authShell">
+      <section className="authPanel">
+        <Link href="/" className="authBack">Zur Startseite</Link>
         <h1>Kundenregistrierung</h1>
+        <p className="muted">Erstellen Sie ein Konto, um Verteilungen online zu buchen und Nachweise zentral zu sehen.</p>
         <form action="/api/auth/register-customer" method="post" className="form grid">
           {next ? <input type="hidden" name="next" value={next} /> : null}
           <label>

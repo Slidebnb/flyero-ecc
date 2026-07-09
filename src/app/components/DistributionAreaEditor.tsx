@@ -391,8 +391,8 @@ export function DistributionAreaEditor({
         <div ref={containerRef} className="areaMap" />
       ) : (
         <div className="mapFallback">
-          <strong>Google Maps Key fehlt.</strong>
-          <p>Fallback: Gebiete können als PLZ, Stadt, Ortsteil oder per GeoJSON gespeichert werden.</p>
+          <strong>Kartenbearbeitung im Fallback-Modus</strong>
+          <p>Gebiete können weiterhin gespeichert werden: als PLZ, Stadt, Ortsteil oder per GeoJSON.</p>
           <textarea
             aria-label="GeoJSON Fallback"
             value={JSON.stringify(geoJson, null, 2)}

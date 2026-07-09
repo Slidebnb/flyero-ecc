@@ -3,6 +3,7 @@ import { NotificationAudience, NotificationChannel, UserRole } from "@prisma/cli
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { EmptyState } from "@/app/PortalComponents";
 import { TemplatePreviewForm } from "./TemplatePreviewForm";
 
 type PageProps = {
@@ -91,23 +92,29 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
         <h2 className="sectionTitle">Nachrichten</h2>
-        <div className="tableWrap">
-          <table>
-            <thead><tr><th>Datum</th><th>Empfaenger</th><th>Typ</th><th>Betreff</th><th>Status</th></tr></thead>
-            <tbody>
-              {messages.map((message) => (
-                <tr key={message.id}>
-                  <td>{formatDateTime(message.createdAt)}</td>
-                  <td>{message.user.email}</td>
-                  <td>{message.type}</td>
-                  <td>{message.subject}</td>
-                  <td>{message.readAt ? "gelesen" : "ungelesen"}</td>
-                </tr>
-              ))}
-              {messages.length === 0 ? <tr><td colSpan={5}>Keine Nachrichten gefunden.</td></tr> : null}
-            </tbody>
-          </table>
-        </div>
+        {messages.length === 0 ? (
+          <EmptyState
+            title="Keine Nachrichten gefunden."
+            description="Mit anderen Filtern oder neuen Systemereignissen erscheinen hier interne Hinweise."
+          />
+        ) : (
+          <div className="tableWrap">
+            <table>
+              <thead><tr><th>Datum</th><th>Empfänger</th><th>Typ</th><th>Betreff</th><th>Status</th></tr></thead>
+              <tbody>
+                {messages.map((message) => (
+                  <tr key={message.id}>
+                    <td>{formatDateTime(message.createdAt)}</td>
+                    <td>{message.user.email}</td>
+                    <td>{message.type}</td>
+                    <td>{message.subject}</td>
+                    <td>{message.readAt ? "gelesen" : "ungelesen"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
 
       <section className="gridTwo" style={{ marginTop: 18 }}>
@@ -142,7 +149,7 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
         <h2 className="sectionTitle">Queue</h2>
         <div className="tableWrap">
           <table>
-            <thead><tr><th>Status</th><th>Kanal</th><th>Empfaenger</th><th>Vorlage</th><th>Geplant</th><th>Fehler</th></tr></thead>
+            <thead><tr><th>Status</th><th>Kanal</th><th>Empfänger</th><th>Vorlage</th><th>Geplant</th><th>Fehler</th></tr></thead>
             <tbody>
               {queues.map((queue) => (
                 <tr key={queue.id}>

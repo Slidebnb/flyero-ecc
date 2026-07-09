@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ErrorSeverity, UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
-import { completePaymentFromCheckoutSession } from "@/lib/payments";
+import { completePaymentFromCheckoutSession, mockPaymentsEnabled } from "@/lib/payments";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 
@@ -10,6 +10,10 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
+    const mockPaymentFlag = process.env.ENABLE_MOCK_PAYMENTS;
+    if (mockPaymentFlag !== "true" && !mockPaymentsEnabled()) {
+      return errorResponse("Mock-Zahlungen sind deaktiviert.", 404);
+    }
     const session = await requireRole([UserRole.CUSTOMER]);
     const { id } = await context.params;
     const payment = await prisma.payment.findFirst({

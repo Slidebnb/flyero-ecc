@@ -1,4 +1,12 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { noIndexMetadata } from "@/app/seo";
+
+export const metadata: Metadata = {
+  title: "Login",
+  description: "FLYERO Kundenportal Login.",
+  ...noIndexMetadata,
+};
 
 type LoginPageProps = {
   searchParams?: Promise<{ next?: string }>;
@@ -16,9 +24,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     : "/register/customer";
 
   return (
-    <main className="shell">
-      <section className="panel compact">
+    <main className="authShell">
+      <section className="authPanel compact">
+        <Link href="/" className="authBack">Zur Startseite</Link>
         <h1>Login</h1>
+        <p className="muted">Melden Sie sich an, um Aufträge, Berichte und Rechnungen zu verwalten.</p>
         <form action="/api/auth/login" method="post" className="form">
           {next ? <input type="hidden" name="next" value={next} /> : null}
           <label>

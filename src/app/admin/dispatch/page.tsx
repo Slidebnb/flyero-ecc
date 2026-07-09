@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DispatchAssignmentStatus, UserRole } from "@prisma/client";
+import { EmptyState } from "@/app/PortalComponents";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 import { requireRole } from "@/lib/auth";
 import { DISPATCH_STATUS_LABELS, TOUR_STATUS_LABELS } from "@/lib/constants";
@@ -34,7 +35,6 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
       title="Disposition"
       description="Offene Aufträge, Verteilerempfehlungen, Tour-Kombinationen und laufende Zustellungen koordinieren."
     >
-
       <section className="gridCards">
         <article className="card"><strong>{dashboard.metrics.openOrders}</strong><span>Offene Aufträge</span></article>
         <article className="card"><strong>{dashboard.metrics.unassigned}</strong><span>Nicht zugewiesen</span></article>
@@ -108,7 +108,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                   <button type="submit">Empfehlungen erstellen</button>
                 </form>
                 <form action={`/api/admin/dispatch/auto-assign/${inventory.orderId}`} method="post">
-                  <button type="submit">Auto-Assign versuchen</button>
+                  <button type="submit">Auto-Zuweisung prüfen</button>
                 </form>
               </div>
               {dashboard.persistedRecommendations.filter((item) => item.orderId === inventory.orderId).length > 0 ? (
@@ -187,7 +187,14 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                       </tr>
                     ))}
                     {recommendations.length === 0 ? (
-                      <tr><td colSpan={11}>Keine passenden Verteiler gefunden.</td></tr>
+                      <tr>
+                        <td colSpan={11}>
+                          <EmptyState
+                            title="Keine passenden Verteiler gefunden."
+                            description="Passe Stadt, Lager oder Verfügbarkeit an und erstelle danach neue Empfehlungen."
+                          />
+                        </td>
+                      </tr>
                     ) : null}
                   </tbody>
                 </table>
@@ -195,7 +202,12 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
             </article>
           );
         })}
-        {dashboard.unassignedInventories.length === 0 ? <p className="muted">Aktuell gibt es keine offenen Dispatch-Aufträge.</p> : null}
+        {dashboard.unassignedInventories.length === 0 ? (
+          <EmptyState
+            title="Keine offenen Dispatch-Aufträge."
+            description="Sobald ein Auftrag abholbereit ist, erscheint er hier zur Verteilerzuweisung."
+          />
+        ) : null}
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
@@ -222,7 +234,16 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                   <td>{combination.savedCostEstimate} €</td>
                 </tr>
               ))}
-              {combinations.length === 0 ? <tr><td colSpan={6}>Noch keine sinnvollen Kombinationen gefunden.</td></tr> : null}
+              {combinations.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      title="Noch keine sinnvollen Kombinationen gefunden."
+                      description="Kombinationen entstehen, wenn mehrere Aufträge räumlich und zeitlich zusammenpassen."
+                    />
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -246,7 +267,16 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                   <td>{formatDateTime(assignment.updatedAt)}</td>
                 </tr>
               ))}
-              {dashboard.assignments.length === 0 ? <tr><td colSpan={6}>Keine Zuweisungen vorhanden.</td></tr> : null}
+              {dashboard.assignments.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      title="Keine Zuweisungen vorhanden."
+                      description="Zuweisungen erscheinen hier, nachdem ein Auftrag einem Verteiler zugeordnet wurde."
+                    />
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>
@@ -261,7 +291,9 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
               <span className="muted">{tour.distributor.firstName} {tour.distributor.lastName} / {TOUR_STATUS_LABELS[tour.status]}</span>
             </p>
           ))}
-          {dashboard.runningTours.length === 0 ? <p className="muted">Keine laufenden Touren.</p> : null}
+          {dashboard.runningTours.length === 0 ? (
+            <EmptyState title="Keine laufenden Touren." description="Aktive Touren erscheinen hier in Echtzeit." />
+          ) : null}
         </article>
         <article className="panel stack">
           <h2 className="sectionTitle">Abgeschlossene Touren</h2>
@@ -271,11 +303,11 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
               <span className="muted">{tour.distributor.firstName} {tour.distributor.lastName} / {TOUR_STATUS_LABELS[tour.status]}</span>
             </p>
           ))}
-          {dashboard.completedTours.length === 0 ? <p className="muted">Keine abgeschlossenen Touren.</p> : null}
+          {dashboard.completedTours.length === 0 ? (
+            <EmptyState title="Keine abgeschlossenen Touren." description="Freigegebene Tourabschlüsse werden hier chronologisch sichtbar." />
+          ) : null}
         </article>
       </section>
     </AdminPortalShell>
   );
 }
-
-

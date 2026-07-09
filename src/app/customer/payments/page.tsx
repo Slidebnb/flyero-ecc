@@ -56,7 +56,17 @@ export default async function CustomerPaymentsPage() {
                   <td data-label="Erstattungen">{payment.refunds.length}</td>
                 </tr>
               ))}
-              {payments.length === 0 ? <tr><td colSpan={6}><EmptyState title="Noch keine Zahlungen vorhanden." /></td></tr> : null}
+              {payments.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      title="Noch keine Zahlungen vorhanden."
+                      description="Zahlungen entstehen, sobald eine neue Bestellung zur Buchung vorbereitet wird."
+                      action={{ href: "/customer/orders/new", label: "Neue Bestellung erstellen" }}
+                    />
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
         </div>

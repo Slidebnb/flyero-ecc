@@ -55,7 +55,7 @@ for (const filePath of [
   assert(existsSync(filePath), `${filePath} fehlt.`);
 }
 
-await includes("README.md", ["Modul 13", "Accounting Export", "Lexware CSV", "DATEV", "public/generated/accounting"]);
+await includes("README.md", ["Modul 13", "Accounting Export", "Lexware CSV", "DATEV"]);
 await includes("ARCHITECTURE_DECISIONS.md", ["Export zuerst", "DATEV", "Steuerberater"]);
 
 const [
@@ -99,7 +99,9 @@ assert(notifications >= 2, "Accounting Export Notifications fehlen.");
 const completed = await prisma.accountingExport.findFirst({ where: { status: "COMPLETED", fileUrl: { not: null } }, include: { items: true } });
 assert(completed, "Completed Export mit Datei fehlt.");
 assert(completed.items.length >= 1, "Completed Export hat keine Items.");
-const csvPath = path.join(process.cwd(), "public", completed.fileUrl.replace(/^\/+/, ""));
+const csvPath = completed.fileUrl.startsWith("/private/generated/accounting/")
+  ? path.join(process.cwd(), "storage", completed.fileUrl.replace(/^\/+private\/generated\/accounting\//, "generated/accounting/"))
+  : path.join(process.cwd(), "public", completed.fileUrl.replace(/^\/+/, ""));
 assert(existsSync(csvPath), `CSV-Datei fehlt: ${csvPath}`);
 const csvContent = await readFile(csvPath, "utf8");
 assert(csvContent.includes("Exportnummer") || csvContent.includes("Belegnummer") || csvContent.includes("EntityType"), "CSV-Inhalt wirkt ungueltig.");

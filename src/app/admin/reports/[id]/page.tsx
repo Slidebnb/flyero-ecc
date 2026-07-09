@@ -46,7 +46,7 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
           <form action={`/api/admin/reports/${report.id}/regenerate`} method="post"><button type="submit">Bericht neu generieren</button></form>
           <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veröffentlichen</button></form>
           <form action={`/api/admin/reports/${report.id}/archive`} method="post"><button type="submit">Bericht archivieren</button></form>
-          {report.pdfUrl ? <a href={report.pdfUrl}>PDF ansehen</a> : null}
+          {report.pdfUrl ? <a href={`/api/admin/reports/${report.id}/download`}>PDF ansehen</a> : null}
         </div>
       </section>
 

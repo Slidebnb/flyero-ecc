@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
+import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { generateOnlineReportUrl, generateReportNumber } from "@/lib/reports";
@@ -16,6 +18,8 @@ type GpsPointInput = {
   battery?: number;
   recordedAt?: Date;
   source?: string;
+  clientId?: string;
+  sequence?: number;
   status?: string;
 };
 
@@ -33,6 +37,24 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
   return 2 * radius * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+function decodeImageDataUrl(imageDataUrl?: string) {
+  const match = imageDataUrl?.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (!match) throw new Error("Foto muss als gueltige Data-URL hochgeladen werden.");
+  const mimeType = match[1];
+  const extension =
+    mimeType === "image/jpeg" ? "jpg"
+    : mimeType === "image/png" ? "png"
+    : mimeType === "image/webp" ? "webp"
+    : mimeType === "image/svg+xml" ? "svg"
+    : null;
+  if (!extension) throw new Error("Nur PNG, JPG, WEBP oder SVG Fotos werden unterstuetzt.");
+  return {
+    mimeType,
+    extension,
+    buffer: Buffer.from(match[2], "base64"),
+  };
 }
 
 function parseQrPayload(qrCode: string) {
@@ -240,20 +262,36 @@ export async function uploadGpsPoints(input: { tourId: string; userId: string; p
   const profile = await getDistributorProfileForUser(input.userId);
   const tour = await prisma.distributionTour.findFirst({
     where: { id: input.tourId, distributorId: profile.id },
-    include: { gpsPoints: { orderBy: { recordedAt: "desc" }, take: 1 } },
+    include: { gpsPoints: { orderBy: { recordedAt: "desc" }, take: 50 } },
   });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
 
   let previous = tour.gpsPoints[0]
     ? { lat: Number(tour.gpsPoints[0].lat), lng: Number(tour.gpsPoints[0].lng), recordedAt: tour.gpsPoints[0].recordedAt }
     : null;
+  const existingKeys = new Set(
+    tour.gpsPoints.map((point) => `${point.recordedAt.toISOString()}:${Number(point.lat).toFixed(7)}:${Number(point.lng).toFixed(7)}`),
+  );
+  const batchKeys = new Set<string>();
   let uploadedDistance = 0;
-  const rows = input.points.map((point) => {
+  let duplicatePoints = 0;
+  const rows = input.points.flatMap((point) => {
     const recordedAt = point.recordedAt ?? new Date();
+    const key = `${recordedAt.toISOString()}:${point.lat.toFixed(7)}:${point.lng.toFixed(7)}`;
+    if (existingKeys.has(key) || batchKeys.has(key)) {
+      duplicatePoints += 1;
+      return [];
+    }
+    batchKeys.add(key);
     const flags: string[] = [];
     if (!Number.isFinite(point.lat) || !Number.isFinite(point.lng)) flags.push("gps_invalid");
+    if (point.lat < -90 || point.lat > 90 || point.lng < -180 || point.lng > 180) flags.push("gps_invalid_range");
     if (point.accuracy === undefined || point.accuracy > 100) flags.push("gps_weak_or_disabled");
+    else if (point.accuracy > 50) flags.push("gps_low_accuracy");
     if (point.speed !== undefined && point.speed > 13.9) flags.push("speed_high");
+    if (point.battery !== undefined && point.battery <= 15) flags.push("battery_low");
+    const clockDriftSeconds = Math.abs((Date.now() - recordedAt.getTime()) / 1000);
+    if (clockDriftSeconds > 60 * 60) flags.push("device_time_suspicious");
     if (previous) {
       const distance = distanceMeters(previous, point);
       const seconds = Math.max((recordedAt.getTime() - previous.recordedAt.getTime()) / 1000, 1);
@@ -273,14 +311,14 @@ export async function uploadGpsPoints(input: { tourId: string; userId: string; p
       heading: decimal(point.heading),
       altitude: decimal(point.altitude),
       battery: point.battery,
-      source: point.source ?? "browser",
+      source: [point.source ?? "browser", point.clientId ? point.clientId.slice(0, 48) : null, point.sequence !== undefined ? `seq:${point.sequence}` : null].filter(Boolean).join(":"),
       status: point.status ?? (flags.length ? "flagged" : "ok"),
       flags: flags.length ? flags : undefined,
       recordedAt,
     };
   });
 
-  await prisma.gpsPoint.createMany({ data: rows });
+  if (rows.length > 0) await prisma.gpsPoint.createMany({ data: rows });
   const allFlags = rows.flatMap((row) => (Array.isArray(row.flags) ? row.flags : []));
   await prisma.distributionTour.update({
     where: { id: tour.id },
@@ -294,16 +332,15 @@ export async function uploadGpsPoints(input: { tourId: string; userId: string; p
     action: "gps.uploaded",
     entityType: "DistributionTour",
     entityId: tour.id,
-    newValues: { points: rows.length, flags: allFlags },
+    newValues: { points: rows.length, duplicates: duplicatePoints, flags: allFlags },
   });
-  return { count: rows.length, flags: allFlags };
+  return { count: rows.length, duplicates: duplicatePoints, flags: allFlags };
 }
 
 export async function uploadTourPhoto(input: {
   tourId: string;
   userId: string;
   imageDataUrl?: string;
-  url?: string;
   lat?: number;
   lng?: number;
   accuracy?: number;
@@ -312,18 +349,30 @@ export async function uploadTourPhoto(input: {
   const profile = await getDistributorProfileForUser(input.userId);
   const tour = await prisma.distributionTour.findFirst({ where: { id: input.tourId, distributorId: profile.id } });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
+  const decodedPhoto = decodeImageDataUrl(input.imageDataUrl);
+  const photoId = randomUUID();
+  const stored = await writeGeneratedAsset({
+    kind: "proofs",
+    fileName: `${photoId}.${decodedPhoto.extension}`,
+    buffer: decodedPhoto.buffer,
+  });
   const photo = await prisma.photoProof.create({
     data: {
+      id: photoId,
       tourId: tour.id,
       orderId: tour.orderId,
       uploadedBy: input.userId,
-      url: input.url ?? input.imageDataUrl ?? "",
+      url: `/api/proofs/${photoId}`,
       lat: decimal(input.lat),
       lng: decimal(input.lng),
       accuracy: decimal(input.accuracy),
       source: "camera",
       takenAt: input.takenAt ?? new Date(),
-      metadata: { storedAs: input.url ? "url" : "dataUrl" },
+      metadata: {
+        storedAs: "generated-asset",
+        storagePath: stored.storagePath,
+        mimeType: decodedPhoto.mimeType,
+      },
     },
   });
   await createAuditLog({ userId: input.userId, action: "photo.uploaded", entityType: "PhotoProof", entityId: photo.id });

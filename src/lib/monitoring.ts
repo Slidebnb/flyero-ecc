@@ -210,7 +210,9 @@ export async function runHealthCheck(userId?: string) {
   }
 
   const stripeStatus = process.env.STRIPE_SECRET_KEY ? HealthStatus.OK : HealthStatus.DEGRADED;
-  const googleMapsStatus = process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_SERVER_KEY ? HealthStatus.OK : HealthStatus.DEGRADED;
+  const googleMapsBrowserConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
+  const googleMapsServerConfigured = Boolean(process.env.GOOGLE_MAPS_SERVER_KEY);
+  const googleMapsStatus = googleMapsBrowserConfigured && googleMapsServerConfigured ? HealthStatus.OK : HealthStatus.DEGRADED;
   const emailStatus = process.env.SMTP_HOST || process.env.EMAIL_PROVIDER ? HealthStatus.OK : HealthStatus.DEGRADED;
   const failedQueueCount = await prisma.notificationQueue.count({ where: { status: { in: ["FAILED", "RETRY"] } } }).catch(() => 0);
   const queueStatus = failedQueueCount > 20 ? HealthStatus.DEGRADED : HealthStatus.OK;
@@ -238,7 +240,9 @@ export async function runHealthCheck(userId?: string) {
         storageError,
         failedQueueCount,
         stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
-        googleMapsConfigured: Boolean(process.env.GOOGLE_MAPS_API_KEY || process.env.GOOGLE_MAPS_SERVER_KEY),
+        googleMapsConfigured: googleMapsBrowserConfigured && googleMapsServerConfigured,
+        googleMapsBrowserConfigured,
+        googleMapsServerConfigured,
         emailConfigured: Boolean(process.env.SMTP_HOST || process.env.EMAIL_PROVIDER),
       },
     },

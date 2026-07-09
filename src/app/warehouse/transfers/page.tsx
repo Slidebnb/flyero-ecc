@@ -1,5 +1,5 @@
 import { TransferStatus, UserRole } from "@prisma/client";
-import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { transferScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
@@ -22,26 +22,40 @@ export default async function WarehouseTransfersPage() {
       { href: "/warehouse/inventory", label: "Bestand" },
     ]}>
       <DataSection title="Umlagerungen">
-        <div className="tableWrap"><table><thead><tr><th>Auftrag</th><th>Von</th><th>Nach</th><th>Menge</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
-          {transfers.map((transfer) => (
-            <tr key={transfer.id}>
-              <td>{transfer.inventory.order.orderNumber}</td>
-              <td>{transfer.fromWarehouse.name}</td>
-              <td>{transfer.toWarehouse.name}</td>
-              <td>{transfer.quantity}</td>
-              <td><StatusBadge tone={transfer.status === "RECEIVED" ? "success" : "warning"}>{transfer.status}</StatusBadge></td>
-              <td>
-                <form className="inlineForm" action={`/api/warehouse/transfers/${transfer.id}`} method="post">
-                  <select name="status" defaultValue={transfer.status}>
-                    {Object.values(TransferStatus).map((status) => <option key={status} value={status}>{status}</option>)}
-                  </select>
-                  <button type="submit">Speichern</button>
-                </form>
-              </td>
-            </tr>
-          ))}
-          {transfers.length === 0 ? <tr><td colSpan={6}>Keine Umlagerungen für dieses Lager.</td></tr> : null}
-        </tbody></table></div>
+        <div className="tableWrap">
+          <table>
+            <thead><tr><th>Auftrag</th><th>Von</th><th>Nach</th><th>Menge</th><th>Status</th><th>Aktion</th></tr></thead>
+            <tbody>
+              {transfers.map((transfer) => (
+                <tr key={transfer.id}>
+                  <td>{transfer.inventory.order.orderNumber}</td>
+                  <td>{transfer.fromWarehouse.name}</td>
+                  <td>{transfer.toWarehouse.name}</td>
+                  <td>{transfer.quantity}</td>
+                  <td><StatusBadge tone={transfer.status === "RECEIVED" ? "success" : "warning"}>{transfer.status}</StatusBadge></td>
+                  <td>
+                    <form className="inlineForm" action={`/api/warehouse/transfers/${transfer.id}`} method="post">
+                      <select name="status" defaultValue={transfer.status}>
+                        {Object.values(TransferStatus).map((status) => <option key={status} value={status}>{status}</option>)}
+                      </select>
+                      <button type="submit">Speichern</button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+              {transfers.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <EmptyState
+                      title="Keine Umlagerungen für dieses Lager."
+                      description="Sobald Ware zwischen Lagern bewegt wird, erscheinen Status und Übernahme hier."
+                    />
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
       </DataSection>
     </PortalShell>
   );

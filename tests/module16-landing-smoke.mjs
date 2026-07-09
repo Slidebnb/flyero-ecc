@@ -49,6 +49,8 @@ async function fetchLocal(path, options = {}) {
 async function ensureServer() {
   const candidates = [
     baseUrl,
+    "http://localhost:3025",
+    "http://localhost:3024",
     "http://localhost:3000",
     "http://localhost:3001",
     "http://localhost:3002",
@@ -131,6 +133,14 @@ await includes("src/app/verteilung-anfragen/page.tsx", [
   "Direkt online buchen",
   "next=${directBookingParam}",
 ]);
+await includes("src/app/seo.ts", ["publicSeoRoutes", "createJsonLd", "noIndexMetadata"]);
+await includes("src/app/sitemap.ts", ["MetadataRoute.Sitemap", "publicSeoRoutes"]);
+await includes("src/app/robots.ts", ["MetadataRoute.Robots", "disallow"]);
+await includes("src/app/layout.tsx", ["application/ld+json"]);
+await includes("src/app/login/page.tsx", ["noIndexMetadata"]);
+await includes("src/app/register/customer/page.tsx", ["noIndexMetadata"]);
+await includes("src/app/register/distributor/page.tsx", ["noIndexMetadata"]);
+await includes("src/app/verify-email/page.tsx", ["noIndexMetadata"]);
 
 const landingSource = await readFile("src/app/page.tsx", "utf8");
 assert(!landingSource.includes("Lokale Kampagnen mit messbarem Gebietsfokus"), "Zielgruppen enthalten noch den wiederholten Fülltext.");
@@ -163,6 +173,27 @@ try {
     const html = await response.text();
     assert(!html.includes("Google Maps Key fehlt"), `${path} zeigt unerwarteten Google-Key-Fehler.`);
     assert(!html.includes("Lokale Kampagnen mit messbarem Gebietsfokus"), `${path} enthält wiederholten Zielgruppen-Fülltext.`);
+  }
+
+  const robots = await fetchLocal("/robots.txt");
+  assert(robots.status === 200, `/robots.txt lieferte ${robots.status}`);
+  const robotsText = await robots.text();
+  assert(robotsText.includes("Sitemap:"), "robots.txt verweist nicht auf sitemap.xml.");
+  assert(robotsText.includes("Disallow: /api/"), "robots.txt blockiert API-Routen nicht.");
+  assert(robotsText.includes("Disallow: /customer/"), "robots.txt blockiert Kundenportal nicht.");
+
+  const sitemap = await fetchLocal("/sitemap.xml");
+  assert(sitemap.status === 200, `/sitemap.xml lieferte ${sitemap.status}`);
+  const sitemapText = await sitemap.text();
+  for (const publicPath of ["/verteilung-anfragen", "/fuer-unternehmen", "/fuer-verteiler", "/preise", "/kontakt"]) {
+    assert(sitemapText.includes(publicPath), `sitemap.xml enthaelt ${publicPath} nicht.`);
+  }
+
+  for (const authPath of ["/login", "/register/customer", "/register/distributor", "/verify-email"]) {
+    const response = await fetchLocal(authPath);
+    assert(response.status === 200, `${authPath} lieferte ${response.status}`);
+    const html = await response.text();
+    assert(html.includes("noindex"), `${authPath} ist nicht als noindex markiert.`);
   }
 
   const requestPage = await fetchLocal("/verteilung-anfragen");

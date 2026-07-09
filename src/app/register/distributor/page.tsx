@@ -1,4 +1,6 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { noIndexMetadata } from "@/app/seo";
 import {
   DISTRIBUTOR_AREAS,
   MOBILITY_OPTIONS,
@@ -7,11 +9,19 @@ import {
   WORKING_TIMES,
 } from "@/lib/constants";
 
+export const metadata: Metadata = {
+  title: "Verteilerkonto erstellen",
+  description: "Bei FLYERO als Verteiler registrieren.",
+  ...noIndexMetadata,
+};
+
 export default function DistributorRegisterPage() {
   return (
-    <main className="shell">
-      <section className="panel">
+    <main className="authShell">
+      <section className="authPanel">
+        <Link href="/" className="authBack">Zur Startseite</Link>
         <h1>Verteilerregistrierung</h1>
+        <p className="muted">Registrieren Sie sich für die Prüfung als Verteiler im FLYERO Netzwerk.</p>
         <form
           action="/api/auth/register-distributor"
           method="post"

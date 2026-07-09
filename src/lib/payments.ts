@@ -16,9 +16,14 @@ function stripeSecretKey() {
   return process.env.STRIPE_SECRET_KEY || "";
 }
 
+export function mockPaymentsEnabled() {
+  if (process.env.ENABLE_MOCK_PAYMENTS === "true") return true;
+  return process.env.NODE_ENV !== "production";
+}
+
 function isMockStripe() {
   const secret = stripeSecretKey();
-  return secret.includes("_mock") || secret === "sk_test_mock" || (process.env.NODE_ENV !== "production" && !secret);
+  return secret.includes("_mock") || secret === "sk_test_mock" || (mockPaymentsEnabled() && !secret);
 }
 
 function stripeClient() {
@@ -117,6 +122,9 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
 
   const successUrl = `${appUrl()}/customer/orders/${order.id}?payment=success`;
   const cancelUrl = `${appUrl()}/customer/orders/${order.id}?payment=cancelled`;
+  if (isMockStripe() && !mockPaymentsEnabled()) {
+    throw new Error("Mock-Zahlungen sind deaktiviert.");
+  }
   const session = isMockStripe()
     ? {
         id: `cs_test_mock_${payment.id}`,

@@ -25,6 +25,7 @@ Stand: Modul 15.5
 - Kein KI-Textgenerator fuer Nachrichten.
 - Keine automatischen Auszahlungen an Verteiler.
 - Keine native App.
+- Kein garantiertes Background-GPS bei gesperrtem iPhone.
 - Kein Live-Tracking fuer Kunden waehrend laufender Touren.
 - Keine Live-Schnittstellen zu Lexware oder DATEV.
 - Keine rechtsverbindliche Steuer-/DATEV-Freigabe.
@@ -35,6 +36,7 @@ Stand: Modul 15.5
 - Vollstaendiger E-Mail-Versand ueber einen Provider inklusive SPF, DKIM und DMARC.
 - Google Maps Browser-Key mit Domain-Restriktionen.
 - Google Server-Key nur fuer serverseitige Nutzung und ohne Frontend-Leak.
+- Browser-GPS im Verteiler-Webflow auf echten Mobilgeraeten pruefen, inklusive Standortfreigabe, Offline-Puffer und Re-Sync.
 - PDF-Inhalte fuer Rechnung und Bericht fachlich/fiskalisch pruefen.
 - DATEV/Lexware-CSV mit Steuerberater oder Buchhaltung validieren.
 - Datenschutztexte, AGB, Impressum, AV-Vertraege und Auftragsverarbeitung pruefen.
@@ -69,6 +71,7 @@ Stand: Modul 15.5
 
 - Datenschutzfolge und Datenminimierung fuer GPS-/Foto-Nachweise.
 - Einwilligungen fuer Verteiler-Tracking und Foto-Uploads.
+- Keine Werbeaussage zu 100 Prozent Background-GPS verwenden, solange kein natives iOS-/Android-Projekt umgesetzt und rechtlich freigegeben ist.
 - Aufbewahrungsfristen fuer Rechnungen, Berichte, AuditLogs und GPS-Daten.
 - Steuerliche Rechnungsfreigabe.
 - AGB, Widerruf, Impressum, Datenschutz und AV-Vertraege.

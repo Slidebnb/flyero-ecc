@@ -1,26 +1,32 @@
-import type { Metadata } from "next";
-import { MarketingPage, Section } from "@/app/marketing";
+import { MarketingPage } from "@/app/marketing";
+import { createSeoMetadata } from "@/app/seo";
 
-export const metadata: Metadata = {
-  title: "AGB - FLYERO",
-  description: "Allgemeine Geschäftsbedingungen für FLYERO als rechtlicher Platzhalter.",
-};
+export const metadata = createSeoMetadata({
+  title: "AGB",
+  description: "Allgemeine Geschäftsbedingungen für FLYERO als Beta-Struktur vor rechtlicher Finalisierung.",
+  path: "/agb",
+  keywords: ["FLYERO AGB", "Flyerverteilung Bedingungen"],
+});
 
 export default function TermsPage() {
   return (
     <MarketingPage>
-      <Section eyebrow="Rechtliches" title="Allgemeine Geschaeftsbedingungen">
+      <section className="marketingSection legalPage">
+        <p className="eyebrow">Rechtliches</p>
+        <h1>Allgemeine Geschäftsbedingungen</h1>
         <div className="legalText">
           <p>
-            Diese Seite beschreibt künftig die vertraglichen Grundlagen für Auftraggeber, Verteiler, Zahlungsabwicklung,
-            Stornierungen, Nachweise, Berichte und Haftungsfragen.
+            Diese Seite beschreibt künftig die vertraglichen Grundlagen für Auftraggeber, Verteiler,
+            Zahlungsabwicklung, Stornierungen, Nachweise, Berichte und Haftungsfragen.
           </p>
           <p>
-            Bis zur finalen rechtlichen Freigabe gelten diese Inhalte nur als Strukturplatzhalter für die Beta-Demo.
+            Bis zur finalen rechtlichen Freigabe gelten diese Inhalte als strukturierter Beta-Hinweis.
           </p>
-          <p className="notice">Platzhalter: Die AGB müssen vor echtem Kundenbetrieb anwaltlich erstellt oder geprüft werden.</p>
+          <p className="notice">
+            Beta-Hinweis: Die AGB müssen vor echtem Kundenbetrieb anwaltlich erstellt oder geprüft werden.
+          </p>
         </div>
-      </Section>
+      </section>
     </MarketingPage>
   );
 }
