@@ -4,6 +4,18 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import {
+  Bell,
+  CircleHelp,
+  CreditCard,
+  FileStack,
+  FileText,
+  LayoutDashboard,
+  ListChecks,
+  Plus,
+  ReceiptText,
+  Settings,
+} from "lucide-react";
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
 
 type LatLng = { lat: number; lng: number };
@@ -65,6 +77,19 @@ type OrderDraft = {
   contactPhone?: string;
   notes?: string;
 };
+
+const orderNavItems = [
+  { href: "/customer/orders/new", label: "Neue Bestellung", icon: Plus, active: true },
+  { href: "/customer/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/customer/orders", label: "Bestellungen", icon: ListChecks },
+  { href: "/customer/documents", label: "Dokumente", icon: FileStack },
+  { href: "/customer/payments", label: "Zahlungen", icon: CreditCard },
+  { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText },
+  { href: "/customer/reports", label: "Berichte", icon: FileText },
+  { href: "/customer/notifications", label: "Nachrichten", icon: Bell },
+  { href: "/customer/support", label: "Support", icon: CircleHelp },
+  { href: "/customer/profile", label: "Einstellungen", icon: Settings },
+];
 
 type GoogleLatLng = { lat: () => number; lng: () => number };
 type GooglePath = {
@@ -852,16 +877,15 @@ export function SmartOrderWizard({ areas, today }: Props) {
 
       <aside className="orderSideNav" aria-label="Bestellnavigation">
         <OrderLogo />
-        <Link href="/customer/orders/new" className="sideNavActive"><span>+</span>Neue Bestellung</Link>
-        <Link href="/customer/dashboard"><span>D</span>Dashboard</Link>
-        <Link href="/customer/orders"><span>B</span>Bestellungen</Link>
-        <Link href="/customer/documents"><span>F</span>Dokumente</Link>
-        <Link href="/customer/payments"><span>EUR</span>Zahlungen</Link>
-        <Link href="/customer/invoices"><span>R</span>Rechnungen</Link>
-        <Link href="/customer/reports"><span>P</span>Berichte</Link>
-        <Link href="/customer/notifications"><span>!</span>Nachrichten</Link>
-        <Link href="/customer/support"><span>?</span>Support</Link>
-        <Link href="/customer/profile"><span>*</span>Einstellungen</Link>
+        {orderNavItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <Link key={item.href} href={item.href} className={item.active ? "sideNavActive" : ""}>
+              <span><Icon aria-hidden="true" /></span>
+              {item.label}
+            </Link>
+          );
+        })}
         <div className="sideNavFooter">
           <button type="submit" formAction="/api/auth/logout">Ausloggen</button>
         </div>

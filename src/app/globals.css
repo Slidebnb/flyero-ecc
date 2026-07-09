@@ -5554,6 +5554,11 @@ body {
   height: 18px;
 }
 
+.orderSideNav svg {
+  width: 18px;
+  height: 18px;
+}
+
 .customerUnifiedContent .metricTile,
 .customerUnifiedContent .dataSection,
 .customerUnifiedContent .actionPanel,
