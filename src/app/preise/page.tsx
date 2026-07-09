@@ -1,4 +1,13 @@
-import { CtaBand, EditorialList, MarketingPage, PageHero, Section } from "@/app/marketing";
+import {
+  CTAChoiceCard,
+  FeatureCard,
+  MarketingButton,
+  MarketingContainer,
+  MarketingPage,
+  MarketingSection,
+  TrustBadge,
+  defaultProofIcons,
+} from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
 
 export const metadata = createSeoMetadata({
@@ -9,39 +18,67 @@ export const metadata = createSeoMetadata({
   keywords: ["Flyerverteilung Preise", "Flyer verteilen Kosten", "Werbeflyer Kosten"],
 });
 
+const priceFactors = [
+  ["Flyeranzahl", "Mehr Stückzahl bedeutet mehr Laufleistung und Logistik.", defaultProofIcons.bag],
+  ["Verteilgebiet", "Fläche, Haushalte und Erreichbarkeit beeinflussen den Aufwand.", defaultProofIcons.gps],
+  ["Zeitraum", "Expresswünsche oder enge Zeitfenster können Zusatzaufwand erzeugen.", defaultProofIcons.shield],
+  ["Zusatzleistungen", "Druckdaten, Lager, Fotos und besondere Vorgaben werden transparent berücksichtigt.", defaultProofIcons.report],
+] as const;
+
 export default function PricingPage() {
   return (
     <MarketingPage>
-      <PageHero eyebrow="Preise" title="Klare Kalkulation vor der Buchung." primaryLabel="Preis berechnen">
-        <p>
-          Der Endpreis wird im Auftrag anhand von Gebiet, Menge, Zeitraum und Zusatzleistungen berechnet.
-          Sie sehen die Kosten, bevor Sie verbindlich buchen.
-        </p>
-      </PageHero>
-
-      <Section title="Wovon der Preis abhängt">
-        <EditorialList
-          items={[
-            ["Flyeranzahl", "Mehr Stückzahl bedeutet mehr Laufleistung und Logistik."],
-            ["Verteilgebiet", "Fläche, Haushalte und Erreichbarkeit beeinflussen den Aufwand."],
-            ["Zeitraum", "Expresswünsche oder enge Zeitfenster können Zusatzaufwand erzeugen."],
-            ["Zusatzleistungen", "Druckdaten, Lager, Fotos und besondere Vorgaben werden transparent berücksichtigt."],
-          ]}
-        />
-      </Section>
-
-      <section className="priceHighlight">
-        <div>
-          <span>Orientierung</span>
-          <strong>ab 0,12 EUR pro Flyer</strong>
-          <p>Mindestauftrag ab 250 EUR netto.</p>
-        </div>
-        <p>
-          Die konkrete Kalkulation entsteht im Kundenauftrag aus den aktiven Preisregeln und wird vor der Zahlung angezeigt.
-        </p>
+      <section className="mkHero" aria-labelledby="pricing-hero-title">
+        <MarketingContainer className="mkHeroLayout">
+          <div className="mkHeroCopy">
+            <p className="mkEyebrow">Preise</p>
+            <h1 id="pricing-hero-title">Klare Kalkulation vor der Buchung.</h1>
+            <p className="mkHeroLead">
+              Der Endpreis wird im Auftrag anhand von Gebiet, Menge, Zeitraum und Zusatzleistungen berechnet.
+              Sie sehen die Kosten, bevor Sie verbindlich buchen.
+            </p>
+            <div className="mkHeroActions">
+              <MarketingButton href="/verteilung-anfragen">Preis anfragen</MarketingButton>
+              <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="ghost">Direkt berechnen</MarketingButton>
+            </div>
+            <div className="mkTrustRow">
+              <TrustBadge icon={defaultProofIcons.report}>Preis vor Zahlung</TrustBadge>
+              <TrustBadge icon={defaultProofIcons.gps}>Gebietsbasiert</TrustBadge>
+            </div>
+          </div>
+          <div className="mkProofMockup" aria-hidden="true" />
+        </MarketingContainer>
       </section>
 
-      <CtaBand />
+      <MarketingSection eyebrow="Preislogik" title="Wovon der Preis abhängt.">
+        <div className="mkGrid mkGrid-4">
+          {priceFactors.map(([title, text, Icon], index) => (
+            <FeatureCard key={title} title={title} text={text} icon={Icon} index={index} />
+          ))}
+        </div>
+      </MarketingSection>
+
+      <MarketingSection tone="green">
+        <div className="mkChoiceGrid">
+          <CTAChoiceCard
+            title="Unverbindlich kalkulieren lassen"
+            text="Für individuelle Kampagnen mit Gebiet, Zeitraum, Druck oder besonderem Ablauf."
+            bullets={["Persönliche Einschätzung", "Keine Registrierung nötig", "Passende Startempfehlung"]}
+            href="/verteilung-anfragen"
+            buttonLabel="Anfrage senden"
+            icon={defaultProofIcons.shield}
+          />
+          <CTAChoiceCard
+            title="Direkt im Auftrag berechnen"
+            text="Für konkrete Buchungen wird der Preis im Kundenportal vor der Zahlung angezeigt."
+            bullets={["Gebiet wählen", "Menge prüfen", "Preis vor Buchung sehen"]}
+            href="/login?next=%2Fcustomer%2Forders%2Fnew"
+            buttonLabel="Online buchen"
+            tone="dark"
+            icon={defaultProofIcons.gps}
+          />
+        </div>
+      </MarketingSection>
     </MarketingPage>
   );
 }

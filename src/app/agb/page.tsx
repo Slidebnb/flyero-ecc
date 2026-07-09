@@ -1,4 +1,4 @@
-import { MarketingPage } from "@/app/marketing";
+import { MarketingPage, MarketingSection } from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
 
 export const metadata = createSeoMetadata({
@@ -11,9 +11,7 @@ export const metadata = createSeoMetadata({
 export default function TermsPage() {
   return (
     <MarketingPage>
-      <section className="marketingSection legalPage">
-        <p className="eyebrow">Rechtliches</p>
-        <h1>Allgemeine Geschäftsbedingungen</h1>
+      <MarketingSection eyebrow="Rechtliches" title="Allgemeine Geschäftsbedingungen" className="mkLegalPage">
         <div className="legalText">
           <p>
             Diese Seite beschreibt künftig die vertraglichen Grundlagen für Auftraggeber, Verteiler,
@@ -26,7 +24,7 @@ export default function TermsPage() {
             Beta-Hinweis: Die AGB müssen vor echtem Kundenbetrieb anwaltlich erstellt oder geprüft werden.
           </p>
         </div>
-      </section>
+      </MarketingSection>
     </MarketingPage>
   );
 }

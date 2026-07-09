@@ -1,4 +1,4 @@
-import { MarketingPage } from "@/app/marketing";
+import { MarketingPage, MarketingSection } from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
 
 export const metadata = createSeoMetadata({
@@ -11,17 +11,15 @@ export const metadata = createSeoMetadata({
 export default function PrivacyPage() {
   return (
     <MarketingPage>
-      <section className="marketingSection legalPage">
-        <p className="eyebrow">Rechtliches</p>
-        <h1>Datenschutz</h1>
+      <MarketingSection eyebrow="Rechtliches" title="Datenschutz" className="mkLegalPage">
         <div className="legalText">
           <p>
             FLYERO verarbeitet personenbezogene Daten zur Bereitstellung der Plattform, zur Bearbeitung von Anfragen,
             zur Auftragserstellung, Zahlung, Lagerabwicklung, Tourdokumentation und Berichtserstellung.
           </p>
           <p>
-            Dazu können Kontakt-, Vertrags-, Zahlungs-, Rollen-, Standort- und Nachweisdaten gehören. Der Zugriff ist
-            rollenbasiert beschränkt.
+            Dazu können Kontakt-, Vertrags-, Zahlungs-, Rollen-, Standort- und Nachweisdaten gehören.
+            Der Zugriff ist rollenbasiert beschränkt.
           </p>
           <p>
             Externe Dienstleister wie Zahlungsanbieter werden nur eingesetzt, wenn sie für den jeweiligen Prozess erforderlich sind.
@@ -31,7 +29,7 @@ export default function PrivacyPage() {
             Auftragsverarbeiter und Speicherfristen ergänzt werden.
           </p>
         </div>
-      </section>
+      </MarketingSection>
     </MarketingPage>
   );
 }

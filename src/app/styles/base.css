@@ -1,0 +1,69 @@
+:root {
+  --flyero-dark: #05080a;
+  --flyero-navy: #07111f;
+  --flyero-light: #f4f7f8;
+  --flyero-surface: #ffffff;
+  --flyero-text: #0b0f14;
+  --flyero-muted: #64748b;
+  --flyero-green: #a7ff00;
+  --flyero-green-soft: #efffbc;
+  --flyero-coral: #ff675b;
+  --flyero-border: rgba(15, 23, 42, 0.10);
+  --flyero-border-strong: rgba(15, 23, 42, 0.18);
+  --flyero-shadow-soft: 0 24px 70px rgba(15, 23, 42, 0.12);
+  --flyero-shadow-dark: 0 34px 90px rgba(0, 0, 0, 0.32);
+  --flyero-radius-card: 24px;
+  --flyero-radius-button: 999px;
+  --flyero-radius-media: 28px;
+  --flyero-container: 1200px;
+  --flyero-section-desktop: 124px;
+  --flyero-section-tablet: 88px;
+  --flyero-section-mobile: 64px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  color: var(--flyero-text);
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.flyeroPublic,
+.flyeroPublic * {
+  box-sizing: border-box;
+}
+
+.flyeroPublic {
+  overflow-x: clip;
+  background: var(--flyero-surface);
+  color: var(--flyero-text);
+}
+
+.flyeroPublic h1,
+.flyeroPublic h2,
+.flyeroPublic h3,
+.flyeroPublic p,
+.flyeroPublic a,
+.flyeroPublic span,
+.flyeroPublic strong,
+.flyeroPublic small,
+.flyeroPublic li,
+.flyeroPublic button,
+.flyeroPublic label {
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+}

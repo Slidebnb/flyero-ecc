@@ -1,3 +1,8 @@
+@import "./styles/base.css";
+@import "./styles/marketing.css";
+@import "./styles/portal.css";
+@import "./styles/order.css";
+
 :root {
   --background: #f5f7fb;
   --foreground: #111827;

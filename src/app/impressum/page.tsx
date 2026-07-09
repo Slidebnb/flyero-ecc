@@ -1,4 +1,4 @@
-import { MarketingPage } from "@/app/marketing";
+import { MarketingPage, MarketingSection } from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
 
 export const metadata = createSeoMetadata({
@@ -11,9 +11,7 @@ export const metadata = createSeoMetadata({
 export default function ImprintPage() {
   return (
     <MarketingPage>
-      <section className="marketingSection legalPage">
-        <p className="eyebrow">Rechtliches</p>
-        <h1>Impressum</h1>
+      <MarketingSection eyebrow="Rechtliches" title="Impressum" className="mkLegalPage">
         <div className="legalText">
           <p><strong>FLYERO GmbH i.G.</strong></p>
           <p>Musterstraße 1, 56068 Koblenz, Deutschland</p>
@@ -21,9 +19,11 @@ export default function ImprintPage() {
           <p>Telefon: +49 261 000000</p>
           <p>Vertreten durch die Geschäftsführung der FLYERO GmbH i.G.</p>
           <p>Umsatzsteuer-ID wird nach Gründung ergänzt.</p>
-          <p className="notice">Beta-Hinweis: Dieses Impressum muss vor dem Livegang anhand der finalen Unternehmensdaten geprüft werden.</p>
+          <p className="notice">
+            Beta-Hinweis: Dieses Impressum muss vor dem Livegang anhand der finalen Unternehmensdaten geprüft werden.
+          </p>
         </div>
-      </section>
+      </MarketingSection>
     </MarketingPage>
   );
 }

@@ -1,5 +1,13 @@
 import { LeadForm } from "@/app/LeadForm";
-import { MarketingPage, PageHero, Section } from "@/app/marketing";
+import {
+  CTAChoiceCard,
+  MarketingButton,
+  MarketingContainer,
+  MarketingPage,
+  MarketingSection,
+  TrustBadge,
+  defaultProofIcons,
+} from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
 
 export const metadata = createSeoMetadata({
@@ -13,15 +21,44 @@ export const metadata = createSeoMetadata({
 export default function ContactPage() {
   return (
     <MarketingPage>
-      <PageHero eyebrow="Kontakt" title="Erzählen Sie kurz, was Sie verteilen möchten." secondaryHref="/preise" secondaryLabel="Preise ansehen">
-        <p>
-          Wir melden uns zu Ihrer Anfrage. Für registrierte Kunden führt der direkte Weg über die Auftragserstellung im Kundenportal.
-        </p>
-      </PageHero>
+      <section className="mkHero" aria-labelledby="contact-hero-title">
+        <MarketingContainer className="mkHeroLayout">
+          <div className="mkHeroCopy">
+            <p className="mkEyebrow">Kontakt</p>
+            <h1 id="contact-hero-title">Erzählen Sie kurz, was Sie verteilen möchten.</h1>
+            <p className="mkHeroLead">
+              Wir melden uns zu Ihrer Anfrage. Für registrierte Kunden führt der direkte Weg
+              über die Auftragserstellung im Kundenportal.
+            </p>
+            <div className="mkHeroActions">
+              <MarketingButton href="/verteilung-anfragen">Verteilung anfragen</MarketingButton>
+              <MarketingButton href="/preise" variant="ghost">Preise ansehen</MarketingButton>
+            </div>
+            <div className="mkTrustRow">
+              <TrustBadge icon={defaultProofIcons.shield}>Antwort zum passenden Ablauf</TrustBadge>
+              <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweis möglich</TrustBadge>
+            </div>
+          </div>
+          <div className="mkProofMockup" aria-hidden="true" />
+        </MarketingContainer>
+      </section>
 
-      <Section title="Anfrage senden">
-        <LeadForm source="kontakt" />
-      </Section>
+      <MarketingSection eyebrow="Anfrage" title="Kontakt aufnehmen.">
+        <div className="mkLeadChoiceGrid">
+          <article className="mkLeadPanel">
+            <LeadForm source="kontakt" />
+          </article>
+          <CTAChoiceCard
+            title="Direkt online buchen"
+            text="Wenn Gebiet, Menge und Zeitraum bereits feststehen, können Sie direkt im Kundenkonto starten."
+            bullets={["Konto erstellen", "Gebiet wählen", "Preis prüfen"]}
+            href="/login?next=%2Fcustomer%2Forders%2Fnew"
+            buttonLabel="Direkt buchen"
+            tone="dark"
+            icon={defaultProofIcons.gps}
+          />
+        </div>
+      </MarketingSection>
     </MarketingPage>
   );
 }

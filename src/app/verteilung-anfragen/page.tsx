@@ -1,6 +1,12 @@
-import Link from "next/link";
 import { LeadForm } from "@/app/LeadForm";
-import { MarketingPage } from "@/app/marketing";
+import {
+  MarketingButton,
+  MarketingContainer,
+  MarketingPage,
+  MarketingSection,
+  SectionHeader,
+  defaultProofIcons,
+} from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
 
 const directBookingNext = "/customer/orders/new";
@@ -15,30 +21,33 @@ export const metadata = createSeoMetadata({
 });
 
 export default function DistributionRequestPage() {
+  const ShieldIcon = defaultProofIcons.shield;
+  const GpsIcon = defaultProofIcons.gps;
+
   return (
     <MarketingPage>
-      <section className="requestPremiumHero">
-        <div className="requestHeroCopy">
-          <p className="premiumEyebrow">Verteilung anfragen</p>
+      <section className="mkRequestHero">
+        <MarketingContainer>
+          <p className="mkEyebrow">Verteilung anfragen</p>
           <h1>Erst beraten lassen oder direkt online buchen.</h1>
           <p>
             Wählen Sie den passenden Start: Eine unverbindliche Anfrage funktioniert ohne Registrierung.
             Die direkte Online-Buchung führt zum Kundenkonto mit Auftrag, GPS-Nachweis und Bericht.
           </p>
-        </div>
+        </MarketingContainer>
       </section>
 
-      <section className="premiumSection requestChoiceSection" aria-labelledby="request-heading">
-        <div className="sectionHeader">
-          <div>
-            <p className="premiumKicker">Starten</p>
-            <h2 id="request-heading">Der einfache Weg zur Verteilung.</h2>
-          </div>
-          <p>Unverbindlich sprechen oder direkt in die Online-Buchung gehen. Beides führt zu einem nachvollziehbaren Ablauf.</p>
-        </div>
-        <div className="choiceCards requestChoiceCards">
-          <article className="requestLeadLane">
-            <span className="premiumIcon" aria-hidden="true">?</span>
+      <MarketingSection>
+        <SectionHeader
+          eyebrow="Starten"
+          title="Der einfache Weg zur Verteilung."
+          intro="Unverbindlich sprechen oder direkt in die Online-Buchung gehen. Beides führt zu einem nachvollziehbaren Ablauf."
+        />
+        <div className="mkLeadChoiceGrid">
+          <article className="mkLeadPanel">
+            <span className="mkCardIcon" aria-hidden="true">
+              <ShieldIcon aria-hidden="true" />
+            </span>
             <h3>Unverbindlich anfragen</h3>
             <p>
               Ideal, wenn Gebiet, Auflage, Timing oder Budget noch abgestimmt werden sollen.
@@ -47,8 +56,10 @@ export default function DistributionRequestPage() {
             <LeadForm source="verteilung-anfragen" />
           </article>
 
-          <article className="darkChoice requestBookingLane">
-            <span className="premiumIcon" aria-hidden="true">↗</span>
+          <article className="mkBookingPanel">
+            <span className="mkCardIcon" aria-hidden="true">
+              <GpsIcon aria-hidden="true" />
+            </span>
             <h3>Direkt online buchen</h3>
             <p>
               Für konkrete Kampagnen: anmelden, Verteilgebiet auswählen, Preis sehen und den Auftrag strukturiert anlegen.
@@ -58,19 +69,23 @@ export default function DistributionRequestPage() {
               <li>Preis sofort sehen</li>
               <li>GPS-Nachweis und Bericht erhalten</li>
             </ul>
-            <div className="bookingPath">
+            <div className="mkBookingPath">
               <span>Konto</span>
               <span>Gebiet</span>
               <span>Prüfen</span>
               <span>Buchen</span>
             </div>
-            <div className="bookingActions">
-              <Link className="premiumButton coral" href={`/register/customer?next=${directBookingParam}`}>Kundenkonto erstellen<span aria-hidden="true">→</span></Link>
-              <Link className="premiumButton ghost" href={`/login?next=${directBookingParam}`}>Einloggen und buchen<span aria-hidden="true">→</span></Link>
+            <div className="mkBookingActions">
+              <MarketingButton href={`/register/customer?next=${directBookingParam}`} variant="coral">
+                Kundenkonto erstellen
+              </MarketingButton>
+              <MarketingButton href={`/login?next=${directBookingParam}`} variant="ghost">
+                Einloggen und buchen
+              </MarketingButton>
             </div>
           </article>
         </div>
-      </section>
+      </MarketingSection>
     </MarketingPage>
   );
 }

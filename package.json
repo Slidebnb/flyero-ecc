@@ -36,20 +36,26 @@
     "test:module23": "node -r dotenv/config tests/module23-smoke.mjs",
     "test:module24": "node -r dotenv/config tests/module24-smoke.mjs",
     "test:module25": "node -r dotenv/config tests/module25-launch-hardening-smoke.mjs",
-    "test:beta": "node -r dotenv/config tests/beta-e2e-smoke.mjs"
+    "test:beta": "node -r dotenv/config tests/beta-e2e-smoke.mjs",
+    "visual:marketing": "node tests/visual-marketing.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
+    "framer-motion": "^12.42.2",
     "jose": "^6.2.3",
+    "lucide-react": "^1.23.0",
     "next": "16.2.9",
     "pg": "^8.22.0",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "stripe": "^22.3.0",
+    "tailwind-merge": "^3.6.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -59,6 +65,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "playwright": "^1.61.1",
     "prisma": "^7.8.0",
     "typescript": "^5"
   }
