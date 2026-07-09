@@ -357,6 +357,8 @@ export function DistributionAreaEditor({
             <option value="DISTRICT">Ortsteil</option>
             <option value="POLYGON">Polygon</option>
             <option value="RADIUS">Radius</option>
+            <option value="CUSTOM">Individuell</option>
+            <option value="DELIVERY_ZONE">Zustellzone</option>
           </select>
         </label>
         <label>

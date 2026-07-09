@@ -58,6 +58,8 @@ enum DistributionAreaType {
   DISTRICT
   POLYGON
   RADIUS
+  CUSTOM
+  DELIVERY_ZONE
 }
 
 enum DistributionAreaStatus {
@@ -71,6 +73,20 @@ enum HouseholdEstimateMethod {
   SEED
   IMPORT
   AUTOMATIC
+  ADMIN_ENTRY
+  OFFICIAL_IMPORT
+  LICENSED_IMPORT
+  AREA_INTERPOLATION
+  BUILDING_ESTIMATE
+}
+
+enum AreaDataSourceType {
+  SEED
+  ADMIN
+  OFFICIAL
+  LICENSED
+  IMPORTED
+  ESTIMATED
 }
 
 enum OrderStatus {
@@ -691,14 +707,26 @@ model DistributionArea {
   city                     String?
   postalCode               String?
   district                 String?
+  state                    String?
+  country                  String                 @default("DE")
   centerLat                Decimal?               @db.Decimal(10, 7)
   centerLng                Decimal?               @db.Decimal(10, 7)
   radiusMeters             Int?
   geoJson                  Json?
+  geometryGeoJson          Json?
   coverageAreaSqm          Decimal?               @db.Decimal(14, 2)
+  areaKm2                  Decimal?               @db.Decimal(12, 6)
   estimatedHouseholds      Int?
   estimatedFlyers          Int?
   estimatedDistanceMeters  Int?
+  googlePlaceId            String?
+  googleFeatureType        String?
+  dataSourceName           String?
+  dataSourceType           AreaDataSourceType      @default(SEED)
+  dataSourceUrl            String?
+  licenseNote              String?
+  dataUpdatedAt            DateTime?
+  confidence               Decimal?               @db.Decimal(4, 3)
   createdById              String?
   customerId               String?
   createdAt                DateTime               @default(now())
@@ -713,6 +741,8 @@ model DistributionArea {
 
   @@index([type, status])
   @@index([city, postalCode])
+  @@index([dataSourceType, dataUpdatedAt])
+  @@index([googlePlaceId])
   @@index([customerId, status])
   @@index([createdById])
 }
@@ -735,12 +765,21 @@ model AreaHouseholdEstimate {
   id             String                  @id @default(cuid())
   areaId         String
   households     Int
+  estimatedHouseholds Int?
+  estimatedResidents Int?
+  estimatedDwellings Int?
+  residentialBuildings Int?
   estimatedFlyers Int?
   distanceMeters Int?
   coverageAreaSqm Decimal?              @db.Decimal(14, 2)
   method         HouseholdEstimateMethod @default(MANUAL)
   source         String?
+  sourceUrl      String?
+  sourceYear     Int?
   confidence     Decimal?                @db.Decimal(4, 3)
+  notes          String?
+  validFrom      DateTime?
+  validTo        DateTime?
   createdById    String?
   createdAt      DateTime                @default(now())
 
@@ -749,6 +788,8 @@ model AreaHouseholdEstimate {
 
   @@index([areaId, createdAt])
   @@index([method])
+  @@index([sourceYear])
+  @@index([validFrom, validTo])
 }
 
 model AreaHistory {

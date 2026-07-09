@@ -1,4 +1,4 @@
-import { DistributionAreaType, Prisma } from "@prisma/client";
+import { AreaDataSourceType, DistributionAreaType, HouseholdEstimateMethod, Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -24,14 +24,31 @@ type AreaInput = {
   city?: string | null;
   postalCode?: string | null;
   district?: string | null;
+  state?: string | null;
+  country?: string | null;
   centerLat?: number | null;
   centerLng?: number | null;
   radiusMeters?: number | null;
   geoJson?: unknown;
+  geometryGeoJson?: unknown;
   estimatedHouseholds?: number | null;
   estimatedFlyers?: number | null;
   estimatedDistanceMeters?: number | null;
   coverageAreaSqm?: number | null;
+  areaKm2?: number | null;
+  googlePlaceId?: string | null;
+  googleFeatureType?: string | null;
+  dataSourceName?: string | null;
+  dataSourceType?: AreaDataSourceType | null;
+  dataSourceUrl?: string | null;
+  licenseNote?: string | null;
+  dataUpdatedAt?: Date | null;
+  confidence?: number | null;
+  householdEstimateMethod?: HouseholdEstimateMethod | null;
+  householdSource?: string | null;
+  householdSourceUrl?: string | null;
+  householdSourceYear?: number | null;
+  householdNotes?: string | null;
   reusable?: boolean;
   customerId?: string | null;
 };
@@ -174,6 +191,16 @@ function decimal(value?: number | null) {
   return value == null || Number.isNaN(value) ? undefined : new Prisma.Decimal(value);
 }
 
+function areaKm2FromSqm(coverageAreaSqm?: number | null, areaKm2?: number | null) {
+  if (areaKm2 && areaKm2 > 0) return areaKm2;
+  return coverageAreaSqm && coverageAreaSqm > 0 ? Number((coverageAreaSqm / 1_000_000).toFixed(6)) : null;
+}
+
+function confidenceDecimal(value?: number | null) {
+  if (value == null || Number.isNaN(value)) return undefined;
+  return new Prisma.Decimal(Math.max(0, Math.min(1, value)).toFixed(3));
+}
+
 async function logAreaHistory(input: {
   areaId: string;
   userId?: string | null;
@@ -207,7 +234,7 @@ async function persistPolygons(areaId: string, geoJson: FeatureCollection | null
 }
 
 export async function createDistributionArea(input: AreaInput & { userId?: string | null }) {
-  const geoJson = normalizeAreaGeoJson(input.geoJson);
+  const geoJson = normalizeAreaGeoJson(input.geometryGeoJson ?? input.geoJson);
   const coverageAreaSqm = estimateCoverageAreaSqm({
     type: input.type,
     geoJson,
@@ -226,14 +253,26 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
       city: input.city ?? null,
       postalCode: input.postalCode ?? null,
       district: input.district ?? null,
+      state: input.state ?? null,
+      country: input.country ?? "DE",
       centerLat: decimal(input.centerLat),
       centerLng: decimal(input.centerLng),
       radiusMeters: input.radiusMeters ?? null,
       geoJson: geoJson as Prisma.InputJsonValue ?? undefined,
+      geometryGeoJson: geoJson as Prisma.InputJsonValue ?? undefined,
       coverageAreaSqm: decimal(coverageAreaSqm),
+      areaKm2: decimal(areaKm2FromSqm(coverageAreaSqm, input.areaKm2)),
       estimatedHouseholds: input.estimatedHouseholds ?? null,
       estimatedFlyers,
       estimatedDistanceMeters,
+      googlePlaceId: input.googlePlaceId ?? null,
+      googleFeatureType: input.googleFeatureType ?? null,
+      dataSourceName: input.dataSourceName ?? null,
+      dataSourceType: input.dataSourceType ?? "ADMIN",
+      dataSourceUrl: input.dataSourceUrl ?? null,
+      licenseNote: input.licenseNote ?? null,
+      dataUpdatedAt: input.dataUpdatedAt ?? null,
+      confidence: confidenceDecimal(input.confidence),
       reusable: input.reusable ?? true,
       customerId: input.customerId ?? null,
       createdById: input.userId ?? null,
@@ -244,8 +283,14 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
               estimatedFlyers,
               distanceMeters: estimatedDistanceMeters,
               coverageAreaSqm: decimal(coverageAreaSqm),
-              method: "MANUAL",
-              source: "area-form",
+              estimatedHouseholds: input.estimatedHouseholds,
+              method: input.householdEstimateMethod ?? "ADMIN_ENTRY",
+              source: input.householdSource ?? input.dataSourceName ?? "area-form",
+              sourceUrl: input.householdSourceUrl ?? input.dataSourceUrl ?? null,
+              sourceYear: input.householdSourceYear ?? input.dataUpdatedAt?.getFullYear() ?? null,
+              confidence: confidenceDecimal(input.confidence),
+              notes: input.householdNotes ?? input.licenseNote ?? null,
+              validFrom: input.dataUpdatedAt ?? null,
               createdById: input.userId ?? null,
             },
           }
@@ -269,7 +314,7 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
 export async function updateDistributionArea(input: AreaInput & { id: string; userId?: string | null }) {
   const existing = await prisma.distributionArea.findUnique({ where: { id: input.id } });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
-  const geoJson = normalizeAreaGeoJson(input.geoJson);
+  const geoJson = normalizeAreaGeoJson(input.geometryGeoJson ?? input.geoJson);
   const coverageAreaSqm = estimateCoverageAreaSqm({
     type: input.type,
     geoJson,
@@ -289,17 +334,50 @@ export async function updateDistributionArea(input: AreaInput & { id: string; us
       city: input.city ?? null,
       postalCode: input.postalCode ?? null,
       district: input.district ?? null,
+      state: input.state ?? null,
+      country: input.country ?? existing.country,
       centerLat: decimal(input.centerLat) ?? null,
       centerLng: decimal(input.centerLng) ?? null,
       radiusMeters: input.radiusMeters ?? null,
       geoJson: geoJson ? geoJson as Prisma.InputJsonValue : Prisma.JsonNull,
+      geometryGeoJson: geoJson ? geoJson as Prisma.InputJsonValue : Prisma.JsonNull,
       coverageAreaSqm: decimal(coverageAreaSqm) ?? null,
+      areaKm2: decimal(areaKm2FromSqm(coverageAreaSqm, input.areaKm2)) ?? null,
       estimatedHouseholds: input.estimatedHouseholds ?? null,
       estimatedFlyers,
       estimatedDistanceMeters,
+      googlePlaceId: input.googlePlaceId ?? null,
+      googleFeatureType: input.googleFeatureType ?? null,
+      dataSourceName: input.dataSourceName ?? null,
+      dataSourceType: input.dataSourceType ?? existing.dataSourceType,
+      dataSourceUrl: input.dataSourceUrl ?? null,
+      licenseNote: input.licenseNote ?? null,
+      dataUpdatedAt: input.dataUpdatedAt ?? null,
+      confidence: confidenceDecimal(input.confidence) ?? null,
       reusable: input.reusable ?? existing.reusable,
     },
   });
+
+  if (input.estimatedHouseholds != null) {
+    await prisma.areaHouseholdEstimate.create({
+      data: {
+        areaId: area.id,
+        households: input.estimatedHouseholds,
+        estimatedHouseholds: input.estimatedHouseholds,
+        estimatedFlyers,
+        distanceMeters: estimatedDistanceMeters,
+        coverageAreaSqm: decimal(coverageAreaSqm),
+        method: input.householdEstimateMethod ?? "ADMIN_ENTRY",
+        source: input.householdSource ?? input.dataSourceName ?? "area-form",
+        sourceUrl: input.householdSourceUrl ?? input.dataSourceUrl ?? null,
+        sourceYear: input.householdSourceYear ?? input.dataUpdatedAt?.getFullYear() ?? null,
+        confidence: confidenceDecimal(input.confidence),
+        notes: input.householdNotes ?? input.licenseNote ?? null,
+        validFrom: input.dataUpdatedAt ?? null,
+        createdById: input.userId ?? null,
+      },
+    });
+  }
 
   await persistPolygons(area.id, geoJson);
   await logAreaHistory({ areaId: area.id, userId: input.userId, action: "area.updated", oldValue: existing, newValue: area });
@@ -360,14 +438,26 @@ export async function copyDistributionArea(input: { id: string; userId?: string 
     city: existing.city,
     postalCode: existing.postalCode,
     district: existing.district,
+    state: existing.state,
+    country: existing.country,
     centerLat: existing.centerLat ? Number(existing.centerLat) : null,
     centerLng: existing.centerLng ? Number(existing.centerLng) : null,
     radiusMeters: existing.radiusMeters,
     geoJson: existing.geoJson,
+    geometryGeoJson: existing.geometryGeoJson,
     coverageAreaSqm: existing.coverageAreaSqm ? Number(existing.coverageAreaSqm) : null,
+    areaKm2: existing.areaKm2 ? Number(existing.areaKm2) : null,
     estimatedHouseholds: existing.estimatedHouseholds,
     estimatedFlyers: existing.estimatedFlyers,
     estimatedDistanceMeters: existing.estimatedDistanceMeters,
+    googlePlaceId: existing.googlePlaceId,
+    googleFeatureType: existing.googleFeatureType,
+    dataSourceName: existing.dataSourceName,
+    dataSourceType: existing.dataSourceType,
+    dataSourceUrl: existing.dataSourceUrl,
+    licenseNote: existing.licenseNote,
+    dataUpdatedAt: existing.dataUpdatedAt,
+    confidence: existing.confidence ? Number(existing.confidence) : null,
     reusable: existing.reusable,
     customerId: existing.customerId,
   });

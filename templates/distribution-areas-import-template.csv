@@ -1,0 +1,4 @@
+postalCode,city,district,name,type,geometryGeoJson,estimatedHouseholds,estimatedResidents,estimatedDwellings,residentialBuildings,source,sourceType,sourceUrl,sourceYear,confidence,licenseNote,dataUpdatedAt
+56068,Koblenz,Zentrum,56068 Koblenz Zentrum,POSTAL_CODE,"",6200,,,,module8-seed,SEED,,2026,0.700,"Demo-/Seed-Daten, nicht als offizielle Haushaltsdaten verwenden.",2026-07-10
+56564,Neuwied,Innenstadt,Neuwied Innenstadt,DISTRICT,"",4300,,,,module8-seed,SEED,,2026,0.700,"Demo-/Seed-Daten, nicht als offizielle Haushaltsdaten verwenden.",2026-07-10
+56170,Bendorf,Sayn,Bendorf Sayn,DISTRICT,"",1500,,,,module8-seed,SEED,,2026,0.700,"Demo-/Seed-Daten, nicht als offizielle Haushaltsdaten verwenden.",2026-07-10

@@ -1,4 +1,4 @@
-import { HouseholdEstimateMethod, Prisma, type DistributionAreaType } from "@prisma/client";
+import { AreaDataSourceType, HouseholdEstimateMethod, Prisma, type DistributionAreaType } from "@prisma/client";
 import { estimateHouseholds, estimateRouteDistanceMeters, calculateDistributionTime, scoreArea, combineOrders } from "@/lib/routing";
 import { findBestWarehouseForArea } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
@@ -159,8 +159,16 @@ function estimateSourceLabel(method?: HouseholdEstimateMethod | null, source?: s
   return "area-density-formula";
 }
 
-function confidenceForEstimate(method?: HouseholdEstimateMethod | null, source?: string | null, hasAreaData = false) {
-  if (method === "IMPORT" && source && !source.toLowerCase().includes("seed")) return "high" as const;
+function confidenceForEstimate(
+  method?: HouseholdEstimateMethod | null,
+  source?: string | null,
+  sourceType?: AreaDataSourceType | null,
+  sourceYear?: number | null,
+  hasAreaData = false,
+) {
+  if ((sourceType === "OFFICIAL" || sourceType === "LICENSED") && sourceYear) return "high" as const;
+  if ((method === "OFFICIAL_IMPORT" || method === "LICENSED_IMPORT") && source && sourceYear) return "high" as const;
+  if (method === "IMPORT" && source && !source.toLowerCase().includes("seed")) return "medium" as const;
   if (method === "SEED" || source?.toLowerCase().includes("seed")) return "medium" as const;
   if (method === "MANUAL" || method === "AUTOMATIC" || hasAreaData) return "medium" as const;
   return "low" as const;
@@ -252,7 +260,13 @@ export async function getOrderIntelligence(input: {
   });
   const price = await calculateOrderPrice({ serviceType: "FLYER_DISTRIBUTION", flyerQuantity });
   const householdCountSource = estimateSourceLabel(referenceEstimate?.method, referenceEstimate?.source);
-  const confidence = confidenceForEstimate(referenceEstimate?.method, referenceEstimate?.source, Boolean(referenceArea?.estimatedHouseholds));
+  const confidence = confidenceForEstimate(
+    referenceEstimate?.method,
+    referenceEstimate?.source,
+    referenceArea?.dataSourceType,
+    referenceEstimate?.sourceYear,
+    Boolean(referenceArea?.estimatedHouseholds),
+  );
 
   return {
     suggestions: matchingAreas.map(compactArea),
@@ -279,8 +293,16 @@ export async function getOrderIntelligence(input: {
             city: referenceArea.city,
             postalCode: referenceArea.postalCode,
             coverageAreaSqm: referenceArea.coverageAreaSqm ? Number(referenceArea.coverageAreaSqm) : null,
+            dataSourceName: referenceArea.dataSourceName,
+            dataSourceType: referenceArea.dataSourceType,
+            dataSourceUrl: referenceArea.dataSourceUrl,
+            licenseNote: referenceArea.licenseNote,
+            dataUpdatedAt: referenceArea.dataUpdatedAt?.toISOString() ?? null,
+            areaConfidence: referenceArea.confidence ? Number(referenceArea.confidence) : null,
             estimateMethod: referenceEstimate?.method ?? null,
             estimateSource: referenceEstimate?.source ?? null,
+            estimateSourceUrl: referenceEstimate?.sourceUrl ?? null,
+            estimateSourceYear: referenceEstimate?.sourceYear ?? null,
             estimateConfidence: referenceEstimate?.confidence ? Number(referenceEstimate.confidence) : null,
           }
         : {

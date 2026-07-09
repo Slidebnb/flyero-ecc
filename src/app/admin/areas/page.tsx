@@ -1,5 +1,5 @@
 ﻿import Link from "next/link";
-import { DistributionAreaStatus, DistributionAreaType, UserRole } from "@prisma/client";
+import { AreaDataSourceType, DistributionAreaStatus, DistributionAreaType, UserRole } from "@prisma/client";
 import { DistributionAreaEditor } from "@/app/components/DistributionAreaEditor";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { requireRole } from "@/lib/auth";
@@ -11,12 +11,23 @@ const AREA_TYPE_LABELS: Record<DistributionAreaType, string> = {
   DISTRICT: "Ortsteil",
   POLYGON: "Polygon",
   RADIUS: "Radius",
+  CUSTOM: "Individuell",
+  DELIVERY_ZONE: "Zustellzone",
 };
 
 const AREA_STATUS_LABELS: Record<DistributionAreaStatus, string> = {
   ACTIVE: "Aktiv",
   INACTIVE: "Inaktiv",
   DELETED: "Geloescht",
+};
+
+const AREA_SOURCE_TYPE_LABELS: Record<AreaDataSourceType, string> = {
+  SEED: "Seed/Demo",
+  ADMIN: "Admin-Eingabe",
+  OFFICIAL: "Amtlich",
+  LICENSED: "Lizenziert",
+  IMPORTED: "Importiert",
+  ESTIMATED: "Geschätzt",
 };
 
 type PageProps = {
@@ -106,6 +117,42 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
             Ortsteil
             <input name="district" />
           </label>
+          <label>
+            Bundesland
+            <input name="state" placeholder="Rheinland-Pfalz" />
+          </label>
+          <label>
+            Land
+            <input name="country" defaultValue="DE" />
+          </label>
+          <label>
+            Datenquelle
+            <input name="dataSourceName" placeholder="z. B. Admin, Post Direkt, Zensus" />
+          </label>
+          <label>
+            Quellentyp
+            <select name="dataSourceType" defaultValue="ADMIN">
+              {Object.entries(AREA_SOURCE_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Quellen-URL
+            <input name="dataSourceUrl" type="url" />
+          </label>
+          <label>
+            Datenstand
+            <input name="dataUpdatedAt" type="date" />
+          </label>
+          <label>
+            Confidence 0-1
+            <input name="confidence" type="number" min="0" max="1" step="0.001" placeholder="0.700" />
+          </label>
+          <label className="full">
+            Lizenzhinweis
+            <textarea name="licenseNote" placeholder="Nutzungsrechte, Lizenz, Einschränkungen" />
+          </label>
           <label className="checkbox full">
             <input name="reusable" type="checkbox" value="true" defaultChecked />
             Wiederverwendbar
@@ -151,6 +198,9 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
                 <p className="muted">
                   {AREA_TYPE_LABELS[area.type]} / {AREA_STATUS_LABELS[area.status]} / {area.city ?? "-"} {area.postalCode ?? ""}
                 </p>
+                <p className="muted">
+                  Quelle: {area.dataSourceName ?? "-"} / {AREA_SOURCE_TYPE_LABELS[area.dataSourceType]} / Stand {area.dataUpdatedAt ? area.dataUpdatedAt.toLocaleDateString("de-DE") : "-"} / Confidence {area.confidence ? Number(area.confidence).toFixed(3) : "-"}
+                </p>
               </div>
               <span className="badge">{area.orders.length} Aufträge</span>
             </div>
@@ -176,12 +226,48 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
                 <input name="district" defaultValue={area.district ?? ""} />
               </label>
               <label>
+                Bundesland
+                <input name="state" defaultValue={area.state ?? ""} />
+              </label>
+              <label>
+                Land
+                <input name="country" defaultValue={area.country} />
+              </label>
+              <label>
                 Haushalte
                 <input name="estimatedHouseholds" type="number" min="0" defaultValue={area.estimatedHouseholds ?? ""} />
               </label>
               <label>
                 Flyer
                 <input name="estimatedFlyers" type="number" min="0" defaultValue={area.estimatedFlyers ?? ""} />
+              </label>
+              <label>
+                Datenquelle
+                <input name="dataSourceName" defaultValue={area.dataSourceName ?? ""} />
+              </label>
+              <label>
+                Quellentyp
+                <select name="dataSourceType" defaultValue={area.dataSourceType}>
+                  {Object.entries(AREA_SOURCE_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Quellen-URL
+                <input name="dataSourceUrl" type="url" defaultValue={area.dataSourceUrl ?? ""} />
+              </label>
+              <label>
+                Datenstand
+                <input name="dataUpdatedAt" type="date" defaultValue={area.dataUpdatedAt ? area.dataUpdatedAt.toISOString().slice(0, 10) : ""} />
+              </label>
+              <label>
+                Confidence 0-1
+                <input name="confidence" type="number" min="0" max="1" step="0.001" defaultValue={area.confidence ? Number(area.confidence).toString() : ""} />
+              </label>
+              <label className="full">
+                Lizenzhinweis
+                <textarea name="licenseNote" defaultValue={area.licenseNote ?? ""} />
               </label>
               <button type="submit">Aenderungen speichern</button>
             </form>
@@ -205,6 +291,12 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
                 postalCode: area.postalCode,
                 geoJson: area.geoJson,
                 estimatedHouseholds: area.estimatedHouseholds,
+                dataSourceName: area.dataSourceName,
+                dataSourceType: area.dataSourceType,
+                dataSourceUrl: area.dataSourceUrl,
+                licenseNote: area.licenseNote,
+                dataUpdatedAt: area.dataUpdatedAt,
+                confidence: area.confidence,
                 polygons: area.polygons.map((polygon) => polygon.geometry),
               }, null, 2)} />
             </details>
