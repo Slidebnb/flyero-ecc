@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_DOCUMENT_STATUS_LABELS, CUSTOMER_PRINT_STATUS_LABELS, customerOrderName } from "@/app/customer/customerUx";
+import { CUSTOMER_DOCUMENT_STATUS_LABELS, CUSTOMER_PRINT_STATUS_LABELS, customerOrderName, customerSafeFilename, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { createDocument, createPrintOrder, DOCUMENT_TYPE_LABELS, listDocuments, listPrintOrders } from "@/lib/documents";
@@ -132,13 +132,13 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
           {documents.map((document) => (
             <article className="customerMessageItem" key={document.id}>
               <div className="customerItemHeader">
-                <strong>{document.title}</strong>
+                <strong>{customerSafeText(document.title, "Druckdatei")}</strong>
                 <StatusBadge>{CUSTOMER_DOCUMENT_STATUS_LABELS[document.status]}</StatusBadge>
               </div>
               <div className="customerItemMeta">
                 <span>{customerOrderName(document.order.orderNumber)}</span>
                 <span>{DOCUMENT_TYPE_LABELS[document.documentType]}</span>
-                <span>{document.originalFilename}</span>
+                <span>{customerSafeFilename(document.originalFilename, document.extension)}</span>
               </div>
               <a className="secondaryButton" href={`/api/customer/documents/${document.id}/download`}>Download</a>
             </article>

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TicketPriority, TicketType, UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { customerOrderName, customerReportName } from "@/app/customer/customerUx";
+import { customerOrderName, customerReportName, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -96,7 +96,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
         <div>
           <span className="customerTinyLabel">Schnellkontakt</span>
           <h2>{waitingTicket ? "FLYERO wartet auf Ihre Antwort." : "Wobei dürfen wir helfen?"}</h2>
-          <p>{waitingTicket ? waitingTicket.subject : "Kurz beschreiben reicht. Wenn möglich, wählen Sie direkt eine Kampagne oder einen Bericht aus."}</p>
+          <p>{waitingTicket ? customerSafeText(waitingTicket.subject, "FLYERO hat eine Rückfrage zu Ihrer Kampagne.") : "Kurz beschreiben reicht. Wenn möglich, wählen Sie direkt eine Kampagne oder einen Bericht aus."}</p>
         </div>
         {waitingTicket ? (
           <Link className="primaryButton" href={`/customer/support/tickets/${waitingTicket.id}`}>Antworten</Link>
@@ -152,7 +152,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
               <article className="customerCampaignItem" key={ticket.id}>
                 <div>
                   <div className="customerItemHeader">
-                    <strong>{ticket.subject || ticket.ticketNumber}</strong>
+                    <strong>{customerSafeText(ticket.subject, "Nachricht zu Ihrer Kampagne") || ticket.ticketNumber}</strong>
                     <StatusBadge tone={tone(ticket.status)}>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge>
                   </div>
                   <p>{SUPPORT_TYPE_LABELS[ticket.type]}</p>

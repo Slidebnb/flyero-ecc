@@ -38,6 +38,7 @@
     "test:module25": "node -r dotenv/config tests/module25-launch-hardening-smoke.mjs",
     "test:customer-order-area": "node -r dotenv/config tests/customer-order-area-smoke.mjs",
     "test:customer-order-checkout": "node -r dotenv/config tests/customer-order-checkout-smoke.mjs",
+    "test:customer-portal-ux": "node -r dotenv/config tests/customer-portal-ux-smoke.mjs",
     "test:area-data-import": "node -r dotenv/config tests/area-data-import-smoke.mjs",
     "test:distribution-reports": "node -r dotenv/config tests/distribution-reports-smoke.mjs",
     "test:external-distribution-report": "node -r dotenv/config tests/external-distribution-report-smoke.mjs",

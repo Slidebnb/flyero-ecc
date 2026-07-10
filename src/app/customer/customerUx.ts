@@ -183,3 +183,17 @@ export function safeCustomerMessage(type: string, body: string) {
   if (!/MODULE|SEED|QUEUE|Smoke-Fixture|CUSTOMER_|ADMIN_|DISTRIBUTOR_|DEMO-|Auto-Dispatch|localhost|Touren im Dashboard|Auftrag\s+[A-Z0-9-]+/i.test(body)) return body;
   return `${customerNotificationTypeLabel(type)}. Wir melden uns, sobald ein nächster Schritt für Sie nötig ist.`;
 }
+
+export function customerSafeText(value: string | null | undefined, fallback: string) {
+  const text = String(value || "").trim();
+  if (!text) return fallback;
+  if (/Seed Modul|seed\.module|Smoke-Test|Smoke Fixture|Smoke-Fixture|DEMO-|localhost|UNDER_REVIEW|READY_FOR_REVIEW|EXTERNAL_GPS_REPORT|INTERNAL_TRACKING|OrderStatus|ReportStatus/i.test(text)) {
+    return fallback;
+  }
+  return text;
+}
+
+export function customerSafeFilename(value: string | null | undefined, extension?: string | null) {
+  const cleanExtension = extension ? `.${extension.replace(/^\./, "").toLowerCase()}` : "";
+  return customerSafeText(value, `Kundendatei${cleanExtension}`);
+}

@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { customerOrderName, customerReportName } from "@/app/customer/customerUx";
+import { customerOrderName, customerReportName, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -32,7 +32,7 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
   if (!ticket) notFound();
 
   return (
-    <CustomerPortalShell active="/customer/support" title={ticket.ticketNumber} description={ticket.subject}>
+    <CustomerPortalShell active="/customer/support" title={ticket.ticketNumber} description={customerSafeText(ticket.subject, "Nachricht zu Ihrer Kampagne")}>
       <section className="customerFocusPanel">
         <div>
           <span className="customerTinyLabel">Hilfe</span>
@@ -54,7 +54,7 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
             <p><span>Status</span><strong>{SUPPORT_STATUS_LABELS[ticket.status]}</strong></p>
             <p><span>Thema</span><strong>{SUPPORT_TYPE_LABELS[ticket.type]}</strong></p>
             <p><span>Erstellt</span><strong>{formatDateTime(ticket.createdAt)}</strong></p>
-            <p><span>Lösung</span><strong>{ticket.resolution ?? "Noch offen"}</strong></p>
+            <p><span>Lösung</span><strong>{customerSafeText(ticket.resolution, "Noch offen")}</strong></p>
           </div>
         </DataSection>
 
@@ -62,11 +62,11 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
           <div className="customerProofBullets">
             <p>
               <strong>Kampagne</strong>
-              <span>{ticket.order ? <Link className="textLink" href={`/customer/orders/${ticket.order.id}`}>{customerOrderName(ticket.order.orderNumber)}</Link> : "Nicht verknüpft"}</span>
+              <span>{ticket.order ? <Link className="secondaryButton" href={`/customer/orders/${ticket.order.id}`}>{customerOrderName(ticket.order.orderNumber)}</Link> : "Nicht verknüpft"}</span>
             </p>
             <p>
               <strong>Bericht</strong>
-              <span>{ticket.report ? <Link className="textLink" href={`/customer/reports/${ticket.report.id}`}>{customerReportName(ticket.report.reportNumber)}</Link> : "Nicht verknüpft"}</span>
+              <span>{ticket.report ? <Link className="secondaryButton" href={`/customer/reports/${ticket.report.id}`}>{customerReportName(ticket.report.reportNumber)}</Link> : "Nicht verknüpft"}</span>
             </p>
           </div>
         </DataSection>
@@ -80,7 +80,7 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
                 <strong>{message.sender?.role === "CUSTOMER" ? "Kunde" : "FLYERO Support"}</strong>
                 <span>{formatDateTime(message.createdAt)}</span>
               </div>
-              <p>{message.message}</p>
+              <p>{customerSafeText(message.message, "FLYERO hat eine neue Antwort hinterlegt.")}</p>
             </article>
           ))}
           {ticket.messages.length === 0 ? <p className="muted">Noch keine Antworten vorhanden.</p> : null}
