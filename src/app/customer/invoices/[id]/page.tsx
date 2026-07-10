@@ -43,13 +43,13 @@ export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
       <section className={invoice.status === "PAID" ? "customerSuccessBanner" : "customerWarningBanner"}>
         <strong>{invoice.status === "PAID" ? "Rechnung bezahlt." : "Rechnung im Blick behalten."}</strong>
         <span>{invoice.status === "PAID" ? "PDF und Kampagne bleiben hier jederzeit erreichbar." : "Wenn eine Zahlung offen ist, finden Sie den nächsten Schritt in der passenden Kampagne."}</span>
+        {invoice.pdfUrl ? <a className="primaryButton" href={`/api/customer/invoices/${invoice.id}/download`}>PDF herunterladen</a> : null}
       </section>
 
-      <div className="customerActionRow">
+      <section className="customerDetailActions" aria-label="Rechnungsaktionen">
         <Link className="secondaryButton" href="/customer/invoices">Alle Rechnungen</Link>
         <Link className="secondaryButton" href={`/customer/orders/${invoice.orderId}`}>Kampagne öffnen</Link>
-        {invoice.pdfUrl ? <a className="primaryButton" href={`/api/customer/invoices/${invoice.id}/download`}>PDF herunterladen</a> : null}
-      </div>
+      </section>
 
       <section className="customerDigestGrid">
         <article><span>Gesamtbetrag</span><strong>{formatCurrency(invoice.totalGross)}</strong></article>

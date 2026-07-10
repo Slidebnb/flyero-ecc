@@ -35,18 +35,18 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
     <CustomerPortalShell active="/customer/support" title={ticket.ticketNumber} description={ticket.subject}>
       <section className="customerFocusPanel">
         <div>
-          <span className="customerTinyLabel">Support</span>
+          <span className="customerTinyLabel">Hilfe</span>
           <h2>{SUPPORT_STATUS_LABELS[ticket.status]}</h2>
-          <p>{ticket.status === "WAITING_FOR_CUSTOMER" ? "FLYERO wartet auf Ihre Antwort." : "Alle Antworten und nächsten Schritte stehen hier."}</p>
+          <p>{ticket.status === "WAITING_FOR_CUSTOMER" ? "FLYERO wartet auf Ihre Antwort." : "Alle Antworten stehen hier gebündelt."}</p>
         </div>
         <StatusBadge tone={ticketTone(ticket.status)}>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge>
       </section>
 
-      <div className="customerActionRow">
-        <Link className="secondaryButton" href="/customer/support">Support</Link>
-        <Link className="secondaryButton" href="/customer/reports">Berichte</Link>
+      <section className="customerDetailActions" aria-label="Hilfeaktionen">
+        <Link className="secondaryButton" href="/customer/support">Alle Anfragen</Link>
+        <Link className="secondaryButton" href="/customer/reports">Nachweise</Link>
         <Link className="secondaryButton" href="/customer/orders">Kampagnen</Link>
-      </div>
+      </section>
 
       <div className="customerTwoColumn">
         <DataSection title="Anliegen" description="Die wichtigsten Angaben zu dieser Rückfrage.">

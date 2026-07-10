@@ -96,17 +96,17 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
       <section className="customerSuccessBanner">
         <strong>Verteilung abgeschlossen und geprüft.</strong>
         <span>Dieser Bericht zeigt die freigegebenen Nachweise zu Gebiet, Zeitraum, Flyer-Menge und GPS-Dokumentation.</span>
+        {report.pdfUrl ? <a className="primaryButton" href={`/api/customer/reports/${report.id}/download`}>PDF herunterladen</a> : null}
       </section>
 
-      <div className="customerActionRow">
+      <section className="customerDetailActions" aria-label="Berichtsaktionen">
         <Link className="secondaryButton" href="/customer/reports">Alle Berichte</Link>
-        {report.pdfUrl ? <a className="primaryButton" href={`/api/customer/reports/${report.id}/download`}>PDF herunterladen</a> : null}
         <form action={createComplaintTicket}>
           <input type="hidden" name="reportId" value={report.id} />
-          <button type="submit">Rückfrage stellen</button>
+          <button className="secondaryButton" type="submit">Rückfrage stellen</button>
         </form>
         <StatusBadge tone="success">Von FLYERO geprüft</StatusBadge>
-      </div>
+      </section>
 
       <section className="customerDigestGrid">
         <article>
@@ -159,7 +159,7 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
         {customerNote ? <p className="notice">{customerNote}</p> : null}
         <p className="muted">
           {isExternalGpsReport
-            ? "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung. Ohne interne Rohdaten wird keine automatische Flächenabdeckung erfunden."
+            ? "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung. Ohne eigene Tourpunkte wird keine automatische Flächenabdeckung behauptet."
             : "Der Abdeckungsgrad beschreibt die dokumentierte Verteilung anhand echter Tourdaten, freigegebener Fotos und interner Prüfung. Er ist kein Einzelbriefkasten-Nachweis."}
         </p>
       </DataSection>
@@ -168,7 +168,7 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
         {isExternalGpsReport ? (
           <div className="customerWarningBanner">
             <strong>GPS-Nachweis des eingesetzten Trackingsystems</strong>
-            <span>Der Nachweis wurde extern erzeugt und von FLYERO geprüft. FLYERO behauptet hier keine eigene Live-Aufzeichnung.</span>
+            <span>Der Nachweis wurde extern erzeugt und von FLYERO geprüft. FLYERO stellt ihn als geprüften Nachweis des eingesetzten Systems bereit.</span>
           </div>
         ) : (
           <RouteMap

@@ -28,11 +28,11 @@ export default async function CustomerOrderDocumentsPage({ params }: PageProps) 
         <Link className="primaryButton" href="/customer/documents#flyer-upload">Flyerdatei hochladen</Link>
       </section>
 
-      <div className="customerActionRow">
+      <section className="customerDetailActions" aria-label="Dateiaktionen">
         <Link className="secondaryButton" href="/customer/documents">Alle Dateien</Link>
         <Link className="secondaryButton" href={`/customer/orders/${id}`}>Kampagne öffnen</Link>
         <Link className="secondaryButton" href="/customer/orders">Alle Kampagnen</Link>
-      </div>
+      </section>
 
       <DataSection title="Dateien dieser Kampagne" description="Kurz prüfen, herunterladen oder bei Bedarf neue Datei hochladen.">
         <div className="customerMessageList">

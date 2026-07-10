@@ -4929,6 +4929,33 @@ body {
   text-decoration: none;
 }
 
+.customerDetailActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: -2px 0 18px;
+}
+
+.customerDetailActions form {
+  margin: 0;
+}
+
+.customerDetailActions .primaryButton,
+.customerDetailActions .secondaryButton,
+.customerDetailActions button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 0.9rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
 .customerCompactFilter {
   margin-bottom: 16px;
 }
@@ -5680,11 +5707,19 @@ body {
     grid-template-columns: 1fr;
   }
 
+  .customerDetailActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
   .customerCompactFilter .customerSimpleForm {
     grid-template-columns: 1fr;
   }
 
   .customerActionRow a,
+  .customerDetailActions .primaryButton,
+  .customerDetailActions .secondaryButton,
+  .customerDetailActions button,
   .customerUnifiedContent .primaryButton,
   .customerUnifiedContent .secondaryButton,
   .customerUnifiedContent button {

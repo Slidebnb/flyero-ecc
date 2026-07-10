@@ -94,11 +94,11 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
         <Link className="primaryButton" href={action.href}>{action.label}</Link>
       </section>
 
-      <div className="customerActionRow">
+      <section className="customerDetailActions" aria-label="Kampagnenaktionen">
         <Link className="secondaryButton" href="/customer/orders">Alle Kampagnen</Link>
         <Link className="secondaryButton" href={`/customer/orders/${order.id}/documents`}>Dateien öffnen</Link>
         <Link className="secondaryButton" href="/customer/reports">Nachweise ansehen</Link>
-      </div>
+      </section>
 
       <section className="customerDigestGrid">
         <article>
