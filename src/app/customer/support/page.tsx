@@ -9,7 +9,6 @@ import { prisma } from "@/lib/prisma";
 import {
   createTicket,
   listTickets,
-  SUPPORT_PRIORITY_LABELS,
   SUPPORT_STATUS_LABELS,
   SUPPORT_TYPE_LABELS,
 } from "@/lib/support";
@@ -147,7 +146,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
           </form>
         </DataSection>
 
-        <DataSection title={open ? "Offene Rückfragen" : "Meine Anfragen"} description="Offene Themen bleiben oben, erledigte Themen rutschen nach unten.">
+        <DataSection title={open ? "Offene Rückfragen" : "Meine Nachrichten"} description="Nur das öffnen, was gerade wichtig ist.">
           <div className="customerCampaignList compact">
             {tickets.map((ticket) => (
               <article className="customerCampaignItem" key={ticket.id}>
@@ -156,13 +155,13 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
                     <strong>{ticket.subject || ticket.ticketNumber}</strong>
                     <StatusBadge tone={tone(ticket.status)}>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge>
                   </div>
-                  <p>{SUPPORT_TYPE_LABELS[ticket.type]} · {SUPPORT_PRIORITY_LABELS[ticket.priority]}</p>
+                  <p>{SUPPORT_TYPE_LABELS[ticket.type]}</p>
                 </div>
                 <Link className="secondaryButton" href={`/customer/support/tickets/${ticket.id}`}>Öffnen</Link>
               </article>
             ))}
             {tickets.length === 0 ? (
-              <EmptyState title="Noch keine Support-Anfrage." description="Wenn etwas unklar ist, schreiben Sie FLYERO direkt hier." />
+              <EmptyState title="Noch keine Nachricht." description="Wenn etwas unklar ist, schreiben Sie FLYERO direkt hier." />
             ) : null}
           </div>
         </DataSection>

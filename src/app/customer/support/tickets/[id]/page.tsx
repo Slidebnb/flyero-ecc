@@ -7,7 +7,7 @@ import { customerOrderName, customerReportName } from "@/app/customer/customerUx
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
-import { addTicketMessage, getTicket, SUPPORT_PRIORITY_LABELS, SUPPORT_STATUS_LABELS, SUPPORT_TYPE_LABELS } from "@/lib/support";
+import { addTicketMessage, getTicket, SUPPORT_STATUS_LABELS, SUPPORT_TYPE_LABELS } from "@/lib/support";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -49,11 +49,10 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
       </section>
 
       <div className="customerTwoColumn">
-        <DataSection title="Anliegen" description="Die wichtigsten Angaben zu dieser Rückfrage.">
+        <DataSection title="Anliegen" description="Kurz zusammengefasst.">
           <div className="customerFactList">
             <p><span>Status</span><strong>{SUPPORT_STATUS_LABELS[ticket.status]}</strong></p>
             <p><span>Thema</span><strong>{SUPPORT_TYPE_LABELS[ticket.type]}</strong></p>
-            <p><span>Dringlichkeit</span><strong>{SUPPORT_PRIORITY_LABELS[ticket.priority]}</strong></p>
             <p><span>Erstellt</span><strong>{formatDateTime(ticket.createdAt)}</strong></p>
             <p><span>Lösung</span><strong>{ticket.resolution ?? "Noch offen"}</strong></p>
           </div>

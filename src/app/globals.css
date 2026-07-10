@@ -13,6 +13,10 @@
   --primary-hover: #1d3552;
 }
 
+nextjs-portal {
+  display: none !important;
+}
+
 .notice {
   border-left: 4px solid #b7e800;
   background: #f6fae6;
@@ -4894,6 +4898,180 @@ body {
   color: #fff;
 }
 
+.customerUnifiedContent .dataSection,
+.customerUnifiedContent .actionPanel {
+  gap: 16px;
+  padding: clamp(18px, 2vw, 24px);
+}
+
+.customerUnifiedContent .dataSectionHeader,
+.customerUnifiedContent .panelTitleRow {
+  min-width: 0;
+}
+
+.customerUnifiedContent .panelTitleRow {
+  display: block;
+  gap: 0;
+}
+
+.customerUnifiedContent .panelTitleRow > span {
+  display: none;
+}
+
+.customerUnifiedContent .panelTitleRow h2 {
+  margin: 0;
+  font-size: clamp(1.05rem, 1.3vw, 1.24rem);
+  line-height: 1.18;
+}
+
+.customerUnifiedContent .panelTitleRow p {
+  max-width: 62ch;
+  margin: 7px 0 0;
+  font-size: 0.92rem;
+}
+
+.customerUnifiedContent .form,
+.customerUnifiedContent .customerSimpleForm {
+  gap: 12px;
+}
+
+.customerUnifiedContent .form label,
+.customerUnifiedContent .customerSimpleForm label {
+  display: grid;
+  gap: 7px;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.customerUnifiedContent .form input,
+.customerUnifiedContent .form select,
+.customerUnifiedContent .form textarea,
+.customerUnifiedContent .customerSimpleForm input,
+.customerUnifiedContent .customerSimpleForm select,
+.customerUnifiedContent .customerSimpleForm textarea {
+  min-height: 46px;
+  font-size: 0.95rem;
+}
+
+.customerUnifiedContent .form button,
+.customerUnifiedContent .customerSimpleForm button,
+.customerUnifiedContent .primaryButton,
+.customerUnifiedContent .secondaryButton,
+.customerUnifiedContent .emptyState a {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 0 18px;
+  font-size: 0.92rem;
+  line-height: 1;
+}
+
+.customerUnifiedContent .customerSimpleForm button {
+  width: fit-content;
+  min-width: 178px;
+}
+
+.customerUnifiedContent .emptyState {
+  min-height: 170px;
+  align-content: center;
+  justify-items: start;
+}
+
+.customerUnifiedContent .emptyState strong {
+  font-size: 1.02rem;
+}
+
+.customerSoftDetails {
+  margin: 14px 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #fff;
+  overflow: hidden;
+}
+
+.customerSoftDetails summary {
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  cursor: pointer;
+  padding: 0 18px;
+  color: #fff;
+  font-weight: 900;
+  list-style: none;
+}
+
+.customerSoftDetails summary::-webkit-details-marker {
+  display: none;
+}
+
+.customerSoftDetails summary::after {
+  content: "+";
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(183, 232, 0, 0.16);
+  color: #b7e800;
+  font-weight: 950;
+}
+
+.customerSoftDetails[open] summary::after {
+  content: "−";
+}
+
+.customerSoftDetails > div {
+  display: grid;
+  gap: 14px;
+  padding: 0 18px 18px;
+}
+
+.customerSoftDetails p {
+  margin: 0;
+  color: #a7b2c2;
+}
+
+.customerFilePicker {
+  position: relative;
+}
+
+.customerFilePicker span {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid rgba(183, 232, 0, 0.42);
+  background: rgba(183, 232, 0, 0.12);
+  color: #d7ff4c;
+  padding: 0 18px;
+  font-size: 0.92rem;
+  font-weight: 900;
+}
+
+.customerFilePicker small {
+  color: #7f8a99;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.customerFilePicker input[type="file"] {
+  position: absolute;
+  inset: 28px auto auto 0;
+  width: 190px;
+  height: 48px;
+  cursor: pointer;
+  opacity: 0;
+}
+
 .customerUnifiedContent .messageCard,
 .customerUnifiedContent .portalList p {
   border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -4903,30 +5081,6 @@ body {
 .customerUnifiedContent .messageCard:last-child,
 .customerUnifiedContent .portalList p:last-child {
   border-bottom: 0;
-}
-
-.customerActionRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 18px;
-}
-
-.customerActionRow a {
-  min-height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid rgba(255,255,255,0.16);
-  border-radius: 10px;
-  background: rgba(255,255,255,0.04);
-  color: #fff;
-  padding: 11px 14px;
-  font-weight: 850;
-  text-decoration: none;
 }
 
 .customerDetailActions {
@@ -4965,21 +5119,12 @@ body {
   align-items: end;
 }
 
-.customerActionRow .primaryButton,
-.customerActionRow .secondaryButton,
-.customerActionRow button,
 .customerUnifiedContent .primaryButton,
 .customerUnifiedContent .secondaryButton,
 .customerUnifiedContent button {
   min-height: 44px;
   padding: 0 16px;
   white-space: nowrap;
-}
-
-.customerActionRow .primaryButton,
-.customerActionRow .secondaryButton,
-.customerActionRow button {
-  min-width: 156px;
 }
 
 .customerUnifiedContent .portalMetrics {
@@ -5702,11 +5847,6 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .customerActionRow {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
   .customerDetailActions {
     display: grid;
     grid-template-columns: 1fr;
@@ -5716,7 +5856,6 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .customerActionRow a,
   .customerDetailActions .primaryButton,
   .customerDetailActions .secondaryButton,
   .customerDetailActions button,
@@ -6367,6 +6506,25 @@ body {
 
 .customerUnifiedTopbar > div:first-child {
   min-width: 0;
+}
+
+.customerUnifiedTopbar .orderTopActions {
+  gap: 10px;
+}
+
+.customerUnifiedTopbar .orderTopActions a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  padding: 0 16px;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
 .customerUnifiedTopbar .topPrimaryAction {

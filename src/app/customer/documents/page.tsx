@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_DOCUMENT_STATUS_LABELS, CUSTOMER_PRINT_STATUS_LABELS, customerOrderName } from "@/app/customer/customerUx";
-import { ActionPanel, DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { createDocument, createPrintOrder, DOCUMENT_TYPE_LABELS, listDocuments, listPrintOrders } from "@/lib/documents";
 import { prisma } from "@/lib/prisma";
@@ -83,12 +83,16 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
         )}
       </section>
 
-      <div className="customerTwoColumn">
-        <ActionPanel title="Flyerdatei hochladen" description="Kurze Angaben reichen. Die Prüfung übernimmt FLYERO." id="flyer-upload">
+      <DataSection title="Flyerdatei senden" description="Wählen Sie die Kampagne und laden Sie die Datei hoch. FLYERO prüft den Rest." id="flyer-upload">
           {hasOrders ? (
             <form action={uploadDocument} className="form customerSimpleForm">
               <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
-              <label>Datei<input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.zip,.ai,.indd" required /></label>
+              <label className="customerFilePicker">
+                Datei
+                <span>Datei auswählen</span>
+                <small>PDF, Bild, ZIP, AI oder INDD</small>
+                <input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.zip,.ai,.indd" required />
+              </label>
               <label>Titel optional<input name="title" placeholder="z. B. Flyer Frühjahr" /></label>
               <input type="hidden" name="documentType" value="PRINT_FILE" />
               <button type="submit">Datei senden</button>
@@ -96,9 +100,12 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
           ) : (
             <EmptyState title="Noch keine Kampagne." description="Starten Sie zuerst eine Verteilung, dann können Dateien zugeordnet werden." action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }} />
           )}
-        </ActionPanel>
+        </DataSection>
 
-        <ActionPanel title="Druck über FLYERO" description="Wenn FLYERO den Druck mitplanen soll, senden Sie eine kurze Anfrage.">
+      <details className="customerSoftDetails">
+        <summary>Druck über FLYERO anfragen</summary>
+        <div>
+          <p>Nur öffnen, wenn FLYERO den Druck zusätzlich organisieren soll.</p>
           {hasOrders ? (
             <form action={requestPrint} className="form customerSimpleForm" id="print-request">
               <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
@@ -110,8 +117,8 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
           ) : (
             <EmptyState title="Druck braucht eine Kampagne." description="So wissen wir, für welches Gebiet und welche Menge geplant wird." action={{ href: "/customer/orders/new", label: "Kampagne starten" }} />
           )}
-        </ActionPanel>
-      </div>
+        </div>
+      </details>
 
       <DataSection title="Freigaben & Dateien" description="Alles Wichtige als kurze Liste, ohne Tabellen-Suche." id="documents-list">
         <div className="customerCompactFilter">
