@@ -2,17 +2,13 @@ import Link from "next/link";
 import { ArrowRight, Camera, FileText, MapPinned, Navigation, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_ORDER_STATUS_LABELS, customerOrderName } from "@/app/customer/customerUx";
-import { EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { CUSTOMER_ORDER_STATUS_LABELS, customerOrderName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
+import { EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("de-DE").format(value);
-}
-
-function formatPercent(value: number) {
-  return `${Math.round(value)} %`;
 }
 
 function formatCurrency(value: unknown) {
@@ -23,19 +19,12 @@ function formatDate(value?: Date | null) {
   return value ? value.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "Termin offen";
 }
 
-function statusTone(status?: string): "success" | "warning" | "neutral" {
-  if (!status) return "neutral";
-  if (["DISTRIBUTION_APPROVED", "REPORT_READY_PREVIEW"].includes(status)) return "success";
-  if (["PAYMENT_PENDING", "PAYMENT_FAILED", "WAITING_FOR_CUSTOMER", "PAID_WAITING_FOR_ADMIN_REVIEW"].includes(status)) return "warning";
-  return "neutral";
-}
-
 function ProofPreview({ hasRealReport }: { hasRealReport: boolean }) {
   const proofItems = [
     { icon: Navigation, label: "GPS-Spur", value: hasRealReport ? "geprüft" : "Beispiel Koblenz" },
-    { icon: Camera, label: "Foto-Nachweise", value: hasRealReport ? "im Bericht" : "Pins sichtbar" },
-    { icon: ShieldCheck, label: "Tour geprüft", value: hasRealReport ? "freigegeben" : "Beispiel-Prüfung" },
-    { icon: FileText, label: "PDF-Bericht", value: hasRealReport ? "bereit" : "Vorschau" },
+    { icon: Camera, label: "Fotos", value: hasRealReport ? "im Bericht" : "Pins sichtbar" },
+    { icon: ShieldCheck, label: "Tour", value: hasRealReport ? "freigegeben" : "Beispielprüfung" },
+    { icon: FileText, label: "PDF", value: hasRealReport ? "bereit" : "Vorschau" },
   ];
 
   return (
@@ -74,17 +63,14 @@ export default async function CustomerDashboardPage() {
 
   if (!profile) {
     return (
-      <CustomerPortalShell active="/customer/dashboard" title="Dashboard" description="Kundenprofil wurde nicht gefunden.">
+      <CustomerPortalShell active="/customer/dashboard" title="Übersicht" description="Kundenprofil wurde nicht gefunden.">
         <EmptyState title="Kundenprofil wurde nicht gefunden." description="Bitte melden Sie sich erneut an oder kontaktieren Sie den Support." />
       </CustomerPortalShell>
     );
   }
 
   const [
-    activeOrders,
-    plannedOrders,
     completedOrders,
-    approvedReports,
     invoices,
     openSupportTickets,
     lastOrder,
@@ -92,16 +78,7 @@ export default async function CustomerDashboardPage() {
     latestInvoice,
   ] = await Promise.all([
     prisma.order.count({
-      where: { customerId: profile.id, status: { in: ["PAYMENT_PENDING", "PAYMENT_FAILED", "PAID_WAITING_FOR_ADMIN_REVIEW", "WAITING_FOR_CUSTOMER", "APPROVED", "READY_FOR_FLYERS", "READY_FOR_PICKUP", "READY_FOR_DISTRIBUTION"] } },
-    }),
-    prisma.order.count({
-      where: { customerId: profile.id, preferredStartDate: { gte: new Date() } },
-    }),
-    prisma.order.count({
       where: { customerId: profile.id, status: { in: ["REPORT_READY_PREVIEW", "DISTRIBUTION_APPROVED"] } },
-    }),
-    prisma.report.count({
-      where: { status: "PUBLISHED", order: { customerId: profile.id }, tour: { status: "APPROVED" } },
     }),
     prisma.invoice.findMany({
       where: { customerId: profile.id },
@@ -145,10 +122,9 @@ export default async function CustomerDashboardPage() {
     }),
   ]);
 
-  const paidInvoices = invoices.filter((invoice) => invoice.status === "PAID").length;
-  const paidRate = invoices.length ? (paidInvoices / invoices.length) * 100 : 100;
   const distributedFlyers = lastOrder?.flyerQuantity ? completedOrders * lastOrder.flyerQuantity : 0;
   const primaryReportHref = latestReport ? `/customer/reports/${latestReport.id}` : latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/reports";
+  const currentActionHref = lastOrder ? `/customer/orders/${lastOrder.id}` : "/customer/orders";
 
   return (
     <CustomerPortalShell
@@ -160,21 +136,14 @@ export default async function CustomerDashboardPage() {
         <div className="customerCommandCopy">
           <span>FLYERO Kundenportal</span>
           <h2>Was möchten Sie jetzt erledigen?</h2>
-          <p>Die wichtigsten Wege sind direkt erreichbar: neue Verteilung starten, laufende Kampagne prüfen oder Nachweis/Rechnung öffnen.</p>
+          <p>Die drei wichtigsten Wege stehen direkt bereit: neue Verteilung starten, aktuelle Kampagne öffnen oder Nachweis/Rechnung ansehen.</p>
           <div className="customerCommandActions">
             <Link className="primaryCommand" href="/customer/orders/new">Neue Verteilung starten<ArrowRight aria-hidden="true" /></Link>
-            <Link href={lastOrder ? `/customer/orders/${lastOrder.id}` : "/customer/orders"}>Aktuelle Kampagne</Link>
+            <Link href={currentActionHref}>Aktuelle Kampagne</Link>
             <Link href={primaryReportHref}>Nachweis oder Rechnung</Link>
           </div>
         </div>
         <ProofPreview hasRealReport={Boolean(latestReport)} />
-      </section>
-
-      <section className="portalMetrics customerOutcomeMetrics" aria-label="Kurzer Überblick">
-        <MetricTile label="Läuft gerade" value={activeOrders} tone={activeOrders > 0 ? "success" : "neutral"} />
-        <MetricTile label="Geplant" value={plannedOrders} />
-        <MetricTile label="Nachweise" value={approvedReports} tone={approvedReports > 0 ? "success" : "neutral"} />
-        <MetricTile label="Zahlungen" value={formatPercent(paidRate)} tone="success" />
       </section>
 
       <div className="customerMissionGrid">
@@ -186,8 +155,12 @@ export default async function CustomerDashboardPage() {
           {lastOrder ? (
             <>
               <div className="currentCampaignStatus">
-                <StatusBadge tone={statusTone(lastOrder.status)}>{CUSTOMER_ORDER_STATUS_LABELS[lastOrder.status]}</StatusBadge>
+                <StatusBadge tone={customerOrderTone(lastOrder.status)}>{CUSTOMER_ORDER_STATUS_LABELS[lastOrder.status]}</StatusBadge>
                 <strong>{lastOrder.postalCode} {lastOrder.city}</strong>
+              </div>
+              <div className="customerPlainNextStep">
+                <strong>Nächster Schritt</strong>
+                <span>{customerOrderPlainNextStep(lastOrder.status)}</span>
               </div>
               <dl className="customerFactList">
                 <div><dt>Kampagne</dt><dd>{customerOrderName(lastOrder.orderNumber)}</dd></div>
@@ -199,7 +172,7 @@ export default async function CustomerDashboardPage() {
             </>
           ) : (
             <EmptyState
-              title="Starte deine erste Verteilung."
+              title="Starten Sie Ihre erste Verteilung."
               description="Der Karten-Flow berechnet Gebiet, Preis und Bedarf live."
               action={{ href: "/customer/orders/new", label: "Jetzt starten" }}
             />
@@ -224,14 +197,14 @@ export default async function CustomerDashboardPage() {
 
         <section className="customerMissionPanel nextActionPanel">
           <div className="missionPanelHeader">
-            <span>Was ist als Nächstes zu tun?</span>
-            <h2>Alles in maximal 3 Klicks.</h2>
+            <span>Direkt erledigen</span>
+            <h2>Alles Wichtige in maximal 3 Klicks.</h2>
           </div>
           <div className="customerActionStack">
             <Link href="/customer/orders/new"><MapPinned aria-hidden="true" /><span>Gebiet planen</span><strong>1 Klick</strong></Link>
-            <Link href="/customer/documents"><UploadCloud aria-hidden="true" /><span>Druckdaten hochladen</span><strong>2 Klicks</strong></Link>
-            <Link href={latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/invoices"}><ReceiptText aria-hidden="true" /><span>Rechnung prüfen</span><strong>{latestInvoice ? formatCurrency(latestInvoice.totalGross) : "bereit sobald vorhanden"}</strong></Link>
-            <Link href="/customer/support"><ShieldCheck aria-hidden="true" /><span>Support klären</span><strong>{openSupportTickets} offen</strong></Link>
+            <Link href="/customer/documents"><UploadCloud aria-hidden="true" /><span>Druckdaten senden</span><strong>2 Klicks</strong></Link>
+            <Link href={latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/invoices"}><ReceiptText aria-hidden="true" /><span>Rechnung öffnen</span><strong>{latestInvoice ? formatCurrency(latestInvoice.totalGross) : "sobald vorhanden"}</strong></Link>
+            <Link href="/customer/support"><ShieldCheck aria-hidden="true" /><span>Hilfe bekommen</span><strong>{openSupportTickets} offen</strong></Link>
           </div>
         </section>
       </div>

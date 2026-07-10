@@ -4929,6 +4929,15 @@ body {
   text-decoration: none;
 }
 
+.customerCompactFilter {
+  margin-bottom: 16px;
+}
+
+.customerCompactFilter .customerSimpleForm {
+  grid-template-columns: minmax(220px, 1fr) minmax(180px, 260px) auto;
+  align-items: end;
+}
+
 .customerActionRow .primaryButton,
 .customerActionRow .secondaryButton,
 .customerActionRow button,
@@ -5415,6 +5424,29 @@ body {
   padding: 22px;
 }
 
+.customerPlainNextStep {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(190, 255, 0, 0.18);
+  background: rgba(190, 255, 0, 0.08);
+}
+
+.customerPlainNextStep strong {
+  color: #eaff8d;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.customerPlainNextStep span {
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
 .missionPanelHeader h2 {
   margin: 8px 0 0;
   color: #ffffff;
@@ -5612,6 +5644,19 @@ body {
     padding: 16px;
   }
 
+  .customerUnifiedTopbar .orderTopActions {
+    display: flex;
+    justify-self: stretch;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .customerUnifiedTopbar .orderTopActions a {
+    flex: 1 1 120px;
+    justify-content: center;
+    min-height: 42px;
+  }
+
   .customerUnifiedBody {
     grid-template-columns: 1fr;
   }
@@ -5632,6 +5677,10 @@ body {
 
   .customerActionRow {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .customerCompactFilter .customerSimpleForm {
     grid-template-columns: 1fr;
   }
 

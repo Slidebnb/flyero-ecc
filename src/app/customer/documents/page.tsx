@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_DOCUMENT_STATUS_LABELS, CUSTOMER_PRINT_STATUS_LABELS, customerOrderName } from "@/app/customer/customerUx";
-import { ActionPanel, DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { ActionPanel, DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { createDocument, createPrintOrder, DOCUMENT_TYPE_LABELS, listDocuments, listPrintOrders } from "@/lib/documents";
 import { prisma } from "@/lib/prisma";
@@ -11,13 +11,21 @@ import { prisma } from "@/lib/prisma";
 async function uploadDocument(formData: FormData) {
   "use server";
   const session = await requireRole([UserRole.CUSTOMER]);
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    throw new Error("Bitte eine Flyerdatei auswählen.");
+  }
+
   await createDocument(session, {
     orderId: String(formData.get("orderId") || ""),
     documentType: String(formData.get("documentType") || "PRINT_FILE"),
-    title: String(formData.get("title") || ""),
-    originalFilename: String(formData.get("originalFilename") || "flyer.pdf"),
-    mimeType: String(formData.get("mimeType") || "application/pdf"),
-    content: String(formData.get("content") || "Flyerdatei wurde für die Prüfung vorgemerkt."),
+    title: String(formData.get("title") || file.name),
+    originalFilename: file.name,
+    mimeType: file.type || "application/octet-stream",
+  }, {
+    originalFilename: file.name,
+    mimeType: file.type || "application/octet-stream",
+    buffer: Buffer.from(await file.arrayBuffer()),
   });
   redirect("/customer/documents");
 }
@@ -54,27 +62,19 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
     }),
   ]);
   const hasOrders = orders.length > 0;
-  const underReview = documents.filter((item) => item.status === "UNDER_REVIEW").length;
-  const approved = documents.filter((item) => item.status === "APPROVED").length;
+  const openDocument = documents.find((item) => item.status === "REJECTED" || item.status === "UNDER_REVIEW");
 
   return (
     <CustomerPortalShell
       active="/customer/documents"
       title="Dateien & Druck"
-      description="Flyerdateien hochladen, Druck anfragen und Freigaben schnell finden."
+      description="Flyerdateien senden, Druck anfragen und Freigaben schnell finden."
     >
-      <section className="portalMetrics">
-        <MetricTile label="Dateien" value={documents.length} />
-        <MetricTile label="In Prüfung" value={underReview} tone={underReview ? "warning" : "neutral"} />
-        <MetricTile label="Freigegeben" value={approved} tone={approved ? "success" : "neutral"} />
-        <MetricTile label="Druckaufträge" value={printOrders.length} />
-      </section>
-
       <section className="customerFocusPanel">
         <div>
-          <span className="customerTinyLabel">Nächster sinnvoller Schritt</span>
-          <h2>{hasOrders ? "Flyerdatei hochladen" : "Erst eine Kampagne starten"}</h2>
-          <p>{hasOrders ? "Ordnen Sie die Datei der passenden Kampagne zu. FLYERO prüft die Druckdaten danach." : "Dateien und Druck gehören immer zu einer Kampagne."}</p>
+          <span className="customerTinyLabel">Nächster Schritt</span>
+          <h2>{hasOrders ? (openDocument ? "Dateistatus prüfen oder neue Datei hochladen." : "Flyerdatei hochladen.") : "Erst eine Kampagne starten."}</h2>
+          <p>{hasOrders ? "Eine Datei, eine Kampagne, danach prüft FLYERO die Druckdaten." : "Dateien und Druck gehören immer zu einer Kampagne."}</p>
         </div>
         {hasOrders ? (
           <a className="primaryButton" href="#flyer-upload">Datei hochladen</a>
@@ -83,22 +83,15 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
         )}
       </section>
 
-      <div className="customerActionRow">
-        <a className="secondaryButton" href="#documents-list">Freigaben ansehen</a>
-        <a className="secondaryButton" href="#print-request">Druck anfragen</a>
-        <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
-      </div>
-
       <div className="customerTwoColumn">
-        <ActionPanel title="Flyerdatei hochladen" description="Kurze Angaben reichen. Die echte Prüfung übernimmt FLYERO." id="flyer-upload">
+        <ActionPanel title="Flyerdatei hochladen" description="Kurze Angaben reichen. Die Prüfung übernimmt FLYERO." id="flyer-upload">
           {hasOrders ? (
             <form action={uploadDocument} className="form customerSimpleForm">
               <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
-              <label>Titel<input name="title" required placeholder="Flyer Vorderseite" /></label>
-              <label>Dateiname<input name="originalFilename" required defaultValue="flyer.pdf" /></label>
+              <label>Datei<input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.zip,.ai,.indd" required /></label>
+              <label>Titel optional<input name="title" placeholder="z. B. Flyer Frühjahr" /></label>
               <input type="hidden" name="documentType" value="PRINT_FILE" />
-              <input type="hidden" name="mimeType" value="application/pdf" />
-              <button type="submit">Hochladen</button>
+              <button type="submit">Datei senden</button>
             </form>
           ) : (
             <EmptyState title="Noch keine Kampagne." description="Starten Sie zuerst eine Verteilung, dann können Dateien zugeordnet werden." action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }} />
@@ -121,7 +114,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
       </div>
 
       <DataSection title="Freigaben & Dateien" description="Alles Wichtige als kurze Liste, ohne Tabellen-Suche." id="documents-list">
-        <div className="customerActionRow">
+        <div className="customerCompactFilter">
           <form className="form customerSimpleForm">
             <label>Suche<input name="q" defaultValue={params.q ?? ""} placeholder="Titel, Datei oder Kampagne" /></label>
             <label>Status<select name="status" defaultValue={params.status ?? ""}><option value="">Alle Status</option>{Object.entries(CUSTOMER_DOCUMENT_STATUS_LABELS).map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label>

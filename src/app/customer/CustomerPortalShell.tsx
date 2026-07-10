@@ -30,7 +30,7 @@ const navItems = [
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Abrechnung" },
   { href: "/customer/payments", label: "Zahlungen", icon: CreditCard, group: "Abrechnung" },
   { href: "/customer/notifications", label: "Nachrichten", icon: Bell, group: "Hilfe" },
-  { href: "/customer/support", label: "Support", icon: CircleHelp, group: "Hilfe" },
+  { href: "/customer/support", label: "Hilfe", icon: CircleHelp, group: "Hilfe" },
   { href: "/customer/profile", label: "Profil", icon: Settings, group: "Hilfe" },
 ];
 

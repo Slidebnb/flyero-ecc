@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { TicketPriority, TicketType, UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName, customerReportName } from "@/app/customer/customerUx";
-import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -84,30 +84,30 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
   ]);
 
   const selectedReportIndex = reportId ? reports.findIndex((report) => report.id === reportId) : -1;
+  const waitingTicket = tickets.find((ticket) => ticket.status === "WAITING_FOR_CUSTOMER");
   const open = tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length;
 
   return (
     <CustomerPortalShell
       active="/customer/support"
-      title="Support"
+      title="Hilfe"
       description="Eine Frage stellen, eine Kampagne klären oder eine Rückfrage zum Bericht senden."
     >
-      <section className="portalMetrics">
-        <MetricTile label="Tickets" value={tickets.length} />
-        <MetricTile label="Offen" value={open} tone={open ? "warning" : "success"} />
-        <MetricTile label="Antwort" value="im Portal" />
-      </section>
-
-      <section className="customerFocusPanel">
+      <section className={waitingTicket ? "customerWarningBanner" : "customerFocusPanel"}>
         <div>
           <span className="customerTinyLabel">Schnellkontakt</span>
-          <h2>Was soll FLYERO prüfen?</h2>
-          <p>Wählen Sie optional eine Kampagne oder einen Bericht aus. So landet Ihre Anfrage direkt am richtigen Auftrag.</p>
+          <h2>{waitingTicket ? "FLYERO wartet auf Ihre Antwort." : "Wobei dürfen wir helfen?"}</h2>
+          <p>{waitingTicket ? waitingTicket.subject : "Kurz beschreiben reicht. Wenn möglich, wählen Sie direkt eine Kampagne oder einen Bericht aus."}</p>
         </div>
+        {waitingTicket ? (
+          <Link className="primaryButton" href={`/customer/support/tickets/${waitingTicket.id}`}>Antworten</Link>
+        ) : (
+          <a className="primaryButton" href="#support-message">Nachricht schreiben</a>
+        )}
       </section>
 
       <div className="customerTwoColumn">
-        <DataSection title="Neue Nachricht" description="Kurz beschreiben reicht. FLYERO ordnet den Rest intern zu.">
+        <DataSection title="Neue Nachricht" description="FLYERO ordnet Ihre Nachricht intern dem richtigen Auftrag zu." id="support-message">
           <form action={createCustomerTicket} className="form customerSimpleForm">
             <label>
               Thema
@@ -122,7 +122,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
               <input name="subject" required placeholder="z. B. Rückfrage zur Verteilung" />
             </label>
             <label>
-              Kampagne
+              Kampagne optional
               <select name="orderKey" defaultValue="">
                 <option value="">Keine Kampagne auswählen</option>
                 {orders.map((order, index) => (
@@ -131,7 +131,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
               </select>
             </label>
             <label>
-              Bericht
+              Bericht optional
               <select name="reportKey" defaultValue={selectedReportIndex >= 0 ? String(selectedReportIndex) : ""}>
                 <option value="">Keinen Bericht auswählen</option>
                 {reports.map((report, index) => (
@@ -147,7 +147,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
           </form>
         </DataSection>
 
-        <DataSection title="Meine Anfragen" description="Offene Themen bleiben sichtbar, erledigte Themen rutschen nach unten.">
+        <DataSection title={open ? "Offene Rückfragen" : "Meine Anfragen"} description="Offene Themen bleiben oben, erledigte Themen rutschen nach unten.">
           <div className="customerCampaignList compact">
             {tickets.map((ticket) => (
               <article className="customerCampaignItem" key={ticket.id}>

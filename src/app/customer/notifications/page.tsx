@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import {
@@ -7,7 +8,7 @@ import {
   safeCustomerMessage,
   safeCustomerSubject,
 } from "@/app/customer/customerUx";
-import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -23,8 +24,8 @@ export default async function CustomerNotificationsPage() {
     }),
     prisma.notificationPreference.findMany({ where: { userId: session.id }, orderBy: [{ type: "asc" }, { channel: "asc" }] }),
   ]);
+  const latestMessage = messages[0] ?? null;
   const unread = messages.filter((message) => !message.readAt).length;
-  const failed = messages.filter((message) => message.queues[0]?.status === "FAILED").length;
 
   return (
     <CustomerPortalShell
@@ -32,13 +33,13 @@ export default async function CustomerNotificationsPage() {
       title="Nachrichten"
       description="Nur wichtige Hinweise zu Kampagnen, Dateien, Zahlungen und Nachweisen."
     >
-      <section className="portalMetrics">
-        <MetricTile label="Nachrichten" value={messages.length} />
-        <MetricTile label="Neu" value={unread} tone={unread ? "warning" : "success"} />
-        <MetricTile label="Aktion nötig" value={failed} tone={failed ? "danger" : "success"} />
+      <section className={unread ? "customerWarningBanner" : "customerSuccessBanner"}>
+        <strong>{unread ? `${unread} neue Nachricht${unread === 1 ? "" : "en"}.` : "Keine offenen Hinweise."}</strong>
+        <span>{latestMessage ? safeCustomerSubject(latestMessage.type, latestMessage.subject) : "Wenn FLYERO etwas von Ihnen braucht, steht es hier."}</span>
+        <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
       </section>
 
-      <DataSection title="Aktuelle Hinweise" description="FLYERO blendet technische Meldungen aus und zeigt nur das, was für Sie wichtig ist.">
+      <DataSection title="Aktuelle Hinweise" description="Kurze Meldungen ohne interne Technik.">
         <div className="customerMessageList">
           {messages.map((message) => {
             const latestQueueStatus = message.queues[0]?.status;
@@ -61,7 +62,7 @@ export default async function CustomerNotificationsPage() {
         </div>
       </DataSection>
 
-      <DataSection title="Benachrichtigungen" description="Diese Hinweise können zusätzlich per E-Mail, WhatsApp, SMS oder Push zugestellt werden.">
+      <DataSection title="Zustellung" description="Wichtige Hinweise stehen immer im Portal. Zusätzliche Kanäle sind hier zusammengefasst.">
         <div className="customerPreferenceList">
           {preferences.map((preference) => (
             <p key={preference.id}>
