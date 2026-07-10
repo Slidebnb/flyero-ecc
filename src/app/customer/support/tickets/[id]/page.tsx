@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { customerOrderName, customerReportName, customerSafeText } from "@/app/customer/customerUx";
+import { customerOrderName, customerReportName, customerSafeText, customerTicketName } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -32,7 +32,7 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
   if (!ticket) notFound();
 
   return (
-    <CustomerPortalShell active="/customer/support" title={ticket.ticketNumber} description={customerSafeText(ticket.subject, "Nachricht zu Ihrer Kampagne")}>
+    <CustomerPortalShell active="/customer/support" title={customerTicketName(ticket.ticketNumber)} description={customerSafeText(ticket.subject, "Nachricht zu Ihrer Kampagne")}>
       <section className="customerFocusPanel">
         <div>
           <span className="customerTinyLabel">Hilfe</span>

@@ -117,6 +117,7 @@ export function customerOrderName(orderNumber: string) {
   return orderNumber
     .replace(/^DEMO-ORD-/i, "Auftrag #")
     .replace(/^DEMO-WH-/i, "Kampagne #")
+    .replace(/^DEMO-DISP-/i, "Kampagne #")
     .replace(/^DEMO-/i, "Kampagne #")
     .replace(/^ORD-/i, "Auftrag #");
 }
@@ -125,6 +126,12 @@ export function customerReportName(reportNumber: string) {
   return reportNumber
     .replace(/^RPT-SEED-/i, "Verteilbericht #")
     .replace(/^RPT-/i, "Verteilbericht #");
+}
+
+export function customerTicketName(ticketNumber: string) {
+  return ticketNumber
+    .replace(/^FLY-TK-\d{4}-/i, "Nachricht #")
+    .replace(/^FLY-TK-/i, "Nachricht #");
 }
 
 export function customerOrderTone(status: OrderStatus): CustomerTone {

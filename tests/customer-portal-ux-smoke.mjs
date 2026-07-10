@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 let baseUrl = process.env.CUSTOMER_PORTAL_BASE_URL || "http://localhost:3000";
 const PASSWORD = "DemoPasswort123!";
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -70,7 +73,7 @@ async function customerPage(path, cookie) {
 }
 
 function assertCustomerLanguage(html, path) {
-  for (const forbidden of ["Seed Modul", "Smoke-Test", "seed.module", "EXTERNAL_GPS_REPORT", "OrderStatus", "ReportStatus"]) {
+  for (const forbidden of ["Seed Modul", "Smoke-Test", "seed.module", "EXTERNAL_GPS_REPORT", "OrderStatus", "ReportStatus", "#DISP-", "#ORD-", "#WH-", "FLY-TK-"]) {
     assert(!html.includes(forbidden), `${path} zeigt technischen Rohtext: ${forbidden}`);
   }
   for (const required of ["customerUnifiedShell", "Neue Kampagne"]) {
@@ -81,10 +84,18 @@ function assertCustomerLanguage(html, path) {
 const server = await ensureServer();
 try {
   const cookie = await login("kunde.immobilien@example.com");
-  for (const route of ["/customer/dashboard", "/customer/documents", "/customer/support"]) {
+  const ticket = await prisma.supportTicket.findFirst({
+    where: { customer: { user: { email: "kunde.immobilien@example.com" } } },
+    select: { id: true },
+    orderBy: { updatedAt: "desc" },
+  });
+  const routes = ["/customer/dashboard", "/customer/documents", "/customer/support"];
+  if (ticket) routes.push(`/customer/support/tickets/${ticket.id}`);
+  for (const route of routes) {
     assertCustomerLanguage(await customerPage(route, cookie), route);
   }
   console.log("Customer portal UX smoke checks passed.");
 } finally {
+  await prisma.$disconnect();
   if (server) server.kill();
 }
