@@ -3,12 +3,18 @@ import { UserRole, type DocumentType, type ReportSource } from "@prisma/client";
 import { z } from "zod";
 import { requireRole, type SessionUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
-import { storeDocumentFile, protectedDocumentUrl, type UploadableDocumentFile } from "@/lib/documentStorage";
+import { normalizeExtension, storeDocumentFile, protectedDocumentUrl, type UploadableDocumentFile } from "@/lib/documentStorage";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { generateOnlineReportUrl, generateReportNumber } from "@/lib/reports";
 
 const evidenceTypeSchema = z.enum(["GPS_PDF", "GPS_FILE", "PHOTO", "OTHER"]);
+const allowedEvidenceExtensions: Record<z.infer<typeof evidenceTypeSchema>, string[]> = {
+  GPS_PDF: ["pdf"],
+  GPS_FILE: ["gpx", "kml", "kmz"],
+  PHOTO: ["jpg", "jpeg", "png", "webp"],
+  OTHER: ["pdf", "jpg", "jpeg", "png", "webp", "gpx", "kml", "kmz"],
+};
 
 export const externalEvidenceUploadSchema = z.object({
   evidenceType: evidenceTypeSchema.default("GPS_PDF"),
@@ -42,6 +48,14 @@ function reportSourceForEvidence(type: z.infer<typeof evidenceTypeSchema>): Repo
   return "MANUAL_EVIDENCE";
 }
 
+function assertEvidenceFileMatchesType(type: z.infer<typeof evidenceTypeSchema>, file: UploadableDocumentFile) {
+  const extension = normalizeExtension(file.originalFilename);
+  const allowed = allowedEvidenceExtensions[type];
+  if (!allowed.includes(extension)) {
+    throw new Error(`Dieser Nachweistyp erlaubt nur: ${allowed.map((item) => `.${item}`).join(", ")}.`);
+  }
+}
+
 export async function uploadExternalEvidence(input: {
   actor: SessionUser;
   orderId: string;
@@ -49,6 +63,7 @@ export async function uploadExternalEvidence(input: {
   file: UploadableDocumentFile;
 }) {
   const data = externalEvidenceUploadSchema.parse(input.payload);
+  assertEvidenceFileMatchesType(data.evidenceType, input.file);
   const order = await prisma.order.findUnique({ where: { id: input.orderId }, select: { id: true, customerId: true, orderNumber: true } });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
 
@@ -151,8 +166,38 @@ export async function prepareExternalReportForOrder(input: {
     remainingFlyerQuantity: data.remainingFlyerQuantity,
   });
   const now = new Date();
+  const manualDistributor = data.distributorName
+    ? await prisma.manualDistributor.create({
+        data: {
+          name: data.distributorName,
+          region: order.city,
+          notes: `Manuell im Verteilnachweis fuer ${order.orderNumber} erfasst.`,
+        },
+      })
+    : null;
+  const actualStartedAt = data.startTime ?? data.distributionDate ?? null;
+  const actualCompletedAt = data.endTime ?? null;
   const delivered = data.deliveredFlyerQuantity ?? order.flyerQuantity;
   const remaining = data.remainingFlyerQuantity ?? Math.max(order.flyerQuantity - delivered, 0);
+  const summary = data.summary || "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.";
+  const reportSnapshot = {
+    source: "EXTERNAL_GPS_REPORT",
+    generatedAt: now.toISOString(),
+    distributionDate: data.distributionDate?.toISOString() ?? null,
+    evidenceDocumentIds: evidenceDocuments.map((document) => document.id),
+    gpsDocumentId: gpsDocument.id,
+    externalProvider: gpsDocument.providerName,
+    externalReportReference: gpsDocument.externalReportReference,
+    manualDistributorId: manualDistributor?.id ?? null,
+    manualDistributorName: data.distributorName || null,
+    plannedFlyerQuantity: order.flyerQuantity,
+    deliveredFlyerQuantity: delivered,
+    remainingFlyerQuantity: remaining,
+    summary,
+    customerNote: data.customerNote || null,
+    internalNote: data.internalNote || null,
+    coverageStatement: "Keine automatische Coverage-Berechnung ohne interne Rohdaten.",
+  };
   const report = await prisma.report.upsert({
     where: { tourId: tour.id },
     update: {
@@ -170,23 +215,11 @@ export async function prepareExternalReportForOrder(input: {
       areaCoveragePercent: null,
       householdCoverageEstimate: null,
       estimatedReachedHouseholds: null,
-      actualStartedAt: data.startTime ?? null,
-      actualCompletedAt: data.endTime ?? null,
-      summary: data.summary || "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.",
+      actualStartedAt,
+      actualCompletedAt,
+      summary,
       deviationSummary: data.deviationSummary || null,
-      reportSnapshot: {
-        source: "EXTERNAL_GPS_REPORT",
-        generatedAt: now.toISOString(),
-        evidenceDocumentIds: evidenceDocuments.map((document) => document.id),
-        gpsDocumentId: gpsDocument.id,
-        externalProvider: gpsDocument.providerName,
-        externalReportReference: gpsDocument.externalReportReference,
-        plannedFlyerQuantity: order.flyerQuantity,
-        deliveredFlyerQuantity: delivered,
-        remainingFlyerQuantity: remaining,
-        summary: data.summary || "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.",
-        customerNote: data.customerNote || null,
-      },
+      reportSnapshot,
       calculationVersion: "external-evidence-mvp-v1",
       coverageMode: "external_gps_manual_review",
     },
@@ -212,23 +245,11 @@ export async function prepareExternalReportForOrder(input: {
       areaCoveragePercent: null,
       householdCoverageEstimate: null,
       estimatedReachedHouseholds: null,
-      actualStartedAt: data.startTime ?? null,
-      actualCompletedAt: data.endTime ?? null,
-      summary: data.summary || "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.",
+      actualStartedAt,
+      actualCompletedAt,
+      summary,
       deviationSummary: data.deviationSummary || null,
-      reportSnapshot: {
-        source: "EXTERNAL_GPS_REPORT",
-        generatedAt: now.toISOString(),
-        evidenceDocumentIds: evidenceDocuments.map((document) => document.id),
-        gpsDocumentId: gpsDocument.id,
-        externalProvider: gpsDocument.providerName,
-        externalReportReference: gpsDocument.externalReportReference,
-        plannedFlyerQuantity: order.flyerQuantity,
-        deliveredFlyerQuantity: delivered,
-        remainingFlyerQuantity: remaining,
-        summary: data.summary || "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.",
-        customerNote: data.customerNote || null,
-      },
+      reportSnapshot,
       calculationVersion: "external-evidence-mvp-v1",
       coverageMode: "external_gps_manual_review",
       verificationCode: `VRF-${randomUUID().slice(0, 12).toUpperCase()}`,

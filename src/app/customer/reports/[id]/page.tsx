@@ -19,6 +19,12 @@ function secondsLabel(seconds?: number | null) {
   return `${minutes} Min.`;
 }
 
+function reportSnapshotValue(snapshot: unknown, key: string) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
+  const value = (snapshot as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : null;
+}
+
 async function createComplaintTicket(formData: FormData) {
   "use server";
   const session = await requireRole([UserRole.CUSTOMER]);
@@ -68,6 +74,10 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
   const reportData = await collectReportData(report.tourId);
   const customerView = sanitizeReportForCustomer(reportData);
   const isExternalGpsReport = report.reportSource === "EXTERNAL_GPS_REPORT" || customerView.route.length < 3;
+  const actualStart = report.actualStartedAt ?? customerView.tour.startTime;
+  const actualEnd = report.actualCompletedAt ?? customerView.tour.endTime;
+  const manualDistributorName = reportSnapshotValue(report.reportSnapshot, "manualDistributorName");
+  const customerNote = reportSnapshotValue(report.reportSnapshot, "customerNote");
   await createAuditLog({ userId: session.id, action: "report.viewed", entityType: "Report", entityId: report.id });
 
   return (
@@ -104,16 +114,17 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
               <tr><th>Gebiet</th><td>{customerView.order.area}</td></tr>
               <tr><th>Stadt/PLZ</th><td>{customerView.order.city} {customerView.order.postalCode}</td></tr>
               <tr><th>Zeitraum</th><td>{formatDateTime(customerView.order.preferredStartDate)} bis {formatDateTime(customerView.order.preferredEndDate)}</td></tr>
-              <tr><th>Tour gestartet</th><td>{formatDateTime(customerView.tour.startTime)}</td></tr>
-              <tr><th>Tour beendet</th><td>{formatDateTime(customerView.tour.endTime)}</td></tr>
+              <tr><th>Verteilung gestartet</th><td>{formatDateTime(actualStart)}</td></tr>
+              <tr><th>Verteilung beendet</th><td>{formatDateTime(actualEnd)}</td></tr>
               <tr><th>Aktive Zustellzeit</th><td>{secondsLabel(customerView.tour.activeSeconds)}</td></tr>
               <tr><th>Geplant</th><td>{customerView.quantities.planned} Flyer</td></tr>
               <tr><th>Dokumentiert verteilt</th><td>{customerView.quantities.delivered} Flyer</td></tr>
               <tr><th>Restmenge</th><td>{customerView.quantities.remaining}</td></tr>
-              <tr><th>Ausfuehrung</th><td>FLYERO Verteilerteam, personenbezogene Daten geschuetzt</td></tr>
+              <tr><th>Ausfuehrung</th><td>{manualDistributorName ? `${manualDistributorName}, personenbezogene Daten geschuetzt` : "FLYERO Verteilerteam, personenbezogene Daten geschuetzt"}</td></tr>
             </tbody>
           </table>
         </div>
+        {customerNote ? <p className="notice">{customerNote}</p> : null}
         <p className="muted">
           {isExternalGpsReport
             ? "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung. Es wird keine automatische Flaechenabdeckung erfunden."

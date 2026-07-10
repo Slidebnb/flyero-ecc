@@ -42,6 +42,8 @@ for (const snippet of [
   "uploadExternalEvidence",
   "prepareExternalReportForOrder",
   "publishExternalReport",
+  "assertEvidenceFileMatchesType",
+  "manualDistributorName",
   "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.",
   "EXTERNAL_GPS_REPORT",
   "customerVisible: false",

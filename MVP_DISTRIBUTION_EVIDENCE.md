@@ -30,7 +30,7 @@ Unterstuetzte Dateien:
 - KML
 - KMZ
 
-Dateityp und Dateigroesse werden serverseitig ueber den bestehenden geschuetzten Dokumentenspeicher validiert. Externe GPS-Berichte werden als `Document` am Auftrag gespeichert. Wichtige Metadaten:
+Dateityp und Dateigroesse werden serverseitig ueber den bestehenden geschuetzten Dokumentenspeicher validiert. Zusaetzlich wird der gewaehlte Nachweistyp serverseitig gegen die passende Dateiendung geprueft: GPS-PDF nur PDF, GPS-Datei nur GPX/KML/KMZ, Fotos nur JPG/JPEG/PNG/WEBP. Externe GPS-Berichte werden als `Document` am Auftrag gespeichert. Wichtige Metadaten:
 
 - `providerName`
 - `externalReportReference`
@@ -45,6 +45,7 @@ Dateityp und Dateigroesse werden serverseitig ueber den bestehenden geschuetzten
 Externe Nachweise sind nach Upload nicht automatisch fuer Kunden sichtbar. Beim Veroeffentlichen eines Reports mit `reportSource = EXTERNAL_GPS_REPORT` werden passende freigegebene Nachweise am Auftrag kundensichtbar gemacht.
 
 Der Bericht darf im MVP auch ohne interne GPS-Punkte veroeffentlicht werden. In diesem Fall wird keine automatische Coverage behauptet.
+Der Report-Snapshot speichert die verwendeten Nachweisdateien, Verteilungsdatum, manuell erfasstes Team bzw. Verteilername, Ist-Mengen, Kundennotiz und den Hinweis, dass ohne interne Rohdaten keine automatische Coverage berechnet wird.
 
 Kundenformulierung:
 

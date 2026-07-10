@@ -18,14 +18,14 @@ export default async function CustomerOrderDocumentsPage({ params }: PageProps) 
   const documents = await listDocuments(session, { orderId: id });
 
   return (
-    <CustomerPortalShell active="/customer/documents" title={`Dateien & Druck ${customerOrderName(order.orderNumber)}`} description={order.targetAreaName}>
+    <CustomerPortalShell active="/customer/documents" title={`Dateien ${customerOrderName(order.orderNumber)}`} description={order.targetAreaName}>
       <div className="customerActionRow">
-        <Link className="secondaryButton" href="/customer/documents">Dateien & Druck</Link>
+        <Link className="secondaryButton" href="/customer/documents">Alle Dateien</Link>
         <Link className="secondaryButton" href={`/customer/orders/${id}`}>Kampagne</Link>
         <Link className="secondaryButton" href="/customer/orders">Kampagnen</Link>
       </div>
 
-      <DataSection title="Chronologische Dateien">
+      <DataSection title="Dateien dieser Kampagne">
         <div className="tableWrap">
           <table>
             <thead><tr><th>Datei</th><th>Typ</th><th>Status</th><th>Versionen</th><th></th></tr></thead>

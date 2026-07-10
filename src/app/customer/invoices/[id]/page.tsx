@@ -37,10 +37,10 @@ export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
       </div>
 
       <section className="gridCards">
-        <article className="card"><strong>{formatCurrency(invoice.subtotalNet)}</strong><span>Netto</span></article>
-        <article className="card"><strong>{formatCurrency(invoice.vatAmount)}</strong><span>MwSt.</span></article>
-        <article className="card"><strong>{formatCurrency(invoice.totalGross)}</strong><span>Brutto</span></article>
+        <article className="card"><strong>{formatCurrency(invoice.totalGross)}</strong><span>Gesamtbetrag</span></article>
+        <article className="card"><strong>{invoiceStatus}</strong><span>Status</span></article>
         <article className="card"><strong>{formatDate(invoice.invoiceDate ?? invoice.createdAt)}</strong><span>Rechnungsdatum</span></article>
+        <article className="card"><strong>{paidAt ? formatDateTime(paidAt) : "-"}</strong><span>Bezahlt am</span></article>
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
@@ -51,9 +51,6 @@ export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
               <tr><th>Kunde</th><td>{invoice.customer.companyName}</td></tr>
               <tr><th>Rechnungsadresse</th><td style={{ whiteSpace: "pre-line" }}>{formatAddress(invoice.customer.billingAddress)}</td></tr>
               <tr><th>Kampagne</th><td>{customerOrderName(invoice.order.orderNumber)}</td></tr>
-              <tr><th>Status</th><td>{invoiceStatus}</td></tr>
-              <tr><th>Zahlungsreferenz</th><td>{invoice.payment?.stripePaymentIntentId ?? invoice.payment?.stripeCheckoutSessionId ?? "-"}</td></tr>
-              <tr><th>Bezahlt am</th><td>{paidAt ? formatDateTime(paidAt) : "-"}</td></tr>
               <tr><th>Hinweis</th><td>{invoice.status === "PAID" ? "Bereits bezahlt" : "Bitte Zahlungsstatus prüfen"}</td></tr>
             </tbody>
           </table>

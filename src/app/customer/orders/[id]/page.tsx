@@ -81,7 +81,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
 
       <div className="customerActionRow">
         <Link className="secondaryButton" href="/customer/orders">Meine Kampagnen</Link>
-        <Link className="secondaryButton" href={`/customer/orders/${order.id}/documents`}>Dateien & Druck</Link>
+        <Link className="secondaryButton" href={`/customer/orders/${order.id}/documents`}>Dateien</Link>
         <Link className="primaryButton" href="/customer/orders/new">Neue Kampagne</Link>
       </div>
 
@@ -132,7 +132,6 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
                 <tr><th>Status</th><td>{paymentStatusLabel}</td></tr>
                 <tr><th>Betrag</th><td>{formatCurrency(latestPayment.amount)}</td></tr>
                 <tr><th>Transaktionsdatum</th><td>{formatDateTime(latestPayment.paidAt ?? latestPayment.updatedAt)}</td></tr>
-                <tr><th>Zahlungsreferenz</th><td>{latestPayment.stripeCheckoutSessionId ?? latestPayment.stripePaymentIntentId ?? "-"}</td></tr>
                 <tr><th>Erstattungen</th><td>{latestPayment.refunds.length}</td></tr>
               </tbody>
             </table>

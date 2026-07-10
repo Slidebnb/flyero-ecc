@@ -22,9 +22,10 @@ export default async function CustomerInvoicesPage() {
     include: { order: true, payment: true },
     orderBy: { invoiceDate: "desc" },
   });
+  const latestInvoice = invoices[0] ?? null;
 
   return (
-    <CustomerPortalShell active="/customer/invoices" title="Rechnungen" description="PDFs, Zahlungsstatus und Kampagnenbezug an einem Ort.">
+    <CustomerPortalShell active="/customer/invoices" title="Rechnungen" description="Rechnungen finden, PDF laden und die passende Kampagne öffnen.">
       <section className="portalMetrics">
         <MetricTile label="Rechnungen" value={invoices.length} />
         <MetricTile label="Bezahlt" value={invoices.filter((invoice) => invoice.status === "PAID").length} tone="success" />
@@ -32,10 +33,15 @@ export default async function CustomerInvoicesPage() {
         <MetricTile label="PDFs" value={invoices.filter((invoice) => invoice.pdfUrl).length} />
       </section>
 
-      <DataSection title="Alle Rechnungen" description="Öffnen, herunterladen oder die zugehörige Zahlung prüfen.">
+      <DataSection title="Alle Rechnungen" description="Die wichtigsten Aktionen sind PDF laden oder Kampagne öffnen.">
+        <div className="customerActionRow">
+          {latestInvoice?.pdfUrl ? <a className="secondaryButton" href={`/api/customer/invoices/${latestInvoice.id}/download`}>Letzte Rechnung laden</a> : null}
+          <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
+          <Link className="secondaryButton" href="/customer/payments">Zahlungen ansehen</Link>
+        </div>
         <div className="tableWrap customerTable">
           <table>
-            <thead><tr><th>Rechnung</th><th>Kampagne</th><th>Status</th><th>Datum</th><th>Betrag</th><th>PDF</th><th>Aktion</th></tr></thead>
+            <thead><tr><th>Rechnung</th><th>Kampagne</th><th>Status</th><th>Datum</th><th>Betrag</th><th>Aktion</th></tr></thead>
             <tbody>
               {invoices.map((invoice) => (
                 <tr key={invoice.id}>
@@ -44,13 +50,12 @@ export default async function CustomerInvoicesPage() {
                   <td data-label="Status"><StatusBadge tone={invoice.status === "PAID" ? "success" : "warning"}>{INVOICE_STATUS_LABELS[invoice.status] ?? invoice.status}</StatusBadge></td>
                   <td data-label="Datum">{formatDate(invoice.invoiceDate ?? invoice.createdAt)}</td>
                   <td data-label="Betrag">{formatCurrency(invoice.totalGross)}</td>
-                  <td data-label="PDF">{invoice.pdfUrl ? <a className="textLink" href={`/api/customer/invoices/${invoice.id}/download`}>Download</a> : "-"}</td>
-                  <td data-label="Aktion"><Link className="textLink" href={`/customer/invoices/${invoice.id}`}>Ansehen</Link></td>
+                  <td data-label="Aktion">{invoice.pdfUrl ? <a className="textLink" href={`/api/customer/invoices/${invoice.id}/download`}>PDF laden</a> : <Link className="textLink" href={`/customer/invoices/${invoice.id}`}>Ansehen</Link>}</td>
                 </tr>
               ))}
               {invoices.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={6}>
                     <EmptyState
                       title="Noch keine Rechnungen vorhanden."
                       description="Rechnungen werden nach erfolgreicher Zahlung und Freigabe automatisch erzeugt."

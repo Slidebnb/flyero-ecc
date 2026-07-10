@@ -4924,6 +4924,17 @@ body {
   text-decoration: none;
 }
 
+.customerActionRow .primaryButton,
+.customerActionRow .secondaryButton,
+.customerActionRow button,
+.customerUnifiedContent .primaryButton,
+.customerUnifiedContent .secondaryButton,
+.customerUnifiedContent button {
+  min-height: 44px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
 .customerPageDescription {
   max-width: 880px;
   margin: 0 0 18px;
@@ -6008,6 +6019,31 @@ body {
 .nav a:hover,
 .customerSideNav a:hover {
   transform: translateY(-1px);
+}
+
+.customerSideNavSection {
+  display: grid;
+  gap: 6px;
+}
+
+.customerSideNavSection small {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  margin: 12px 10px 2px;
+  text-transform: uppercase;
+}
+
+.customerUnifiedTopbar > div:first-child {
+  min-width: 0;
+}
+
+.customerUnifiedTopbar .topPrimaryAction {
+  background: var(--lime);
+  border-color: var(--lime);
+  color: #0d0f0f;
+  font-weight: 900;
 }
 
 .panel,

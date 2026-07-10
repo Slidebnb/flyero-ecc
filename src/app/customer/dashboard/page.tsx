@@ -101,7 +101,7 @@ export default async function CustomerDashboardPage() {
       where: { customerId: profile.id, status: { in: ["REPORT_READY_PREVIEW", "DISTRIBUTION_APPROVED"] } },
     }),
     prisma.report.count({
-      where: { status: "APPROVED", order: { customerId: profile.id }, tour: { status: "APPROVED" } },
+      where: { status: "PUBLISHED", order: { customerId: profile.id }, tour: { status: "APPROVED" } },
     }),
     prisma.invoice.findMany({
       where: { customerId: profile.id },
@@ -127,7 +127,7 @@ export default async function CustomerDashboardPage() {
       },
     }),
     prisma.report.findFirst({
-      where: { status: { in: ["GENERATED", "APPROVED", "PUBLISHED"] }, order: { customerId: profile.id }, tour: { status: "APPROVED" } },
+      where: { status: "PUBLISHED", order: { customerId: profile.id }, tour: { status: "APPROVED" } },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
