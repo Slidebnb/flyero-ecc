@@ -18,30 +18,41 @@ export default async function CustomerOrderDocumentsPage({ params }: PageProps) 
   const documents = await listDocuments(session, { orderId: id });
 
   return (
-    <CustomerPortalShell active="/customer/documents" title={`Dateien ${customerOrderName(order.orderNumber)}`} description={order.targetAreaName}>
+    <CustomerPortalShell active="/customer/documents" title="Dateien" description={`${customerOrderName(order.orderNumber)} - ${order.targetAreaName}`}>
+      <section className="customerFocusPanel">
+        <div>
+          <span className="customerTinyLabel">Kampagnen-Dateien</span>
+          <h2>{documents.length ? "Dateien und Freigaben" : "Noch keine Datei hinterlegt"}</h2>
+          <p>{documents.length ? "Hier stehen nur die Dateien dieser Kampagne." : "Laden Sie die Flyerdatei zentral hoch und ordnen Sie sie dieser Kampagne zu."}</p>
+        </div>
+        <Link className="primaryButton" href="/customer/documents#flyer-upload">Flyerdatei hochladen</Link>
+      </section>
+
       <div className="customerActionRow">
         <Link className="secondaryButton" href="/customer/documents">Alle Dateien</Link>
-        <Link className="secondaryButton" href={`/customer/orders/${id}`}>Kampagne</Link>
-        <Link className="secondaryButton" href="/customer/orders">Kampagnen</Link>
+        <Link className="secondaryButton" href={`/customer/orders/${id}`}>Kampagne öffnen</Link>
+        <Link className="secondaryButton" href="/customer/orders">Alle Kampagnen</Link>
       </div>
 
-      <DataSection title="Dateien dieser Kampagne">
-        <div className="tableWrap">
-          <table>
-            <thead><tr><th>Datei</th><th>Typ</th><th>Status</th><th>Versionen</th><th></th></tr></thead>
-            <tbody>
-              {documents.map((document) => (
-                <tr key={document.id}>
-                  <td>{document.title}<br /><small>{document.originalFilename}</small></td>
-                  <td>{DOCUMENT_TYPE_LABELS[document.documentType]}</td>
-                  <td><StatusBadge>{CUSTOMER_DOCUMENT_STATUS_LABELS[document.status]}</StatusBadge></td>
-                  <td>{document.versions.length}</td>
-                  <td><a className="textLink" href={`/api/customer/documents/${document.id}/download`}>Download</a></td>
-                </tr>
-              ))}
-              {documents.length === 0 ? <tr><td colSpan={5}><EmptyState title="Keine Dateien für diese Kampagne." action={{ href: "/customer/documents", label: "Flyerdatei hochladen" }} /></td></tr> : null}
-            </tbody>
-          </table>
+      <DataSection title="Dateien dieser Kampagne" description="Kurz prüfen, herunterladen oder bei Bedarf neue Datei hochladen.">
+        <div className="customerMessageList">
+          {documents.map((document) => (
+            <article className="customerMessageItem" key={document.id}>
+              <div className="customerItemHeader">
+                <strong>{document.title}</strong>
+                <StatusBadge>{CUSTOMER_DOCUMENT_STATUS_LABELS[document.status]}</StatusBadge>
+              </div>
+              <div className="customerItemMeta">
+                <span>{DOCUMENT_TYPE_LABELS[document.documentType]}</span>
+                <span>{document.originalFilename}</span>
+                <span>{document.versions.length} Version{document.versions.length === 1 ? "" : "en"}</span>
+              </div>
+              <a className="secondaryButton" href={`/api/customer/documents/${document.id}/download`}>Download</a>
+            </article>
+          ))}
+          {documents.length === 0 ? (
+            <EmptyState title="Keine Dateien für diese Kampagne." description="Die wichtigste Aktion ist jetzt der Datei-Upload." action={{ href: "/customer/documents#flyer-upload", label: "Flyerdatei hochladen" }} />
+          ) : null}
         </div>
       </DataSection>
     </CustomerPortalShell>

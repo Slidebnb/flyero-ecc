@@ -19,6 +19,12 @@ async function reply(formData: FormData) {
   revalidatePath(`/customer/support/tickets/${ticketId}`);
 }
 
+function ticketTone(status: string) {
+  if (status === "CLOSED" || status === "RESOLVED") return "success" as const;
+  if (status === "WAITING_FOR_CUSTOMER" || status === "WAITING_INTERNAL") return "warning" as const;
+  return "neutral" as const;
+}
+
 export default async function CustomerTicketDetailPage({ params }: PageProps) {
   const session = await requireRole([UserRole.CUSTOMER]);
   const { id } = await params;
@@ -27,39 +33,60 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
 
   return (
     <CustomerPortalShell active="/customer/support" title={ticket.ticketNumber} description={ticket.subject}>
+      <section className="customerFocusPanel">
+        <div>
+          <span className="customerTinyLabel">Support</span>
+          <h2>{SUPPORT_STATUS_LABELS[ticket.status]}</h2>
+          <p>{ticket.status === "WAITING_FOR_CUSTOMER" ? "FLYERO wartet auf Ihre Antwort." : "Alle Antworten und nächsten Schritte stehen hier."}</p>
+        </div>
+        <StatusBadge tone={ticketTone(ticket.status)}>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge>
+      </section>
+
       <div className="customerActionRow">
         <Link className="secondaryButton" href="/customer/support">Support</Link>
         <Link className="secondaryButton" href="/customer/reports">Berichte</Link>
         <Link className="secondaryButton" href="/customer/orders">Kampagnen</Link>
       </div>
 
-      <DataSection title="Ticketdetails">
-        <div className="tableWrap">
-          <table>
-            <tbody>
-              <tr><th>Status</th><td><StatusBadge>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge></td></tr>
-              <tr><th>Anliegen</th><td>{SUPPORT_TYPE_LABELS[ticket.type]}</td></tr>
-              <tr><th>Dringlichkeit</th><td>{SUPPORT_PRIORITY_LABELS[ticket.priority]}</td></tr>
-              <tr><th>Kampagne</th><td>{ticket.order ? <Link className="textLink" href={`/customer/orders/${ticket.order.id}`}>{customerOrderName(ticket.order.orderNumber)}</Link> : "-"}</td></tr>
-              <tr><th>Bericht</th><td>{ticket.report ? <Link className="textLink" href={`/customer/reports/${ticket.report.id}`}>{customerReportName(ticket.report.reportNumber)}</Link> : "-"}</td></tr>
-              <tr><th>Erstellt</th><td>{formatDateTime(ticket.createdAt)}</td></tr>
-              <tr><th>Lösung</th><td>{ticket.resolution ?? "-"}</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </DataSection>
+      <div className="customerTwoColumn">
+        <DataSection title="Anliegen" description="Die wichtigsten Angaben zu dieser Rückfrage.">
+          <div className="customerFactList">
+            <p><span>Status</span><strong>{SUPPORT_STATUS_LABELS[ticket.status]}</strong></p>
+            <p><span>Thema</span><strong>{SUPPORT_TYPE_LABELS[ticket.type]}</strong></p>
+            <p><span>Dringlichkeit</span><strong>{SUPPORT_PRIORITY_LABELS[ticket.priority]}</strong></p>
+            <p><span>Erstellt</span><strong>{formatDateTime(ticket.createdAt)}</strong></p>
+            <p><span>Lösung</span><strong>{ticket.resolution ?? "Noch offen"}</strong></p>
+          </div>
+        </DataSection>
+
+        <DataSection title="Bezug" description="Direkt zur passenden Kampagne oder zum Bericht.">
+          <div className="customerProofBullets">
+            <p>
+              <strong>Kampagne</strong>
+              <span>{ticket.order ? <Link className="textLink" href={`/customer/orders/${ticket.order.id}`}>{customerOrderName(ticket.order.orderNumber)}</Link> : "Nicht verknüpft"}</span>
+            </p>
+            <p>
+              <strong>Bericht</strong>
+              <span>{ticket.report ? <Link className="textLink" href={`/customer/reports/${ticket.report.id}`}>{customerReportName(ticket.report.reportNumber)}</Link> : "Nicht verknüpft"}</span>
+            </p>
+          </div>
+        </DataSection>
+      </div>
 
       <DataSection title="Nachrichten" description="Der Verlauf zeigt nur öffentliche Antworten.">
-        <div className="timeline">
+        <div className="customerMessageList">
           {ticket.messages.map((message) => (
-            <article className="notice" key={message.id}>
-              <strong>{message.sender?.role === "CUSTOMER" ? "Kunde" : "FLYERO Support"}</strong>
+            <article className="customerMessageItem" key={message.id}>
+              <div className="customerItemHeader">
+                <strong>{message.sender?.role === "CUSTOMER" ? "Kunde" : "FLYERO Support"}</strong>
+                <span>{formatDateTime(message.createdAt)}</span>
+              </div>
               <p>{message.message}</p>
-              <small>{formatDateTime(message.createdAt)}</small>
             </article>
           ))}
+          {ticket.messages.length === 0 ? <p className="muted">Noch keine Antworten vorhanden.</p> : null}
         </div>
-        <form action={reply} className="form" style={{ marginTop: 18 }}>
+        <form action={reply} className="form customerSimpleForm" style={{ marginTop: 18 }}>
           <input type="hidden" name="ticketId" value={ticket.id} />
           <label>
             Antwort
