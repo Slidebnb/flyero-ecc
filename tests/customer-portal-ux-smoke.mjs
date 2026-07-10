@@ -84,12 +84,46 @@ function assertCustomerLanguage(html, path) {
 const server = await ensureServer();
 try {
   const cookie = await login("kunde.immobilien@example.com");
-  const ticket = await prisma.supportTicket.findFirst({
-    where: { customer: { user: { email: "kunde.immobilien@example.com" } } },
-    select: { id: true },
-    orderBy: { updatedAt: "desc" },
-  });
-  const routes = ["/customer/dashboard", "/customer/documents", "/customer/support"];
+  const customerWhere = { customer: { user: { email: "kunde.immobilien@example.com" } } };
+  const [order, invoice, report, ticket] = await Promise.all([
+    prisma.order.findFirst({
+      where: customerWhere,
+      select: { id: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.invoice.findFirst({
+      where: customerWhere,
+      select: { id: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.report.findFirst({
+      where: { status: "PUBLISHED", order: customerWhere, tour: { status: "APPROVED" } },
+      select: { id: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+    prisma.supportTicket.findFirst({
+      where: customerWhere,
+      select: { id: true },
+      orderBy: { updatedAt: "desc" },
+    }),
+  ]);
+  const routes = [
+    "/customer/dashboard",
+    "/customer/orders",
+    "/customer/reports",
+    "/customer/documents",
+    "/customer/invoices",
+    "/customer/payments",
+    "/customer/notifications",
+    "/customer/support",
+    "/customer/profile",
+  ];
+  if (order) {
+    routes.push(`/customer/orders/${order.id}`);
+    routes.push(`/customer/orders/${order.id}/documents`);
+  }
+  if (invoice) routes.push(`/customer/invoices/${invoice.id}`);
+  if (report) routes.push(`/customer/reports/${report.id}`);
   if (ticket) routes.push(`/customer/support/tickets/${ticket.id}`);
   for (const route of routes) {
     assertCustomerLanguage(await customerPage(route, cookie), route);
