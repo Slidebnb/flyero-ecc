@@ -207,7 +207,7 @@ const productOptions = [
 ];
 
 const inquiryFormHref = "/downloads/flyero-anfrageformular.html";
-const inquiryMailHref = "mailto:anfrage@flyero.de?subject=Flyerverteilung%20anfragen&body=Hallo%20FLYERO%2C%0A%0Aich%20moechte%20eine%20Flyerverteilung%20anfragen.%0A%0AFirma%3A%0AAnsprechpartner%3A%0ATelefon%3A%0AE-Mail%3A%0AVerteilgebiet%2FPLZ%2FOrt%3A%0AFlyeranzahl%3A%0AWunschzeitraum%3A%0ABemerkungen%3A";
+const inquiryMailHref = "mailto:anfrage@flyero.de?subject=Flyerverteilung%20anfragen&body=Hallo%20FLYERO%2C%0A%0Aich%20m%C3%B6chte%20eine%20Flyerverteilung%20anfragen.%0A%0AFirma%3A%0AAnsprechpartner%3A%0ATelefon%3A%0AE-Mail%3A%0AVerteilgebiet%2FPLZ%2FOrt%3A%0AFlyeranzahl%3A%0AWunschzeitraum%3A%0ABemerkungen%3A";
 
 function OrderLogo() {
   return (
@@ -1421,7 +1421,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
             <div><dt>Geschätzter Preis</dt><dd>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</dd></div>
             <div><dt>ca. Laufstrecke</dt><dd>{routeDistanceMeters > 0 ? `${(routeDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : "wird geprüft"}</dd></div>
             <div><dt>Geplante Zustelldauer</dt><dd>{formatDuration(routeDurationMinutes)}</dd></div>
-            <div><dt>N?chstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird gepr?ft"}</dd></div>
+            <div><dt>Nächstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird geprüft"}</dd></div>
             <div><dt>Benötigte Verteiler</dt><dd>{distributorNeed > 0 ? distributorNeed : "wird geprüft"}</dd></div>
           </dl>
           <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore)}</p>

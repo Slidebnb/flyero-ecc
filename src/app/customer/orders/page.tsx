@@ -8,7 +8,7 @@ import {
   customerOrderPlainNextStep,
   customerOrderTone,
 } from "@/app/customer/customerUx";
-import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -19,28 +19,25 @@ export default async function CustomerOrdersPage() {
     where: { customer: { userId: session.id } },
     orderBy: { createdAt: "desc" },
   });
-  const active = orders.filter((order) => !["DISTRIBUTION_APPROVED", "CANCELLED", "REJECTED"].includes(order.status)).length;
-  const finished = orders.filter((order) => ["DISTRIBUTION_APPROVED", "REPORT_READY_PREVIEW"].includes(order.status)).length;
   const openPayment = orders.filter((order) => ["PAYMENT_PENDING", "PAYMENT_FAILED"].includes(order.status)).length;
+  const latestOrder = orders[0] ?? null;
 
   return (
     <CustomerPortalShell
       active="/customer/orders"
       title="Kampagnen"
-      description="Alle Verteilungen mit dem jeweils nächsten Schritt. Keine Suche, keine Technik, eine Aktion pro Kampagne."
+      description="Alle Verteilungen mit dem nächsten Schritt. Eine Aktion pro Kampagne."
     >
-      <section className="portalMetrics">
-        <MetricTile label="Kampagnen" value={orders.length} />
-        <MetricTile label="Läuft gerade" value={active} tone="success" />
-        <MetricTile label="Zahlung offen" value={openPayment} tone={openPayment ? "warning" : "success"} />
-        <MetricTile label="Abgeschlossen" value={finished} />
+      <section className="customerFocusPanel">
+        <div>
+          <span className="customerTinyLabel">Schnell weiter</span>
+          <h2>{latestOrder ? "Aktuelle Kampagne öffnen oder neue Verteilung starten." : "Starten Sie Ihre erste Verteilung."}</h2>
+          <p>{openPayment ? `${openPayment} Zahlung wartet noch auf Abschluss.` : "FLYERO zeigt hier nur die nächsten sinnvollen Schritte."}</p>
+        </div>
+        <Link className="primaryButton" href="/customer/orders/new">Neue Kampagne starten</Link>
       </section>
 
-      <DataSection title="Meine Kampagnen" description="Öffnen Sie Details nur, wenn Sie sie brauchen. Der nächste Schritt steht direkt hier.">
-        <div className="customerActionRow">
-          <Link className="primaryButton" href="/customer/orders/new">Neue Kampagne starten<span aria-hidden="true">→</span></Link>
-          <Link className="secondaryButton" href="/customer/documents">Dateien öffnen</Link>
-        </div>
+      <DataSection title="Meine Kampagnen" description="Details öffnen Sie nur, wenn Sie sie brauchen.">
         <div className="customerCampaignList">
           {orders.map((order) => {
             const action = customerOrderAction(order.status, order.id);

@@ -156,10 +156,11 @@ export async function prepareExternalReportForOrder(input: {
   const order = await prisma.order.findUnique({ where: { id: input.orderId }, include: { customer: true } });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
   const evidenceDocuments = await prisma.document.findMany({
-    where: { orderId: order.id, documentType: "REPORT" },
+    where: { orderId: order.id, documentType: { in: ["REPORT", "IMAGE"] } },
     orderBy: { uploadedAt: "desc" },
   });
-  const gpsDocument = evidenceDocuments.find((document) => document.providerName || document.extension === "pdf") ?? evidenceDocuments[0];
+  const gpsDocument = evidenceDocuments.find((document) => document.documentType === "REPORT" && (document.providerName || document.extension === "pdf"))
+    ?? evidenceDocuments.find((document) => document.documentType === "REPORT");
   if (!gpsDocument) throw new Error("Bitte zuerst einen externen GPS-Bericht hochladen.");
 
   const tour = await ensureManualEvidenceTour({
@@ -189,6 +190,7 @@ export async function prepareExternalReportForOrder(input: {
     generatedAt: now.toISOString(),
     distributionDate: data.distributionDate?.toISOString() ?? null,
     evidenceDocumentIds: evidenceDocuments.map((document) => document.id),
+    photoDocumentIds: evidenceDocuments.filter((document) => document.documentType === "IMAGE").map((document) => document.id),
     gpsDocumentId: gpsDocument.id,
     externalProvider: gpsDocument.providerName,
     externalReportReference: gpsDocument.externalReportReference,

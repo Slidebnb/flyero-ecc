@@ -46,6 +46,7 @@ for (const snippet of [
   "optionalDateFromForm",
   "optionalIntegerFromForm",
   "manualDistributorName",
+  "photoDocumentIds",
   "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung.",
   "EXTERNAL_GPS_REPORT",
   "customerVisible: false",
@@ -56,6 +57,15 @@ for (const snippet of [
 assert(!evidenceService.includes("status: data.customerVisible"), "Uploads dürfen nicht per Client-Feld automatisch freigegeben werden.");
 assert(!evidenceService.includes("Math.random"), "External-Evidence-Service darf keine Fake-Daten erzeugen.");
 assert(!evidenceService.includes("actualCoveragePercent: new Prisma.Decimal"), "Externe MVP-Reports dürfen keine Fake-Coverage setzen.");
+
+const reportsService = await read("src/lib/reports.ts");
+for (const snippet of [
+  "evidenceDocumentIdsFromSnapshot",
+  "freizugebende Nachweise im Snapshot",
+  "id: { in: evidenceDocumentIds }",
+]) {
+  assert(reportsService.includes(snippet), `Report-Service enthält nicht: ${snippet}`);
+}
 
 for (const filePath of [
   "src/app/api/admin/orders/[id]/evidence/route.ts",

@@ -23,7 +23,7 @@ type CustomerPortalShellProps = {
 
 const navItems = [
   { href: "/customer/orders/new", label: "Neue Kampagne", icon: Plus, group: "Start" },
-  { href: "/customer/dashboard", label: "\u00dcbersicht", icon: LayoutDashboard, group: "Start" },
+  { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks, group: "Start" },
   { href: "/customer/reports", label: "Nachweise", icon: FileText, group: "Ergebnisse" },
   { href: "/customer/documents", label: "Dateien & Druck", icon: FileStack, group: "Ergebnisse" },

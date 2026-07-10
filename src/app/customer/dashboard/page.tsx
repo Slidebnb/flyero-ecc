@@ -159,22 +159,22 @@ export default async function CustomerDashboardPage() {
       <section className="customerCommandHero" aria-label="Schnellstart">
         <div className="customerCommandCopy">
           <span>FLYERO Kundenportal</span>
-          <h2>Neue Verteilung in wenigen Schritten starten.</h2>
-          <p>Gebiet wählen, Flyerzahl festlegen und direkt mit Live-Preis, Lager und Verteilerbedarf weiterarbeiten.</p>
+          <h2>Was möchten Sie jetzt erledigen?</h2>
+          <p>Die wichtigsten Wege sind direkt erreichbar: neue Verteilung starten, laufende Kampagne prüfen oder Nachweis/Rechnung öffnen.</p>
           <div className="customerCommandActions">
             <Link className="primaryCommand" href="/customer/orders/new">Neue Verteilung starten<ArrowRight aria-hidden="true" /></Link>
-            <Link href={lastOrder ? `/customer/orders/${lastOrder.id}` : "/customer/orders"}>Aktuelle Kampagne ansehen</Link>
-            <Link href={primaryReportHref}>Bericht oder Rechnung öffnen</Link>
+            <Link href={lastOrder ? `/customer/orders/${lastOrder.id}` : "/customer/orders"}>Aktuelle Kampagne</Link>
+            <Link href={primaryReportHref}>Nachweis oder Rechnung</Link>
           </div>
         </div>
         <ProofPreview hasRealReport={Boolean(latestReport)} />
       </section>
 
-      <section className="portalMetrics customerOutcomeMetrics">
-        <MetricTile label="Aktuell in Arbeit" value={activeOrders} tone={activeOrders > 0 ? "success" : "neutral"} />
-        <MetricTile label="Nächste Verteilungen" value={plannedOrders} />
-        <MetricTile label="Nachweise bereit" value={approvedReports} tone={approvedReports > 0 ? "success" : "neutral"} />
-        <MetricTile label="Zahlungen im Griff" value={formatPercent(paidRate)} tone="success" />
+      <section className="portalMetrics customerOutcomeMetrics" aria-label="Kurzer Überblick">
+        <MetricTile label="Läuft gerade" value={activeOrders} tone={activeOrders > 0 ? "success" : "neutral"} />
+        <MetricTile label="Geplant" value={plannedOrders} />
+        <MetricTile label="Nachweise" value={approvedReports} tone={approvedReports > 0 ? "success" : "neutral"} />
+        <MetricTile label="Zahlungen" value={formatPercent(paidRate)} tone="success" />
       </section>
 
       <div className="customerMissionGrid">

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName } from "@/app/customer/customerUx";
-import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -32,22 +32,17 @@ export default async function CustomerPaymentsPage() {
     include: { order: true, refunds: true },
     orderBy: { updatedAt: "desc" },
   });
-  const openPayments = payments.filter((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING"].includes(payment.status));
+  const openPayment = payments.find((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING", "FAILED"].includes(payment.status));
 
   return (
-    <CustomerPortalShell active="/customer/payments" title="Zahlungen" description="Offene Beträge, bezahlte Kampagnen und Erstattungen auf einen Blick.">
-      <section className="portalMetrics">
-        <MetricTile label="Zahlungen" value={payments.length} />
-        <MetricTile label="Bezahlt" value={payments.filter((payment) => payment.status === "PAID").length} tone="success" />
-        <MetricTile label="Offen" value={openPayments.length} tone={openPayments.length ? "warning" : "success"} />
-        <MetricTile label="Erstattungen" value={payments.reduce((sum, payment) => sum + payment.refunds.length, 0)} />
+    <CustomerPortalShell active="/customer/payments" title="Zahlungen" description="Offene Zahlung prüfen oder bezahlte Kampagne öffnen.">
+      <section className={openPayment ? "customerWarningBanner" : "customerSuccessBanner"}>
+        <strong>{openPayment ? "Eine Zahlung braucht Aufmerksamkeit." : "Keine offene Zahlung."}</strong>
+        <span>{openPayment ? `${customerOrderName(openPayment.order.orderNumber)} · ${formatCurrency(openPayment.amount)}` : "Sobald eine neue Zahlung entsteht, steht der nächste Schritt hier."}</span>
+        {openPayment ? <Link className="primaryButton" href={`/customer/orders/${openPayment.orderId}`}>Zahlung prüfen</Link> : null}
       </section>
 
-      <DataSection title="Zahlungen" description="Der nächste Schritt ist direkt in der passenden Kampagne sichtbar.">
-        <div className="customerActionRow">
-          <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
-          <Link className="secondaryButton" href="/customer/invoices">Rechnungen ansehen</Link>
-        </div>
+      <DataSection title="Zahlungen" description="Jeder Eintrag führt direkt zur passenden Kampagne.">
         <div className="customerCampaignList">
           {payments.map((payment) => (
             <article className="customerCampaignItem" key={payment.id}>

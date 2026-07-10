@@ -42,10 +42,10 @@ Dateityp und Dateigröße werden serverseitig über den bestehenden geschützten
 
 ## Freigabeprozess
 
-Externe Nachweise sind nach Upload nicht automatisch für Kunden sichtbar. Beim Veröffentlichen eines Reports mit `reportSource = EXTERNAL_GPS_REPORT` werden passende freigegebene Nachweise am Auftrag kundensichtbar gemacht.
+Externe Nachweise sind nach Upload nicht automatisch für Kunden sichtbar. Beim Vorbereiten des Reports werden die zu diesem Bericht gehörenden Nachweisdateien im `reportSnapshot.evidenceDocumentIds` festgehalten. Beim Veröffentlichen eines Reports mit `reportSource = EXTERNAL_GPS_REPORT` oder `MANUAL_EVIDENCE` werden nur diese Snapshot-Nachweise kundensichtbar gemacht. Andere Auftragsdateien bleiben verborgen, bis sie ausdrücklich in einen Report-Snapshot aufgenommen und veröffentlicht werden.
 
 Der Bericht darf im MVP auch ohne interne GPS-Punkte veröffentlicht werden. In diesem Fall wird keine automatische Coverage behauptet.
-Der Report-Snapshot speichert die verwendeten Nachweisdateien, Verteilungsdatum, manuell erfasstes Team bzw. Verteilername, Ist-Mengen, Kundennotiz und den Hinweis, dass ohne interne Rohdaten keine automatische Coverage berechnet wird.
+Der Report-Snapshot speichert die verwendeten Nachweisdateien, Fotodokumente, Verteilungsdatum, manuell erfasstes Team bzw. Verteilername, Ist-Mengen, Kundennotiz und den Hinweis, dass ohne interne Rohdaten keine automatische Coverage berechnet wird.
 
 Kundenformulierung:
 

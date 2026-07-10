@@ -547,6 +547,13 @@ export async function approveReport(input: { reportId: string; adminUserId: stri
   return report;
 }
 
+function evidenceDocumentIdsFromSnapshot(snapshot: Prisma.JsonValue | null) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return [];
+  const ids = (snapshot as Record<string, unknown>).evidenceDocumentIds;
+  if (!Array.isArray(ids)) return [];
+  return ids.filter((id): id is string => typeof id === "string" && id.length > 0);
+}
+
 export async function requestReportCorrection(input: { reportId: string; adminUserId: string; message?: string }) {
   const report = await prisma.report.update({
     where: { id: input.reportId },
@@ -590,8 +597,12 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
     include: { customer: true, order: true },
   });
   if (report.reportSource === "EXTERNAL_GPS_REPORT" || report.reportSource === "MANUAL_EVIDENCE") {
+    const evidenceDocumentIds = evidenceDocumentIdsFromSnapshot(report.reportSnapshot);
+    if (evidenceDocumentIds.length === 0) {
+      throw new Error("Bericht kann erst veröffentlicht werden, wenn freizugebende Nachweise im Snapshot hinterlegt sind.");
+    }
     await prisma.document.updateMany({
-      where: { orderId: report.orderId, documentType: { in: ["REPORT", "IMAGE"] }, status: { in: ["UPLOADED", "UNDER_REVIEW", "APPROVED"] } },
+      where: { id: { in: evidenceDocumentIds }, orderId: report.orderId, documentType: { in: ["REPORT", "IMAGE"] }, status: { in: ["UPLOADED", "UNDER_REVIEW", "APPROVED"] } },
       data: { status: "APPROVED", customerVisible: true, reviewStatus: "APPROVED", approvedById: input.adminUserId, approvedAt: new Date() },
     });
   }

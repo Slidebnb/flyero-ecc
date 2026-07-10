@@ -2,7 +2,7 @@ import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName } from "@/app/customer/customerUx";
-import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
@@ -25,20 +25,21 @@ export default async function CustomerInvoicesPage() {
   const latestInvoice = invoices[0] ?? null;
 
   return (
-    <CustomerPortalShell active="/customer/invoices" title="Rechnungen" description="Rechnungen finden, PDF laden und die passende Kampagne öffnen.">
-      <section className="portalMetrics">
-        <MetricTile label="Rechnungen" value={invoices.length} />
-        <MetricTile label="Bezahlt" value={invoices.filter((invoice) => invoice.status === "PAID").length} tone="success" />
-        <MetricTile label="Offen" value={invoices.filter((invoice) => invoice.status !== "PAID").length} tone="warning" />
-        <MetricTile label="PDFs" value={invoices.filter((invoice) => invoice.pdfUrl).length} />
+    <CustomerPortalShell active="/customer/invoices" title="Rechnungen" description="Rechnung finden, PDF laden oder direkt zur Kampagne wechseln.">
+      <section className="customerFocusPanel">
+        <div>
+          <span className="customerTinyLabel">Abrechnung</span>
+          <h2>{latestInvoice ? "Letzte Rechnung direkt öffnen." : "Noch keine Rechnung vorhanden."}</h2>
+          <p>{latestInvoice ? `${latestInvoice.invoiceNumber} · ${formatCurrency(latestInvoice.totalGross)}` : "Sobald eine Kampagne abgerechnet wird, erscheint die Rechnung hier."}</p>
+        </div>
+        {latestInvoice?.pdfUrl ? (
+          <a className="primaryButton" href={`/api/customer/invoices/${latestInvoice.id}/download`}>PDF herunterladen</a>
+        ) : (
+          <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
+        )}
       </section>
 
-      <DataSection title="Alle Rechnungen" description="Die wichtigsten Aktionen sind PDF laden oder Kampagne öffnen.">
-        <div className="customerActionRow">
-          {latestInvoice?.pdfUrl ? <a className="secondaryButton" href={`/api/customer/invoices/${latestInvoice.id}/download`}>Letzte Rechnung laden</a> : null}
-          <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
-          <Link className="secondaryButton" href="/customer/payments">Zahlungen ansehen</Link>
-        </div>
+      <DataSection title="Alle Rechnungen" description="PDF laden oder die passende Kampagne öffnen.">
         <div className="customerCampaignList">
           {invoices.map((invoice) => (
             <article className="customerCampaignItem" key={invoice.id}>

@@ -4749,7 +4749,7 @@ body {
 .customerUnifiedTopbar {
   min-height: 76px;
   display: grid;
-  grid-template-columns: minmax(220px, auto) minmax(220px, 1fr) auto;
+  grid-template-columns: minmax(220px, 1fr) auto;
   align-items: center;
   gap: 18px;
   padding: 14px 28px 14px 18px;
@@ -4772,7 +4772,7 @@ body {
 
 .customerUnifiedBody {
   display: grid;
-  grid-template-columns: 112px minmax(0, 1fr);
+  grid-template-columns: 184px minmax(0, 1fr);
   min-height: calc(100vh - 76px);
 }
 
@@ -4784,7 +4784,12 @@ body {
 }
 
 .customerSideNav a {
-  min-height: 70px;
+  min-height: 48px;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 14px;
+  text-align: left;
+  font-size: 0.88rem;
 }
 
 .customerUnifiedContent {
@@ -4941,6 +4946,16 @@ body {
   min-width: 156px;
 }
 
+.customerUnifiedContent .portalMetrics {
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.customerUnifiedContent .metricTile {
+  min-height: 92px;
+  padding: 16px;
+}
+
 .customerPageDescription {
   max-width: 880px;
   margin: 0 0 18px;
@@ -4992,7 +5007,7 @@ body {
 
 .customerFocusPanel h2 {
   margin-top: 4px;
-  font-size: clamp(1.35rem, 2vw, 2rem);
+  font-size: clamp(1.28rem, 1.8vw, 1.75rem);
   letter-spacing: 0;
 }
 
@@ -5029,10 +5044,15 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  padding: 16px;
+  padding: 14px 16px;
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(255, 255, 255, 0.045);
+}
+
+.customerCampaignItem > div,
+.customerMessageItem > div {
+  min-width: 0;
 }
 
 .customerCampaignItem > .primaryButton,
@@ -5056,6 +5076,10 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+
+.customerItemHeader strong {
+  overflow-wrap: anywhere;
 }
 
 .customerItemHeader strong,
@@ -5204,9 +5228,9 @@ body {
   max-width: 740px;
   margin: 12px 0 14px;
   color: #ffffff;
-  font-size: clamp(2.3rem, 5.2vw, 5.9rem);
-  line-height: 0.94;
-  letter-spacing: -0.055em;
+  font-size: clamp(2.1rem, 4.2vw, 4.9rem);
+  line-height: 0.98;
+  letter-spacing: 0;
 }
 
 .customerCommandCopy p {
@@ -6514,6 +6538,15 @@ body {
   .customerStickySave {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .customerCampaignItem > .primaryButton,
+  .customerCampaignItem > .secondaryButton,
+  .customerMessageItem > .primaryButton,
+  .customerMessageItem > .secondaryButton,
+  .customerMessageItem > a {
+    min-width: 0;
+    width: 100%;
   }
 
   .customerDigestGrid,
