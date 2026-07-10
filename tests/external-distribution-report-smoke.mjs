@@ -43,6 +43,7 @@ for (const snippet of [
   "prepareExternalReportForOrder",
   "publishExternalReport",
   "assertEvidenceFileMatchesType",
+  "updateManualEvidenceTour",
   "optionalDateFromForm",
   "optionalIntegerFromForm",
   "manualDistributorName",
@@ -59,6 +60,7 @@ assert(!evidenceService.includes("Math.random"), "External-Evidence-Service darf
 assert(!evidenceService.includes("actualCoveragePercent: new Prisma.Decimal"), "Externe MVP-Reports dürfen keine Fake-Coverage setzen.");
 assert(evidenceService.includes("publishReport({ reportId: input.reportId, adminUserId: input.actor.id })"), "Externe Report-Veröffentlichung muss die zentrale Snapshot-Freigabe verwenden.");
 assert(!evidenceService.includes("where: { orderId: report.orderId, documentType"), "Externe Report-Veröffentlichung darf nicht alle Auftragsnachweise pauschal freigeben.");
+assert(evidenceService.includes("prisma.distributionTour.update"), "Vorhandene Touren müssen mit manuellen MVP-Ist-Werten aktualisiert werden.");
 
 const reportsService = await read("src/lib/reports.ts");
 for (const snippet of [

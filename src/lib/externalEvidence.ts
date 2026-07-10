@@ -124,10 +124,20 @@ async function ensureManualEvidenceTour(input: {
   deliveredFlyerQuantity?: number;
   remainingFlyerQuantity?: number;
 }) {
-  const existing = await prisma.distributionTour.findFirst({ where: { orderId: input.orderId }, orderBy: { updatedAt: "desc" } });
-  if (existing) return existing;
   const order = await prisma.order.findUnique({ where: { id: input.orderId }, select: { id: true, flyerQuantity: true, assignedDistributorId: true } });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
+  const existing = await prisma.distributionTour.findFirst({ where: { orderId: input.orderId }, orderBy: { updatedAt: "desc" } });
+  if (existing) {
+    return updateManualEvidenceTour({
+      tourId: existing.id,
+      distributorId: input.distributorId,
+      plannedFlyerQuantity: existing.plannedFlyerQuantity ?? order.flyerQuantity,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      deliveredFlyerQuantity: input.deliveredFlyerQuantity,
+      remainingFlyerQuantity: input.remainingFlyerQuantity,
+    });
+  }
   const distributor = input.distributorId
     ? await prisma.distributorProfile.findFirst({ where: { id: input.distributorId, reviewStatus: "APPROVED" } })
     : order.assignedDistributorId
@@ -148,6 +158,31 @@ async function ensureManualEvidenceTour(input: {
       remainingFlyers: input.remainingFlyerQuantity ?? null,
       adminReviewStatus: "APPROVED",
     },
+  });
+}
+
+async function updateManualEvidenceTour(input: {
+  tourId: string;
+  distributorId?: string;
+  plannedFlyerQuantity: number;
+  startTime?: Date;
+  endTime?: Date;
+  deliveredFlyerQuantity?: number;
+  remainingFlyerQuantity?: number;
+}) {
+  const data = {
+    ...(input.distributorId ? { distributorId: input.distributorId } : {}),
+    status: "APPROVED" as const,
+    adminReviewStatus: "APPROVED" as const,
+    plannedFlyerQuantity: input.plannedFlyerQuantity,
+    ...(input.startTime ? { startTime: input.startTime, startedAt: input.startTime } : {}),
+    ...(input.endTime ? { endTime: input.endTime, completedAt: input.endTime } : {}),
+    ...(input.deliveredFlyerQuantity !== undefined ? { deliveredFlyerQuantity: input.deliveredFlyerQuantity } : {}),
+    ...(input.remainingFlyerQuantity !== undefined ? { remainingFlyers: input.remainingFlyerQuantity } : {}),
+  };
+  return prisma.distributionTour.update({
+    where: { id: input.tourId },
+    data,
   });
 }
 

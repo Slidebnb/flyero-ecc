@@ -12,6 +12,7 @@ Der MVP nutzt keine eigene native Verteiler-App als Pflichtbestandteil. FLYERO a
 4. GPS-Anbieter erzeugt PDF-Bericht und optional GPX/KML/KMZ.
 5. Admin öffnet den Auftrag und lädt Nachweise hoch.
 6. Admin trägt Ist-Werte ein: Datum, Start, Ende, verteilte Flyer, Restmenge, bestehenden Verteiler oder manuelles Team, Zusammenfassung und Abweichungen.
+   Wenn bereits eine Tour zum Auftrag existiert, werden diese MVP-Ist-Werte in der Tour aktualisiert, damit Kundenbericht und Admin-Report dieselbe Grundlage nutzen.
 7. Admin bereitet den Bericht vor.
 8. Admin gibt den Bericht intern frei und veröffentlicht ihn.
 9. Kunde sieht nur freigegebene Nachweise im Portal.
@@ -105,11 +106,18 @@ Später:
 - `src/lib/externalEvidence.ts`
 - `src/lib/reports.ts`
 - `src/app/admin/orders/[id]/page.tsx`
+- `src/app/page.tsx`
+- `src/app/marketing.tsx`
+- `src/app/fuer-verteiler/page.tsx`
+- `src/app/fuer-unternehmen/page.tsx`
+- `src/app/so-funktionierts/page.tsx`
+- `src/app/manifest.ts`
 - `src/app/api/admin/orders/[id]/evidence/route.ts`
 - `src/app/api/admin/orders/[id]/evidence/prepare-report/route.ts`
 - `src/app/api/customer/reports/[id]/evidence/[documentId]/route.ts`
 - `src/app/customer/reports/[id]/page.tsx`
 - `tests/external-distribution-report-smoke.mjs`
+- `DISTRIBUTOR_WEB_SCOPE.md`
 
 ## Speicherung externer GPS-Berichte
 

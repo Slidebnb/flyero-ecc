@@ -24,7 +24,7 @@ export const metadata = createSeoMetadata({
 });
 
 const reasons = [
-  ["Mehr Transparenz", "GPS, Fotos und Admin-Prüfung ersetzen Bauchgefühl.", defaultProofIcons.gps],
+  ["Mehr Transparenz", "GPS-Bericht, Fotos und Admin-Prüfung ersetzen Bauchgefühl.", defaultProofIcons.gps],
   ["Weniger Abstimmung", "Auftrag, Zahlung, Lager und Bericht laufen strukturiert zusammen.", defaultProofIcons.bag],
   ["Besserer Abschluss", "Kunden erhalten Nachweis, PDF und Rechnung im Portal.", defaultProofIcons.report],
 ] as const;
@@ -42,7 +42,7 @@ const steps = [
   ["Anfrage starten", "Projekt, Zielgebiet und Auflage kurz beschreiben."],
   ["Gebiet planen", "Kampagne im Kundenkonto sauber vorbereiten."],
   ["Online bezahlen", "Endpreis prüfen und Auftrag verbindlich buchen."],
-  ["GPS-Verteilung", "Touren werden mobil dokumentiert und geprüft."],
+  ["GPS-Nachweis", "Externe GPS-Berichte, Fotos und Ist-Werte werden geprüft."],
   ["Bericht erhalten", "PDF, Fotos und Rechnung im Portal abrufen."],
 ] as const;
 
@@ -64,7 +64,7 @@ export default function BusinessPage() {
               <MarketingButton href="/preise" variant="ghost">Preise ansehen</MarketingButton>
             </div>
             <div className="mkTrustRow">
-              <TrustBadge icon={defaultProofIcons.gps}>GPS-Tourspur</TrustBadge>
+              <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweis</TrustBadge>
               <TrustBadge icon={defaultProofIcons.camera}>Foto-Nachweise</TrustBadge>
               <TrustBadge icon={defaultProofIcons.report}>Kundenbericht</TrustBadge>
             </div>

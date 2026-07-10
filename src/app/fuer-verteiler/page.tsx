@@ -16,7 +16,7 @@ import { createSeoMetadata } from "@/app/seo";
 export const metadata = createSeoMetadata({
   title: "Als Verteiler bei FLYERO starten",
   description:
-    "Als Verteiler registrieren, Aufträge annehmen, Flyer per QR-Code abholen und Touren per Smartphone dokumentieren.",
+    "Als Verteiler registrieren, Aufträge annehmen, Flyer per QR-Code abholen und Nachweise strukturiert dokumentieren.",
   path: "/fuer-verteiler",
   keywords: ["Flyer verteilen Job", "Verteiler werden", "Nebenjob Flyer verteilen"],
 });
@@ -24,15 +24,15 @@ export const metadata = createSeoMetadata({
 const workItems = [
   ["Touren annehmen", "Freigegebene Verteiler sehen passende Aufträge und nehmen Touren strukturiert an.", defaultProofIcons.bag],
   ["Pickup dokumentieren", "Flyer werden per QR-Code im Lager abgeholt und dem Auftrag zugeordnet.", defaultProofIcons.report],
-  ["GPS starten", "Die Tour läuft mobil mit Standortfreigabe, Zeitpunkten und GPS-Spur.", defaultProofIcons.gps],
-  ["Fotos ergänzen", "Nachweise werden direkt während der Verteilung hochgeladen.", defaultProofIcons.camera],
+  ["GPS-Nachweis sichern", "Im MVP wird ein externer GPS-Bericht oder geprüfter Tournachweis dem Auftrag zugeordnet.", defaultProofIcons.gps],
+  ["Fotos ergänzen", "Foto-Nachweise werden strukturiert erfasst und vor Kundenfreigabe geprüft.", defaultProofIcons.camera],
 ] as const;
 
 const steps = [
   ["Profil anlegen", "Daten, Gebiet und Verfügbarkeit eintragen."],
   ["Prüfung abwarten", "Das Admin-Team schaltet passende Verteiler frei."],
   ["Auftrag annehmen", "Tourdetails prüfen und verbindlich übernehmen."],
-  ["GPS-Tour laufen", "Pickup, Route und Fotos mobil dokumentieren."],
+  ["Nachweise liefern", "Externen GPS-Bericht, Fotos und Ist-Werte vollständig übergeben."],
   ["Abschluss melden", "Tour beenden und Prüfung auslösen."],
 ] as const;
 
@@ -46,15 +46,15 @@ export default function DistributorPage() {
             <p className="mkEyebrow">Für Verteiler</p>
             <h1 id="distributor-hero-title">Flexibel verteilen. Sauber dokumentieren.</h1>
             <p className="mkHeroLead">
-              Verteiler erhalten passende Touren, holen Flyer per QR-Code ab und dokumentieren die Verteilung
-              direkt per Smartphone. Vor Freischaltung wird jedes Profil geprüft.
+              Verteiler erhalten passende Touren, holen Flyer per QR-Code ab und liefern die Nachweise
+              sauber für die Admin-Prüfung. Vor Freischaltung wird jedes Profil geprüft.
             </p>
             <div className="mkHeroActions">
               <MarketingButton href="/register/distributor">Als Verteiler registrieren</MarketingButton>
               <MarketingButton href="/login" variant="ghost">Zum Login</MarketingButton>
             </div>
             <div className="mkTrustRow">
-              <TrustBadge icon={defaultProofIcons.gps}>GPS-Touren</TrustBadge>
+              <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweise</TrustBadge>
               <TrustBadge icon={defaultProofIcons.camera}>Foto-Nachweise</TrustBadge>
               <TrustBadge icon={defaultProofIcons.shield}>Admin-Prüfung</TrustBadge>
             </div>

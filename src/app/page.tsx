@@ -20,7 +20,7 @@ import { createSeoMetadata } from "@/app/seo";
 export const metadata = createSeoMetadata({
   title: "Flyerverteilung mit GPS-Nachweis und Kundenbericht",
   description:
-    "FLYERO plant Flyerverteilung digital: Gebiet anfragen oder online buchen, Tour per GPS dokumentieren und geprüften Kundenbericht erhalten.",
+    "FLYERO plant Flyerverteilung digital: Gebiet anfragen oder online buchen, externe GPS-Nachweise prüfen und Kundenbericht erhalten.",
   path: "/",
   keywords: ["Flyerverteilung GPS Nachweis", "Flyer verteilen mit Bericht", "Flyer Zustellnachweis"],
 });
@@ -38,7 +38,7 @@ const solutions = [
   ["Gebietsauswahl", "PLZ, Ort oder Wunschgebiet sauber planen und im Auftrag speichern.", defaultProofIcons.gps],
   ["Online-Zahlung", "Preis und Auftrag vor der Buchung transparent prüfen.", defaultProofIcons.report],
   ["Lager & QR", "Flyer einchecken, Ware zuordnen und Abholung nachvollziehbar machen.", defaultProofIcons.bag],
-  ["GPS-Tour", "Verteiler starten die Tour mit Standortfreigabe und laufender Spur.", defaultProofIcons.gps],
+  ["GPS-Nachweis", "Externe GPS-Berichte oder geprüfte Tourdaten werden dem Auftrag zugeordnet.", defaultProofIcons.gps],
   ["Foto-Nachweise", "Bilder ergänzen Strecke, Zeit und Status der Verteilung.", defaultProofIcons.camera],
   ["PDF-Bericht", "Kunden erhalten einen geprüften Bericht mit Rechnung im Portal.", defaultProofIcons.report],
 ] as const;
@@ -56,23 +56,23 @@ const steps = [
   ["Gebiet wählen", "Ort, PLZ oder Wunschgebiet festlegen."],
   ["Flyer hochladen", "Druckdaten oder Druckoption übergeben."],
   ["Online bezahlen", "Preis prüfen und Auftrag buchen."],
-  ["GPS-Verteilung", "Tour starten, laufen und dokumentieren."],
+  ["GPS-Nachweis", "Externen GPS-Bericht, Fotos und Ist-Werte prüfen."],
   ["Bericht erhalten", "PDF, Fotos und Rechnung im Portal sehen."],
 ] as const;
 
 const advantages = [
   ["Ein Ablauf", "Auftrag, Zahlung, Lager, Dispatch und Bericht laufen im gleichen System."],
-  ["Prüfbare Arbeit", "GPS-Spur, Fotos und Zeiten machen die Verteilung nachvollziehbar."],
+  ["Prüfbare Arbeit", "GPS-Bericht, Fotos und Zeiten machen die Verteilung nachvollziehbar."],
   ["Weniger Rückfragen", "Kunden sehen Status, Rechnung und Bericht zentral im Portal."],
   ["Skalierbar", "Startregion Koblenz, vorbereitet für weitere Gebiete und Lager."],
 ] as const;
 
 const faqs = [
   ["Muss ich mich registrieren, um anzufragen?", "Nein. Eine unverbindliche Anfrage ist öffentlich möglich. Für eine direkte Buchung und den späteren Bericht wird ein Kundenkonto benötigt."],
-  ["Wie entsteht der Nachweis?", "Verteiler starten die Tour mobil, GPS-Punkte und Fotos werden gespeichert und danach durch das Admin-Team geprüft."],
+  ["Wie entsteht der Nachweis?", "Im MVP nutzt FLYERO professionelle GPS-Trackingsysteme. Der externe GPS-Bericht, Fotos und Ist-Werte werden danach durch das Admin-Team geprüft."],
   ["Kann ich Druck und Verteilung zusammen buchen?", "Ja. Druckdaten, Lagerung und Verteilung können im Ablauf zusammen geplant werden. Bei individuellen Druckanforderungen klären wir die Details vor der Buchung."],
   ["Wie schnell kann eine Verteilung starten?", "Das hängt von Gebiet, Auflage, Druckdaten und Verfügbarkeit der Verteiler ab. Für einfache Kampagnen kann die Planung kurzfristig starten, sobald Daten und Gebiet klar sind."],
-  ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Der Nachweis besteht aus GPS-Tourdaten, Foto-Dokumentation und einem geprüften Bericht, sobald die Tour abgeschlossen und freigegeben wurde."],
+  ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Der Nachweis besteht aus dem GPS-Bericht des eingesetzten Trackingsystems, Foto-Dokumentation und einem geprüften Bericht, sobald die Verteilung freigegeben wurde."],
   ["Kann ich den Preis vorher sehen?", "Ja. Bei der direkten Online-Buchung werden Gebiet, Menge und Zeitraum vor der Zahlung geprüft."],
   ["Ist FLYERO nur für Koblenz gedacht?", "Die Startregion ist Koblenz und Umgebung. Die Plattform ist aber für weitere Regionen, Lager und Teams vorbereitet."],
 ] as const;
@@ -88,7 +88,7 @@ export default function HomePage() {
             <h1 id="home-hero-title">Flyer verteilen. Beweise liefern.</h1>
             <p className="mkHeroLead">
               Flyer verteilen kann jeder. Nachweisen nicht.{" "}
-              FLYERO verbindet Gebietsauswahl, Zahlung, Lager, GPS-Tour, Foto-Nachweise und Kundenbericht
+              FLYERO verbindet Gebietsauswahl, Zahlung, Lager, GPS-Nachweis, Foto-Dokumentation und Kundenbericht
               in einem professionellen Ablauf für lokale Kampagnen.
             </p>
             <div className="mkHeroActions">
@@ -161,7 +161,7 @@ export default function HomePage() {
             <p className="mkEyebrow">Nachweis</p>
             <h2>GPS-Spur, Fotos und Bericht statt Bauchgefühl.</h2>
             <p>
-              Der Kunde sieht nicht nur, dass verteilt wurde. Er sieht Tourdaten, Fotobelege,
+              Der Kunde sieht nicht nur, dass verteilt wurde. Er sieht GPS-Nachweise, Fotobelege,
               Statusschritte und den freigegebenen PDF-Bericht im Portal.
             </p>
             <div className="mkProofMetrics">

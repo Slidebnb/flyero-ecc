@@ -4,9 +4,9 @@ Stand: 2026-07-03
 
 ## Entscheidung
 
-FLYERO verfolgt aktuell kein separates natives App-Ziel. Der Verteilerbereich bleibt Teil der bestehenden Webplattform und wird als mobile Web-/PWA-nahe Arbeitsansicht umgesetzt.
+FLYERO verfolgt aktuell kein separates natives App-Ziel. Fuer den MVP ist der primaere Nachweisweg nicht die eigene Verteiler-App, sondern ein externes professionelles GPS-Geraet bzw. GPS-Trackingsystem mit anschliessendem Admin-Upload des GPS-Berichts. Der bestehende Verteilerbereich der Webplattform darf bleiben, ist aber keine Launch-Voraussetzung fuer den MVP-Nachweisprozess.
 
-## Enthalten
+## Webbereich: enthalten, aber nicht MVP-pflichtig
 
 - Verteiler-Login ueber die bestehende Plattform.
 - Verfuegbare und zugewiesene Auftraege aus echten Prisma-/API-Daten.
@@ -18,6 +18,15 @@ FLYERO verfolgt aktuell kein separates natives App-Ziel. Der Verteilerbereich bl
 - Foto-Nachweise mit Tourbezug.
 - Admin-Pruefung und Kundenbericht nach Freigabe.
 
+## MVP-Nachweisprozess
+
+- Externes GPS-Geraet bzw. externes Trackingsystem starten und nach der Verteilung beenden.
+- GPS-Anbieter erzeugt PDF-Bericht und optional GPX/KML/KMZ.
+- Admin laedt GPS-Bericht, Fotos und weitere Nachweise beim Auftrag hoch.
+- Admin traegt Ist-Werte, Verteiler/Team, Zusammenfassung und Abweichungen ein.
+- Admin prueft und veroeffentlicht den Bericht.
+- Kunde sieht nur freigegebene Nachweise im Portal.
+
 ## Nicht enthalten
 
 - Keine native iOS-App.
@@ -25,10 +34,11 @@ FLYERO verfolgt aktuell kein separates natives App-Ziel. Der Verteilerbereich bl
 - Kein garantiertes Background-GPS bei gesperrtem iPhone.
 - Kein dauerhaftes Tracking ausserhalb der aktiven Web-/PWA-Nutzung.
 - Kein Kunden-Live-Tracking waehrend laufender Tour.
+- Keine native oder webbasierte Live-GPS-Funktion als Pflicht fuer den MVP.
 
 ## Produkt- und Rechtsgrenze
 
-FLYERO darf im aktuellen Scope mit GPS-Nachweisen aus der Verteiler-Tour werben, aber nicht mit garantiertem 100-Prozent-Background-GPS auf iOS. Wenn diese Zusage spaeter erforderlich wird, muss ein eigenes natives App-Projekt mit iOS-/Android-Berechtigungen, Datenschutzfreigabe, App-Store-Pruefung und Betriebskonzept geplant werden.
+FLYERO darf im MVP mit dem GPS-Nachweis des eingesetzten Trackingsystems werben, aber nicht behaupten, dass FLYERO selbst live oder im Hintergrund jeden Standortpunkt aufzeichnet. Wenn spaeter eigenes Live-GPS oder 100-Prozent-Background-GPS erforderlich wird, muss ein eigenes natives App-Projekt mit iOS-/Android-Berechtigungen, Datenschutzfreigabe, App-Store-Pruefung und Betriebskonzept geplant werden.
 
 ## Technische Leitlinie
 

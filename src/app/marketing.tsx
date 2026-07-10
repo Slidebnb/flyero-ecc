@@ -22,8 +22,8 @@ export {
 export const regions = ["Koblenz", "Neuwied", "Bendorf", "Lahnstein", "Vallendar", "Andernach", "Mülheim-Kärlich"];
 
 export const featureCards = [
-  ["GPS-Tourstart", "Verteiler starten die Tour erst nach Abholung und Standortfreigabe."],
-  ["Live-Spur", "GPS-Punkte, Zeitstempel und Bewegung werden für die Prüfung gespeichert."],
+  ["GPS-Nachweis", "Externe GPS-Berichte oder geprüfte Tourdaten werden dem Auftrag zugeordnet."],
+  ["Prüfung", "Zeitpunkte, Fotos und Ist-Werte werden für den Kundenbericht geprüft."],
   ["Foto-Nachweis", "Tourfotos ergänzen den Routenverlauf und stärken den Kundennachweis."],
   ["Kundenbericht", "Nach Admin-Prüfung erhält der Kunde Bericht, PDF und Rechnung im Portal."],
 ];

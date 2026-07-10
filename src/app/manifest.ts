@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "FLYERO Verteiler",
     short_name: "FLYERO",
-    description: "Mobile Verteiler-App für Auftragsannahme, Pickup, GPS-Tourtracking, Fotos und Tourabschluss.",
+    description: "FLYERO Verteilerbereich für Auftragsannahme, Pickup, Nachweisübergabe, Fotos und Tourabschluss.",
     start_url: "/distributor/dashboard",
     scope: "/distributor",
     display: "standalone",

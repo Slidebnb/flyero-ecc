@@ -25,13 +25,13 @@ const steps = [
   ["Gebiet wählen", "PLZ, Ort oder Wunschgebiet festlegen."],
   ["Flyer hochladen", "Druckdaten bereitstellen oder Druckoption wählen."],
   ["Online bezahlen", "Preis, Zeitraum und Menge prüfen."],
-  ["GPS-Verteilung", "Pickup, Tour und Fotos mobil dokumentieren."],
+  ["GPS-Nachweis", "Externen GPS-Bericht, Fotos und Ist-Werte prüfen."],
   ["Bericht erhalten", "Admin-Prüfung, PDF, Fotos und Rechnung abrufen."],
 ] as const;
 
 const proof = [
   ["Lager & QR", "Wareneingang und Abholung bleiben dem Auftrag zugeordnet.", defaultProofIcons.bag],
-  ["Tourdaten", "GPS-Punkte, Zeiten und Statusschritte werden für die Prüfung gespeichert.", defaultProofIcons.gps],
+  ["Tourdaten", "GPS-Bericht, Zeiten und Statusschritte werden für die Prüfung gespeichert.", defaultProofIcons.gps],
   ["Kundenbericht", "Der Kunde erhält einen freigegebenen Bericht im Portal.", defaultProofIcons.report],
 ] as const;
 
