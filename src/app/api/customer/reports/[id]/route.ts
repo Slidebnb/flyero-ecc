@@ -14,7 +14,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
     const report = await prisma.report.findFirst({
       where: {
         id,
-        status: { in: ["GENERATED", "APPROVED", "PUBLISHED"] },
+        status: "PUBLISHED",
         order: { customer: { userId: session.id } },
         tour: { status: "APPROVED" },
       },

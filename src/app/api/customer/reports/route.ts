@@ -8,7 +8,7 @@ export async function GET() {
     const session = await requireRole([UserRole.CUSTOMER]);
     const reports = await prisma.report.findMany({
       where: {
-        status: { in: ["GENERATED", "APPROVED", "PUBLISHED"] },
+        status: "PUBLISHED",
         order: { customer: { userId: session.id } },
         tour: { status: "APPROVED" },
       },

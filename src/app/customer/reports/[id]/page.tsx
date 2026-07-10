@@ -23,19 +23,19 @@ async function createComplaintTicket(formData: FormData) {
   "use server";
   const session = await requireRole([UserRole.CUSTOMER]);
   const reportId = String(formData.get("reportId"));
-  const report = await prisma.report.findFirst({
-    where: { id: reportId, customer: { userId: session.id } },
+  const current = await prisma.report.findFirst({
+    where: { id: reportId, status: "PUBLISHED", customer: { userId: session.id } },
     select: { reportNumber: true, orderId: true, tourId: true },
   });
-  if (!report) notFound();
+  if (!current) notFound();
   const ticket = await createTicket(session, {
     type: TicketType.COMPLAINT,
     priority: TicketPriority.HIGH,
-    subject: `Problem zu ${customerReportName(report.reportNumber)}`,
-    description: "Kunde hat im Verteilbericht ein Problem gemeldet. Bitte Bericht, Tourdaten, GPS-Prüfung und Fotodokumentation prüfen.",
+    subject: `Problem zu ${customerReportName(current.reportNumber)}`,
+    description: "Kunde hat im Verteilbericht ein Problem gemeldet. Bitte Bericht, Tourdaten, GPS-Pruefung und Fotodokumentation pruefen.",
     reportId,
-    orderId: report.orderId,
-    tourId: report.tourId,
+    orderId: current.orderId,
+    tourId: current.tourId,
   });
   redirect(`/customer/support/tickets/${ticket.id}`);
 }
@@ -46,7 +46,7 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
   const report = await prisma.report.findFirst({
     where: {
       id,
-      status: { in: ["GENERATED", "APPROVED", "PUBLISHED"] },
+      status: "PUBLISHED",
       order: { customer: { userId: session.id } },
       tour: { status: "APPROVED" },
     },
@@ -70,20 +70,20 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
         {report.pdfUrl ? <a className="primaryButton" href={`/api/customer/reports/${report.id}/download`}>PDF herunterladen</a> : null}
         <form action={createComplaintTicket}>
           <input type="hidden" name="reportId" value={report.id} />
-          <button type="submit">Problem melden</button>
+          <button type="submit">Rueckfrage stellen</button>
         </form>
-        <span className="statusBadge success">GPS-Qualität {customerView.gpsQuality.score}/100</span>
+        <span className="statusBadge success">{customerView.gpsQuality.customerStatus}</span>
       </div>
 
       <section className="gridCards">
-        <article className="card"><strong>{customerView.order.flyerQuantity}</strong><span>Flyer</span></article>
-        <article className="card"><strong>{customerView.order.estimatedHouseholds ?? "-"}</strong><span>Haushalte geschätzt</span></article>
+        <article className="card"><strong>{customerView.quantities.planned}</strong><span>Geplante Flyer</span></article>
+        <article className="card"><strong>{customerView.quantities.delivered}</strong><span>Tatsaechlich dokumentiert</span></article>
+        <article className="card"><strong>{customerView.coverage.actualCoveragePercent} %</strong><span>Dokumentierter Abdeckungsgrad</span></article>
         <article className="card"><strong>{(customerView.tour.distanceMeters / 1000).toFixed(1)} km</strong><span>GPS-Strecke</span></article>
-        <article className="card"><strong>{secondsLabel(customerView.tour.activeSeconds)}</strong><span>Aktive Zustellzeit</span></article>
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Zusammenfassung</h2>
+        <h2 className="sectionTitle">Geplant und tatsaechlich dokumentiert</h2>
         <p className="muted">Hier sehen Sie, wann, wo und mit welchen Nachweisen verteilt wurde.</p>
         <div className="tableWrap">
           <table>
@@ -94,12 +94,18 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
               <tr><th>Zeitraum</th><td>{formatDateTime(customerView.order.preferredStartDate)} bis {formatDateTime(customerView.order.preferredEndDate)}</td></tr>
               <tr><th>Tour gestartet</th><td>{formatDateTime(customerView.tour.startTime)}</td></tr>
               <tr><th>Tour beendet</th><td>{formatDateTime(customerView.tour.endTime)}</td></tr>
-              <tr><th>Gesamtdauer</th><td>{secondsLabel(customerView.tour.durationSeconds)}</td></tr>
-              <tr><th>Restflyer</th><td>{customerView.tour.remainingFlyers ?? 0}</td></tr>
-              <tr><th>Ausführung</th><td>FLYERO Verteilerteam, personenbezogene Daten geschützt</td></tr>
+              <tr><th>Aktive Zustellzeit</th><td>{secondsLabel(customerView.tour.activeSeconds)}</td></tr>
+              <tr><th>Geplant</th><td>{customerView.quantities.planned} Flyer</td></tr>
+              <tr><th>Dokumentiert verteilt</th><td>{customerView.quantities.delivered} Flyer</td></tr>
+              <tr><th>Restmenge</th><td>{customerView.quantities.remaining}</td></tr>
+              <tr><th>Ausfuehrung</th><td>FLYERO Verteilerteam, personenbezogene Daten geschuetzt</td></tr>
             </tbody>
           </table>
         </div>
+        <p className="muted">
+          Der Abdeckungsgrad beschreibt die dokumentierte Verteilung anhand echter Tourdaten, freigegebener Fotos und interner Pruefung.
+          Er ist kein Einzelbriefkasten-Nachweis.
+        </p>
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
@@ -121,22 +127,34 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
         <h2 className="sectionTitle">Foto-Nachweise</h2>
         <div className="photoGrid">
-          {customerView.photos.map((photo, index) => (
+          {customerView.photos.length > 0 ? customerView.photos.map((photo, index) => (
             <figure key={photo.id}>
               {/* eslint-disable-next-line @next/next/no-img-element -- Bericht zeigt gespeicherte PWA-Fotonachweise. */}
               <img src={photo.url} alt={`Verteilnachweis ${index + 1}`} />
-              <figcaption>{formatDateTime(photo.takenAt)} / Standort anonymisiert</figcaption>
+              <figcaption>{photo.caption || formatDateTime(photo.takenAt)} / Standort anonymisiert</figcaption>
             </figure>
-          ))}
+          )) : <p className="muted">Fuer diesen Bericht wurden keine Kundenfotos freigegeben.</p>}
         </div>
       </section>
 
+      {customerView.deviations.length > 0 ? (
+        <section className="panel stack widePanel" style={{ marginTop: 18 }}>
+          <h2 className="sectionTitle">Hinweise zur Verteilung</h2>
+          {customerView.deviations.map((deviation) => (
+            <div className="notice" key={deviation.description}>
+              <strong>{deviation.description}</strong>
+              {deviation.resolution ? <p>{deviation.resolution}</p> : null}
+            </div>
+          ))}
+        </section>
+      ) : null}
+
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Prüfung</h2>
+        <h2 className="sectionTitle">Pruefung</h2>
         <div className="notice">
-          <strong>Prüfung bestanden</strong>
-          <p>Prüfdatum: {formatDateTime(report.approvedAt ?? report.generatedAt)}</p>
-          <p>Prüfcode: {report.verificationCode}</p>
+          <strong>Von FLYERO geprueft</strong>
+          <p>Pruefdatum: {formatDateTime(report.publishedAt ?? report.approvedAt ?? report.generatedAt)}</p>
+          <p>Pruefcode: {report.verificationCode}</p>
           <p>PDF-Bericht: {report.pdfUrl ? "bereit" : "wird erstellt"}</p>
         </div>
       </section>

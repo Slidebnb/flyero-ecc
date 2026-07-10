@@ -4,7 +4,7 @@ import { createAuditLog } from "@/lib/audit";
 import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { generateOnlineReportUrl, generateReportNumber } from "@/lib/reports";
+import { generateOnlineReportUrl, generateReportNumber, gpsQualityScore } from "@/lib/reports";
 import { analyzeRoute, normalizeRoutePoint } from "@/lib/routeAnalysis";
 import { logWarehouseHistory } from "@/lib/warehouse";
 
@@ -37,6 +37,14 @@ function distanceMeters(a: { lat: number; lng: number }, b: { lat: number; lng: 
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
   return 2 * radius * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+function routeLineString(points: Array<{ lat: Prisma.Decimal | number | string; lng: Prisma.Decimal | number | string }>) {
+  if (points.length < 2) return undefined;
+  return {
+    type: "LineString",
+    coordinates: points.map((point) => [Number(point.lng.toString()), Number(point.lat.toString())]),
+  };
 }
 
 function decodeImageDataUrl(imageDataUrl?: string) {
@@ -315,15 +323,31 @@ export async function uploadGpsPoints(input: { tourId: string; userId: string; p
       status: point.status ?? (flags.length ? "flagged" : "ok"),
       flags: flags.length ? flags : undefined,
       recordedAt,
+      receivedAt: new Date(),
+      suspicious: flags.length > 0,
     };
   });
 
   if (rows.length > 0) await prisma.gpsPoint.createMany({ data: rows });
   const allFlags = rows.flatMap((row) => (Array.isArray(row.flags) ? row.flags : []));
+  const routePoints = await prisma.gpsPoint.findMany({
+    where: { tourId: tour.id },
+    orderBy: { recordedAt: "asc" },
+    take: 5000,
+  });
+  const analysis = analyzeRoute({
+    points: routePoints.map(normalizeRoutePoint),
+    pauseSeconds: tour.totalPauseSeconds,
+  });
   await prisma.distributionTour.update({
     where: { id: tour.id },
     data: {
-      totalDistanceMeters: (tour.totalDistanceMeters ?? 0) + Math.round(uploadedDistance),
+      totalDistanceMeters: analysis.distanceMeters || (tour.totalDistanceMeters ?? 0) + Math.round(uploadedDistance),
+      actualDistanceKm: new Prisma.Decimal((analysis.distanceMeters / 1000).toFixed(2)),
+      actualRouteGeometry: routeLineString(routePoints),
+      gpsPointCount: routePoints.length,
+      gpsQualityScore: gpsQualityScore(analysis),
+      lastLocationAt: routePoints.at(-1)?.recordedAt ?? tour.updatedAt,
       fraudFlags: allFlags.length ? { latest: allFlags } : tour.fraudFlags ?? undefined,
     },
   });
@@ -367,7 +391,11 @@ export async function uploadTourPhoto(input: {
       lng: decimal(input.lng),
       accuracy: decimal(input.accuracy),
       source: "camera",
+      category: "DISTRIBUTION_AREA",
+      customerVisible: false,
+      reviewStatus: "PENDING",
       takenAt: input.takenAt ?? new Date(),
+      deviceTimestamp: input.takenAt ?? null,
       metadata: {
         storedAs: "generated-asset",
         storagePath: stored.storagePath,
@@ -407,6 +435,7 @@ export async function completeTour(input: {
       completedAt: now,
       totalDurationSeconds,
       durationSeconds: totalDurationSeconds ?? undefined,
+      actualDurationMinutes: totalDurationSeconds ? Math.round(totalDurationSeconds / 60) : undefined,
       remainingFlyers: input.remainingFlyers,
       distributorNotes: input.notes ?? null,
       ...(lastPoint ? { endLat: lastPoint.lat, endLng: lastPoint.lng } : {}),
@@ -484,6 +513,11 @@ export async function approveTour(input: {
       reviewedBy: input.adminUserId,
       totalDistanceMeters: analysis.distanceMeters,
       totalDurationSeconds: analysis.activeSeconds,
+      actualDistanceKm: new Prisma.Decimal((analysis.distanceMeters / 1000).toFixed(2)),
+      actualDurationMinutes: Math.round(analysis.activeSeconds / 60),
+      gpsPointCount: tour.gpsPoints.length,
+      gpsQualityScore: gpsQualityScore(analysis),
+      actualRouteGeometry: routeLineString(tour.gpsPoints),
       fraudFlags: { routeAnalysis: analysis.flags },
     },
   });
@@ -496,18 +530,29 @@ export async function approveTour(input: {
     try {
       report = await prisma.report.upsert({
         where: { tourId: tour.id },
-        update: { status: "APPROVED", approvedById: input.adminUserId, approvedAt: new Date(), generatedAt: new Date() },
+        update: {
+          status: "READY_FOR_REVIEW",
+          internalReviewStatus: "IN_REVIEW",
+          approvedById: input.adminUserId,
+          approvedAt: new Date(),
+          reviewedById: input.adminUserId,
+          reviewedAt: new Date(),
+          generatedAt: new Date(),
+        },
         create: {
           orderId: tour.orderId,
           tourId: tour.id,
           customerId: tour.order.customerId,
           reportNumber: await generateReportNumber(),
-          status: "APPROVED",
+          status: "READY_FOR_REVIEW",
           reportType: "DISTRIBUTION_PROOF",
           template: "STANDARD",
           onlineUrl: "",
+          internalReviewStatus: "IN_REVIEW",
           approvedById: input.adminUserId,
           approvedAt: new Date(),
+          reviewedById: input.adminUserId,
+          reviewedAt: new Date(),
           generatedAt: new Date(),
           verificationCode: `VRF-${tour.id.slice(-10).toUpperCase()}`,
         },

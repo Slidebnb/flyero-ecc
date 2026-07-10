@@ -45,11 +45,139 @@ export function gpsQualityScore(analysis: RouteAnalysis) {
 export function gpsQualityLabel(score: number) {
   if (score >= 85) return "Sehr gut";
   if (score >= 65) return "Gut";
-  return "Auffaellig";
+  if (score >= 40) return "Eingeschraenkt";
+  return "Unzureichend";
+}
+
+export function customerGpsStatus(score: number, pointCount: number) {
+  if (pointCount < 3) return "GPS-Nachweis wird geprueft";
+  if (score >= 75) return "GPS-Nachweis vollstaendig";
+  return "GPS-Nachweis mit Einschraenkungen";
 }
 
 function anonymousDistributor(distributorId: string) {
   return `Verteiler #${distributorId.slice(-4).toUpperCase()}`;
+}
+
+function percent(value: number) {
+  return Math.max(0, Math.min(100, Math.round(value * 100) / 100));
+}
+
+function decimalPercent(value: number) {
+  return new Prisma.Decimal(percent(value).toFixed(2));
+}
+
+function safeJson<T>(value: T): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value ?? null)) as Prisma.InputJsonValue;
+}
+
+function flyerQuantitySummary(input: {
+  plannedFlyers: number;
+  remainingFlyers?: number | null;
+  deliveredFlyers?: number | null;
+}) {
+  const planned = Math.max(input.plannedFlyers, 0);
+  const remaining = Math.max(input.remainingFlyers ?? 0, 0);
+  const delivered = Math.max(input.deliveredFlyers ?? planned - remaining, 0);
+  return {
+    planned,
+    delivered,
+    remaining,
+    flyerCoveragePercent: planned > 0 ? percent((delivered / planned) * 100) : 0,
+  };
+}
+
+export function calculateCoverageSummary(input: {
+  plannedFlyers: number;
+  deliveredFlyers: number;
+  gpsScore: number;
+  plannedHouseholds?: number | null;
+}) {
+  const flyerCoveragePercent = input.plannedFlyers > 0 ? percent((input.deliveredFlyers / input.plannedFlyers) * 100) : 0;
+  const gpsFactor = input.gpsScore >= 85 ? 1 : input.gpsScore >= 65 ? 0.95 : input.gpsScore >= 40 ? 0.82 : 0.55;
+  const reportActualCoveragePercent = percent(Math.min(flyerCoveragePercent, 100) * gpsFactor);
+  return {
+    flyerCoveragePercent,
+    areaCoveragePercent: null as number | null,
+    householdCoverageEstimate: reportActualCoveragePercent,
+    actualCoveragePercent: reportActualCoveragePercent,
+    estimatedReachedHouseholds: input.plannedHouseholds ? Math.round((input.plannedHouseholds * reportActualCoveragePercent) / 100) : null,
+  };
+}
+
+function approvedCustomerPhotos(photos: ReportData["tour"]["photoProofs"]) {
+  return photos.filter((photo) => photo.customerVisible && photo.reviewStatus === "APPROVED");
+}
+
+function buildReportSnapshot(data: ReportData) {
+  const quantities = flyerQuantitySummary({
+    plannedFlyers: data.tour.plannedFlyerQuantity ?? data.order.flyerQuantity,
+    remainingFlyers: data.tour.remainingFlyers,
+    deliveredFlyers: data.tour.deliveredFlyerQuantity,
+  });
+  const coverage = calculateCoverageSummary({
+    plannedFlyers: quantities.planned,
+    deliveredFlyers: quantities.delivered,
+    gpsScore: data.qualityScore,
+    plannedHouseholds: data.order.estimatedHouseholds,
+  });
+  const photos = approvedCustomerPhotos(data.tour.photoProofs);
+  return {
+    reportVersion: data.tour.reports[0]?.reportVersion ?? data.tour.reports[0]?.version ?? 1,
+    calculationVersion: "distribution-report-v1",
+    generatedAt: new Date().toISOString(),
+    planned: {
+      areaGeometry: data.order.targetAreaGeoJson ?? data.tour.plannedAreaGeometry ?? null,
+      areaName: data.order.targetAreaName,
+      city: data.order.city,
+      postalCode: data.order.postalCode,
+      flyerQuantity: quantities.planned,
+      householdCount: data.order.estimatedHouseholds,
+      startDate: data.order.preferredStartDate,
+      endDate: data.order.preferredEndDate,
+    },
+    actual: {
+      routeGeometry: data.tour.actualRouteGeometry ?? {
+        type: "LineString",
+        coordinates: data.tour.gpsPoints.map((point) => [Number(point.lng), Number(point.lat)]),
+      },
+      areaGeometry: data.tour.actualAreaGeometry ?? null,
+      startedAt: data.analysis.startTime,
+      completedAt: data.analysis.endTime,
+      distanceMeters: data.analysis.distanceMeters,
+      durationSeconds: data.analysis.activeSeconds,
+      deliveredFlyerQuantity: quantities.delivered,
+      remainingFlyerQuantity: quantities.remaining,
+    },
+    gps: {
+      pointCount: data.analysis.pointCount,
+      qualityScore: data.qualityScore,
+      qualityLabel: data.qualityLabel,
+      customerStatus: customerGpsStatus(data.qualityScore, data.analysis.pointCount),
+      flags: data.analysis.flags,
+    },
+    coverage,
+    photos: photos.map((photo) => ({
+      id: photo.id,
+      category: photo.category,
+      caption: photo.caption,
+      takenAt: photo.takenAt ?? photo.createdAt,
+      uploadedAt: photo.uploadedAt,
+    })),
+    deviations: data.deviations
+      .filter((deviation) => deviation.customerVisible)
+      .map((deviation) => ({
+        type: deviation.type,
+        severity: deviation.severity,
+        description: deviation.description,
+        resolution: deviation.resolution,
+      })),
+    customerText: {
+      coverageExplanation:
+        "Das geplante Gebiet wurde anhand der verfuegbaren Tour- und Nachweisdaten dokumentiert. Der Wert ist kein Einzelbriefkasten-Nachweis.",
+      privacyNote: "Personenbezogene Verteiler- und Rohdaten werden geschuetzt.",
+    },
+  };
 }
 
 export async function collectReportData(tourId: string) {
@@ -60,6 +188,7 @@ export async function collectReportData(tourId: string) {
       distributor: { include: { user: true } },
       gpsPoints: { orderBy: { recordedAt: "asc" } },
       photoProofs: { orderBy: { createdAt: "asc" } },
+      deviations: { orderBy: { createdAt: "asc" } },
       reports: { orderBy: { createdAt: "desc" }, take: 1 },
     },
   });
@@ -86,10 +215,26 @@ export async function collectReportData(tourId: string) {
     qualityLabel: gpsQualityLabel(qualityScore),
     mapSnapshot,
     anonymousDistributor: anonymousDistributor(tour.distributorId),
+    deviations: await prisma.distributionDeviation.findMany({
+      where: { orderId: tour.orderId },
+      orderBy: { createdAt: "asc" },
+    }),
   };
 }
 
 export function sanitizeReportForCustomer(data: ReportData) {
+  const quantities = flyerQuantitySummary({
+    plannedFlyers: data.tour.plannedFlyerQuantity ?? data.order.flyerQuantity,
+    remainingFlyers: data.tour.remainingFlyers,
+    deliveredFlyers: data.tour.deliveredFlyerQuantity,
+  });
+  const coverage = calculateCoverageSummary({
+    plannedFlyers: quantities.planned,
+    deliveredFlyers: quantities.delivered,
+    gpsScore: data.qualityScore,
+    plannedHouseholds: data.order.estimatedHouseholds,
+  });
+  const photos = approvedCustomerPhotos(data.tour.photoProofs);
   return {
     order: {
       orderNumber: data.order.orderNumber,
@@ -111,22 +256,34 @@ export function sanitizeReportForCustomer(data: ReportData) {
       remainingFlyers: data.tour.remainingFlyers,
       distributor: data.anonymousDistributor,
     },
+    quantities,
+    coverage,
     gpsQuality: {
       score: data.qualityScore,
       label: data.qualityLabel,
+      customerStatus: customerGpsStatus(data.qualityScore, data.analysis.pointCount),
     },
-    photos: data.tour.photoProofs.map((photo) => ({
+    photos: photos.map((photo) => ({
       id: photo.id,
       url: photo.url,
       takenAt: photo.takenAt ?? photo.createdAt,
       lat: photo.lat ? Number(photo.lat) : null,
       lng: photo.lng ? Number(photo.lng) : null,
+      caption: photo.caption,
+      category: photo.category,
     })),
     route: data.tour.gpsPoints.map((point) => ({
       lat: Number(point.lat),
       lng: Number(point.lng),
       recordedAt: point.recordedAt,
     })),
+    deviations: data.deviations
+      .filter((deviation) => deviation.customerVisible)
+      .map((deviation) => ({
+        description: deviation.description,
+        resolution: deviation.resolution,
+        severity: deviation.severity,
+      })),
     mapSnapshot: data.mapSnapshot,
   };
 }
@@ -217,6 +374,18 @@ export async function createReportForTour(input: {
   if (data.tour.status !== "APPROVED") throw new Error("Berichte können nur für freigegebene Touren erzeugt werden.");
   const existing = await prisma.report.findUnique({ where: { tourId: input.tourId } });
   const now = new Date();
+  const snapshot = buildReportSnapshot(data);
+  const quantities = flyerQuantitySummary({
+    plannedFlyers: data.tour.plannedFlyerQuantity ?? data.order.flyerQuantity,
+    remainingFlyers: data.tour.remainingFlyers,
+    deliveredFlyers: data.tour.deliveredFlyerQuantity,
+  });
+  const coverage = calculateCoverageSummary({
+    plannedFlyers: quantities.planned,
+    deliveredFlyers: quantities.delivered,
+    gpsScore: data.qualityScore,
+    plannedHouseholds: data.order.estimatedHouseholds,
+  });
   let report: Awaited<ReturnType<typeof prisma.report.upsert>> | null = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const reportNumber = existing?.reportNumber ?? await generateReportNumber();
@@ -224,25 +393,76 @@ export async function createReportForTour(input: {
       report = await prisma.report.upsert({
         where: { tourId: input.tourId },
         update: {
-          status: "GENERATED",
+          status: "READY_FOR_REVIEW",
           template: input.template ?? "STANDARD",
           generatedAt: now,
           approvedAt: data.tour.reviewedAt ?? now,
           approvedById: data.tour.reviewedBy ?? input.adminUserId,
+          reviewedAt: data.tour.reviewedAt ?? now,
+          reviewedById: data.tour.reviewedBy ?? input.adminUserId,
+          internalReviewStatus: "IN_REVIEW",
           version: { increment: 1 },
+          reportVersion: { increment: 1 },
+          plannedAreaGeometry: data.order.targetAreaGeoJson ?? data.tour.plannedAreaGeometry ?? undefined,
+          actualAreaGeometry: data.tour.actualAreaGeometry ?? undefined,
+          actualRouteGeometry: snapshot.actual.routeGeometry,
+          coverageMode: "conservative_gps_photo_review",
+          plannedHouseholdCount: data.order.estimatedHouseholds,
+          estimatedReachedHouseholds: coverage.estimatedReachedHouseholds,
+          plannedFlyerQuantity: quantities.planned,
+          deliveredFlyerQuantity: quantities.delivered,
+          remainingFlyerQuantity: quantities.remaining,
+          actualCoveragePercent: decimalPercent(coverage.actualCoveragePercent),
+          flyerCoveragePercent: decimalPercent(coverage.flyerCoveragePercent),
+          householdCoverageEstimate: decimalPercent(coverage.householdCoverageEstimate),
+          actualDistanceKm: new Prisma.Decimal((data.analysis.distanceMeters / 1000).toFixed(2)),
+          actualDurationMinutes: Math.round(data.analysis.activeSeconds / 60),
+          distributorCount: 1,
+          plannedStartDate: data.order.preferredStartDate,
+          actualStartedAt: data.analysis.startTime,
+          actualCompletedAt: data.analysis.endTime,
+          summary: "Verteilung aus echten Tourdaten, GPS-Nachweis und freigegebenen Fotos vorbereitet.",
+          deviationSummary: data.deviations.filter((deviation) => deviation.customerVisible).map((deviation) => deviation.description).join(" ") || null,
+          calculationVersion: "distribution-report-v1",
+          reportSnapshot: safeJson(snapshot),
         },
         create: {
           orderId: data.order.id,
           tourId: data.tour.id,
           customerId: data.customer.id,
           reportNumber,
-          status: "GENERATED",
+          status: "READY_FOR_REVIEW",
           reportType: "DISTRIBUTION_PROOF",
           template: input.template ?? "STANDARD",
           onlineUrl: "",
           generatedAt: now,
           approvedAt: data.tour.reviewedAt ?? now,
           approvedById: data.tour.reviewedBy ?? input.adminUserId,
+          reviewedAt: data.tour.reviewedAt ?? now,
+          reviewedById: data.tour.reviewedBy ?? input.adminUserId,
+          internalReviewStatus: "IN_REVIEW",
+          plannedAreaGeometry: data.order.targetAreaGeoJson ?? data.tour.plannedAreaGeometry ?? undefined,
+          actualAreaGeometry: data.tour.actualAreaGeometry ?? undefined,
+          actualRouteGeometry: snapshot.actual.routeGeometry,
+          coverageMode: "conservative_gps_photo_review",
+          plannedHouseholdCount: data.order.estimatedHouseholds,
+          estimatedReachedHouseholds: coverage.estimatedReachedHouseholds,
+          plannedFlyerQuantity: quantities.planned,
+          deliveredFlyerQuantity: quantities.delivered,
+          remainingFlyerQuantity: quantities.remaining,
+          actualCoveragePercent: decimalPercent(coverage.actualCoveragePercent),
+          flyerCoveragePercent: decimalPercent(coverage.flyerCoveragePercent),
+          householdCoverageEstimate: decimalPercent(coverage.householdCoverageEstimate),
+          actualDistanceKm: new Prisma.Decimal((data.analysis.distanceMeters / 1000).toFixed(2)),
+          actualDurationMinutes: Math.round(data.analysis.activeSeconds / 60),
+          distributorCount: 1,
+          plannedStartDate: data.order.preferredStartDate,
+          actualStartedAt: data.analysis.startTime,
+          actualCompletedAt: data.analysis.endTime,
+          summary: "Verteilung aus echten Tourdaten, GPS-Nachweis und freigegebenen Fotos vorbereitet.",
+          deviationSummary: data.deviations.filter((deviation) => deviation.customerVisible).map((deviation) => deviation.description).join(" ") || null,
+          calculationVersion: "distribution-report-v1",
+          reportSnapshot: safeJson(snapshot),
           verificationCode: generateVerificationCode(),
         },
       });
@@ -290,10 +510,62 @@ export async function regenerateReport(input: { reportId: string; adminUserId: s
   return createReportForTour({ tourId: report.tourId, adminUserId: input.adminUserId, template: report.template });
 }
 
-export async function publishReport(input: { reportId: string; adminUserId: string }) {
+export async function approveReport(input: { reportId: string; adminUserId: string }) {
   const report = await prisma.report.update({
     where: { id: input.reportId },
-    data: { status: "PUBLISHED" },
+    data: {
+      status: "APPROVED",
+      internalReviewStatus: "APPROVED",
+      reviewedById: input.adminUserId,
+      reviewedAt: new Date(),
+      approvedById: input.adminUserId,
+      approvedAt: new Date(),
+    },
+  });
+  await createAuditLog({ userId: input.adminUserId, action: "report.approved", entityType: "Report", entityId: report.id });
+  return report;
+}
+
+export async function requestReportCorrection(input: { reportId: string; adminUserId: string; message?: string }) {
+  const report = await prisma.report.update({
+    where: { id: input.reportId },
+    data: {
+      status: "CHANGES_REQUIRED",
+      internalReviewStatus: "NEEDS_CORRECTION",
+      reviewedById: input.adminUserId,
+      reviewedAt: new Date(),
+      deviationSummary: input.message ?? "Korrektur vor Kundenfreigabe erforderlich.",
+    },
+  });
+  await createAuditLog({
+    userId: input.adminUserId,
+    action: "report.correction_required",
+    entityType: "Report",
+    entityId: report.id,
+    newValues: { message: input.message },
+  });
+  return report;
+}
+
+export async function publishReport(input: { reportId: string; adminUserId: string }) {
+  const current = await prisma.report.findUnique({
+    where: { id: input.reportId },
+    include: { customer: true, order: true },
+  });
+  if (!current) throw new Error("Report wurde nicht gefunden.");
+  if (current.status === "PUBLISHED") return current;
+  if (!current.reportSnapshot) throw new Error("Bericht kann erst nach Snapshot-Erzeugung veroeffentlicht werden.");
+  const report = await prisma.report.update({
+    where: { id: input.reportId },
+    data: {
+      status: "PUBLISHED",
+      internalReviewStatus: "APPROVED",
+      reviewedById: input.adminUserId,
+      reviewedAt: new Date(),
+      publishedAt: new Date(),
+      approvedById: input.adminUserId,
+      approvedAt: new Date(),
+    },
     include: { customer: true, order: true },
   });
   await createAuditLog({ userId: input.adminUserId, action: "report.published", entityType: "Report", entityId: report.id });
@@ -330,5 +602,5 @@ export async function markReportDownloaded(input: { reportId: string; userId?: s
 }
 
 export function isCustomerVisibleReportStatus(status: ReportStatus) {
-  return status === "PUBLISHED" || status === "APPROVED" || status === "GENERATED";
+  return status === "PUBLISHED";
 }

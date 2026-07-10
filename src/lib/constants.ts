@@ -159,6 +159,7 @@ export const REMAINING_STOCK_STATUS_LABELS = {
 } as const;
 
 export const TOUR_STATUS_LABELS: Record<TourStatus, string> = {
+  PLANNED: "Geplant",
   ASSIGNED: "Zugewiesen",
   READY: "Bereit",
   PICKED_UP: "Abgeholt",

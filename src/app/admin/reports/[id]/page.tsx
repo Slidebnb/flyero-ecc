@@ -18,6 +18,8 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
   });
   if (!report) notFound();
   const data = await collectReportData(report.tourId);
+  const visiblePhotos = data.tour.photoProofs.filter((photo) => photo.customerVisible && photo.reviewStatus === "APPROVED");
+  const deviations = await prisma.distributionDeviation.findMany({ where: { orderId: report.orderId }, orderBy: { createdAt: "asc" } });
 
   return (
     <main className="appShell">
@@ -36,36 +38,51 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
       <section className="gridCards">
         <article className="card"><strong>{data.qualityScore}</strong><span>GPS-Score</span></article>
         <article className="card"><strong>{data.analysis.flags.length}</strong><span>Admin-Flags</span></article>
-        <article className="card"><strong>{data.tour.photoProofs.length}</strong><span>Fotos</span></article>
-        <article className="card"><strong>{report.version}</strong><span>Version</span></article>
+        <article className="card"><strong>{visiblePhotos.length}/{data.tour.photoProofs.length}</strong><span>Foto-Freigaben</span></article>
+        <article className="card"><strong>{report.reportVersion}</strong><span>Version</span></article>
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
         <h2 className="sectionTitle">Aktionen</h2>
         <div className="actions">
           <form action={`/api/admin/reports/${report.id}/regenerate`} method="post"><button type="submit">Bericht neu generieren</button></form>
-          <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veröffentlichen</button></form>
+          <form action={`/api/admin/reports/${report.id}/approve`} method="post"><button type="submit">Intern freigeben</button></form>
+          <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veroeffentlichen</button></form>
+          <form action={`/api/admin/reports/${report.id}/request-correction`} method="post"><button type="submit">Korrektur anfordern</button></form>
           <form action={`/api/admin/reports/${report.id}/archive`} method="post"><button type="submit">Bericht archivieren</button></form>
           {report.pdfUrl ? <a href={`/api/admin/reports/${report.id}/download`}>PDF ansehen</a> : null}
         </div>
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Details</h2>
+        <h2 className="sectionTitle">Pruefstatus</h2>
         <div className="tableWrap">
           <table>
             <tbody>
               <tr><th>Kunde</th><td>{report.order.customer.companyName}</td></tr>
               <tr><th>Auftrag</th><td>{report.order.orderNumber}</td></tr>
               <tr><th>Gebiet</th><td>{report.order.targetAreaName}</td></tr>
-              <tr><th>Generated</th><td>{formatDateTime(report.generatedAt)}</td></tr>
-              <tr><th>Approved</th><td>{formatDateTime(report.approvedAt)}</td></tr>
-              <tr><th>Prüfcode</th><td>{report.verificationCode}</td></tr>
+              <tr><th>Interne Pruefung</th><td>{report.internalReviewStatus}</td></tr>
+              <tr><th>Generiert</th><td>{formatDateTime(report.generatedAt)}</td></tr>
+              <tr><th>Geprueft</th><td>{formatDateTime(report.reviewedAt ?? report.approvedAt)}</td></tr>
+              <tr><th>Veroeffentlicht</th><td>{formatDateTime(report.publishedAt)}</td></tr>
+              <tr><th>Pruefcode</th><td>{report.verificationCode}</td></tr>
               <tr><th>Checksum</th><td>{report.checksum ?? "-"}</td></tr>
               <tr><th>Admin-Flags</th><td>{data.analysis.flags.join(", ") || "-"}</td></tr>
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
+        <h2 className="sectionTitle">Abweichungen</h2>
+        {deviations.length > 0 ? deviations.map((deviation) => (
+          <div className="notice" key={deviation.id}>
+            <strong>{deviation.type} / {deviation.severity}</strong>
+            <p>{deviation.description}</p>
+            <p>Kundensichtbar: {deviation.customerVisible ? "ja" : "nein"}</p>
+          </div>
+        )) : <p className="muted">Keine Abweichungen dokumentiert.</p>}
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
@@ -79,7 +96,7 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
           photos={data.tour.photoProofs.map((photo) => ({
             lat: photo.lat ? Number(photo.lat) : null,
             lng: photo.lng ? Number(photo.lng) : null,
-            label: formatDateTime(photo.takenAt ?? photo.createdAt),
+            label: `${photo.reviewStatus} / ${formatDateTime(photo.takenAt ?? photo.createdAt)}`,
           }))}
         />
       </section>

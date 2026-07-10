@@ -49,7 +49,11 @@ export const CUSTOMER_PRINT_STATUS_LABELS: Record<PrintStatus, string> = {
 
 export const CUSTOMER_REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
   DRAFT: "Bericht wird vorbereitet",
+  DATA_INCOMPLETE: "Nachweise werden gesammelt",
   GENERATED: "Nachweis erstellt",
+  READY_FOR_REVIEW: "Bericht wird geprueft",
+  IN_REVIEW: "Bericht wird geprueft",
+  CHANGES_REQUIRED: "Bericht wird ueberarbeitet",
   APPROVED: "Prüfung bestanden",
   PUBLISHED: "Nachweis verfügbar",
   ARCHIVED: "Archiviert",

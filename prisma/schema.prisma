@@ -169,6 +169,7 @@ enum AutoDispatchRecommendationStatus {
 }
 
 enum TourStatus {
+  PLANNED
   ASSIGNED
   READY
   PICKED_UP
@@ -193,12 +194,24 @@ enum ReviewStatus {
 
 enum ReportStatus {
   DRAFT
+  DATA_INCOMPLETE
   GENERATED
+  READY_FOR_REVIEW
+  IN_REVIEW
+  CHANGES_REQUIRED
   APPROVED
   PUBLISHED
   ARCHIVED
   RELEASED_TO_CUSTOMER
   REGENERATING
+}
+
+enum InternalReviewStatus {
+  NOT_REVIEWED
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  NEEDS_CORRECTION
 }
 
 enum ReportType {
@@ -639,6 +652,7 @@ model Order {
   tours               DistributionTour[]
   photoProofs         PhotoProof[]
   reports             Report[]
+  deviations          DistributionDeviation[]
   payments            Payment[]
   invoice             Invoice?
   supportTickets      SupportTicket[]
@@ -740,6 +754,7 @@ model DistributionArea {
   orders    Order[]
 
   @@index([type, status])
+  @@index([city])
   @@index([city, postalCode])
   @@index([dataSourceType, dataUpdatedAt])
   @@index([googlePlaceId])
@@ -883,6 +898,7 @@ model Warehouse {
   transfersTo        WarehouseTransfer[] @relation("TransferToWarehouse")
   stockCounts        WarehouseStockCount[]
 
+  @@index([city])
   @@index([city, postalCode])
   @@index([code])
   @@index([isActive, isDefault])
@@ -1196,6 +1212,22 @@ model DistributionTour {
   reviewedBy        String?
   adminReviewStatus ReviewStatus @default(PENDING)
   fraudFlags        Json?
+  plannedAreaGeometry Json?
+  actualRouteGeometry Json?
+  actualAreaGeometry Json?
+  plannedFlyerQuantity Int?
+  assignedFlyerQuantity Int?
+  deliveredFlyerQuantity Int?
+  returnedFlyerQuantity Int?
+  damagedFlyerQuantity Int?
+  unexplainedFlyerDifference Int?
+  plannedDistanceKm Decimal?     @db.Decimal(10, 2)
+  actualDistanceKm  Decimal?     @db.Decimal(10, 2)
+  plannedDurationMinutes Int?
+  actualDurationMinutes Int?
+  gpsPointCount     Int          @default(0)
+  gpsQualityScore   Int?
+  lastLocationAt    DateTime?
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
@@ -1205,6 +1237,7 @@ model DistributionTour {
   gpsPoints   GpsPoint[]
   photoProofs PhotoProof[]
   reports     Report[]
+  deviations   DistributionDeviation[]
   supportTickets SupportTicket[]
 
   @@index([orderId, status])
@@ -1277,6 +1310,8 @@ model GpsPoint {
   status     String   @default("ok")
   flags      Json?
   recordedAt DateTime
+  receivedAt DateTime @default(now())
+  suspicious Boolean  @default(false)
   createdAt  DateTime @default(now())
 
   tour DistributionTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
@@ -1294,8 +1329,17 @@ model PhotoProof {
   lng        Decimal?  @db.Decimal(10, 7)
   accuracy   Decimal?  @db.Decimal(8, 2)
   source     String    @default("camera")
+  category   String    @default("DISTRIBUTION_AREA")
+  caption    String?
+  internalNote String?
+  customerVisible Boolean @default(false)
+  reviewStatus ReviewStatus @default(PENDING)
+  reviewedById String?
+  reviewedAt  DateTime?
   metadata   Json?
   takenAt    DateTime?
+  deviceTimestamp DateTime?
+  uploadedAt DateTime  @default(now())
   createdAt  DateTime  @default(now())
 
   tour     DistributionTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
@@ -1320,8 +1364,39 @@ model Report {
   generatedAt  DateTime?
   approvedAt   DateTime?
   approvedById String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  publishedAt  DateTime?
   downloadedAt DateTime?
   version      Int            @default(1)
+  reportVersion Int           @default(1)
+  internalReviewStatus InternalReviewStatus @default(NOT_REVIEWED)
+  plannedAreaGeometry Json?
+  actualAreaGeometry Json?
+  actualRouteGeometry Json?
+  coverageMode String?
+  plannedHouseholdCount Int?
+  estimatedReachedHouseholds Int?
+  plannedFlyerQuantity Int?
+  deliveredFlyerQuantity Int?
+  remainingFlyerQuantity Int?
+  plannedCoveragePercent Decimal? @db.Decimal(5, 2)
+  actualCoveragePercent Decimal? @db.Decimal(5, 2)
+  flyerCoveragePercent Decimal? @db.Decimal(5, 2)
+  areaCoveragePercent Decimal? @db.Decimal(5, 2)
+  householdCoverageEstimate Decimal? @db.Decimal(5, 2)
+  plannedDistanceKm Decimal? @db.Decimal(10, 2)
+  actualDistanceKm Decimal? @db.Decimal(10, 2)
+  plannedDurationMinutes Int?
+  actualDurationMinutes Int?
+  distributorCount Int?
+  plannedStartDate DateTime?
+  actualStartedAt DateTime?
+  actualCompletedAt DateTime?
+  summary String?
+  deviationSummary String?
+  calculationVersion String?
+  reportSnapshot Json?
   checksum     String?
   verificationCode String     @unique
   createdAt    DateTime       @default(now())
@@ -1337,6 +1412,30 @@ model Report {
   @@index([customerId, status])
   @@index([reportNumber])
   @@index([verificationCode])
+}
+
+model DistributionDeviation {
+  id                    String   @id @default(cuid())
+  orderId               String
+  tourId                String?
+  type                  String
+  severity              String   @default("INFO")
+  description           String
+  affectedAreaGeometry  Json?
+  affectedFlyerQuantity Int?
+  customerVisible       Boolean  @default(false)
+  resolution            String?
+  createdById           String?
+  reviewedById          String?
+  createdAt             DateTime @default(now())
+  resolvedAt            DateTime?
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tour  DistributionTour? @relation(fields: [tourId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, customerVisible])
+  @@index([tourId])
+  @@index([type, severity])
 }
 
 model PaymentProvider {
