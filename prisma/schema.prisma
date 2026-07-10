@@ -226,6 +226,13 @@ enum ReportTemplate {
   CUSTOM_BRANDING
 }
 
+enum ReportSource {
+  EXTERNAL_GPS_REPORT
+  MANUAL_EVIDENCE
+  INTERNAL_TRACKING
+  HYBRID
+}
+
 enum InvoiceStatus {
   DRAFT
   ISSUED
@@ -1359,6 +1366,7 @@ model Report {
   status       ReportStatus   @default(DRAFT)
   reportType   ReportType     @default(DISTRIBUTION_PROOF)
   template     ReportTemplate @default(STANDARD)
+  reportSource ReportSource   @default(INTERNAL_TRACKING)
   onlineUrl    String?
   pdfUrl       String?
   generatedAt  DateTime?
@@ -1706,6 +1714,11 @@ model Document {
   checksum         String
   version          Int            @default(1)
   status           DocumentStatus @default(UPLOADED)
+  providerName     String?
+  externalReportReference String?
+  reportDate       DateTime?
+  customerVisible  Boolean        @default(false)
+  reviewStatus     ReviewStatus   @default(PENDING)
   uploadedById     String?
   uploadedAt       DateTime       @default(now())
   approvedById     String?
@@ -1727,9 +1740,29 @@ model Document {
   @@index([folderId])
   @@index([status, uploadedAt])
   @@index([documentType, status])
+  @@index([orderId, customerVisible])
+  @@index([providerName, reportDate])
   @@index([uploadedById])
   @@index([approvedById])
   @@index([checksum])
+}
+
+model ManualDistributor {
+  id                    String   @id @default(cuid())
+  name                  String
+  phone                 String?
+  email                 String?
+  region                String?
+  vehicle               String?
+  isActive              Boolean  @default(true)
+  notes                 String?
+  compensationType      String?
+  reliabilityNote       String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([isActive, region])
+  @@index([name])
 }
 
 model DocumentVersion {

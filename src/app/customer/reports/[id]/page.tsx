@@ -50,12 +50,24 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
       order: { customer: { userId: session.id } },
       tour: { status: "APPROVED" },
     },
-    include: { order: true, tour: true, approver: true },
+    include: {
+      order: {
+        include: {
+          documents: {
+            where: { customerVisible: true, status: "APPROVED" },
+            orderBy: { uploadedAt: "desc" },
+          },
+        },
+      },
+      tour: true,
+      approver: true,
+    },
   });
   if (!report) notFound();
 
   const reportData = await collectReportData(report.tourId);
   const customerView = sanitizeReportForCustomer(reportData);
+  const isExternalGpsReport = report.reportSource === "EXTERNAL_GPS_REPORT" || customerView.route.length < 3;
   await createAuditLog({ userId: session.id, action: "report.viewed", entityType: "Report", entityId: report.id });
 
   return (
@@ -78,8 +90,8 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
       <section className="gridCards">
         <article className="card"><strong>{customerView.quantities.planned}</strong><span>Geplante Flyer</span></article>
         <article className="card"><strong>{customerView.quantities.delivered}</strong><span>Tatsaechlich dokumentiert</span></article>
-        <article className="card"><strong>{customerView.coverage.actualCoveragePercent} %</strong><span>Dokumentierter Abdeckungsgrad</span></article>
-        <article className="card"><strong>{(customerView.tour.distanceMeters / 1000).toFixed(1)} km</strong><span>GPS-Strecke</span></article>
+        <article className="card"><strong>{customerView.coverage.actualCoveragePercent === null ? "Geprueft" : `${customerView.coverage.actualCoveragePercent} %`}</strong><span>{customerView.coverage.actualCoveragePercent === null ? "Manuelle Pruefung" : "Dokumentierter Abdeckungsgrad"}</span></article>
+        <article className="card"><strong>{isExternalGpsReport ? "Verfuegbar" : `${(customerView.tour.distanceMeters / 1000).toFixed(1)} km`}</strong><span>GPS-Nachweis</span></article>
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
@@ -103,25 +115,51 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
           </table>
         </div>
         <p className="muted">
-          Der Abdeckungsgrad beschreibt die dokumentierte Verteilung anhand echter Tourdaten, freigegebener Fotos und interner Pruefung.
-          Er ist kein Einzelbriefkasten-Nachweis.
+          {isExternalGpsReport
+            ? "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung. Es wird keine automatische Flaechenabdeckung erfunden."
+            : "Der Abdeckungsgrad beschreibt die dokumentierte Verteilung anhand echter Tourdaten, freigegebener Fotos und interner Pruefung. Er ist kein Einzelbriefkasten-Nachweis."}
         </p>
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
         <h2 className="sectionTitle">GPS-Nachweis</h2>
-        <RouteMap
-          points={customerView.route.map((point) => ({
-            lat: point.lat,
-            lng: point.lng,
-            recordedAt: point.recordedAt.toISOString(),
-          }))}
-          photos={customerView.photos.map((photo, index) => ({
-            lat: photo.lat,
-            lng: photo.lng,
-            label: `Foto ${index + 1}`,
-          }))}
-        />
+        {isExternalGpsReport ? (
+          <div className="notice">
+            <strong>GPS-Nachweis des eingesetzten Trackingsystems</strong>
+            <p>Der Nachweis wurde extern erzeugt und von FLYERO manuell geprueft. FLYERO behauptet hier keine eigene Live-Aufzeichnung.</p>
+          </div>
+        ) : (
+          <RouteMap
+            points={customerView.route.map((point) => ({
+              lat: point.lat,
+              lng: point.lng,
+              recordedAt: point.recordedAt.toISOString(),
+            }))}
+            photos={customerView.photos.map((photo, index) => ({
+              lat: photo.lat,
+              lng: photo.lng,
+              label: `Foto ${index + 1}`,
+            }))}
+          />
+        )}
+      </section>
+
+      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
+        <h2 className="sectionTitle">Weitere Nachweise</h2>
+        <div className="tableWrap">
+          <table>
+            <tbody>
+              {report.order.documents.map((document) => (
+                <tr key={document.id}>
+                  <th>{document.title}</th>
+                  <td>{document.providerName || document.extension.toUpperCase()}</td>
+                  <td><a href={`/api/customer/reports/${report.id}/evidence/${document.id}`}>Nachweis herunterladen</a></td>
+                </tr>
+              ))}
+              {report.order.documents.length === 0 ? <tr><td>Keine weiteren freigegebenen Nachweise vorhanden.</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>

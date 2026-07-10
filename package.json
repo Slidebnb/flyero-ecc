@@ -40,6 +40,7 @@
     "test:customer-order-checkout": "node -r dotenv/config tests/customer-order-checkout-smoke.mjs",
     "test:area-data-import": "node -r dotenv/config tests/area-data-import-smoke.mjs",
     "test:distribution-reports": "node -r dotenv/config tests/distribution-reports-smoke.mjs",
+    "test:external-distribution-report": "node -r dotenv/config tests/external-distribution-report-smoke.mjs",
     "test:beta": "node -r dotenv/config tests/beta-e2e-smoke.mjs",
     "visual:marketing": "node tests/visual-marketing.mjs"
   },

@@ -121,6 +121,16 @@ function buildReportSnapshot(data: ReportData) {
     gpsScore: data.qualityScore,
     plannedHouseholds: data.order.estimatedHouseholds,
   });
+  const hasInternalGps = data.analysis.pointCount >= 3;
+  const effectiveCoverage = hasInternalGps
+    ? coverage
+    : {
+        ...coverage,
+        actualCoveragePercent: null,
+        areaCoveragePercent: null,
+        householdCoverageEstimate: null,
+        estimatedReachedHouseholds: null,
+      };
   const photos = approvedCustomerPhotos(data.tour.photoProofs);
   return {
     reportVersion: data.tour.reports[0]?.reportVersion ?? data.tour.reports[0]?.version ?? 1,
@@ -156,7 +166,7 @@ function buildReportSnapshot(data: ReportData) {
       customerStatus: customerGpsStatus(data.qualityScore, data.analysis.pointCount),
       flags: data.analysis.flags,
     },
-    coverage,
+    coverage: effectiveCoverage,
     photos: photos.map((photo) => ({
       id: photo.id,
       category: photo.category,
@@ -174,7 +184,9 @@ function buildReportSnapshot(data: ReportData) {
       })),
     customerText: {
       coverageExplanation:
-        "Das geplante Gebiet wurde anhand der verfuegbaren Tour- und Nachweisdaten dokumentiert. Der Wert ist kein Einzelbriefkasten-Nachweis.",
+        hasInternalGps
+          ? "Das geplante Gebiet wurde anhand der verfuegbaren Tour- und Nachweisdaten dokumentiert. Der Wert ist kein Einzelbriefkasten-Nachweis."
+          : "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.",
       privacyNote: "Personenbezogene Verteiler- und Rohdaten werden geschuetzt.",
     },
   };
@@ -235,6 +247,7 @@ export function sanitizeReportForCustomer(data: ReportData) {
     plannedHouseholds: data.order.estimatedHouseholds,
   });
   const photos = approvedCustomerPhotos(data.tour.photoProofs);
+  const hasInternalGps = data.analysis.pointCount >= 3;
   return {
     order: {
       orderNumber: data.order.orderNumber,
@@ -257,11 +270,19 @@ export function sanitizeReportForCustomer(data: ReportData) {
       distributor: data.anonymousDistributor,
     },
     quantities,
-    coverage,
+    coverage: hasInternalGps
+      ? coverage
+      : {
+          ...coverage,
+          actualCoveragePercent: null,
+          areaCoveragePercent: null,
+          householdCoverageEstimate: null,
+          estimatedReachedHouseholds: null,
+        },
     gpsQuality: {
       score: data.qualityScore,
       label: data.qualityLabel,
-      customerStatus: customerGpsStatus(data.qualityScore, data.analysis.pointCount),
+      customerStatus: hasInternalGps ? customerGpsStatus(data.qualityScore, data.analysis.pointCount) : "GPS-Nachweis des eingesetzten Trackingsystems",
     },
     photos: photos.map((photo) => ({
       id: photo.id,
@@ -568,6 +589,12 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
     },
     include: { customer: true, order: true },
   });
+  if (report.reportSource === "EXTERNAL_GPS_REPORT" || report.reportSource === "MANUAL_EVIDENCE") {
+    await prisma.document.updateMany({
+      where: { orderId: report.orderId, documentType: { in: ["REPORT", "IMAGE"] }, status: { in: ["UPLOADED", "UNDER_REVIEW", "APPROVED"] } },
+      data: { status: "APPROVED", customerVisible: true, reviewStatus: "APPROVED", approvedById: input.adminUserId, approvedAt: new Date() },
+    });
+  }
   await createAuditLog({ userId: input.adminUserId, action: "report.published", entityType: "Report", entityId: report.id });
   await createNotification({
     userId: report.customer.userId,

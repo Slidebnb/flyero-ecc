@@ -61,6 +61,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         orderBy: { updatedAt: "desc" },
       },
       payments: { include: { refunds: true }, orderBy: { createdAt: "desc" } },
+      documents: { orderBy: { uploadedAt: "desc" } },
+      reports: { orderBy: { updatedAt: "desc" } },
       statusEvents: { orderBy: { createdAt: "asc" }, include: { user: true } },
     },
   });
@@ -154,6 +156,120 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           </div>
         </section>
       ) : null}
+
+      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
+        <div className="splitHeader">
+          <div>
+            <p className="eyebrow">MVP mit externem GPS-Geraet</p>
+            <h2 className="sectionTitle">Verteilnachweise</h2>
+            <p className="muted">
+              Lade den GPS-Nachweis des eingesetzten Trackingsystems, Fotos und weitere Dateien hoch. Kunden sehen nur freigegebene Nachweise.
+            </p>
+          </div>
+          {order.reports[0] ? <Link className="textLink" href={`/admin/reports/${order.reports[0].id}`}>Aktuellen Bericht oeffnen</Link> : null}
+        </div>
+
+        <form action={`/api/admin/orders/${order.id}/evidence`} method="post" encType="multipart/form-data" className="form grid">
+          <label>
+            Nachweisart
+            <select name="evidenceType" defaultValue="GPS_PDF">
+              <option value="GPS_PDF">GPS-Bericht hochladen</option>
+              <option value="GPS_FILE">GPS-Datei optional GPX/KML/KMZ</option>
+              <option value="PHOTO">Fotos hochladen</option>
+              <option value="OTHER">Sonstige Dokumente</option>
+            </select>
+          </label>
+          <label>
+            Anbieter optional
+            <input name="providerName" placeholder="GPS-Anbieter" />
+          </label>
+          <label>
+            Tour-/Geraetereferenz optional
+            <input name="externalReportReference" />
+          </label>
+          <label>
+            Berichtdatum optional
+            <input name="reportDate" type="date" />
+          </label>
+          <label className="full">
+            Datei
+            <input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gpx,.kml,.kmz" required />
+          </label>
+          <button type="submit">GPS-Bericht hochladen</button>
+        </form>
+
+        <form action={`/api/admin/orders/${order.id}/evidence/prepare-report`} method="post" className="form grid">
+          <label>
+            Verteilungsdatum
+            <input name="distributionDate" type="date" />
+          </label>
+          <label>
+            Startzeit
+            <input name="startTime" type="datetime-local" />
+          </label>
+          <label>
+            Endzeit
+            <input name="endTime" type="datetime-local" />
+          </label>
+          <label>
+            Tatsaechlich verteilte Flyer
+            <input name="deliveredFlyerQuantity" type="number" min="0" defaultValue={order.flyerQuantity} />
+          </label>
+          <label>
+            Restmenge
+            <input name="remainingFlyerQuantity" type="number" min="0" />
+          </label>
+          <label>
+            Verteiler / Team
+            <input name="distributorName" placeholder="Name oder internes Team" />
+          </label>
+          <label className="full">
+            Zusammenfassung
+            <textarea name="summary" placeholder="Nachweis basiert auf externem GPS-Bericht und manueller Pruefung." />
+          </label>
+          <label className="full">
+            Abweichungen
+            <textarea name="deviationSummary" placeholder="Baustelle, Sperrbereich, Wetter oder sonstige Hinweise" />
+          </label>
+          <label className="full">
+            Interne Notiz
+            <textarea name="internalNote" />
+          </label>
+          <label className="full">
+            Kundensichtbare Notiz
+            <textarea name="customerNote" />
+          </label>
+          <button type="submit">Bericht vorbereiten</button>
+        </form>
+
+        <div className="tableWrap">
+          <table>
+            <thead>
+              <tr><th>Datei</th><th>Typ</th><th>Anbieter</th><th>Status</th><th>Kundensichtbar</th><th>Upload</th></tr>
+            </thead>
+            <tbody>
+              {order.documents.map((document) => (
+                <tr key={document.id}>
+                  <td>{document.title}</td>
+                  <td>{document.extension.toUpperCase()}</td>
+                  <td>{document.providerName || "-"}</td>
+                  <td>{document.status}</td>
+                  <td>{document.customerVisible ? "Ja" : "Nein"}</td>
+                  <td>{formatDateTime(document.uploadedAt)}</td>
+                </tr>
+              ))}
+              {order.documents.length === 0 ? <tr><td colSpan={6}>Noch keine Verteilnachweise hochgeladen.</td></tr> : null}
+            </tbody>
+          </table>
+        </div>
+
+        {order.reports[0] ? (
+          <div className="actions">
+            <form action={`/api/admin/reports/${order.reports[0].id}/approve`} method="post"><button type="submit">Bericht freigeben</button></form>
+            <form action={`/api/admin/reports/${order.reports[0].id}/publish`} method="post"><button type="submit">Bericht veroeffentlichen</button></form>
+          </div>
+        ) : null}
+      </section>
 
       <section className="panel stack" style={{ marginTop: 18 }}>
         <h2 className="sectionTitle">Auftragsdaten</h2>
