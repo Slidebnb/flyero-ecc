@@ -130,7 +130,8 @@ await includes("src/app/distributor/dashboard/page.tsx", ["PortalShell", "Status
 await includes("src/app/admin/dashboard/page.tsx", ["PortalShell", "MetricTile", "DataSection"]);
 await includes("src/app/verteilung-anfragen/page.tsx", [
   "Unverbindlich anfragen",
-  "Online Buchung ansehen",
+  "Direkt online buchen",
+  "Anfrageformular nutzen",
   "next=${directBookingParam}",
 ]);
 await includes("src/app/seo.ts", ["publicSeoRoutes", "createJsonLd", "noIndexMetadata"]);
@@ -199,7 +200,8 @@ try {
   const requestPage = await fetchLocal("/verteilung-anfragen");
   const requestHtml = await requestPage.text();
   assert(requestHtml.includes("Unverbindlich anfragen"), "/verteilung-anfragen zeigt keine öffentliche Anfrageoption.");
-  assert(requestHtml.includes("Online Buchung ansehen"), "/verteilung-anfragen zeigt keine Online-Buchungsoption.");
+  assert(requestHtml.includes("Direkt online buchen"), "/verteilung-anfragen zeigt keine Online-Buchungsoption.");
+  assert(requestHtml.includes("Anfrageformular herunterladen"), "/verteilung-anfragen zeigt keinen klassischen Anfrageformular-Weg.");
   assert(requestHtml.includes("next=%2Fcustomer%2Forders%2Fnew"), "/verteilung-anfragen verlinkt Direktbuchung nicht mit next-Parameter.");
 
   const protectedOrder = await fetchLocal("/customer/orders/new");
@@ -261,3 +263,4 @@ try {
     }
   }
 }
+

@@ -37,6 +37,7 @@
     "test:module24": "node -r dotenv/config tests/module24-smoke.mjs",
     "test:module25": "node -r dotenv/config tests/module25-launch-hardening-smoke.mjs",
     "test:customer-order-area": "node -r dotenv/config tests/customer-order-area-smoke.mjs",
+    "test:customer-order-checkout": "node -r dotenv/config tests/customer-order-checkout-smoke.mjs",
     "test:area-data-import": "node -r dotenv/config tests/area-data-import-smoke.mjs",
     "test:beta": "node -r dotenv/config tests/beta-e2e-smoke.mjs",
     "visual:marketing": "node tests/visual-marketing.mjs"

@@ -8,8 +8,10 @@ import {
   Bell,
   CircleHelp,
   CreditCard,
+  Download,
   FileStack,
   FileText,
+  Mail,
   LocateFixed,
   LayoutDashboard,
   ListChecks,
@@ -129,6 +131,7 @@ type OrderDraft = {
   flyerQuantityTouched?: boolean;
   productFormat?: string;
   flyerSource?: string;
+  printDataStatus?: string;
   targetGroup?: string;
   distributionType?: string;
   startDate?: string;
@@ -202,6 +205,9 @@ const productOptions = [
   { value: "A5 Flyer", label: "A5 Flyer" },
   { value: "A6 Flyer", label: "A6 Flyer" },
 ];
+
+const inquiryFormHref = "/downloads/flyero-anfrageformular.html";
+const inquiryMailHref = "mailto:anfrage@flyero.de?subject=Flyerverteilung%20anfragen&body=Hallo%20FLYERO%2C%0A%0Aich%20moechte%20eine%20Flyerverteilung%20anfragen.%0A%0AFirma%3A%0AAnsprechpartner%3A%0ATelefon%3A%0AE-Mail%3A%0AVerteilgebiet%2FPLZ%2FOrt%3A%0AFlyeranzahl%3A%0AWunschzeitraum%3A%0ABemerkungen%3A";
 
 function OrderLogo() {
   return (
@@ -443,6 +449,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
   const [productFormat, setProductFormat] = useState(productOptions[0].value);
   const [flyerSource, setFlyerSource] = useState("CUSTOMER_OWN");
+  const [printDataStatus, setPrintDataStatus] = useState("UPLOAD_LATER");
   const [targetGroup, setTargetGroup] = useState("Alle Haushalte");
   const [distributionType, setDistributionType] = useState("Haushaltsverteilung");
   const [startDate, setStartDate] = useState(today);
@@ -459,6 +466,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
   const [intelligenceStatus, setIntelligenceStatus] = useState<"local" | "updating" | "live" | "error">("local");
   const [draftStatus, setDraftStatus] = useState("Entwurf wird vorbereitet");
+  const [finishStatus, setFinishStatus] = useState("");
+  const [isFinishing, setIsFinishing] = useState(false);
 
   const coverageAreaSqm = useMemo(() => polygonAreaSqm(polygon), [polygon]);
   const perimeterMeters = useMemo(() => polygonPerimeterMeters(polygon), [polygon]);
@@ -609,7 +618,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
         return;
       }
       const draft = JSON.parse(rawDraft) as OrderDraft;
-      if (draft.activeStep && draft.activeStep >= 1 && draft.activeStep <= 5) setActiveStep(draft.activeStep);
+      if (draft.activeStep && draft.activeStep >= 1 && draft.activeStep <= 6) setActiveStep(draft.activeStep);
       if (draft.query) setQuery(draft.query);
       if (draft.selectedAreaId) setSelectedAreaId(draft.selectedAreaId);
       if (draft.city) setCity(draft.city);
@@ -627,6 +636,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       if (typeof draft.flyerQuantityTouched === "boolean") setFlyerQuantityTouched(draft.flyerQuantityTouched);
       if (draft.productFormat) setProductFormat(draft.productFormat);
       if (draft.flyerSource) setFlyerSource(draft.flyerSource);
+      if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
       if (draft.targetGroup) setTargetGroup(draft.targetGroup);
       if (draft.distributionType) setDistributionType(draft.distributionType);
       if (draft.startDate) setStartDate(draft.startDate);
@@ -663,6 +673,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       flyerQuantityTouched,
       productFormat,
       flyerSource,
+      printDataStatus,
       targetGroup,
       distributionType,
       startDate,
@@ -692,6 +703,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     polygon,
     polygonSource,
     postalCode,
+    printDataStatus,
     productFormat,
     query,
     selectedAreaId,
@@ -975,14 +987,89 @@ export function SmartOrderWizard({ areas, today }: Props) {
     });
   }
 
+  function buildOrderPayload(completionPath: "direct_payment" | "inquiry") {
+    return {
+      serviceType: "FLYER_DISTRIBUTION",
+      city,
+      postalCode,
+      street,
+      houseNumber,
+      targetAreaName,
+      areaType: "POLYGON",
+      distributionAreaId: selectedAreaId,
+      targetAreaGeoJson: JSON.stringify(geoJson),
+      polygonSource,
+      coverageAreaSqm,
+      estimatedHouseholds: households,
+      estimatedFlyers: flyerQuantity,
+      estimatedDistanceMeters: routeDistanceMeters,
+      areaCalculationSnapshot: JSON.stringify(areaStats),
+      centerLat: center.lat,
+      centerLng: center.lng,
+      flyerQuantity,
+      flyerSource,
+      printDataStatus,
+      completionPath,
+      preferredStartDate: startDate,
+      preferredEndDate: endDate,
+      flexibleScheduling,
+      contactPerson,
+      contactPhone,
+      notes: `${notes}${notes ? "\n" : ""}Produkt: ${productFormat}. Zielgruppe: ${targetGroup}. Verteilung: ${distributionType}.`,
+    };
+  }
+
+  async function finishOrder(completionPath: "direct_payment" | "inquiry") {
+    if (isFinishing) return;
+    setIsFinishing(true);
+    setFinishStatus(completionPath === "direct_payment" ? "Buchung wird vorbereitet ..." : "Anfrage wird übermittelt ...");
+    try {
+      trackSubmit();
+      const orderResponse = await fetch("/api/customer/orders", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(buildOrderPayload(completionPath)),
+      });
+      const orderResult = await orderResponse.json();
+      if (!orderResponse.ok || !orderResult?.data?.id) {
+        throw new Error(orderResult?.error || "Kampagne konnte nicht gespeichert werden.");
+      }
+
+      if (completionPath === "direct_payment") {
+        const checkoutResponse = await fetch("/api/payments/checkout", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ orderId: orderResult.data.id }),
+        });
+        const checkoutResult = await checkoutResponse.json();
+        if (!checkoutResponse.ok || !checkoutResult?.data?.checkoutUrl) {
+          setFinishStatus("Zahlung konnte nicht abgeschlossen werden. Du kannst die Zahlung erneut versuchen oder die Kampagne als Anfrage senden.");
+          window.location.href = `/customer/orders/${orderResult.data.id}?payment=retry`;
+          return;
+        }
+        setFinishStatus("Buchung gespeichert. Du wirst zur Zahlung weitergeleitet.");
+        window.location.href = checkoutResult.data.checkoutUrl;
+        return;
+      }
+
+      window.localStorage.removeItem(ORDER_DRAFT_KEY);
+      setFinishStatus("Deine Anfrage wurde übermittelt. Wir prüfen Gebiet, Druckdaten und Preis und melden uns schnellstmöglich.");
+      window.location.href = `/customer/orders/${orderResult.data.id}?inquiry=success`;
+    } catch (error) {
+      setFinishStatus(error instanceof Error ? error.message : "Die Anfrage konnte nicht abgeschlossen werden.");
+    } finally {
+      setIsFinishing(false);
+    }
+  }
+
   const stepState = [
     { id: 1, title: "Gebiet wählen", detail: "Dieses markierte Gebiet wird für deine Verteilung verwendet", value: `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` },
-    { id: 2, title: "Flyer & Stückzahl", detail: "Wähle dein Produkt und die Menge", value: `${formatNumber(flyerQuantity)} Stück` },
-    { id: 3, title: "Verteilung & Zielgruppe", detail: "Lege Verteilart und Zielgruppe fest", value: distributionType },
+    { id: 2, title: "Flyer & Druck", detail: "Flyer, Druckdaten und Menge festlegen", value: `${formatNumber(flyerQuantity)} Stück` },
+    { id: 3, title: "Verteilung & Hinweise", detail: "Verteilart, Zielgruppe und Hinweise", value: distributionType },
     { id: 4, title: "Zeitraum & Auslieferung", detail: "Bestimme Zeitraum und Auslieferung", value: startDate },
-    { id: 5, title: "Zusammenfassung", detail: "Prüfe deine Angaben und bestätige", value: formatCurrency(grossPrice) },
+    { id: 5, title: "Zusammenfassung", detail: "Prüfe Gebiet, Preis und Nachweise", value: formatCurrency(grossPrice) },
+    { id: 6, title: "Abschluss", detail: "Buchen, anfragen oder klassisch senden", value: "3 Wege" },
   ];
-
   function renderStepContent(stepId: number) {
     if (stepId === 1) {
       return (
@@ -1063,8 +1150,18 @@ export function SmartOrderWizard({ areas, today }: Props) {
             </select>
           </label>
           <div className="modeTabs flyerSourceTabs">
-            <button type="button" className={flyerSource === "CUSTOMER_OWN" ? "selected" : ""} onClick={() => setFlyerSource("CUSTOMER_OWN")}>Flyer vorhanden</button>
-            <button type="button" className={flyerSource === "PRINT_SERVICE" ? "selected" : ""} onClick={() => setFlyerSource("PRINT_SERVICE")}>Druck über FLYERO</button>
+            <button type="button" className={flyerSource === "CUSTOMER_OWN" ? "selected" : ""} onClick={() => {
+              setFlyerSource("CUSTOMER_OWN");
+              setPrintDataStatus("UPLOAD_LATER");
+            }}>Flyer vorhanden</button>
+            <button type="button" className={flyerSource === "PRINT_SERVICE" ? "selected" : ""} onClick={() => {
+              setFlyerSource("PRINT_SERVICE");
+              setPrintDataStatus("PRINT_REQUESTED");
+            }}>Druck über FLYERO</button>
+          </div>
+          <div className="modeTabs flyerSourceTabs">
+            <button type="button" className={printDataStatus === "UPLOADED" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOADED")}>Datei ist bereit</button>
+            <button type="button" className={printDataStatus === "UPLOAD_LATER" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOAD_LATER")}>Datei später hochladen</button>
           </div>
           <div className="quantityControl">
             <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
@@ -1111,6 +1208,14 @@ export function SmartOrderWizard({ areas, today }: Props) {
               <option>Lokale Gewerbe</option>
             </select>
           </label>
+          <label>
+            Hinweise an FLYERO
+            <textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="z. B. bestimmte Straßen auslassen, Gewerbegebiet bevorzugen, Zugangshinweise, wichtige Bemerkungen"
+            />
+          </label>
           {smartAreas.length > 0 ? (
             <div className="areaQuickList">
               {smartAreas.map((area) => (
@@ -1128,45 +1233,77 @@ export function SmartOrderWizard({ areas, today }: Props) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
           <div className="dateGrid">
-            <label>Start<input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
-            <label>Ende<input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+            <label>Frühestmöglicher Start<input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
+            <label>Spätestes Zustelldatum<input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
           </div>
           <label className="checkLine">
             <input type="checkbox" checked={flexibleScheduling} onChange={(event) => setFlexibleScheduling(event.target.checked)} />
-            Express oder flexible Planung möglich
+            Wunschzeitraum flexibel abstimmen
           </label>
+        </section>
+      );
+    }
+
+    if (stepId === 5) {
+      return (
+        <section className="orderPanelBlock inlineStepBlock">
+          <div className="summaryMiniGrid">
+            <span><strong>{postalCode} {city}</strong>Gebiet</span>
+            <span><strong>{formatNumber(households)}</strong>Haushalte geschätzt</span>
+            <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
+            <span><strong>{formatNumber(flyerQuantity)}</strong>Flyer</span>
+            <span><strong>{formatCurrency(grossPrice)}</strong>Geschätzter Preis</span>
+            <span><strong>{areaStats.warehouseSuggestion ?? "wird geprüft"}</strong>Lager</span>
+          </div>
+          <p className="orderReviewNotice">Die Buchung wird nach Zahlung durch FLYERO geprüft. Gebiet, Druckdaten und Zustellbarkeit werden final bestätigt.</p>
+          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
+          <div className="proofIncludedList">
+            <span>GPS-Nachweis enthalten</span>
+            <span>Foto-Dokumentation enthalten</span>
+            <span>PDF-Bericht nach Abschluss enthalten</span>
+          </div>
+          <details className="orderDetails inlineDetails">
+            <summary>Kontakt & Hinweise</summary>
+            <label>Kontaktperson<input value={contactPerson} onChange={(event) => setContactPerson(event.target.value)} /></label>
+            <label>Telefon<input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} /></label>
+            <label>Hinweise<textarea value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
+          </details>
         </section>
       );
     }
 
     return (
       <section className="orderPanelBlock inlineStepBlock">
-        <div className="summaryMiniGrid">
-          <span><strong>{postalCode} {city}</strong>Gebiet</span>
-          <span><strong>{formatNumber(flyerQuantity)}</strong>Flyer</span>
-          <span><strong>{formatCurrency(grossPrice)}</strong>Preis</span>
+        <p className="orderStepHint">Wähle jetzt, wie du weitermachen möchtest. Es wird nichts doppelt berechnet und keine Anfrage erzwingt eine Zahlung.</p>
+        <div className="orderFinishChoices">
+          <button type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
+            Jetzt buchen und bezahlen
+            <small>Gebiet sichern, Kampagne anlegen und Zahlung starten.</small>
+          </button>
+          <button type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
+            Unverbindlich anfragen
+            <small>Wir prüfen Gebiet, Druckdaten und Preis und melden uns schnellstmöglich.</small>
+          </button>
+          <a href={inquiryFormHref} download>
+            <Download aria-hidden="true" />
+            Anfrageformular herunterladen
+          </a>
+          <a href={inquiryMailHref}>
+            <Mail aria-hidden="true" />
+            Per E-Mail anfragen
+          </a>
         </div>
-        <details className="orderDetails inlineDetails">
-          <summary>Kontakt & Hinweise</summary>
-          <label>Kontaktperson<input value={contactPerson} onChange={(event) => setContactPerson(event.target.value)} /></label>
-          <label>Telefon<input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} /></label>
-          <label>Hinweise<textarea value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-          <div className="modeTabs">
-            <button type="button" className={flyerSource === "CUSTOMER_OWN" ? "selected" : ""} onClick={() => setFlyerSource("CUSTOMER_OWN")}>Flyer vorhanden</button>
-            <button type="button" className={flyerSource === "PRINT_SERVICE" ? "selected" : ""} onClick={() => setFlyerSource("PRINT_SERVICE")}>Druck benötigt</button>
-          </div>
-        </details>
+        <p className="orderReviewNotice">Enthalten: GPS-Nachweis, Foto-Dokumentation und PDF-Bericht nach Abschluss. Bericht wird nach der Verteilung erstellt.</p>
+        {finishStatus ? <p className="finishStatus" role="status">{finishStatus}</p> : null}
       </section>
     );
   }
 
   return (
     <form
-      action="/api/customer/orders"
-      method="post"
       className="orderExperience"
       onClick={() => setClickCount((value) => value + 1)}
-      onSubmit={trackSubmit}
+      onSubmit={(event) => event.preventDefault()}
     >
       <input type="hidden" name="serviceType" value="FLYER_DISTRIBUTION" />
       <input type="hidden" name="city" value={city} />
@@ -1187,6 +1324,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       <input type="hidden" name="centerLng" value={center.lng} />
       <input type="hidden" name="flyerQuantity" value={flyerQuantity} />
       <input type="hidden" name="flyerSource" value={flyerSource} />
+      <input type="hidden" name="printDataStatus" value={printDataStatus} />
       <input type="hidden" name="preferredStartDate" value={startDate} />
       <input type="hidden" name="preferredEndDate" value={endDate} />
       <input type="hidden" name="flexibleScheduling" value={flexibleScheduling ? "true" : "false"} />
@@ -1242,7 +1380,10 @@ export function SmartOrderWizard({ areas, today }: Props) {
         <div className="orderPriceFooter">
           <span>Geschätzter Preis (brutto)</span>
           <strong>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</strong>
-          <button type="submit">Weiter zur Übersicht<span aria-hidden="true">→</span></button>
+          <button type="button" onClick={() => setActiveStep((step) => Math.min(6, step + 1))}>
+            {activeStep >= 6 ? "Abschluss wählen" : "Weiter"}
+            <span aria-hidden="true">→</span>
+          </button>
         </div>
       </aside>
 
@@ -1289,3 +1430,5 @@ export function SmartOrderWizard({ areas, today }: Props) {
     </form>
   );
 }
+
+

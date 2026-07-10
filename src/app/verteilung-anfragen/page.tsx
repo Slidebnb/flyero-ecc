@@ -24,6 +24,7 @@ export const metadata = createSeoMetadata({
 export default function DistributionRequestPage() {
   const ShieldIcon = defaultProofIcons.shield;
   const GpsIcon = defaultProofIcons.gps;
+  const ReportIcon = defaultProofIcons.report;
 
   return (
     <MarketingPage>
@@ -31,10 +32,10 @@ export default function DistributionRequestPage() {
         <PremiumFlyerField />
         <MarketingContainer>
           <p className="mkEyebrow">Verteilung anfragen</p>
-          <h1>Erst beraten lassen oder Online-Buchung ansehen.</h1>
+          <h1>Online buchen, Angebot anfragen oder klassisch senden.</h1>
           <p>
-            Wählen Sie den passenden Start: Eine unverbindliche Anfrage funktioniert ohne Registrierung.
-            Die Online-Buchung führt zum Kundenkonto mit Auftrag, GPS-Nachweis und Bericht.
+            Wählen Sie den passenden Start: direkt online buchen und bezahlen, unverbindlich anfragen
+            oder das Anfrageformular klassisch per E-Mail senden.
           </p>
         </MarketingContainer>
       </section>
@@ -42,29 +43,17 @@ export default function DistributionRequestPage() {
       <MarketingSection>
         <SectionHeader
           eyebrow="Starten"
-          title="Der einfache Weg zur Verteilung."
-          intro="Unverbindlich sprechen oder direkt in die Online-Buchung gehen. Beides führt zu einem nachvollziehbaren Ablauf."
+          title="Drei Wege zur FLYERO Verteilung."
+          intro="Direkte Buchung, persönliche Rückmeldung oder klassischer Formularweg. Jeder Weg führt zu GPS-Nachweis, Foto-Dokumentation und PDF-Bericht nach Abschluss."
         />
-        <div className="mkLeadChoiceGrid">
-          <article className="mkLeadPanel">
-            <span className="mkCardIcon" aria-hidden="true">
-              <ShieldIcon aria-hidden="true" />
-            </span>
-            <h3>Unverbindlich anfragen</h3>
-            <p>
-              Ideal, wenn Gebiet, Auflage, Timing oder Budget noch abgestimmt werden sollen.
-              Wir melden uns persönlich und klären den passenden Ablauf.
-            </p>
-            <LeadForm source="verteilung-anfragen" />
-          </article>
-
+        <div className="mkLeadChoiceGrid mkLeadChoiceGridThree">
           <article className="mkBookingPanel">
             <span className="mkCardIcon" aria-hidden="true">
               <GpsIcon aria-hidden="true" />
             </span>
-          <h3>Online Buchung ansehen</h3>
+            <h3>Direkt online buchen</h3>
             <p>
-              Für konkrete Kampagnen: anmelden, Verteilgebiet auswählen, Preis ansehen und den Auftrag strukturiert anlegen.
+              Gebiet wählen, Flyerzahl sehen, Preis prüfen und direkt bezahlen. FLYERO prüft Gebiet und Druckdaten final.
             </p>
             <ul>
               <li>Verteilgebiet wählen</li>
@@ -82,7 +71,36 @@ export default function DistributionRequestPage() {
                 Kundenkonto erstellen
               </MarketingButton>
               <MarketingButton href={`/login?next=${directBookingParam}`} variant="ghost">
-                Einloggen und ansehen
+                Einloggen und buchen
+              </MarketingButton>
+            </div>
+          </article>
+
+          <article className="mkLeadPanel">
+            <span className="mkCardIcon" aria-hidden="true">
+              <ShieldIcon aria-hidden="true" />
+            </span>
+            <h3>Unverbindlich anfragen</h3>
+            <p>
+              Wir prüfen dein Gebiet und melden uns mit einer Rückmeldung zu Preis, Ablauf und Druckdaten.
+            </p>
+            <LeadForm source="verteilung-anfragen" />
+          </article>
+
+          <article className="mkClassicPanel">
+            <span className="mkCardIcon" aria-hidden="true">
+              <ReportIcon aria-hidden="true" />
+            </span>
+            <h3>Anfrageformular nutzen</h3>
+            <p>
+              Lieber klassisch anfragen? Lade das Formular herunter oder sende uns die Eckdaten direkt per E-Mail.
+            </p>
+            <div className="mkBookingActions">
+              <MarketingButton href="/downloads/flyero-anfrageformular.html" variant="ghost">
+                Anfrageformular herunterladen
+              </MarketingButton>
+              <MarketingButton href="mailto:anfrage@flyero.de?subject=Flyerverteilung%20anfragen" variant="ghost">
+                Per E-Mail anfragen
               </MarketingButton>
             </div>
           </article>

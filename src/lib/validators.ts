@@ -168,6 +168,8 @@ export const orderCreateSchema = z
     radiusMeters: optionalNonNegativeInt,
     flyerQuantity: z.coerce.number().int().positive(),
     flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]),
+    printDataStatus: z.enum(["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"]).optional().default("UPLOAD_LATER"),
+    completionPath: z.enum(["direct_payment", "inquiry", "document_email"]).optional().default("direct_payment"),
     preferredStartDate: z.coerce.date(),
     preferredEndDate: z.coerce.date(),
     flexibleScheduling: z.coerce.boolean().optional().default(false),

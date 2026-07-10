@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FLYERO Anfrageformular</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; color: #07111f; background: #f5f7f6; }
+    main { width: min(900px, calc(100% - 32px)); margin: 32px auto; background: #fff; padding: 40px; border-radius: 18px; }
+    h1 { margin: 0 0 8px; font-size: 34px; }
+    p { color: #53606d; line-height: 1.55; }
+    section { margin-top: 28px; }
+    h2 { font-size: 18px; margin: 0 0 14px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    label { display: grid; gap: 7px; font-weight: 700; }
+    span { min-height: 38px; border-bottom: 1px solid #cfd8d2; display: block; }
+    .full { grid-column: 1 / -1; }
+    .note { border-left: 4px solid #32d173; padding-left: 14px; }
+    @media print { body { background: #fff; } main { width: auto; margin: 0; padding: 0; } }
+    @media (max-width: 720px) { main { padding: 24px; } .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>FLYERO Anfrageformular</h1>
+    <p class="note">Bitte ausfüllen und an anfrage@flyero.de senden. FLYERO prüft Gebiet, Druckdaten, Zustellbarkeit und Preis final.</p>
+
+    <section>
+      <h2>Kontaktdaten</h2>
+      <div class="grid">
+        <label>Firma<span></span></label>
+        <label>Ansprechpartner<span></span></label>
+        <label>Telefon<span></span></label>
+        <label>E-Mail<span></span></label>
+        <label class="full">Rechnungsadresse<span></span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>Verteilung</h2>
+      <div class="grid">
+        <label class="full">Verteilgebiet / PLZ / Ort<span></span></label>
+        <label>Gewünschte Flyeranzahl<span></span></label>
+        <label>Gewünschter Zeitraum<span></span></label>
+        <label>Druckdaten vorhanden ja/nein<span></span></label>
+        <label>Druck über FLYERO gewünscht ja/nein<span></span></label>
+        <label class="full">Besonderheiten / Ausschlüsse / Sperrzonen<span></span></label>
+        <label class="full">Bemerkungen<span></span></label>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

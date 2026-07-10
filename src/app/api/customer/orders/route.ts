@@ -93,6 +93,17 @@ export async function POST(request: NextRequest) {
       serviceType: data.serviceType,
       flyerQuantity: data.flyerQuantity,
     });
+    const status = data.completionPath === "direct_payment" ? "PAYMENT_PENDING" : "SUBMITTED";
+    const customerNotePrefix = data.completionPath === "direct_payment"
+      ? "Direkt online buchen und bezahlen."
+      : data.completionPath === "document_email"
+        ? "Klassische Anfrage per Formular oder E-Mail."
+        : "Unverbindliche Anfrage ohne Zahlung.";
+    const printDataLabel = data.printDataStatus === "UPLOADED"
+      ? "Druckdaten hochgeladen"
+      : data.printDataStatus === "PRINT_REQUESTED"
+        ? "Druck über FLYERO angefragt"
+        : "Druckdaten werden später bereitgestellt";
 
     let order: Awaited<ReturnType<typeof prisma.order.create>> | null = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -101,7 +112,7 @@ export async function POST(request: NextRequest) {
           data: {
             orderNumber: await generateOrderNumber(),
             customerId: customer.id,
-            status: "PAYMENT_PENDING",
+            status,
             serviceType: data.serviceType,
             city: data.city,
             postalCode: data.postalCode,
@@ -125,7 +136,7 @@ export async function POST(request: NextRequest) {
             preferredStartDate: data.preferredStartDate,
             preferredEndDate: data.preferredEndDate,
             flexibleScheduling: data.flexibleScheduling,
-            notes: data.notes || null,
+            notes: [customerNotePrefix, printDataLabel, data.notes].filter(Boolean).join("\n"),
             contactPerson: data.contactPerson || null,
             contactPhone: data.contactPhone || null,
             calculatedNetPrice: price.net,
@@ -133,6 +144,13 @@ export async function POST(request: NextRequest) {
             calculatedGrossPrice: price.gross,
             priceRuleSnapshot: {
               ...price.snapshot,
+              completionPath: data.completionPath,
+              printDataStatus: data.printDataStatus,
+              customerFacingPriceLabel: data.completionPath === "direct_payment"
+                ? "Endpreis vorbehaltlich finaler Prüfung"
+                : "Geschätzter Preis",
+              reviewNotice: "Gebiet, Druckdaten und Zustellbarkeit werden durch FLYERO final geprüft.",
+              includedProofs: ["GPS-Nachweis", "Foto-Dokumentation", "PDF-Bericht nach Abschluss"],
               areaCalculationSnapshot: data.areaCalculationSnapshot ?? null,
             },
           },
@@ -156,7 +174,9 @@ export async function POST(request: NextRequest) {
       orderId: order.id,
       toStatus: order.status,
       changedBy: session.id,
-      note: "Auftrag durch Kunden erstellt.",
+      note: data.completionPath === "direct_payment"
+        ? "Kampagne durch Kunden erstellt. Zahlung ausstehend."
+        : "Unverbindliche Anfrage durch Kunden erstellt.",
     });
     await createAuditLog({
       userId: session.id,
@@ -186,8 +206,10 @@ export async function POST(request: NextRequest) {
       userId: session.id,
       type: "ORDER_CREATED",
       title: "Auftrag erstellt",
-        message: `Auftrag ${order.orderNumber} wurde erstellt. Bitte starte jetzt die Zahlung per Stripe Checkout.`,
-      });
+      message: data.completionPath === "direct_payment"
+        ? `Auftrag ${order.orderNumber} wurde erstellt. Bitte starte jetzt die Zahlung.`
+        : `Anfrage ${order.orderNumber} wurde übermittelt. Wir prüfen Gebiet, Druckdaten und Preis.`,
+    });
     await prisma.orderExperienceEvent.create({
       data: {
         orderId: order.id,
@@ -208,6 +230,8 @@ export async function POST(request: NextRequest) {
           : null,
         metadata: {
           source: "api/customer/orders",
+          completionPath: data.completionPath,
+          printDataStatus: data.printDataStatus,
           needsPrintService: order.needsPrintService,
           assignedWarehouseId: order.assignedWarehouseId,
         },

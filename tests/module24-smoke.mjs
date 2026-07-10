@@ -91,7 +91,8 @@ try {
     "Gebiet w\u00e4hlen",
     "replaceAreaNotice",
     "polygonSource",
-    "Flyer & Stückzahl",
+    "Flyer & Druck",
+    "Abschluss",
     "areaOverview",
     "Heatmap",
     "Satellit",
@@ -149,3 +150,4 @@ try {
   await prisma.$disconnect();
   if (server) server.kill();
 }
+

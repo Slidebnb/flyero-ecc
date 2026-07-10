@@ -16,6 +16,33 @@ type PageProps = {
   params: Promise<{ id: string }>;
 };
 
+type OrderSnapshot = {
+  completionPath?: string;
+  printDataStatus?: string;
+  customerFacingPriceLabel?: string;
+  reviewNotice?: string;
+  areaCalculationSnapshot?: {
+    confidence?: string;
+    source?: string;
+    householdCountSource?: string;
+    pricingVersion?: string;
+    householdCount?: number;
+    areaKm2?: number;
+  } | null;
+};
+
+const COMPLETION_PATH_LABELS: Record<string, string> = {
+  direct_payment: "Direktbuchung mit Zahlung",
+  inquiry: "Unverbindliche Anfrage",
+  document_email: "Formular/E-Mail",
+};
+
+const PRINT_STATUS_LABELS: Record<string, string> = {
+  UPLOADED: "Druckdaten vorhanden",
+  UPLOAD_LATER: "Druckdaten fehlen noch",
+  PRINT_REQUESTED: "Druck über FLYERO angefragt",
+};
+
 export default async function AdminOrderDetailPage({ params }: PageProps) {
   await requireRole([UserRole.ADMIN]);
   const { id } = await params;
@@ -44,6 +71,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
   const allowedNext = ORDER_STATUS_TRANSITIONS[order.status];
   const latestPayment = order.payments[0] ?? null;
+  const snapshot = order.priceRuleSnapshot as OrderSnapshot;
+  const areaSnapshot = snapshot.areaCalculationSnapshot;
   const distributorRecommendations =
     order.warehouseInventory?.status === "READY_FOR_PICKUP"
       ? await getSuitableDistributors(order.id)
@@ -133,7 +162,12 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             <tbody>
               <tr><th>Kunde</th><td>{order.customer.companyName} ({order.customer.user.email})</td></tr>
               <tr><th>Leistung</th><td>{SERVICE_TYPE_LABELS[order.serviceType]}</td></tr>
+              <tr><th>Abschlussweg</th><td>{COMPLETION_PATH_LABELS[snapshot.completionPath ?? ""] ?? "Nicht hinterlegt"}</td></tr>
+              <tr><th>Zahlung</th><td>{latestPayment ? `${formatCurrency(latestPayment.amount)} / ${latestPayment.status}` : "Keine Zahlung gestartet"}</td></tr>
+              <tr><th>Druckdaten</th><td>{PRINT_STATUS_LABELS[snapshot.printDataStatus ?? ""] ?? (order.needsPrintService ? "Druck über FLYERO angefragt" : "Noch zu prüfen")}</td></tr>
               <tr><th>Gebiet</th><td>{order.targetAreaName}</td></tr>
+              <tr><th>Gebietsdaten</th><td>{areaSnapshot?.confidence ? `${areaSnapshot.confidence} / ${areaSnapshot.source ?? "verfügbare Gebietsdaten"}` : "Nach Prüfung bestätigen"}</td></tr>
+              <tr><th>Prüfhinweis</th><td>{snapshot.reviewNotice ?? "Gebiet, Druckdaten und Zustellbarkeit final prüfen."}</td></tr>
               <tr><th>Adresse</th><td style={{ whiteSpace: "pre-line" }}>{formatAddress(order.targetAddress)}</td></tr>
               <tr><th>Zeitraum</th><td>{formatDate(order.preferredStartDate)} bis {formatDate(order.preferredEndDate)}</td></tr>
               <tr><th>Flexible Planung</th><td>{order.flexibleScheduling ? "Ja" : "Nein"}</td></tr>

@@ -4659,6 +4659,79 @@ body {
   font-size: 0.95rem;
 }
 
+.orderReviewNotice {
+  margin: 12px 0 0;
+  border: 1px solid rgba(50, 209, 115, 0.24);
+  border-radius: 14px;
+  background: rgba(50, 209, 115, 0.08);
+  color: rgba(237, 246, 255, 0.86);
+  padding: 12px 14px;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.proofIncludedList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.proofIncludedList span {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(237, 246, 255, 0.88);
+  font-size: 0.86rem;
+  font-weight: 800;
+  padding-bottom: 8px;
+}
+
+.orderFinishChoices {
+  display: grid;
+  gap: 10px;
+}
+
+.orderFinishChoices button,
+.orderFinishChoices a {
+  display: grid;
+  gap: 5px;
+  align-items: center;
+  min-height: 54px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.07);
+  color: #f7fbff;
+  padding: 12px 14px;
+  font: inherit;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.orderFinishChoices .finishPrimary {
+  border-color: rgba(50, 209, 115, 0.5);
+  background: #32d173;
+  color: #07111f;
+}
+
+.orderFinishChoices small {
+  color: currentColor;
+  font-size: 0.76rem;
+  font-weight: 700;
+  opacity: 0.72;
+}
+
+.orderFinishChoices svg {
+  width: 18px;
+  height: 18px;
+}
+
+.finishStatus {
+  margin: 12px 0 0;
+  color: #b7ffce;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .inlineDetails {
   margin: 8px 0 0;
   padding: 0;

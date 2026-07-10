@@ -16,11 +16,13 @@ import { prisma } from "@/lib/prisma";
 
 type PageProps = {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ payment?: string; inquiry?: string }>;
 };
 
-export default async function CustomerOrderDetailPage({ params }: PageProps) {
+export default async function CustomerOrderDetailPage({ params, searchParams }: PageProps) {
   const session = await requireRole([UserRole.CUSTOMER]);
   const { id } = await params;
+  const query = searchParams ? await searchParams : {};
   const order = await prisma.order.findFirst({
     where: { id, customer: { userId: session.id } },
     include: {
@@ -58,6 +60,25 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
 
   return (
     <CustomerPortalShell active="/customer/orders" eyebrow="Kampagnendetails" title={customerOrderName(order.orderNumber)} description={CUSTOMER_ORDER_STATUS_LABELS[order.status]}>
+      {query.payment === "success" ? (
+        <section className="panel stack widePanel">
+          <h2 className="sectionTitle">Deine Kampagne wurde gebucht.</h2>
+          <p className="muted">Wir prüfen Gebiet und Druckdaten und halten dich über den Status auf dem Laufenden.</p>
+        </section>
+      ) : null}
+      {query.payment === "retry" || query.payment === "cancelled" ? (
+        <section className="panel stack widePanel">
+          <h2 className="sectionTitle">Zahlung konnte nicht abgeschlossen werden.</h2>
+          <p className="muted">Du kannst die Zahlung erneut versuchen oder die Kampagne als Anfrage senden.</p>
+        </section>
+      ) : null}
+      {query.inquiry === "success" ? (
+        <section className="panel stack widePanel">
+          <h2 className="sectionTitle">Deine Anfrage wurde übermittelt.</h2>
+          <p className="muted">Wir prüfen Gebiet, Druckdaten und Preis und melden uns schnellstmöglich.</p>
+        </section>
+      ) : null}
+
       <div className="customerActionRow">
         <Link className="secondaryButton" href="/customer/orders">Meine Kampagnen</Link>
         <Link className="secondaryButton" href={`/customer/orders/${order.id}/documents`}>Dateien & Druck</Link>
@@ -135,6 +156,11 @@ export default async function CustomerOrderDetailPage({ params }: PageProps) {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="panel stack" style={{ marginTop: 18 }}>
+        <h2 className="sectionTitle">Nachweise inklusive</h2>
+        <p className="muted">GPS-Nachweis, Foto-Dokumentation und PDF-Bericht sind im Ablauf enthalten. Der Bericht wird nach der Verteilung erstellt.</p>
       </section>
 
       {order.customerOwnFlyers && order.assignedWarehouse ? (
