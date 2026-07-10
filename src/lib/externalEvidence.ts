@@ -35,6 +35,7 @@ export const externalReportPrepareSchema = z.object({
   endTime: optionalDateFromForm,
   deliveredFlyerQuantity: optionalIntegerFromForm,
   remainingFlyerQuantity: optionalIntegerFromForm,
+  distributorId: z.string().trim().optional(),
   distributorName: z.string().trim().max(180).optional(),
   summary: z.string().trim().max(3000).optional(),
   deviationSummary: z.string().trim().max(3000).optional(),
@@ -117,6 +118,7 @@ export async function uploadExternalEvidence(input: {
 
 async function ensureManualEvidenceTour(input: {
   orderId: string;
+  distributorId?: string;
   startTime?: Date;
   endTime?: Date;
   deliveredFlyerQuantity?: number;
@@ -126,7 +128,9 @@ async function ensureManualEvidenceTour(input: {
   if (existing) return existing;
   const order = await prisma.order.findUnique({ where: { id: input.orderId }, select: { id: true, flyerQuantity: true, assignedDistributorId: true } });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
-  const distributor = order.assignedDistributorId
+  const distributor = input.distributorId
+    ? await prisma.distributorProfile.findFirst({ where: { id: input.distributorId, reviewStatus: "APPROVED" } })
+    : order.assignedDistributorId
     ? await prisma.distributorProfile.findUnique({ where: { id: order.assignedDistributorId } })
     : await prisma.distributorProfile.findFirst({ where: { reviewStatus: "APPROVED" }, orderBy: { createdAt: "asc" } });
   if (!distributor) throw new Error("Bitte zuerst einen Verteilerkontakt oder Verteiler zuweisen.");
@@ -165,6 +169,7 @@ export async function prepareExternalReportForOrder(input: {
 
   const tour = await ensureManualEvidenceTour({
     orderId: order.id,
+    distributorId: data.distributorId,
     startTime: data.startTime,
     endTime: data.endTime,
     deliveredFlyerQuantity: data.deliveredFlyerQuantity,
@@ -195,6 +200,7 @@ export async function prepareExternalReportForOrder(input: {
     externalProvider: gpsDocument.providerName,
     externalReportReference: gpsDocument.externalReportReference,
     manualDistributorId: manualDistributor?.id ?? null,
+    selectedDistributorId: data.distributorId || null,
     manualDistributorName: data.distributorName || null,
     plannedFlyerQuantity: order.flyerQuantity,
     deliveredFlyerQuantity: delivered,

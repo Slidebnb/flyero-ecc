@@ -11,7 +11,7 @@ Der MVP nutzt keine eigene native Verteiler-App als Pflichtbestandteil. FLYERO a
 3. Verteiler startet das externe GPS-Gerät zu Tourbeginn und beendet es nach der Verteilung.
 4. GPS-Anbieter erzeugt PDF-Bericht und optional GPX/KML/KMZ.
 5. Admin öffnet den Auftrag und lädt Nachweise hoch.
-6. Admin trägt Ist-Werte ein: Datum, Start, Ende, verteilte Flyer, Restmenge, Verteiler/Team, Zusammenfassung und Abweichungen.
+6. Admin trägt Ist-Werte ein: Datum, Start, Ende, verteilte Flyer, Restmenge, bestehenden Verteiler oder manuelles Team, Zusammenfassung und Abweichungen.
 7. Admin bereitet den Bericht vor.
 8. Admin gibt den Bericht intern frei und veröffentlicht ihn.
 9. Kunde sieht nur freigegebene Nachweise im Portal.
@@ -117,7 +117,7 @@ Der GPS-Bericht wird als geschütztes `Document` mit `documentType = REPORT` ges
 
 ## Manuelle Verteilerzuordnung
 
-Der MVP kann bestehende Verteilerprofile weiterverwenden. Zusätzlich existiert das einfache Modell `ManualDistributor` für interne Verteilerkontakte ohne Kundenportal- oder App-Login.
+Der MVP kann bestehende freigegebene Verteilerprofile direkt im Admin-Auftrag auswählen. Wenn ein externes Team ohne Login eingesetzt wird, kann der Admin zusätzlich einen manuellen Namen erfassen; dieser wird im Report-Snapshot dokumentiert, ohne eine zweite komplexe Benutzerwelt zu erzwingen. Zusätzlich existiert das einfache Modell `ManualDistributor` für interne Verteilerkontakte ohne Kundenportal- oder App-Login.
 
 ## Bewusst verschoben
 

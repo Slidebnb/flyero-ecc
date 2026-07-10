@@ -79,6 +79,11 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
     order.warehouseInventory?.status === "READY_FOR_PICKUP"
       ? await getSuitableDistributors(order.id)
       : [];
+  const approvedDistributors = await prisma.distributorProfile.findMany({
+    where: { reviewStatus: "APPROVED" },
+    select: { id: true, firstName: true, lastName: true, phone: true, federalState: true },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
 
   return (
     <main className="appShell">
@@ -220,8 +225,21 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             <input name="remainingFlyerQuantity" type="number" min="0" />
           </label>
           <label>
-            Verteiler / Team
-            <input name="distributorName" placeholder="Name oder internes Team" />
+            Bestehenden Verteiler auswählen
+            <select name="distributorId" defaultValue={order.assignedDistributorId ?? ""}>
+              <option value="">Kein bestehender Verteiler ausgewählt</option>
+              {approvedDistributors.map((distributor) => (
+                <option key={distributor.id} value={distributor.id}>
+                  {distributor.firstName} {distributor.lastName}
+                  {distributor.federalState ? ` / ${distributor.federalState}` : ""}
+                  {distributor.phone ? ` / ${distributor.phone}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Verteiler / Team manuell
+            <input name="distributorName" placeholder="Name oder internes Team ohne Login" />
           </label>
           <label className="full">
             Zusammenfassung

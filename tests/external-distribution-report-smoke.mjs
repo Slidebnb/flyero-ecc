@@ -84,6 +84,8 @@ for (const snippet of [
   "GPS-Bericht hochladen",
   "Bericht vorbereiten",
   "Bericht veröffentlichen",
+  'name="distributorId"',
+  "Bestehenden Verteiler auswählen",
 ]) {
   assert(adminOrderPage.includes(snippet), `Admin-Auftrag enthält nicht: ${snippet}`);
 }
