@@ -4905,7 +4905,7 @@ body {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   margin-bottom: 18px;
 }
 
@@ -4933,6 +4933,12 @@ body {
   min-height: 44px;
   padding: 0 16px;
   white-space: nowrap;
+}
+
+.customerActionRow .primaryButton,
+.customerActionRow .secondaryButton,
+.customerActionRow button {
+  min-width: 156px;
 }
 
 .customerPageDescription {
@@ -5027,6 +5033,14 @@ body {
   border-radius: 18px;
   border: 1px solid rgba(255, 255, 255, 0.09);
   background: rgba(255, 255, 255, 0.045);
+}
+
+.customerCampaignItem > .primaryButton,
+.customerCampaignItem > .secondaryButton,
+.customerMessageItem > .primaryButton,
+.customerMessageItem > .secondaryButton,
+.customerMessageItem > a {
+  min-width: 168px;
 }
 
 .customerCampaignItem p,

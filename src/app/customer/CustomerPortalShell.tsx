@@ -23,10 +23,10 @@ type CustomerPortalShellProps = {
 
 const navItems = [
   { href: "/customer/orders/new", label: "Neue Kampagne", icon: Plus, group: "Start" },
-  { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
+  { href: "/customer/dashboard", label: "\u00dcbersicht", icon: LayoutDashboard, group: "Start" },
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks, group: "Start" },
   { href: "/customer/reports", label: "Nachweise", icon: FileText, group: "Ergebnisse" },
-  { href: "/customer/documents", label: "Dateien", icon: FileStack, group: "Ergebnisse" },
+  { href: "/customer/documents", label: "Dateien & Druck", icon: FileStack, group: "Ergebnisse" },
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Abrechnung" },
   { href: "/customer/payments", label: "Zahlungen", icon: CreditCard, group: "Abrechnung" },
   { href: "/customer/notifications", label: "Nachrichten", icon: Bell, group: "Hilfe" },
@@ -65,8 +65,8 @@ export function CustomerPortalShell({
         </div>
         <div className="orderTopActions" aria-label="Kontoaktionen">
           <Link className="topPrimaryAction" href="/customer/orders/new">Neue Kampagne</Link>
-          <Link href="/customer/notifications">Nachrichten</Link>
-          <strong>Kundenkonto</strong>
+          <Link href="/customer/reports">Nachweise</Link>
+          <Link href="/customer/support">Hilfe</Link>
         </div>
       </header>
       <div className="customerUnifiedBody">
