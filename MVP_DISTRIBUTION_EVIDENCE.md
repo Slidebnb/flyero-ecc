@@ -11,7 +11,7 @@ Der MVP nutzt keine eigene native Verteiler-App als Pflichtbestandteil. FLYERO a
 3. Verteiler startet das externe GPS-Gerät zu Tourbeginn und beendet es nach der Verteilung.
 4. GPS-Anbieter erzeugt PDF-Bericht und optional GPX/KML/KMZ.
 5. Admin öffnet den Auftrag und lädt Nachweise hoch.
-6. Admin tr?gt Ist-Werte ein: Datum, Start, Ende, verteilte Flyer, Restmenge, Verteiler/Team, Zusammenfassung und Abweichungen.
+6. Admin trägt Ist-Werte ein: Datum, Start, Ende, verteilte Flyer, Restmenge, Verteiler/Team, Zusammenfassung und Abweichungen.
 7. Admin bereitet den Bericht vor.
 8. Admin gibt den Bericht intern frei und veröffentlicht ihn.
 9. Kunde sieht nur freigegebene Nachweise im Portal.
@@ -20,7 +20,7 @@ Der MVP nutzt keine eigene native Verteiler-App als Pflichtbestandteil. FLYERO a
 
 Im Admin-Auftrag gibt es den Bereich `Verteilnachweise`.
 
-Unterst?tzte Dateien:
+Unterstützte Dateien:
 
 - PDF
 - JPG/JPEG
@@ -79,17 +79,17 @@ Nur `customerVisible = true` und `status = APPROVED` wird ausgeliefert.
 - Kunden können nur freigegebene Nachweisdateien herunterladen.
 - Interne Notizen, interne IDs, private Verteilerinformationen und technische Rohdaten bleiben verborgen.
 
-## MVP vs. sp?tere Verteiler-App
+## MVP vs. spätere Verteiler-App
 
 MVP:
 
 - externe GPS-Geräte
 - manueller Upload
 - manuelle Verteilerzuordnung
-- Adminpruefung
+- Adminprüfung
 - Kundenbericht
 
-Sp?ter:
+Später:
 
 - eigene Verteiler-App
 - Live-GPS
@@ -98,7 +98,7 @@ Sp?ter:
 - Offline Queue
 - automatische Coverage-Berechnung
 
-## Geaenderte Dateien
+## Geänderte Dateien
 
 - `prisma/schema.prisma`
 - `src/lib/documentStorage.ts`

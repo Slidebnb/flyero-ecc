@@ -45,7 +45,7 @@ export function gpsQualityScore(analysis: RouteAnalysis) {
 export function gpsQualityLabel(score: number) {
   if (score >= 85) return "Sehr gut";
   if (score >= 65) return "Gut";
-  if (score >= 40) return "Eingeschraenkt";
+  if (score >= 40) return "Eingeschränkt";
   return "Unzureichend";
 }
 
@@ -185,7 +185,7 @@ function buildReportSnapshot(data: ReportData) {
     customerText: {
       coverageExplanation:
         hasInternalGps
-          ? "Das geplante Gebiet wurde anhand der verfuegbaren Tour- und Nachweisdaten dokumentiert. Der Wert ist kein Einzelbriefkasten-Nachweis."
+          ? "Das geplante Gebiet wurde anhand der verfügbaren Tour- und Nachweisdaten dokumentiert. Der Wert ist kein Einzelbriefkasten-Nachweis."
           : "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung.",
       privacyNote: "Personenbezogene Verteiler- und Rohdaten werden geschützt.",
     },
@@ -366,7 +366,7 @@ export async function generatePdf(reportId: string) {
     `Ende: ${formatDateTime(customer.tour.endTime)}`,
     `Dauer: ${customer.tour.durationSeconds}s, aktiv ${customer.tour.activeSeconds}s`,
     `Strecke: ${customer.tour.distanceMeters} m`,
-    `GPS-Qualitaet: ${customer.gpsQuality.label} (${customer.gpsQuality.score}/100)`,
+    `GPS-Qualität: ${customer.gpsQuality.label} (${customer.gpsQuality.score}/100)`,
     `Restflyer: ${customer.tour.remainingFlyers ?? 0}`,
     `Fotos: ${customer.photos.length}`,
     `Karte: ${customer.mapSnapshot.provider} / ${customer.mapSnapshot.message}`,

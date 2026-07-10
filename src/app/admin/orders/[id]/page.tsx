@@ -212,7 +212,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             <input name="endTime" type="datetime-local" />
           </label>
           <label>
-            Tatsaechlich verteilte Flyer
+            Tatsächlich verteilte Flyer
             <input name="deliveredFlyerQuantity" type="number" min="0" defaultValue={order.flyerQuantity} />
           </label>
           <label>

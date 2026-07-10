@@ -9,6 +9,11 @@ import { prisma } from "@/lib/prisma";
 import { generateOnlineReportUrl, generateReportNumber } from "@/lib/reports";
 
 const evidenceTypeSchema = z.enum(["GPS_PDF", "GPS_FILE", "PHOTO", "OTHER"]);
+const optionalDateFromForm = z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional());
+const optionalIntegerFromForm = z.preprocess(
+  (value) => (value === "" || value === null ? undefined : value),
+  z.coerce.number().int().min(0).optional(),
+);
 const allowedEvidenceExtensions: Record<z.infer<typeof evidenceTypeSchema>, string[]> = {
   GPS_PDF: ["pdf"],
   GPS_FILE: ["gpx", "kml", "kmz"],
@@ -21,16 +26,15 @@ export const externalEvidenceUploadSchema = z.object({
   title: z.string().trim().min(2).max(180).optional(),
   providerName: z.string().trim().max(160).optional(),
   externalReportReference: z.string().trim().max(160).optional(),
-  reportDate: z.coerce.date().optional(),
-  customerVisible: z.coerce.boolean().default(false),
+  reportDate: optionalDateFromForm,
 });
 
 export const externalReportPrepareSchema = z.object({
-  distributionDate: z.coerce.date().optional(),
-  startTime: z.coerce.date().optional(),
-  endTime: z.coerce.date().optional(),
-  deliveredFlyerQuantity: z.coerce.number().int().min(0).optional(),
-  remainingFlyerQuantity: z.coerce.number().int().min(0).optional(),
+  distributionDate: optionalDateFromForm,
+  startTime: optionalDateFromForm,
+  endTime: optionalDateFromForm,
+  deliveredFlyerQuantity: optionalIntegerFromForm,
+  remainingFlyerQuantity: optionalIntegerFromForm,
   distributorName: z.string().trim().max(180).optional(),
   summary: z.string().trim().max(3000).optional(),
   deviationSummary: z.string().trim().max(3000).optional(),
@@ -80,7 +84,7 @@ export async function uploadExternalEvidence(input: {
       extension: stored.extension,
       fileSize: stored.fileSize,
       checksum: stored.checksum,
-      status: data.customerVisible ? "APPROVED" : "UNDER_REVIEW",
+      status: "UNDER_REVIEW",
       providerName: data.providerName || null,
       externalReportReference: data.externalReportReference || null,
       reportDate: data.reportDate ?? null,
@@ -293,8 +297,8 @@ export async function publishExternalReport(input: { actor: SessionUser; reportI
   await createNotification({
     userId: report.customer.userId,
     type: "REPORT_PUBLISHED",
-    title: "Verteilbericht verfuegbar",
-    message: "Ihr Verteilbericht mit GPS-Nachweis des eingesetzten Trackingsystems ist verfuegbar.",
+    title: "Verteilbericht verfügbar",
+    message: "Ihr Verteilbericht mit GPS-Nachweis des eingesetzten Trackingsystems ist verfügbar.",
   });
   return report;
 }

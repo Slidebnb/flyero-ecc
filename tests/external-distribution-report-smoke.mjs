@@ -43,13 +43,17 @@ for (const snippet of [
   "prepareExternalReportForOrder",
   "publishExternalReport",
   "assertEvidenceFileMatchesType",
+  "optionalDateFromForm",
+  "optionalIntegerFromForm",
   "manualDistributorName",
   "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung.",
   "EXTERNAL_GPS_REPORT",
   "customerVisible: false",
+  'status: "UNDER_REVIEW"',
 ]) {
   assert(evidenceService.includes(snippet), `External-Evidence-Service enthält nicht: ${snippet}`);
 }
+assert(!evidenceService.includes("status: data.customerVisible"), "Uploads dürfen nicht per Client-Feld automatisch freigegeben werden.");
 assert(!evidenceService.includes("Math.random"), "External-Evidence-Service darf keine Fake-Daten erzeugen.");
 assert(!evidenceService.includes("actualCoveragePercent: new Prisma.Decimal"), "Externe MVP-Reports dürfen keine Fake-Coverage setzen.");
 
