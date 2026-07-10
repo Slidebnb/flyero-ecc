@@ -3,6 +3,7 @@ import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import {
   CUSTOMER_ORDER_STATUS_LABELS,
+  customerAreaName,
   customerOrderAction,
   customerOrderName,
   customerOrderPlainNextStep,
@@ -50,7 +51,7 @@ export default async function CustomerOrdersPage() {
                   </div>
                   <p>{customerOrderPlainNextStep(order.status)}</p>
                   <div className="customerItemMeta">
-                    <span>{order.targetAreaName}</span>
+                    <span>{customerAreaName(order.targetAreaName)}</span>
                     <span>{formatDate(order.createdAt)}</span>
                     <span>{order.flyerQuantity.toLocaleString("de-DE")} Flyer</span>
                     <span>{formatCurrency(order.manualPriceOverride ?? order.calculatedGrossPrice)}</span>

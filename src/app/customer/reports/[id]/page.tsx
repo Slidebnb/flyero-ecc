@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { TicketPriority, TicketType, UserRole } from "@prisma/client";
 import { RouteMap } from "@/app/components/RouteMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { customerOrderName, customerReportName } from "@/app/customer/customerUx";
+import { customerAreaName, customerOrderName, customerReportName } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
@@ -131,7 +131,7 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
         <DataSection title="Verteilung" description="Die wichtigsten Angaben aus Planung und Durchführung.">
           <div className="customerFactList">
             <p><span>Kampagne</span><strong>{customerOrderName(customerView.order.orderNumber)}</strong></p>
-            <p><span>Gebiet</span><strong>{customerView.order.area}</strong></p>
+            <p><span>Gebiet</span><strong>{customerAreaName(customerView.order.area)}</strong></p>
             <p><span>Ort</span><strong>{customerView.order.postalCode} {customerView.order.city}</strong></p>
             <p><span>Wunschzeitraum</span><strong>{formatDateTime(customerView.order.preferredStartDate)} bis {formatDateTime(customerView.order.preferredEndDate)}</strong></p>
             <p><span>Verteilt am</span><strong>{formatDateTime(actualStart)} bis {formatDateTime(actualEnd)}</strong></p>

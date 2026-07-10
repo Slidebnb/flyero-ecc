@@ -115,11 +115,11 @@ const CUSTOMER_PREFERENCE_LABELS: Record<string, string> = {
 
 export function customerOrderName(orderNumber: string) {
   return orderNumber
-    .replace(/^DEMO-ORD-/i, "Auftrag #")
+    .replace(/^DEMO-ORD-/i, "Kampagne #")
     .replace(/^DEMO-WH-/i, "Kampagne #")
     .replace(/^DEMO-DISP-/i, "Kampagne #")
     .replace(/^DEMO-/i, "Kampagne #")
-    .replace(/^ORD-/i, "Auftrag #");
+    .replace(/^ORD-/i, "Kampagne #");
 }
 
 export function customerReportName(reportNumber: string) {
@@ -194,10 +194,14 @@ export function safeCustomerMessage(type: string, body: string) {
 export function customerSafeText(value: string | null | undefined, fallback: string) {
   const text = String(value || "").trim();
   if (!text) return fallback;
-  if (/Seed Modul|seed\.module|Smoke-Test|Smoke Fixture|Smoke-Fixture|DEMO-|localhost|UNDER_REVIEW|READY_FOR_REVIEW|EXTERNAL_GPS_REPORT|INTERNAL_TRACKING|OrderStatus|ReportStatus/i.test(text)) {
+  if (/Seed Modul|seed\.module|Smoke-Test|Smoke Fixture|Smoke-Fixture|Checkout Smoke|DEMO-|localhost|UNDER_REVIEW|READY_FOR_REVIEW|EXTERNAL_GPS_REPORT|INTERNAL_TRACKING|OrderStatus|ReportStatus/i.test(text)) {
     return fallback;
   }
   return text;
+}
+
+export function customerAreaName(value: string | null | undefined) {
+  return customerSafeText(value, "Verteilgebiet wird geprüft");
 }
 
 export function customerSafeFilename(value: string | null | undefined, extension?: string | null) {

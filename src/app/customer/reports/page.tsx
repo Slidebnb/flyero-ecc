@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_REPORT_STATUS_LABELS, customerOrderName, customerReportName } from "@/app/customer/customerUx";
+import { CUSTOMER_REPORT_STATUS_LABELS, customerAreaName, customerOrderName, customerReportName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -42,7 +42,7 @@ export default async function CustomerReportsPage() {
                 <p>Von FLYERO geprüft. GPS-Nachweis, Fotos und PDF stehen nach Freigabe hier bereit.</p>
                 <div className="customerItemMeta">
                   <span>{customerOrderName(report.order.orderNumber)}</span>
-                  <span>{report.order.targetAreaName}</span>
+                  <span>{customerAreaName(report.order.targetAreaName)}</span>
                   <span>{report.pdfUrl ? "PDF bereit" : "PDF wird erstellt"}</span>
                 </div>
               </div>

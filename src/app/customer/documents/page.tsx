@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_DOCUMENT_STATUS_LABELS, CUSTOMER_PRINT_STATUS_LABELS, customerOrderName, customerSafeFilename, customerSafeText } from "@/app/customer/customerUx";
+import { CUSTOMER_DOCUMENT_STATUS_LABELS, CUSTOMER_PRINT_STATUS_LABELS, customerAreaName, customerOrderName, customerSafeFilename, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { createDocument, createPrintOrder, DOCUMENT_TYPE_LABELS, listDocuments, listPrintOrders } from "@/lib/documents";
@@ -86,7 +86,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
       <DataSection title="Flyerdatei senden" description="Wählen Sie die Kampagne und laden Sie die Datei hoch. FLYERO prüft den Rest." id="flyer-upload">
           {hasOrders ? (
             <form action={uploadDocument} className="form customerSimpleForm">
-              <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
+              <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {customerAreaName(order.targetAreaName)}</option>)}</select></label>
               <label className="customerFilePicker">
                 Datei
                 <span>Datei auswählen</span>
@@ -108,7 +108,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
           <p>Nur öffnen, wenn FLYERO den Druck zusätzlich organisieren soll.</p>
           {hasOrders ? (
             <form action={requestPrint} className="form customerSimpleForm" id="print-request">
-              <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
+              <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {customerAreaName(order.targetAreaName)}</option>)}</select></label>
               <label>Format<select name="printFormat" defaultValue="DIN_A5"><option value="DIN_A4">DIN A4</option><option value="DIN_A5">DIN A5</option><option value="DIN_LANG">DIN Lang</option><option value="SQUARE">Quadratisch</option><option value="CUSTOM">Individuell</option></select></label>
               <label>Menge<input name="quantity" type="number" min="1" defaultValue="5000" /></label>
               <label>Hinweis<textarea name="notes" rows={3} placeholder="Format, Wunschpapier oder Rückfrage" /></label>

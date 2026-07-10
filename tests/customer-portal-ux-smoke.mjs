@@ -73,7 +73,7 @@ async function customerPage(path, cookie) {
 }
 
 function assertCustomerLanguage(html, path) {
-  for (const forbidden of ["Seed Modul", "Smoke-Test", "seed.module", "EXTERNAL_GPS_REPORT", "OrderStatus", "ReportStatus", "#DISP-", "#ORD-", "#WH-", "FLY-TK-"]) {
+  for (const forbidden of ["Seed Modul", "Smoke-Test", "Checkout Smoke", "seed.module", "EXTERNAL_GPS_REPORT", "OrderStatus", "ReportStatus", "#DISP-", "#ORD-", "#WH-", "FLY-TK-"]) {
     assert(!html.includes(forbidden), `${path} zeigt technischen Rohtext: ${forbidden}`);
   }
   for (const required of ["customerUnifiedShell", "Neue Kampagne"]) {

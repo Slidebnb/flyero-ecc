@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Camera, FileText, MapPinned, Navigation, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_ORDER_STATUS_LABELS, customerOrderName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
+import { CUSTOMER_ORDER_STATUS_LABELS, customerAreaName, customerOrderName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
 import { EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -150,7 +150,7 @@ export default async function CustomerDashboardPage() {
         <section className="customerMissionPanel currentCampaignPanel">
           <div className="missionPanelHeader">
             <span>Was läuft gerade?</span>
-            <h2>{lastOrder ? lastOrder.targetAreaName : "Noch keine Kampagne gestartet"}</h2>
+            <h2>{lastOrder ? customerAreaName(lastOrder.targetAreaName) : "Noch keine Kampagne gestartet"}</h2>
           </div>
           {lastOrder ? (
             <>
@@ -187,7 +187,7 @@ export default async function CustomerDashboardPage() {
           <ProofPreview hasRealReport={Boolean(latestReport)} />
           {latestReport ? (
             <div className="proofPanelFooter">
-              <p>{latestReport.order.targetAreaName} / {latestReport.order.city}</p>
+              <p>{customerAreaName(latestReport.order.targetAreaName)} / {latestReport.order.city}</p>
               <Link className="customerPanelLink" href={`/customer/reports/${latestReport.id}`}>Bericht ansehen<ArrowRight aria-hidden="true" /></Link>
             </div>
           ) : (

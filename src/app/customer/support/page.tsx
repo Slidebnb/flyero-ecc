@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TicketPriority, TicketType, UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { customerOrderName, customerReportName, customerSafeText } from "@/app/customer/customerUx";
+import { customerAreaName, customerOrderName, customerReportName, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -125,7 +125,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
               <select name="orderKey" defaultValue="">
                 <option value="">Keine Kampagne auswählen</option>
                 {orders.map((order, index) => (
-                  <option key={String(index)} value={String(index)}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>
+                  <option key={String(index)} value={String(index)}>{customerOrderName(order.orderNumber)} - {customerAreaName(order.targetAreaName)}</option>
                 ))}
               </select>
             </label>
@@ -134,7 +134,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
               <select name="reportKey" defaultValue={selectedReportIndex >= 0 ? String(selectedReportIndex) : ""}>
                 <option value="">Keinen Bericht auswählen</option>
                 {reports.map((report, index) => (
-                  <option key={String(index)} value={String(index)}>{customerReportName(report.reportNumber)} - {report.order.targetAreaName}</option>
+                  <option key={String(index)} value={String(index)}>{customerReportName(report.reportNumber)} - {customerAreaName(report.order.targetAreaName)}</option>
                 ))}
               </select>
             </label>

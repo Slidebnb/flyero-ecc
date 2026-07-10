@@ -5,6 +5,7 @@ import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPre
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import {
   CUSTOMER_ORDER_STATUS_LABELS,
+  customerAreaName,
   customerOrderAction,
   customerOrderName,
   customerOrderPlainNextStep,
@@ -136,7 +137,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
       <div className="customerTwoColumn">
         <DataSection title="Planung" description="Alles Wichtige zur Verteilung auf einen Blick.">
           <div className="customerFactList">
-            <p><span>Gebiet</span><strong>{order.targetAreaName}</strong></p>
+            <p><span>Gebiet</span><strong>{customerAreaName(order.targetAreaName)}</strong></p>
             <p><span>Ort</span><strong>{order.postalCode} {order.city}</strong></p>
             <p><span>Druckdaten</span><strong>{order.customerOwnFlyers ? "Flyer werden angeliefert" : "Druck über FLYERO"}</strong></p>
             <p><span>Zahlung</span><strong>{latestPayment ? `${paymentLabel(latestPayment.status)} · ${formatCurrency(latestPayment.amount)}` : "Noch keine Zahlung"}</strong></p>

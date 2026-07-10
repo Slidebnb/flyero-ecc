@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_DOCUMENT_STATUS_LABELS, customerOrderName } from "@/app/customer/customerUx";
+import { CUSTOMER_DOCUMENT_STATUS_LABELS, customerAreaName, customerOrderName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { DOCUMENT_TYPE_LABELS, listDocuments } from "@/lib/documents";
@@ -18,7 +18,7 @@ export default async function CustomerOrderDocumentsPage({ params }: PageProps) 
   const documents = await listDocuments(session, { orderId: id });
 
   return (
-    <CustomerPortalShell active="/customer/documents" title="Dateien" description={`${customerOrderName(order.orderNumber)} - ${order.targetAreaName}`}>
+    <CustomerPortalShell active="/customer/documents" title="Dateien" description={`${customerOrderName(order.orderNumber)} - ${customerAreaName(order.targetAreaName)}`}>
       <section className="customerFocusPanel">
         <div>
           <span className="customerTinyLabel">Kampagnen-Dateien</span>
