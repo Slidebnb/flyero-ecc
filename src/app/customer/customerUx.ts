@@ -7,18 +7,20 @@ import type {
   ReportStatus,
 } from "@prisma/client";
 
+export type CustomerTone = "neutral" | "success" | "warning" | "danger";
+
 export const CUSTOMER_ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   DRAFT: "Entwurf",
   PAYMENT_PENDING: "Zahlung offen",
   PAYMENT_FAILED: "Zahlung fehlgeschlagen",
   SUBMITTED: "Anfrage eingereicht",
   UNDER_REVIEW: "Wird geprüft",
-  PAID_WAITING_FOR_ADMIN_REVIEW: "Bezahlt, wartet auf Prüfung",
+  PAID_WAITING_FOR_ADMIN_REVIEW: "Bezahlt, wird geprüft",
   WAITING_FOR_CUSTOMER: "Rückfrage offen",
   APPROVED: "Freigegeben",
   REJECTED: "Abgelehnt",
   CANCELLED: "Storniert",
-  READY_FOR_FLYERS: "Druckdaten oder Flyer fehlen",
+  READY_FOR_FLYERS: "Flyer oder Druckdaten fehlen",
   FLYERS_EXPECTED: "Flyer werden erwartet",
   FLYERS_RECEIVED: "Flyer angekommen",
   STORED: "Flyer im Lager",
@@ -51,9 +53,9 @@ export const CUSTOMER_REPORT_STATUS_LABELS: Record<ReportStatus, string> = {
   DRAFT: "Bericht wird vorbereitet",
   DATA_INCOMPLETE: "Nachweise werden gesammelt",
   GENERATED: "Nachweis erstellt",
-  READY_FOR_REVIEW: "Bericht wird geprueft",
-  IN_REVIEW: "Bericht wird geprueft",
-  CHANGES_REQUIRED: "Bericht wird ueberarbeitet",
+  READY_FOR_REVIEW: "Bericht wird geprüft",
+  IN_REVIEW: "Bericht wird geprüft",
+  CHANGES_REQUIRED: "Bericht wird überarbeitet",
   APPROVED: "Prüfung bestanden",
   PUBLISHED: "Nachweis verfügbar",
   ARCHIVED: "Archiviert",
@@ -95,6 +97,7 @@ const CUSTOMER_NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   PRINT_RECEIVED_IN_WAREHOUSE: "Flyer im Lager angekommen",
   PRINT_STATUS_UPDATED: "Druckstatus aktualisiert",
   REPORT_AVAILABLE: "Verteilbericht fertig",
+  REPORT_PUBLISHED: "Verteilbericht verfügbar",
   ORDER_STATUS_UPDATED: "Kampagnenstatus aktualisiert",
   SUPPORT_REPLY: "Neue Support-Antwort",
 };
@@ -124,6 +127,13 @@ export function customerReportName(reportNumber: string) {
     .replace(/^RPT-/i, "Verteilbericht #");
 }
 
+export function customerOrderTone(status: OrderStatus): CustomerTone {
+  if (["DISTRIBUTION_APPROVED", "REPORT_READY_PREVIEW"].includes(status)) return "success";
+  if (["PAYMENT_FAILED", "REJECTED", "CANCELLED"].includes(status)) return "danger";
+  if (["PAYMENT_PENDING", "WAITING_FOR_CUSTOMER", "PAID_WAITING_FOR_ADMIN_REVIEW", "READY_FOR_FLYERS"].includes(status)) return "warning";
+  return "neutral";
+}
+
 export function customerOrderAction(status: OrderStatus, orderId: string) {
   if (status === "READY_FOR_FLYERS") return { href: "/customer/documents", label: "Druckdaten hochladen" };
   if (status === "PAYMENT_PENDING") return { href: `/customer/orders/${orderId}`, label: "Zahlung abschließen" };
@@ -131,7 +141,20 @@ export function customerOrderAction(status: OrderStatus, orderId: string) {
   if (status === "REPORT_READY_PREVIEW" || status === "DISTRIBUTION_APPROVED") return { href: "/customer/reports", label: "Bericht ansehen" };
   if (status === "READY_FOR_DISTRIBUTION" || status === "READY_FOR_PICKUP") return { href: `/customer/orders/${orderId}`, label: "Fortschritt ansehen" };
   if (status === "STORED" || status === "FLYERS_RECEIVED" || status === "FLYERS_EXPECTED") return { href: `/customer/orders/${orderId}`, label: "Status ansehen" };
-  return { href: `/customer/orders/${orderId}`, label: "Details ansehen" };
+  return { href: `/customer/orders/${orderId}`, label: "Kampagne öffnen" };
+}
+
+export function customerOrderPlainNextStep(status: OrderStatus) {
+  if (status === "PAYMENT_PENDING") return "Zahlung abschließen, damit FLYERO prüfen kann.";
+  if (status === "PAYMENT_FAILED") return "Zahlung erneut versuchen oder Anfrage senden.";
+  if (status === "READY_FOR_FLYERS") return "Flyerdatei hochladen oder Druck über FLYERO anfragen.";
+  if (status === "WAITING_FOR_CUSTOMER") return "FLYERO wartet auf eine Rückmeldung von Ihnen.";
+  if (status === "PAID_WAITING_FOR_ADMIN_REVIEW" || status === "UNDER_REVIEW") return "FLYERO prüft Gebiet, Druckdaten und Zustellbarkeit.";
+  if (status === "READY_FOR_DISTRIBUTION" || status === "READY_FOR_PICKUP") return "Die Verteilung wird vorbereitet.";
+  if (status === "DISTRIBUTION_APPROVED" || status === "REPORT_READY_PREVIEW") return "Der Bericht ist bereit oder wird final freigegeben.";
+  if (status === "CANCELLED") return "Diese Kampagne wurde storniert.";
+  if (status === "REJECTED") return "Diese Kampagne konnte nicht freigegeben werden.";
+  return "Alles ist gespeichert. FLYERO meldet sich, wenn ein Schritt nötig ist.";
 }
 
 export function customerNotificationTypeLabel(type: string) {

@@ -1,18 +1,17 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_ORDER_STATUS_LABELS, customerOrderAction, customerOrderName } from "@/app/customer/customerUx";
+import {
+  CUSTOMER_ORDER_STATUS_LABELS,
+  customerOrderAction,
+  customerOrderName,
+  customerOrderPlainNextStep,
+  customerOrderTone,
+} from "@/app/customer/customerUx";
 import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-
-function tone(status: string): "neutral" | "success" | "warning" | "danger" {
-  if (["DISTRIBUTION_APPROVED", "REPORT_READY_PREVIEW"].includes(status)) return "success";
-  if (["PAYMENT_FAILED", "REJECTED", "CANCELLED"].includes(status)) return "danger";
-  if (["PAYMENT_PENDING", "WAITING_FOR_CUSTOMER", "PAID_WAITING_FOR_ADMIN_REVIEW"].includes(status)) return "warning";
-  return "neutral";
-}
 
 export default async function CustomerOrdersPage() {
   const session = await requireRole([UserRole.CUSTOMER]);
@@ -28,7 +27,7 @@ export default async function CustomerOrdersPage() {
     <CustomerPortalShell
       active="/customer/orders"
       title="Kampagnen"
-      description="Alle Verteilungen, nächsten Schritte, Preise und Nachweise in einer klaren Übersicht."
+      description="Alle Verteilungen mit dem jeweils nächsten Schritt. Keine Suche, keine Technik, eine Aktion pro Kampagne."
     >
       <section className="portalMetrics">
         <MetricTile label="Kampagnen" value={orders.length} />
@@ -37,44 +36,40 @@ export default async function CustomerOrdersPage() {
         <MetricTile label="Abgeschlossen" value={finished} />
       </section>
 
-      <DataSection title="Meine Kampagnen" description="Starten, prüfen oder fortsetzen: Jede Zeile zeigt den nächsten sinnvollen Schritt.">
+      <DataSection title="Meine Kampagnen" description="Öffnen Sie Details nur, wenn Sie sie brauchen. Der nächste Schritt steht direkt hier.">
         <div className="customerActionRow">
-          <Link className="secondaryButton" href="/customer/orders/new">Neue Kampagne starten<span aria-hidden="true">→</span></Link>
-          <Link className="secondaryButton" href="/customer/documents">Dateien & Druck öffnen</Link>
+          <Link className="primaryButton" href="/customer/orders/new">Neue Kampagne starten<span aria-hidden="true">→</span></Link>
+          <Link className="secondaryButton" href="/customer/documents">Dateien öffnen</Link>
         </div>
-        <div className="tableWrap customerTable">
-          <table>
-            <thead>
-              <tr>
-                <th>Kampagne</th>
-                <th>Status</th>
-                <th>Datum</th>
-                <th>Gebiet</th>
-                <th>Flyer</th>
-                <th>Preis</th>
-                <th>Aktion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => {
-                const action = customerOrderAction(order.status, order.id);
-                return (
-                  <tr key={order.id}>
-                    <td data-label="Kampagne"><strong>{customerOrderName(order.orderNumber)}</strong></td>
-                    <td data-label="Status"><StatusBadge tone={tone(order.status)}>{CUSTOMER_ORDER_STATUS_LABELS[order.status]}</StatusBadge></td>
-                    <td data-label="Datum">{formatDate(order.createdAt)}</td>
-                    <td data-label="Gebiet">{order.targetAreaName}<br /><small>{order.postalCode} {order.city}</small></td>
-                    <td data-label="Flyer">{order.flyerQuantity.toLocaleString("de-DE")}</td>
-                    <td data-label="Preis">{formatCurrency(order.manualPriceOverride ?? order.calculatedGrossPrice)}</td>
-                    <td data-label="Aktion"><Link className="textLink" href={action.href}>{action.label}</Link></td>
-                  </tr>
-                );
-              })}
-              {orders.length === 0 ? (
-                <tr><td colSpan={7}><EmptyState title="Noch keine Kampagnen." action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }} /></td></tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="customerCampaignList">
+          {orders.map((order) => {
+            const action = customerOrderAction(order.status, order.id);
+            return (
+              <article className="customerCampaignItem" key={order.id}>
+                <div>
+                  <div className="customerItemHeader">
+                    <strong>{customerOrderName(order.orderNumber)}</strong>
+                    <StatusBadge tone={customerOrderTone(order.status)}>{CUSTOMER_ORDER_STATUS_LABELS[order.status]}</StatusBadge>
+                  </div>
+                  <p>{customerOrderPlainNextStep(order.status)}</p>
+                  <div className="customerItemMeta">
+                    <span>{order.targetAreaName}</span>
+                    <span>{formatDate(order.createdAt)}</span>
+                    <span>{order.flyerQuantity.toLocaleString("de-DE")} Flyer</span>
+                    <span>{formatCurrency(order.manualPriceOverride ?? order.calculatedGrossPrice)}</span>
+                  </div>
+                </div>
+                <Link className="primaryButton" href={action.href}>{action.label}</Link>
+              </article>
+            );
+          })}
+          {orders.length === 0 ? (
+            <EmptyState
+              title="Noch keine Kampagnen."
+              description="Starten Sie die erste Verteilung direkt online."
+              action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }}
+            />
+          ) : null}
         </div>
       </DataSection>
     </CustomerPortalShell>

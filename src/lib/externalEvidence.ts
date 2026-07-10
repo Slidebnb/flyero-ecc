@@ -171,7 +171,7 @@ export async function prepareExternalReportForOrder(input: {
         data: {
           name: data.distributorName,
           region: order.city,
-          notes: `Manuell im Verteilnachweis fuer ${order.orderNumber} erfasst.`,
+          notes: `Manuell im Verteilnachweis für ${order.orderNumber} erfasst.`,
         },
       })
     : null;
@@ -179,7 +179,7 @@ export async function prepareExternalReportForOrder(input: {
   const actualCompletedAt = data.endTime ?? null;
   const delivered = data.deliveredFlyerQuantity ?? order.flyerQuantity;
   const remaining = data.remainingFlyerQuantity ?? Math.max(order.flyerQuantity - delivered, 0);
-  const summary = data.summary || "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.";
+  const summary = data.summary || "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung.";
   const reportSnapshot = {
     source: "EXTERNAL_GPS_REPORT",
     generatedAt: now.toISOString(),
@@ -266,7 +266,7 @@ export async function prepareExternalReportForOrder(input: {
   await notifyAdmins({
     type: "EXTERNAL_REPORT_READY_FOR_REVIEW",
     title: "Externer Verteilnachweis vorbereitet",
-    message: `${order.orderNumber}: GPS-Nachweis wurde fuer die Pruefung vorbereitet.`,
+    message: `${order.orderNumber}: GPS-Nachweis wurde für die Prüfung vorbereitet.`,
   });
   return report;
 }

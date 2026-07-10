@@ -29,7 +29,7 @@ for (const snippet of [
   "customerVisible",
   "model ManualDistributor",
 ]) {
-  assert(schema.includes(snippet), `Schema enthaelt nicht: ${snippet}`);
+  assert(schema.includes(snippet), `Schema enthält nicht: ${snippet}`);
 }
 
 const storage = await read("src/lib/documentStorage.ts");
@@ -44,14 +44,14 @@ for (const snippet of [
   "publishExternalReport",
   "assertEvidenceFileMatchesType",
   "manualDistributorName",
-  "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.",
+  "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung.",
   "EXTERNAL_GPS_REPORT",
   "customerVisible: false",
 ]) {
-  assert(evidenceService.includes(snippet), `External-Evidence-Service enthaelt nicht: ${snippet}`);
+  assert(evidenceService.includes(snippet), `External-Evidence-Service enthält nicht: ${snippet}`);
 }
 assert(!evidenceService.includes("Math.random"), "External-Evidence-Service darf keine Fake-Daten erzeugen.");
-assert(!evidenceService.includes("actualCoveragePercent: new Prisma.Decimal"), "Externe MVP-Reports duerfen keine Fake-Coverage setzen.");
+assert(!evidenceService.includes("actualCoveragePercent: new Prisma.Decimal"), "Externe MVP-Reports dürfen keine Fake-Coverage setzen.");
 
 for (const filePath of [
   "src/app/api/admin/orders/[id]/evidence/route.ts",
@@ -67,9 +67,9 @@ for (const snippet of [
   "Verteilnachweise",
   "GPS-Bericht hochladen",
   "Bericht vorbereiten",
-  "Bericht veroeffentlichen",
+  "Bericht veröffentlichen",
 ]) {
-  assert(adminOrderPage.includes(snippet), `Admin-Auftrag enthaelt nicht: ${snippet}`);
+  assert(adminOrderPage.includes(snippet), `Admin-Auftrag enthält nicht: ${snippet}`);
 }
 
 const customerReportPage = await read("src/app/customer/reports/[id]/page.tsx");
@@ -78,7 +78,7 @@ for (const snippet of [
   "Nachweis basiert auf externem GPS-Bericht",
   "Weitere Nachweise",
 ]) {
-  assert(customerReportPage.includes(snippet), `Kundenbericht enthaelt nicht: ${snippet}`);
+  assert(customerReportPage.includes(snippet), `Kundenbericht enthält nicht: ${snippet}`);
 }
 assert(!customerReportPage.includes("live aufgezeichnet"), "Kundenbericht darf kein Live-Tracking behaupten.");
 
@@ -94,7 +94,7 @@ if (approvedExternalDoc) {
   const report = await prisma.report.findFirst({
     where: { orderId: approvedExternalDoc.orderId, status: "PUBLISHED", reportSource: "EXTERNAL_GPS_REPORT" },
   });
-  assert(report, "Freigegebener externer GPS-Bericht muss mit einem veroeffentlichten Report verknuepft sein.");
+  assert(report, "Freigegebener externer GPS-Bericht muss mit einem veröffentlichten Report verknüpft sein.");
   assert(report.actualCoveragePercent === null, "Externer MVP-Report darf ohne Rohdaten keine automatische Coverage behaupten.");
 }
 

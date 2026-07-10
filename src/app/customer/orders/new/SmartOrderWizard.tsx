@@ -146,7 +146,7 @@ const orderNavItems = [
   { href: "/customer/orders/new", label: "Neue Kampagne", icon: Plus, active: true },
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard },
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks },
-  { href: "/customer/documents", label: "Dateien & Druck", icon: FileStack },
+  { href: "/customer/documents", label: "Dateien", icon: FileStack },
   { href: "/customer/payments", label: "Zahlungen", icon: CreditCard },
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText },
   { href: "/customer/reports", label: "Berichte", icon: FileText },
@@ -488,7 +488,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const recommendedFlyerQuantity = recommendedFlyersForHouseholds(households);
   const deliverabilityScore = intelligence?.metrics.score ?? null;
   const calculationConfidence = intelligence?.metrics.confidence ?? (intelligenceStatus === "live" ? "medium" : "low");
-  const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
+  const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietssch?tzung");
   const householdCountSource = intelligence?.metrics.householdCountSource ?? (intelligenceStatus === "live" ? "area-density-formula" : "client-area-estimate");
   const pricingVersion = intelligence?.metrics.pricingVersion ?? "pricing-rule-pending";
   const intelligenceRequestQuery = useMemo(() => new URLSearchParams({
@@ -1421,7 +1421,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
             <div><dt>Geschätzter Preis</dt><dd>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</dd></div>
             <div><dt>ca. Laufstrecke</dt><dd>{routeDistanceMeters > 0 ? `${(routeDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : "wird geprüft"}</dd></div>
             <div><dt>Geplante Zustelldauer</dt><dd>{formatDuration(routeDurationMinutes)}</dd></div>
-            <div><dt>Nächstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird geprüft"}</dd></div>
+            <div><dt>N?chstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird gepr?ft"}</dd></div>
             <div><dt>Benötigte Verteiler</dt><dd>{distributorNeed > 0 ? distributorNeed : "wird geprüft"}</dd></div>
           </dl>
           <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore)}</p>

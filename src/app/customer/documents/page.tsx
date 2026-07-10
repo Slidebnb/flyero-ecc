@@ -16,7 +16,7 @@ async function uploadDocument(formData: FormData) {
     title: String(formData.get("title") || ""),
     originalFilename: String(formData.get("originalFilename") || "flyer.pdf"),
     mimeType: String(formData.get("mimeType") || "application/pdf"),
-    content: String(formData.get("content") || "Flyerdatei wurde fuer die Pruefung vorgemerkt."),
+    content: String(formData.get("content") || "Flyerdatei wurde für die Prüfung vorgemerkt."),
   });
   redirect("/customer/documents");
 }
@@ -74,7 +74,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
       </div>
 
       <div className="portalDashboardGrid">
-        <ActionPanel title="Flyerdatei hochladen" description="Datei der richtigen Kampagne zuordnen. FLYERO prueft danach die Druckdaten." id="flyer-upload">
+        <ActionPanel title="Flyerdatei hochladen" description="Datei der richtigen Kampagne zuordnen. FLYERO prüft danach die Druckdaten." id="flyer-upload">
           {hasOrders ? (
             <form action={uploadDocument} className="form">
               <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>)}</select></label>
@@ -85,7 +85,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
               <button type="submit">Hochladen</button>
             </form>
           ) : (
-            <EmptyState title="Erst Kampagne starten" description="Druckdaten koennen hochgeladen werden, sobald eine Kampagne angelegt ist." action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }} />
+            <EmptyState title="Erst Kampagne starten" description="Druckdaten können hochgeladen werden, sobald eine Kampagne angelegt ist." action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }} />
           )}
         </ActionPanel>
 
@@ -96,7 +96,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
               <label>Format<select name="printFormat" defaultValue="DIN_A5"><option value="DIN_A4">DIN A4</option><option value="DIN_A5">DIN A5</option><option value="DIN_LANG">DIN Lang</option><option value="SQUARE">Quadratisch</option><option value="CUSTOM">Individuell</option></select></label>
               <label>Papier<select name="paperWeight" defaultValue="135">{[90, 115, 135, 170, 250, 300].map((weight) => <option key={weight} value={weight}>{weight}g</option>)}</select></label>
               <label>Menge<input name="quantity" type="number" min="1" defaultValue="5000" /></label>
-              <label>Hinweis<textarea name="notes" rows={3} placeholder="Format, Wunschpapier oder Rueckfrage" /></label>
+              <label>Hinweis<textarea name="notes" rows={3} placeholder="Format, Wunschpapier oder R?ckfrage" /></label>
               <button type="submit">Druck anfragen</button>
             </form>
           ) : (

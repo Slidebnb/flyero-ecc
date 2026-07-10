@@ -29,33 +29,31 @@ export default async function CustomerReportsPage() {
           <Link className="secondaryButton" href="/customer/orders">Kampagnen ansehen</Link>
           <Link className="secondaryButton" href="/customer/invoices">Rechnungen öffnen</Link>
         </div>
-        <div className="tableWrap customerTable">
-          <table>
-            <thead><tr><th>Bericht</th><th>Kampagne</th><th>Status</th><th>Gebiet</th><th>PDF</th><th>Aktion</th></tr></thead>
-            <tbody>
-              {reports.map((report) => (
-                <tr key={report.id}>
-                  <td data-label="Bericht"><strong>{customerReportName(report.reportNumber)}</strong><br /><small>Von FLYERO geprüft</small></td>
-                  <td data-label="Kampagne">{customerOrderName(report.order.orderNumber)}</td>
-                  <td data-label="Status"><StatusBadge tone="success">{CUSTOMER_REPORT_STATUS_LABELS[report.status]}</StatusBadge></td>
-                  <td data-label="Gebiet">{report.order.targetAreaName}</td>
-                  <td data-label="PDF">{report.pdfUrl ? <a className="textLink" href={`/api/customer/reports/${report.id}/download`}>Download</a> : "Wird erstellt"}</td>
-                  <td data-label="Aktion"><Link className="textLink" href={`/customer/reports/${report.id}`}>Nachweis ansehen</Link></td>
-                </tr>
-              ))}
-              {reports.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>
-                    <EmptyState
-                      title="Noch keine Nachweise verfügbar."
-                      description="Nachweise erscheinen hier, sobald FLYERO die Verteilung geprüft und veröffentlicht hat."
-                      action={{ href: "/customer/orders", label: "Kampagnen ansehen" }}
-                    />
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="customerCampaignList">
+          {reports.map((report) => (
+            <article className="customerCampaignItem" key={report.id}>
+              <div>
+                <div className="customerItemHeader">
+                  <strong>{customerReportName(report.reportNumber)}</strong>
+                  <StatusBadge tone="success">{CUSTOMER_REPORT_STATUS_LABELS[report.status]}</StatusBadge>
+                </div>
+                <p>Von FLYERO geprüft. GPS-Nachweis, Fotos und PDF stehen nach Freigabe hier bereit.</p>
+                <div className="customerItemMeta">
+                  <span>{customerOrderName(report.order.orderNumber)}</span>
+                  <span>{report.order.targetAreaName}</span>
+                  <span>{report.pdfUrl ? "PDF bereit" : "PDF wird erstellt"}</span>
+                </div>
+              </div>
+              <Link className="primaryButton" href={`/customer/reports/${report.id}`}>Nachweis ansehen</Link>
+            </article>
+          ))}
+          {reports.length === 0 ? (
+            <EmptyState
+              title="Noch keine Nachweise verfügbar."
+              description="Nachweise erscheinen hier, sobald FLYERO die Verteilung geprüft und veröffentlicht hat."
+              action={{ href: "/customer/orders", label: "Kampagnen ansehen" }}
+            />
+          ) : null}
         </div>
       </DataSection>
     </CustomerPortalShell>

@@ -145,7 +145,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                 Ablehnungsgrund
                 <select name="refundReason" required defaultValue="Gebiet nicht bedienbar">
                   <option>Gebiet nicht bedienbar</option>
-                  <option>Auftrag unvollstaendig</option>
+                  <option>Auftrag unvollständig</option>
                   <option>Leistung nicht verfügbar</option>
                   <option>Sonstiges</option>
                 </select>
@@ -160,13 +160,13 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
         <div className="splitHeader">
           <div>
-            <p className="eyebrow">MVP mit externem GPS-Geraet</p>
+            <p className="eyebrow">MVP mit externem GPS-Gerät</p>
             <h2 className="sectionTitle">Verteilnachweise</h2>
             <p className="muted">
               Lade den GPS-Nachweis des eingesetzten Trackingsystems, Fotos und weitere Dateien hoch. Kunden sehen nur freigegebene Nachweise.
             </p>
           </div>
-          {order.reports[0] ? <Link className="textLink" href={`/admin/reports/${order.reports[0].id}`}>Aktuellen Bericht oeffnen</Link> : null}
+          {order.reports[0] ? <Link className="textLink" href={`/admin/reports/${order.reports[0].id}`}>Aktuellen Bericht öffnen</Link> : null}
         </div>
 
         <form action={`/api/admin/orders/${order.id}/evidence`} method="post" encType="multipart/form-data" className="form grid">
@@ -184,7 +184,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
             <input name="providerName" placeholder="GPS-Anbieter" />
           </label>
           <label>
-            Tour-/Geraetereferenz optional
+            Tour-/Gerätereferenz optional
             <input name="externalReportReference" />
           </label>
           <label>
@@ -225,7 +225,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           </label>
           <label className="full">
             Zusammenfassung
-            <textarea name="summary" placeholder="Nachweis basiert auf externem GPS-Bericht und manueller Pruefung." />
+            <textarea name="summary" placeholder="Nachweis basiert auf externem GPS-Bericht und manueller Prüfung." />
           </label>
           <label className="full">
             Abweichungen
@@ -266,7 +266,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         {order.reports[0] ? (
           <div className="actions">
             <form action={`/api/admin/reports/${order.reports[0].id}/approve`} method="post"><button type="submit">Bericht freigeben</button></form>
-            <form action={`/api/admin/reports/${order.reports[0].id}/publish`} method="post"><button type="submit">Bericht veroeffentlichen</button></form>
+            <form action={`/api/admin/reports/${order.reports[0].id}/publish`} method="post"><button type="submit">Bericht veröffentlichen</button></form>
           </div>
         ) : null}
       </section>

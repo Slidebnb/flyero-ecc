@@ -4942,6 +4942,214 @@ body {
   line-height: 1.55;
 }
 
+.customerFocusPanel,
+.customerSuccessBanner,
+.customerWarningBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background:
+    radial-gradient(circle at 96% 0%, rgba(183, 232, 0, 0.15), transparent 14rem),
+    rgba(9, 13, 18, 0.86);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.24);
+  color: #fff;
+}
+
+.customerSuccessBanner,
+.customerWarningBanner {
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.customerSuccessBanner {
+  border-color: rgba(183, 232, 0, 0.34);
+}
+
+.customerWarningBanner {
+  border-color: rgba(255, 190, 92, 0.34);
+}
+
+.customerFocusPanel h2,
+.customerFocusPanel p,
+.customerSuccessBanner strong,
+.customerSuccessBanner span,
+.customerWarningBanner strong,
+.customerWarningBanner span {
+  margin: 0;
+}
+
+.customerFocusPanel h2 {
+  margin-top: 4px;
+  font-size: clamp(1.35rem, 2vw, 2rem);
+  letter-spacing: 0;
+}
+
+.customerFocusPanel p,
+.customerSuccessBanner span,
+.customerWarningBanner span {
+  color: #a7b2c2;
+  line-height: 1.55;
+}
+
+.customerTinyLabel {
+  color: #b7e800;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.customerCampaignList,
+.customerMessageList,
+.customerPreferenceList {
+  display: grid;
+  gap: 12px;
+}
+
+.customerCampaignList.compact {
+  gap: 10px;
+}
+
+.customerCampaignItem,
+.customerMessageItem,
+.customerPreferenceList p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.customerCampaignItem p,
+.customerMessageItem p,
+.customerPreferenceList p {
+  margin: 6px 0 0;
+  color: #9aa7b8;
+  line-height: 1.5;
+}
+
+.customerItemHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.customerItemHeader strong,
+.customerMessageItem strong,
+.customerPreferenceList strong {
+  color: #fff;
+}
+
+.customerItemMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.customerItemMeta span,
+.customerMessageItem span,
+.customerPreferenceList span {
+  color: #9aa7b8;
+  font-size: 0.88rem;
+}
+
+.customerItemMeta span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.customerDigestGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.customerDigestGrid article,
+.customerFactList p,
+.customerProofBullets p,
+.customerTimeline p {
+  margin: 0;
+  padding: 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.customerDigestGrid span,
+.customerFactList span,
+.customerProofBullets span,
+.customerTimeline span,
+.customerTimeline small {
+  display: block;
+  color: #9aa7b8;
+  line-height: 1.45;
+}
+
+.customerDigestGrid strong,
+.customerFactList strong,
+.customerProofBullets strong,
+.customerTimeline strong {
+  display: block;
+  margin-top: 5px;
+  color: #fff;
+}
+
+.customerTwoColumn {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.78fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.customerFactList,
+.customerProofBullets,
+.customerTimeline {
+  display: grid;
+  gap: 10px;
+}
+
+.customerFactList.compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.customerSimpleForm textarea {
+  min-height: 130px;
+}
+
+.customerProfileForm {
+  display: grid;
+  gap: 18px;
+}
+
+.customerStickySave {
+  position: sticky;
+  bottom: 18px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(183, 232, 0, 0.24);
+  background: rgba(8, 11, 16, 0.94);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+  color: #a7b2c2;
+}
+
 .customerCommandHero {
   display: grid;
   grid-template-columns: minmax(320px, 0.95fr) minmax(360px, 1.05fr);
@@ -6284,6 +6492,28 @@ body {
   .nav {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .customerFocusPanel,
+  .customerCampaignItem,
+  .customerMessageItem,
+  .customerStickySave {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customerDigestGrid,
+  .customerTwoColumn,
+  .customerFactList.compact {
+    grid-template-columns: 1fr;
+  }
+
+  .customerCampaignItem .primaryButton,
+  .customerCampaignItem .secondaryButton,
+  .customerFocusPanel .primaryButton,
+  .customerFocusPanel button,
+  .customerStickySave button {
+    width: 100%;
   }
 }
 

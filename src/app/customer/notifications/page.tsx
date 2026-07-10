@@ -2,104 +2,76 @@ import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import {
   CUSTOMER_CHANNEL_LABELS,
-  CUSTOMER_QUEUE_STATUS_LABELS,
   customerNotificationTypeLabel,
   customerPreferenceLabel,
   safeCustomerMessage,
   safeCustomerSubject,
 } from "@/app/customer/customerUx";
-import { ActionPanel, DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
-type PageProps = {
-  searchParams: Promise<{ read?: string; typeKey?: string; date?: string }>;
-};
-
-function dateFilter(date?: string) {
-  if (!date) return undefined;
-  const start = new Date(`${date}T00:00:00.000Z`);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 1);
-  return { gte: start, lt: end };
-}
-
-function deliveryLabel(status?: keyof typeof CUSTOMER_QUEUE_STATUS_LABELS) {
-  return status ? CUSTOMER_QUEUE_STATUS_LABELS[status] : "Im Portal sichtbar";
-}
-
-export default async function CustomerNotificationsPage({ searchParams }: PageProps) {
+export default async function CustomerNotificationsPage() {
   const session = await requireRole([UserRole.CUSTOMER]);
-  const filters = await searchParams;
-  const readFilter = filters.read === "unread" ? { readAt: null } : filters.read === "read" ? { readAt: { not: null } } : {};
-  const createdAt = dateFilter(filters.date);
-  const allMessages = await prisma.notificationMessage.findMany({
-    where: { userId: session.id, ...readFilter, ...(createdAt ? { createdAt } : {}) },
-    include: { template: true, queues: { orderBy: { createdAt: "desc" }, take: 2 } },
-    orderBy: { createdAt: "desc" },
-    take: 100,
-  });
-  const preferences = await prisma.notificationPreference.findMany({ where: { userId: session.id }, orderBy: [{ type: "asc" }, { channel: "asc" }] });
-  const types = [...new Set(allMessages.map((message) => message.type))].sort();
-  const selectedType = filters.typeKey ? types[Number(filters.typeKey)] : undefined;
-  const messages = selectedType ? allMessages.filter((message) => message.type === selectedType) : allMessages;
+  const [messages, preferences] = await Promise.all([
+    prisma.notificationMessage.findMany({
+      where: { userId: session.id },
+      include: { queues: { orderBy: { createdAt: "desc" }, take: 1 } },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+    }),
+    prisma.notificationPreference.findMany({ where: { userId: session.id }, orderBy: [{ type: "asc" }, { channel: "asc" }] }),
+  ]);
+  const unread = messages.filter((message) => !message.readAt).length;
+  const failed = messages.filter((message) => message.queues[0]?.status === "FAILED").length;
 
   return (
-    <CustomerPortalShell active="/customer/notifications" title="Nachrichten" description="Statushinweise, Rechnungen, Berichte und E-Mail-Einstellungen an einem Ort.">
-      <ActionPanel title="Filter" description="Grenzen Sie Nachrichten nach Lesestatus, Anlass oder Datum ein.">
-        <form className="form grid" action="/customer/notifications" method="get">
-          <label>
-            Lesestatus
-            <select name="read" defaultValue={filters.read ?? ""}>
-              <option value="">Alle</option>
-              <option value="unread">Ungelesen</option>
-              <option value="read">Gelesen</option>
-            </select>
-          </label>
-          <label>
-            Anlass
-            <select name="typeKey" defaultValue={filters.typeKey ?? ""}>
-              <option value="">Alle Anlässe</option>
-              {types.map((type, index) => <option key={String(index)} value={String(index)}>{customerNotificationTypeLabel(type)}</option>)}
-            </select>
-          </label>
-          <label>
-            Datum
-            <input name="date" type="date" defaultValue={filters.date ?? ""} />
-          </label>
-          <button type="submit">Filtern</button>
-        </form>
-      </ActionPanel>
+    <CustomerPortalShell
+      active="/customer/notifications"
+      title="Nachrichten"
+      description="Nur wichtige Hinweise zu Kampagnen, Dateien, Zahlungen und Nachweisen."
+    >
+      <section className="portalMetrics">
+        <MetricTile label="Nachrichten" value={messages.length} />
+        <MetricTile label="Neu" value={unread} tone={unread ? "warning" : "success"} />
+        <MetricTile label="Aktion nötig" value={failed} tone={failed ? "danger" : "success"} />
+      </section>
 
-      <DataSection title="Nachrichtenzentrale" description="Alle Hinweise zu Kampagnen, Dateien, Zahlungen und Nachweisen.">
-        <div className="stack">
+      <DataSection title="Aktuelle Hinweise" description="FLYERO blendet technische Meldungen aus und zeigt nur das, was für Sie wichtig ist.">
+        <div className="customerMessageList">
           {messages.map((message) => {
             const latestQueueStatus = message.queues[0]?.status;
             return (
-              <article key={message.id} className="messageCard">
-                <div className="splitHeader">
-                  <div>
-                    <strong>{safeCustomerSubject(message.type, message.subject)}</strong>
-                    <p className="muted">{customerNotificationTypeLabel(message.type)} · {formatDateTime(message.createdAt)} · {message.readAt ? "gelesen" : "ungelesen"}</p>
-                  </div>
-                  <StatusBadge tone={message.readAt ? "success" : latestQueueStatus === "FAILED" ? "danger" : "warning"}>{message.readAt ? "Gelesen" : latestQueueStatus === "FAILED" ? "Aktion erforderlich" : "Neu"}</StatusBadge>
+              <article key={message.id} className="customerMessageItem">
+                <div>
+                  <span>{formatDateTime(message.createdAt)}</span>
+                  <strong>{safeCustomerSubject(message.type, message.subject)}</strong>
+                  <p>{safeCustomerMessage(message.type, message.body)}</p>
                 </div>
-                <p>{safeCustomerMessage(message.type, message.body)}</p>
-                <small className="muted">Zustellung: {deliveryLabel(latestQueueStatus)}</small>
+                <StatusBadge tone={message.readAt ? "success" : latestQueueStatus === "FAILED" ? "danger" : "warning"}>
+                  {message.readAt ? "Gelesen" : latestQueueStatus === "FAILED" ? "Aktion nötig" : "Neu"}
+                </StatusBadge>
               </article>
             );
           })}
-          {messages.length === 0 ? <EmptyState title="Keine Nachrichten gefunden." description="Mit anderen Filtern oder neuen Kampagnen erscheinen hier Hinweise." /> : null}
+          {messages.length === 0 ? (
+            <EmptyState title="Keine Nachrichten." description="Sobald es Neuigkeiten zu einer Kampagne gibt, erscheint die Meldung hier." />
+          ) : null}
         </div>
       </DataSection>
 
-      <DataSection title="E-Mail-Einstellungen" description="Welche Hinweise Sie zusätzlich per E-Mail oder Push erhalten.">
-        <div className="portalList">
+      <DataSection title="Benachrichtigungen" description="Diese Hinweise können zusätzlich per E-Mail, WhatsApp, SMS oder Push zugestellt werden.">
+        <div className="customerPreferenceList">
           {preferences.map((preference) => (
-            <p key={preference.id}><strong>{customerPreferenceLabel(preference.type)}</strong><br />{CUSTOMER_CHANNEL_LABELS[preference.channel]}: {preference.enabled ? "aktiv" : "deaktiviert"}</p>
+            <p key={preference.id}>
+              <strong>{customerPreferenceLabel(preference.type)}</strong>
+              <span>{CUSTOMER_CHANNEL_LABELS[preference.channel]} · {preference.enabled ? "aktiv" : "deaktiviert"} · {customerNotificationTypeLabel(preference.type)}</span>
+            </p>
           ))}
-          {preferences.length === 0 ? <EmptyState title="Standard-Einstellungen aktiv." description="Wichtige Nachrichten werden automatisch zugestellt." /> : null}
+          {preferences.length === 0 ? (
+            <EmptyState title="Standard aktiv." description="Wichtige Nachrichten werden automatisch im Portal angezeigt." />
+          ) : null}
         </div>
       </DataSection>
     </CustomerPortalShell>

@@ -4,6 +4,7 @@ import { TicketPriority, TicketType, UserRole } from "@prisma/client";
 import { RouteMap } from "@/app/components/RouteMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName, customerReportName } from "@/app/customer/customerUx";
+import { DataSection, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { formatDateTime } from "@/lib/format";
@@ -14,7 +15,7 @@ import { createTicket } from "@/lib/support";
 type PageProps = { params: Promise<{ id: string }> };
 
 function secondsLabel(seconds?: number | null) {
-  if (!seconds) return "-";
+  if (!seconds) return "Wird geprüft";
   const minutes = Math.floor(seconds / 60);
   return `${minutes} Min.`;
 }
@@ -38,7 +39,7 @@ async function createComplaintTicket(formData: FormData) {
     type: TicketType.COMPLAINT,
     priority: TicketPriority.HIGH,
     subject: `Problem zu ${customerReportName(current.reportNumber)}`,
-    description: "Kunde hat im Verteilbericht ein Problem gemeldet. Bitte Bericht, Tourdaten, GPS-Pruefung und Fotodokumentation pruefen.",
+    description: "Kunde hat im Verteilbericht ein Problem gemeldet. Bitte Bericht, Tourdaten, GPS-Prüfung und Fotodokumentation prüfen.",
     reportId,
     orderId: current.orderId,
     tourId: current.tourId,
@@ -78,6 +79,11 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
   const actualEnd = report.actualCompletedAt ?? customerView.tour.endTime;
   const manualDistributorName = reportSnapshotValue(report.reportSnapshot, "manualDistributorName");
   const customerNote = reportSnapshotValue(report.reportSnapshot, "customerNote");
+  const reviewedAt = report.reviewedAt ?? report.approvedAt ?? report.publishedAt ?? report.generatedAt;
+  const coverageLabel = customerView.coverage.actualCoveragePercent === null
+    ? "Von FLYERO geprüft"
+    : `${customerView.coverage.actualCoveragePercent} %`;
+
   await createAuditLog({ userId: session.id, action: "report.viewed", entityType: "Report", entityId: report.id });
 
   return (
@@ -87,57 +93,82 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
       title="Verteilbericht"
       description={`${customerReportName(report.reportNumber)} / ${customerOrderName(customerView.order.orderNumber)}`}
     >
+      <section className="customerSuccessBanner">
+        <strong>Verteilung abgeschlossen und geprüft.</strong>
+        <span>Dieser Bericht zeigt die freigegebenen Nachweise zu Gebiet, Zeitraum, Flyer-Menge und GPS-Dokumentation.</span>
+      </section>
+
       <div className="customerActionRow">
         <Link className="secondaryButton" href="/customer/reports">Alle Berichte</Link>
         {report.pdfUrl ? <a className="primaryButton" href={`/api/customer/reports/${report.id}/download`}>PDF herunterladen</a> : null}
         <form action={createComplaintTicket}>
           <input type="hidden" name="reportId" value={report.id} />
-          <button type="submit">Rueckfrage stellen</button>
+          <button type="submit">Rückfrage stellen</button>
         </form>
-        <span className="statusBadge success">{customerView.gpsQuality.customerStatus}</span>
+        <StatusBadge tone="success">Von FLYERO geprüft</StatusBadge>
       </div>
 
-      <section className="gridCards">
-        <article className="card"><strong>{customerView.quantities.planned}</strong><span>Geplante Flyer</span></article>
-        <article className="card"><strong>{customerView.quantities.delivered}</strong><span>Tatsaechlich dokumentiert</span></article>
-        <article className="card"><strong>{customerView.coverage.actualCoveragePercent === null ? "Geprueft" : `${customerView.coverage.actualCoveragePercent} %`}</strong><span>{customerView.coverage.actualCoveragePercent === null ? "Manuelle Pruefung" : "Dokumentierter Abdeckungsgrad"}</span></article>
-        <article className="card"><strong>{isExternalGpsReport ? "Verfuegbar" : `${(customerView.tour.distanceMeters / 1000).toFixed(1)} km`}</strong><span>GPS-Nachweis</span></article>
+      <section className="customerDigestGrid">
+        <article>
+          <span>Geplante Flyer</span>
+          <strong>{customerView.quantities.planned.toLocaleString("de-DE")}</strong>
+        </article>
+        <article>
+          <span>Dokumentiert verteilt</span>
+          <strong>{customerView.quantities.delivered.toLocaleString("de-DE")}</strong>
+        </article>
+        <article>
+          <span>Nachweisstatus</span>
+          <strong>{coverageLabel}</strong>
+        </article>
+        <article>
+          <span>GPS-Nachweis</span>
+          <strong>{isExternalGpsReport ? "Verfügbar" : `${(customerView.tour.distanceMeters / 1000).toFixed(1)} km`}</strong>
+        </article>
       </section>
 
-      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Geplant und tatsaechlich dokumentiert</h2>
-        <p className="muted">Hier sehen Sie, wann, wo und mit welchen Nachweisen verteilt wurde.</p>
-        <div className="tableWrap">
-          <table>
-            <tbody>
-              <tr><th>Kampagne</th><td>{customerOrderName(customerView.order.orderNumber)}</td></tr>
-              <tr><th>Gebiet</th><td>{customerView.order.area}</td></tr>
-              <tr><th>Stadt/PLZ</th><td>{customerView.order.city} {customerView.order.postalCode}</td></tr>
-              <tr><th>Zeitraum</th><td>{formatDateTime(customerView.order.preferredStartDate)} bis {formatDateTime(customerView.order.preferredEndDate)}</td></tr>
-              <tr><th>Verteilung gestartet</th><td>{formatDateTime(actualStart)}</td></tr>
-              <tr><th>Verteilung beendet</th><td>{formatDateTime(actualEnd)}</td></tr>
-              <tr><th>Aktive Zustellzeit</th><td>{secondsLabel(customerView.tour.activeSeconds)}</td></tr>
-              <tr><th>Geplant</th><td>{customerView.quantities.planned} Flyer</td></tr>
-              <tr><th>Dokumentiert verteilt</th><td>{customerView.quantities.delivered} Flyer</td></tr>
-              <tr><th>Restmenge</th><td>{customerView.quantities.remaining}</td></tr>
-              <tr><th>Ausfuehrung</th><td>{manualDistributorName ? `${manualDistributorName}, personenbezogene Daten geschuetzt` : "FLYERO Verteilerteam, personenbezogene Daten geschuetzt"}</td></tr>
-            </tbody>
-          </table>
+      <div className="customerTwoColumn">
+        <DataSection title="Verteilung" description="Die wichtigsten Angaben aus Planung und Durchführung.">
+          <div className="customerFactList">
+            <p><span>Kampagne</span><strong>{customerOrderName(customerView.order.orderNumber)}</strong></p>
+            <p><span>Gebiet</span><strong>{customerView.order.area}</strong></p>
+            <p><span>Ort</span><strong>{customerView.order.postalCode} {customerView.order.city}</strong></p>
+            <p><span>Wunschzeitraum</span><strong>{formatDateTime(customerView.order.preferredStartDate)} bis {formatDateTime(customerView.order.preferredEndDate)}</strong></p>
+            <p><span>Verteilt am</span><strong>{formatDateTime(actualStart)} bis {formatDateTime(actualEnd)}</strong></p>
+            <p><span>Aktive Zustellzeit</span><strong>{secondsLabel(customerView.tour.activeSeconds)}</strong></p>
+          </div>
+        </DataSection>
+
+        <DataSection title="Nachweise" description="Nur geprüfte und freigegebene Nachweise sind hier sichtbar.">
+          <div className="customerProofBullets">
+            <p><strong>GPS-Nachweis</strong><span>{isExternalGpsReport ? "GPS-Nachweis des eingesetzten Trackingsystems." : customerView.gpsQuality.customerStatus}</span></p>
+            <p><strong>Foto-Dokumentation</strong><span>{customerView.photos.length} freigegebene Fotos.</span></p>
+            <p><strong>PDF-Bericht</strong><span>{report.pdfUrl ? "Download bereit." : "Wird nach Freigabe erstellt."}</span></p>
+            <p><strong>Ausführung</strong><span>{manualDistributorName ? `${manualDistributorName}, personenbezogene Daten geschützt.` : "FLYERO Verteilerteam, personenbezogene Daten geschützt."}</span></p>
+          </div>
+        </DataSection>
+      </div>
+
+      <DataSection title="Mengen und Ergebnis" description="Keine Briefkasten-Einzelgarantie, sondern ein geprüfter Nachweis der dokumentierten Durchführung.">
+        <div className="customerFactList compact">
+          <p><span>Geplant</span><strong>{customerView.quantities.planned.toLocaleString("de-DE")} Flyer</strong></p>
+          <p><span>Dokumentiert verteilt</span><strong>{customerView.quantities.delivered.toLocaleString("de-DE")} Flyer</strong></p>
+          <p><span>Restmenge</span><strong>{customerView.quantities.remaining.toLocaleString("de-DE")} Flyer</strong></p>
+          <p><span>Berichtsgrundlage</span><strong>{isExternalGpsReport ? "Externer GPS-Bericht und manuelle Prüfung" : "Tourdaten, Fotos und Prüfung"}</strong></p>
         </div>
         {customerNote ? <p className="notice">{customerNote}</p> : null}
         <p className="muted">
           {isExternalGpsReport
-            ? "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung. Es wird keine automatische Flaechenabdeckung erfunden."
-            : "Der Abdeckungsgrad beschreibt die dokumentierte Verteilung anhand echter Tourdaten, freigegebener Fotos und interner Pruefung. Er ist kein Einzelbriefkasten-Nachweis."}
+            ? "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung. Ohne interne Rohdaten wird keine automatische Flächenabdeckung erfunden."
+            : "Der Abdeckungsgrad beschreibt die dokumentierte Verteilung anhand echter Tourdaten, freigegebener Fotos und interner Prüfung. Er ist kein Einzelbriefkasten-Nachweis."}
         </p>
-      </section>
+      </DataSection>
 
-      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">GPS-Nachweis</h2>
+      <DataSection title="GPS-Nachweis" description="Geplantes Gebiet und Nachweisquelle bleiben sauber getrennt.">
         {isExternalGpsReport ? (
-          <div className="notice">
+          <div className="customerWarningBanner">
             <strong>GPS-Nachweis des eingesetzten Trackingsystems</strong>
-            <p>Der Nachweis wurde extern erzeugt und von FLYERO manuell geprueft. FLYERO behauptet hier keine eigene Live-Aufzeichnung.</p>
+            <span>Der Nachweis wurde extern erzeugt und von FLYERO geprüft. FLYERO behauptet hier keine eigene Live-Aufzeichnung.</span>
           </div>
         ) : (
           <RouteMap
@@ -153,60 +184,58 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
             }))}
           />
         )}
-      </section>
+      </DataSection>
 
-      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Weitere Nachweise</h2>
-        <div className="tableWrap">
-          <table>
-            <tbody>
-              {report.order.documents.map((document) => (
-                <tr key={document.id}>
-                  <th>{document.title}</th>
-                  <td>{document.providerName || document.extension.toUpperCase()}</td>
-                  <td><a href={`/api/customer/reports/${report.id}/evidence/${document.id}`}>Nachweis herunterladen</a></td>
-                </tr>
-              ))}
-              {report.order.documents.length === 0 ? <tr><td>Keine weiteren freigegebenen Nachweise vorhanden.</td></tr> : null}
-            </tbody>
-          </table>
+      <DataSection title="Weitere Nachweise" description="Freigegebene Dateien können geschützt heruntergeladen werden.">
+        <div className="customerMessageList">
+          {report.order.documents.map((document) => (
+            <article className="customerMessageItem" key={document.id}>
+              <div className="customerItemHeader">
+                <strong>{document.title}</strong>
+                <span>{document.providerName || document.extension.toUpperCase()}</span>
+              </div>
+              <a className="secondaryButton" href={`/api/customer/reports/${report.id}/evidence/${document.id}`}>Nachweis herunterladen</a>
+            </article>
+          ))}
+          {report.order.documents.length === 0 ? (
+            <article className="customerMessageItem">
+              <strong>Keine weiteren freigegebenen Nachweise vorhanden.</strong>
+              <span>FLYERO zeigt hier nur Dateien, die intern geprüft und freigegeben wurden.</span>
+            </article>
+          ) : null}
         </div>
-      </section>
+      </DataSection>
 
-      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Foto-Nachweise</h2>
+      <DataSection title="Foto-Nachweise" description="Fotos werden vor Veröffentlichung geprüft.">
         <div className="photoGrid">
           {customerView.photos.length > 0 ? customerView.photos.map((photo, index) => (
             <figure key={photo.id}>
-              {/* eslint-disable-next-line @next/next/no-img-element -- Bericht zeigt gespeicherte PWA-Fotonachweise. */}
+              {/* eslint-disable-next-line @next/next/no-img-element -- Bericht zeigt gespeicherte Fotonachweise. */}
               <img src={photo.url} alt={`Verteilnachweis ${index + 1}`} />
               <figcaption>{photo.caption || formatDateTime(photo.takenAt)} / Standort anonymisiert</figcaption>
             </figure>
-          )) : <p className="muted">Fuer diesen Bericht wurden keine Kundenfotos freigegeben.</p>}
+          )) : <p className="muted">Für diesen Bericht wurden keine Kundenfotos freigegeben.</p>}
         </div>
-      </section>
+      </DataSection>
 
       {customerView.deviations.length > 0 ? (
-        <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-          <h2 className="sectionTitle">Hinweise zur Verteilung</h2>
+        <DataSection title="Hinweise zur Verteilung" description="Nur freigegebene, verständliche Hinweise sind sichtbar.">
           {customerView.deviations.map((deviation) => (
             <div className="notice" key={deviation.description}>
               <strong>{deviation.description}</strong>
               {deviation.resolution ? <p>{deviation.resolution}</p> : null}
             </div>
           ))}
-        </section>
+        </DataSection>
       ) : null}
 
-      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Pruefung</h2>
-        <div className="notice">
-          <strong>Von FLYERO geprueft</strong>
-          <p>Pruefdatum: {formatDateTime(report.publishedAt ?? report.approvedAt ?? report.generatedAt)}</p>
-          <p>Pruefcode: {report.verificationCode}</p>
-          <p>PDF-Bericht: {report.pdfUrl ? "bereit" : "wird erstellt"}</p>
+      <DataSection title="Prüfung" description="Der Bericht wurde intern geprüft, bevor er für Sie sichtbar wurde.">
+        <div className="customerFactList compact">
+          <p><span>Status</span><strong>Von FLYERO geprüft</strong></p>
+          <p><span>Prüfdatum</span><strong>{formatDateTime(reviewedAt)}</strong></p>
+          <p><span>PDF-Bericht</span><strong>{report.pdfUrl ? "Bereit" : "Wird erstellt"}</strong></p>
         </div>
-      </section>
+      </DataSection>
     </CustomerPortalShell>
   );
 }

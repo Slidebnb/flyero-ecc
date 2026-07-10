@@ -47,7 +47,7 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
         <div className="actions">
           <form action={`/api/admin/reports/${report.id}/regenerate`} method="post"><button type="submit">Bericht neu generieren</button></form>
           <form action={`/api/admin/reports/${report.id}/approve`} method="post"><button type="submit">Intern freigeben</button></form>
-          <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veroeffentlichen</button></form>
+          <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veröffentlichen</button></form>
           <form action={`/api/admin/reports/${report.id}/request-correction`} method="post"><button type="submit">Korrektur anfordern</button></form>
           <form action={`/api/admin/reports/${report.id}/archive`} method="post"><button type="submit">Bericht archivieren</button></form>
           {report.pdfUrl ? <a href={`/api/admin/reports/${report.id}/download`}>PDF ansehen</a> : null}
@@ -55,18 +55,18 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
       </section>
 
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Pruefstatus</h2>
+        <h2 className="sectionTitle">Prüfstatus</h2>
         <div className="tableWrap">
           <table>
             <tbody>
               <tr><th>Kunde</th><td>{report.order.customer.companyName}</td></tr>
               <tr><th>Auftrag</th><td>{report.order.orderNumber}</td></tr>
               <tr><th>Gebiet</th><td>{report.order.targetAreaName}</td></tr>
-              <tr><th>Interne Pruefung</th><td>{report.internalReviewStatus}</td></tr>
+              <tr><th>Interne Prüfung</th><td>{report.internalReviewStatus}</td></tr>
               <tr><th>Generiert</th><td>{formatDateTime(report.generatedAt)}</td></tr>
               <tr><th>Geprueft</th><td>{formatDateTime(report.reviewedAt ?? report.approvedAt)}</td></tr>
-              <tr><th>Veroeffentlicht</th><td>{formatDateTime(report.publishedAt)}</td></tr>
-              <tr><th>Pruefcode</th><td>{report.verificationCode}</td></tr>
+              <tr><th>Veröffentlicht</th><td>{formatDateTime(report.publishedAt)}</td></tr>
+              <tr><th>Prüfcode</th><td>{report.verificationCode}</td></tr>
               <tr><th>Checksum</th><td>{report.checksum ?? "-"}</td></tr>
               <tr><th>Admin-Flags</th><td>{data.analysis.flags.join(", ") || "-"}</td></tr>
             </tbody>

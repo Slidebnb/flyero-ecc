@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { TicketPriority, TicketType, UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName, customerReportName } from "@/app/customer/customerUx";
-import { ActionPanel, DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
+import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -18,15 +18,7 @@ const customerTicketTypes = [
   TicketType.CUSTOMER_SUPPORT,
   TicketType.COMPLAINT,
   TicketType.BILLING_ISSUE,
-  TicketType.TECHNICAL_ISSUE,
   TicketType.OTHER,
-];
-
-const customerPriorities = [
-  TicketPriority.NORMAL,
-  TicketPriority.HIGH,
-  TicketPriority.LOW,
-  TicketPriority.URGENT,
 ];
 
 async function customerOrderOptions(sessionId: string) {
@@ -55,7 +47,6 @@ async function createCustomerTicket(formData: FormData) {
     customerReportOptions(session.id),
   ]);
   const type = customerTicketTypes[Number(formData.get("typeKey") || 0)] ?? TicketType.CUSTOMER_SUPPORT;
-  const priority = customerPriorities[Number(formData.get("priorityKey") || 0)] ?? TicketPriority.NORMAL;
   const selectedReport = reports[Number(formData.get("reportKey") || -1)] ?? null;
   const selectedOrder = orders[Number(formData.get("orderKey") || -1)] ?? null;
   const report = selectedReport
@@ -67,7 +58,7 @@ async function createCustomerTicket(formData: FormData) {
 
   const ticket = await createTicket(session, {
     type,
-    priority,
+    priority: type === TicketType.COMPLAINT ? TicketPriority.HIGH : TicketPriority.NORMAL,
     subject: String(formData.get("subject") || ""),
     description: String(formData.get("description") || ""),
     orderId: report?.orderId ?? selectedOrder?.id,
@@ -94,29 +85,32 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
 
   const selectedReportIndex = reportId ? reports.findIndex((report) => report.id === reportId) : -1;
   const open = tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length;
-  const complaints = tickets.filter((ticket) => ticket.type === TicketType.COMPLAINT).length;
 
   return (
     <CustomerPortalShell
       active="/customer/support"
-      title="Support & Reklamationen"
-      description="Fragen, Reklamationen und Rückfragen zu Kampagnen oder Berichten zentral verfolgen."
+      title="Support"
+      description="Eine Frage stellen, eine Kampagne klären oder eine Rückfrage zum Bericht senden."
     >
       <section className="portalMetrics">
         <MetricTile label="Tickets" value={tickets.length} />
         <MetricTile label="Offen" value={open} tone={open ? "warning" : "success"} />
-        <MetricTile label="Reklamationen" value={complaints} tone={complaints ? "warning" : "neutral"} />
+        <MetricTile label="Antwort" value="im Portal" />
       </section>
 
-      <div className="portalDashboardGrid">
-        <ActionPanel title="Neues Ticket erstellen" description="Wählen Sie optional eine Kampagne oder einen Bericht aus, damit der Support schneller prüfen kann.">
-          <form action={createCustomerTicket} className="form">
+      <section className="customerFocusPanel">
+        <div>
+          <span className="customerTinyLabel">Schnellkontakt</span>
+          <h2>Was soll FLYERO prüfen?</h2>
+          <p>Wählen Sie optional eine Kampagne oder einen Bericht aus. So landet Ihre Anfrage direkt am richtigen Auftrag.</p>
+        </div>
+      </section>
+
+      <div className="customerTwoColumn">
+        <DataSection title="Neue Nachricht" description="Kurz beschreiben reicht. FLYERO ordnet den Rest intern zu.">
+          <form action={createCustomerTicket} className="form customerSimpleForm">
             <label>
               Thema
-              <input name="subject" required placeholder="Kurzer Betreff" />
-            </label>
-            <label>
-              Anliegen
               <select name="typeKey" defaultValue={selectedReportIndex >= 0 ? "1" : "0"}>
                 {customerTicketTypes.map((typeValue, index) => (
                   <option key={String(index)} value={String(index)}>{SUPPORT_TYPE_LABELS[typeValue]}</option>
@@ -124,17 +118,13 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
               </select>
             </label>
             <label>
-              Dringlichkeit
-              <select name="priorityKey" defaultValue={TicketPriority.NORMAL === customerPriorities[0] ? "0" : "1"}>
-                {customerPriorities.map((priority, index) => (
-                  <option key={String(index)} value={String(index)}>{SUPPORT_PRIORITY_LABELS[priority]}</option>
-                ))}
-              </select>
+              Betreff
+              <input name="subject" required placeholder="z. B. Rückfrage zur Verteilung" />
             </label>
             <label>
               Kampagne
               <select name="orderKey" defaultValue="">
-                <option value="">Keine Kampagne ausgewählt</option>
+                <option value="">Keine Kampagne auswählen</option>
                 {orders.map((order, index) => (
                   <option key={String(index)} value={String(index)}>{customerOrderName(order.orderNumber)} - {order.targetAreaName}</option>
                 ))}
@@ -143,7 +133,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
             <label>
               Bericht
               <select name="reportKey" defaultValue={selectedReportIndex >= 0 ? String(selectedReportIndex) : ""}>
-                <option value="">Kein Bericht ausgewählt</option>
+                <option value="">Keinen Bericht auswählen</option>
                 {reports.map((report, index) => (
                   <option key={String(index)} value={String(index)}>{customerReportName(report.reportNumber)} - {report.order.targetAreaName}</option>
                 ))}
@@ -151,29 +141,29 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
             </label>
             <label>
               Nachricht
-              <textarea name="description" required rows={5} placeholder="Beschreiben Sie kurz, was geprüft werden soll." />
+              <textarea name="description" required rows={5} placeholder="Wobei dürfen wir helfen?" />
             </label>
-            <button type="submit">Ticket senden</button>
+            <button type="submit">Nachricht senden</button>
           </form>
-        </ActionPanel>
+        </DataSection>
 
-        <DataSection title="Meine Tickets" description="Interne Notizen sind hier bewusst nicht sichtbar.">
-          <div className="tableWrap">
-            <table>
-              <thead><tr><th>Ticket</th><th>Anliegen</th><th>Status</th><th>Dringlichkeit</th><th></th></tr></thead>
-              <tbody>
-                {tickets.map((ticket) => (
-                  <tr key={ticket.id}>
-                    <td><strong>{ticket.ticketNumber}</strong><br />{ticket.subject}</td>
-                    <td>{SUPPORT_TYPE_LABELS[ticket.type]}</td>
-                    <td><StatusBadge tone={tone(ticket.status)}>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge></td>
-                    <td>{SUPPORT_PRIORITY_LABELS[ticket.priority]}</td>
-                    <td><Link className="textLink" href={`/customer/support/tickets/${ticket.id}`}>Öffnen</Link></td>
-                  </tr>
-                ))}
-                {tickets.length === 0 ? <tr><td colSpan={5}><EmptyState title="Noch keine Support-Tickets." description="Wenn etwas unklar ist, können Sie hier direkt ein Ticket eröffnen." /></td></tr> : null}
-              </tbody>
-            </table>
+        <DataSection title="Meine Anfragen" description="Offene Themen bleiben sichtbar, erledigte Themen rutschen nach unten.">
+          <div className="customerCampaignList compact">
+            {tickets.map((ticket) => (
+              <article className="customerCampaignItem" key={ticket.id}>
+                <div>
+                  <div className="customerItemHeader">
+                    <strong>{ticket.subject || ticket.ticketNumber}</strong>
+                    <StatusBadge tone={tone(ticket.status)}>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge>
+                  </div>
+                  <p>{SUPPORT_TYPE_LABELS[ticket.type]} · {SUPPORT_PRIORITY_LABELS[ticket.priority]}</p>
+                </div>
+                <Link className="secondaryButton" href={`/customer/support/tickets/${ticket.id}`}>Öffnen</Link>
+              </article>
+            ))}
+            {tickets.length === 0 ? (
+              <EmptyState title="Noch keine Support-Anfrage." description="Wenn etwas unklar ist, schreiben Sie FLYERO direkt hier." />
+            ) : null}
           </div>
         </DataSection>
       </div>

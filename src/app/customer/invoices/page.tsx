@@ -39,33 +39,35 @@ export default async function CustomerInvoicesPage() {
           <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
           <Link className="secondaryButton" href="/customer/payments">Zahlungen ansehen</Link>
         </div>
-        <div className="tableWrap customerTable">
-          <table>
-            <thead><tr><th>Rechnung</th><th>Kampagne</th><th>Status</th><th>Datum</th><th>Betrag</th><th>Aktion</th></tr></thead>
-            <tbody>
-              {invoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td data-label="Rechnung"><strong>{invoice.invoiceNumber}</strong></td>
-                  <td data-label="Kampagne">{customerOrderName(invoice.order.orderNumber)}</td>
-                  <td data-label="Status"><StatusBadge tone={invoice.status === "PAID" ? "success" : "warning"}>{INVOICE_STATUS_LABELS[invoice.status] ?? invoice.status}</StatusBadge></td>
-                  <td data-label="Datum">{formatDate(invoice.invoiceDate ?? invoice.createdAt)}</td>
-                  <td data-label="Betrag">{formatCurrency(invoice.totalGross)}</td>
-                  <td data-label="Aktion">{invoice.pdfUrl ? <a className="textLink" href={`/api/customer/invoices/${invoice.id}/download`}>PDF laden</a> : <Link className="textLink" href={`/customer/invoices/${invoice.id}`}>Ansehen</Link>}</td>
-                </tr>
-              ))}
-              {invoices.length === 0 ? (
-                <tr>
-                  <td colSpan={6}>
-                    <EmptyState
-                      title="Noch keine Rechnungen vorhanden."
-                      description="Rechnungen werden nach erfolgreicher Zahlung und Freigabe automatisch erzeugt."
-                      action={{ href: "/customer/orders", label: "Kampagnen prüfen" }}
-                    />
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="customerCampaignList">
+          {invoices.map((invoice) => (
+            <article className="customerCampaignItem" key={invoice.id}>
+              <div>
+                <div className="customerItemHeader">
+                  <strong>{invoice.invoiceNumber}</strong>
+                  <StatusBadge tone={invoice.status === "PAID" ? "success" : "warning"}>{INVOICE_STATUS_LABELS[invoice.status] ?? invoice.status}</StatusBadge>
+                </div>
+                <p>{customerOrderName(invoice.order.orderNumber)}</p>
+                <div className="customerItemMeta">
+                  <span>{formatDate(invoice.invoiceDate ?? invoice.createdAt)}</span>
+                  <span>{formatCurrency(invoice.totalGross)}</span>
+                  <span>{invoice.pdfUrl ? "PDF bereit" : "PDF wird erstellt"}</span>
+                </div>
+              </div>
+              {invoice.pdfUrl ? (
+                <a className="primaryButton" href={`/api/customer/invoices/${invoice.id}/download`}>PDF laden</a>
+              ) : (
+                <Link className="secondaryButton" href={`/customer/invoices/${invoice.id}`}>Ansehen</Link>
+              )}
+            </article>
+          ))}
+          {invoices.length === 0 ? (
+            <EmptyState
+              title="Noch keine Rechnungen vorhanden."
+              description="Rechnungen werden nach erfolgreicher Zahlung und Freigabe automatisch erzeugt."
+              action={{ href: "/customer/orders", label: "Kampagnen prüfen" }}
+            />
+          ) : null}
         </div>
       </DataSection>
     </CustomerPortalShell>

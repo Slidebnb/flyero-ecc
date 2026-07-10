@@ -35,7 +35,7 @@ export default async function CustomerPaymentsPage() {
   const openPayments = payments.filter((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING"].includes(payment.status));
 
   return (
-    <CustomerPortalShell active="/customer/payments" title="Zahlungen" description="Offene Beträge und bezahlte Kampagnen ohne technische Zahlungsdetails.">
+    <CustomerPortalShell active="/customer/payments" title="Zahlungen" description="Offene Beträge, bezahlte Kampagnen und Erstattungen auf einen Blick.">
       <section className="portalMetrics">
         <MetricTile label="Zahlungen" value={payments.length} />
         <MetricTile label="Bezahlt" value={payments.filter((payment) => payment.status === "PAID").length} tone="success" />
@@ -43,37 +43,38 @@ export default async function CustomerPaymentsPage() {
         <MetricTile label="Erstattungen" value={payments.reduce((sum, payment) => sum + payment.refunds.length, 0)} />
       </section>
 
-      <DataSection title="Zahlungen" description="Der nächste Schritt ist immer direkt in der passenden Kampagne sichtbar.">
+      <DataSection title="Zahlungen" description="Der nächste Schritt ist direkt in der passenden Kampagne sichtbar.">
         <div className="customerActionRow">
           <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
           <Link className="secondaryButton" href="/customer/invoices">Rechnungen ansehen</Link>
         </div>
-        <div className="tableWrap customerTable">
-          <table>
-            <thead><tr><th>Kampagne</th><th>Status</th><th>Betrag</th><th>Datum</th><th>Aktion</th></tr></thead>
-            <tbody>
-              {payments.map((payment) => (
-                <tr key={payment.id}>
-                  <td data-label="Kampagne"><Link className="textLink" href={`/customer/orders/${payment.orderId}`}>{customerOrderName(payment.order.orderNumber)}</Link></td>
-                  <td data-label="Status"><StatusBadge tone={tone(payment.status)}>{PAYMENT_LABELS[payment.status]}</StatusBadge></td>
-                  <td data-label="Betrag">{formatCurrency(payment.amount)}</td>
-                  <td data-label="Datum">{formatDateTime(payment.paidAt ?? payment.failedAt ?? payment.refundedAt ?? payment.updatedAt)}</td>
-                  <td data-label="Aktion"><Link className="textLink" href={`/customer/orders/${payment.orderId}`}>{payment.status === "PAID" ? "Kampagne ansehen" : "Zahlung prüfen"}</Link></td>
-                </tr>
-              ))}
-              {payments.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>
-                    <EmptyState
-                      title="Noch keine Zahlungen vorhanden."
-                      description="Zahlungen entstehen, sobald eine Kampagne zur Buchung vorbereitet wird."
-                      action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }}
-                    />
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
+        <div className="customerCampaignList">
+          {payments.map((payment) => (
+            <article className="customerCampaignItem" key={payment.id}>
+              <div>
+                <div className="customerItemHeader">
+                  <strong>{customerOrderName(payment.order.orderNumber)}</strong>
+                  <StatusBadge tone={tone(payment.status)}>{PAYMENT_LABELS[payment.status]}</StatusBadge>
+                </div>
+                <p>{payment.status === "PAID" ? "Zahlung erhalten." : "Bitte Kampagne öffnen, wenn eine Zahlung offen ist."}</p>
+                <div className="customerItemMeta">
+                  <span>{formatCurrency(payment.amount)}</span>
+                  <span>{formatDateTime(payment.paidAt ?? payment.failedAt ?? payment.refundedAt ?? payment.updatedAt)}</span>
+                  <span>{payment.refunds.length ? `${payment.refunds.length} Erstattung` : "Keine Erstattung"}</span>
+                </div>
+              </div>
+              <Link className={payment.status === "PAID" ? "secondaryButton" : "primaryButton"} href={`/customer/orders/${payment.orderId}`}>
+                {payment.status === "PAID" ? "Kampagne ansehen" : "Zahlung prüfen"}
+              </Link>
+            </article>
+          ))}
+          {payments.length === 0 ? (
+            <EmptyState
+              title="Noch keine Zahlungen vorhanden."
+              description="Zahlungen entstehen, sobald eine Kampagne zur Buchung vorbereitet wird."
+              action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }}
+            />
+          ) : null}
         </div>
       </DataSection>
     </CustomerPortalShell>

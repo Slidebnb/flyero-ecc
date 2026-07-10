@@ -50,9 +50,9 @@ export function gpsQualityLabel(score: number) {
 }
 
 export function customerGpsStatus(score: number, pointCount: number) {
-  if (pointCount < 3) return "GPS-Nachweis wird geprueft";
-  if (score >= 75) return "GPS-Nachweis vollstaendig";
-  return "GPS-Nachweis mit Einschraenkungen";
+  if (pointCount < 3) return "GPS-Nachweis wird geprüft";
+  if (score >= 75) return "GPS-Nachweis vollständig";
+  return "GPS-Nachweis mit Einschränkungen";
 }
 
 function anonymousDistributor(distributorId: string) {
@@ -186,8 +186,8 @@ function buildReportSnapshot(data: ReportData) {
       coverageExplanation:
         hasInternalGps
           ? "Das geplante Gebiet wurde anhand der verfuegbaren Tour- und Nachweisdaten dokumentiert. Der Wert ist kein Einzelbriefkasten-Nachweis."
-          : "Nachweis basiert auf externem GPS-Bericht und manueller Pruefung.",
-      privacyNote: "Personenbezogene Verteiler- und Rohdaten werden geschuetzt.",
+          : "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung.",
+      privacyNote: "Personenbezogene Verteiler- und Rohdaten werden geschützt.",
     },
   };
 }
@@ -360,7 +360,7 @@ export async function generatePdf(reportId: string) {
     `Kunde: ${customer.order.customerCompany}`,
     `Gebiet: ${customer.order.area}, ${customer.order.city} ${customer.order.postalCode}`,
     `Flyeranzahl: ${customer.order.flyerQuantity}`,
-    `Haushalte geschaetzt: ${customer.order.estimatedHouseholds ?? "-"}`,
+    `Haushalte geschätzt: ${customer.order.estimatedHouseholds ?? "-"}`,
     `Zeitraum: ${formatDateTime(customer.order.preferredStartDate)} bis ${formatDateTime(customer.order.preferredEndDate)}`,
     `Start: ${formatDateTime(customer.tour.startTime)}`,
     `Ende: ${formatDateTime(customer.tour.endTime)}`,
@@ -417,10 +417,10 @@ export async function createReportForTour(input: {
           status: "READY_FOR_REVIEW",
           template: input.template ?? "STANDARD",
           generatedAt: now,
-          approvedAt: data.tour.reviewedAt ?? now,
-          approvedById: data.tour.reviewedBy ?? input.adminUserId,
-          reviewedAt: data.tour.reviewedAt ?? now,
-          reviewedById: data.tour.reviewedBy ?? input.adminUserId,
+          approvedAt: data.tour.reviewedAt ?? null,
+          approvedById: data.tour.reviewedBy ? input.adminUserId : null,
+          reviewedAt: data.tour.reviewedAt ?? null,
+          reviewedById: data.tour.reviewedBy ? input.adminUserId : null,
           internalReviewStatus: "IN_REVIEW",
           version: { increment: 1 },
           reportVersion: { increment: 1 },
@@ -457,10 +457,10 @@ export async function createReportForTour(input: {
           template: input.template ?? "STANDARD",
           onlineUrl: "",
           generatedAt: now,
-          approvedAt: data.tour.reviewedAt ?? now,
-          approvedById: data.tour.reviewedBy ?? input.adminUserId,
-          reviewedAt: data.tour.reviewedAt ?? now,
-          reviewedById: data.tour.reviewedBy ?? input.adminUserId,
+          approvedAt: data.tour.reviewedAt ?? null,
+          approvedById: data.tour.reviewedBy ? input.adminUserId : null,
+          reviewedAt: data.tour.reviewedAt ?? null,
+          reviewedById: data.tour.reviewedBy ? input.adminUserId : null,
           internalReviewStatus: "IN_REVIEW",
           plannedAreaGeometry: data.order.targetAreaGeoJson ?? data.tour.plannedAreaGeometry ?? undefined,
           actualAreaGeometry: data.tour.actualAreaGeometry ?? undefined,
@@ -575,7 +575,7 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
   });
   if (!current) throw new Error("Report wurde nicht gefunden.");
   if (current.status === "PUBLISHED") return current;
-  if (!current.reportSnapshot) throw new Error("Bericht kann erst nach Snapshot-Erzeugung veroeffentlicht werden.");
+  if (!current.reportSnapshot) throw new Error("Bericht kann erst nach Snapshot-Erzeugung veröffentlicht werden.");
   const report = await prisma.report.update({
     where: { id: input.reportId },
     data: {
