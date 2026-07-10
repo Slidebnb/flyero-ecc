@@ -124,7 +124,7 @@ await includes("README.md", ["Modul 16", "Landingpage", "Leadflow"]);
 await includes("ARCHITECTURE_DECISIONS.md", ["Modul 16", "Lead-Modell", "rechtliche Seiten"]);
 await includes("package.json", ["test:module16-landing"]);
 await includes("src/app/PortalComponents.tsx", ["PortalShell", "PortalHeader", "PortalNav", "MetricTile", "ActionPanel", "DataSection", "StatusBadge", "EmptyState"]);
-await includes("src/app/customer/dashboard/page.tsx", ["PortalShell", "MetricTile", "ActionPanel"]);
+await includes("src/app/customer/dashboard/page.tsx", ["CustomerPortalShell", "customerPlainNextStep", "customerActionStack", "Neue Verteilung starten"]);
 await includes("src/app/warehouse/dashboard/page.tsx", ["PortalShell", "MetricTile", "DataSection"]);
 await includes("src/app/distributor/dashboard/page.tsx", ["PortalShell", "StatusBadge", "EmptyState"]);
 await includes("src/app/admin/dashboard/page.tsx", ["PortalShell", "MetricTile", "DataSection"]);

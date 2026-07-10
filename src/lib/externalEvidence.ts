@@ -4,9 +4,9 @@ import { z } from "zod";
 import { requireRole, type SessionUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { normalizeExtension, storeDocumentFile, protectedDocumentUrl, type UploadableDocumentFile } from "@/lib/documentStorage";
-import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { generateOnlineReportUrl, generateReportNumber } from "@/lib/reports";
+import { generateOnlineReportUrl, generateReportNumber, publishReport } from "@/lib/reports";
 
 const evidenceTypeSchema = z.enum(["GPS_PDF", "GPS_FILE", "PHOTO", "OTHER"]);
 const optionalDateFromForm = z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional());
@@ -278,31 +278,7 @@ export async function prepareExternalReportForOrder(input: {
 }
 
 export async function publishExternalReport(input: { actor: SessionUser; reportId: string }) {
-  const report = await prisma.report.update({
-    where: { id: input.reportId },
-    data: {
-      status: "PUBLISHED",
-      internalReviewStatus: "APPROVED",
-      approvedById: input.actor.id,
-      approvedAt: new Date(),
-      reviewedById: input.actor.id,
-      reviewedAt: new Date(),
-      publishedAt: new Date(),
-    },
-    include: { customer: true },
-  });
-  await prisma.document.updateMany({
-    where: { orderId: report.orderId, documentType: { in: ["REPORT", "IMAGE"] }, status: "APPROVED" },
-    data: { customerVisible: true, reviewStatus: "APPROVED" },
-  });
-  await createAuditLog({ userId: input.actor.id, action: "external_report.published", entityType: "Report", entityId: report.id });
-  await createNotification({
-    userId: report.customer.userId,
-    type: "REPORT_PUBLISHED",
-    title: "Verteilbericht verfügbar",
-    message: "Ihr Verteilbericht mit GPS-Nachweis des eingesetzten Trackingsystems ist verfügbar.",
-  });
-  return report;
+  return publishReport({ reportId: input.reportId, adminUserId: input.actor.id });
 }
 
 export async function requireAdminEvidenceSession() {

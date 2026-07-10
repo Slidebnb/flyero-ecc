@@ -57,6 +57,8 @@ for (const snippet of [
 assert(!evidenceService.includes("status: data.customerVisible"), "Uploads dürfen nicht per Client-Feld automatisch freigegeben werden.");
 assert(!evidenceService.includes("Math.random"), "External-Evidence-Service darf keine Fake-Daten erzeugen.");
 assert(!evidenceService.includes("actualCoveragePercent: new Prisma.Decimal"), "Externe MVP-Reports dürfen keine Fake-Coverage setzen.");
+assert(evidenceService.includes("publishReport({ reportId: input.reportId, adminUserId: input.actor.id })"), "Externe Report-Veröffentlichung muss die zentrale Snapshot-Freigabe verwenden.");
+assert(!evidenceService.includes("where: { orderId: report.orderId, documentType"), "Externe Report-Veröffentlichung darf nicht alle Auftragsnachweise pauschal freigeben.");
 
 const reportsService = await read("src/lib/reports.ts");
 for (const snippet of [
