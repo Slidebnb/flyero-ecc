@@ -87,7 +87,8 @@ export default async function CustomerProfilePage() {
           </DataSection>
         </div>
 
-        <div className="customerTwoColumn">
+        <details className="customerSoftDetails">
+          <summary>Lieferadresse nur bei Bedarf öffnen</summary>
           <DataSection title="Lieferadresse optional" description="Nur ausfüllen, wenn Flyer oder Druckdaten an eine andere Adresse gehen sollen.">
             <div className="form grid">
               <label>
@@ -108,7 +109,10 @@ export default async function CustomerProfilePage() {
               </label>
             </div>
           </DataSection>
+        </details>
 
+        <details className="customerSoftDetails">
+          <summary>Passwort ändern</summary>
           <DataSection title="Passwort optional" description="Nur ausfüllen, wenn Sie das Passwort ändern möchten.">
             <div className="form grid">
               <label>
@@ -121,7 +125,7 @@ export default async function CustomerProfilePage() {
               </label>
             </div>
           </DataSection>
-        </div>
+        </details>
 
         <div className="customerStickySave" id="profile-save">
           <span>Änderungen werden erst nach dem Speichern übernommen.</span>

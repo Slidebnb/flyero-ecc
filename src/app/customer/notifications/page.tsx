@@ -15,17 +15,17 @@ import { prisma } from "@/lib/prisma";
 
 export default async function CustomerNotificationsPage() {
   const session = await requireRole([UserRole.CUSTOMER]);
-  const [messages, preferences] = await Promise.all([
+  const [messages, preferences, unread] = await Promise.all([
     prisma.notificationMessage.findMany({
       where: { userId: session.id },
       include: { queues: { orderBy: { createdAt: "desc" }, take: 1 } },
       orderBy: { createdAt: "desc" },
-      take: 40,
+      take: 12,
     }),
     prisma.notificationPreference.findMany({ where: { userId: session.id }, orderBy: [{ type: "asc" }, { channel: "asc" }] }),
+    prisma.notificationMessage.count({ where: { userId: session.id, readAt: null } }),
   ]);
   const latestMessage = messages[0] ?? null;
-  const unread = messages.filter((message) => !message.readAt).length;
 
   return (
     <CustomerPortalShell
@@ -34,12 +34,12 @@ export default async function CustomerNotificationsPage() {
       description="Nur wichtige Hinweise zu Kampagnen, Dateien, Zahlungen und Nachweisen."
     >
       <section className={unread ? "customerWarningBanner" : "customerSuccessBanner"}>
-        <strong>{unread ? `${unread} neue Nachricht${unread === 1 ? "" : "en"}.` : "Keine offenen Hinweise."}</strong>
-        <span>{latestMessage ? safeCustomerSubject(latestMessage.type, latestMessage.subject) : "Wenn FLYERO etwas von Ihnen braucht, steht es hier."}</span>
+        <strong>{unread ? "Neue Hinweise vorhanden." : "Keine offenen Hinweise."}</strong>
+        <span>{unread ? `${unread} Nachricht${unread === 1 ? "" : "en"} warten auf Prüfung. Wichtigster Hinweis: ${latestMessage ? safeCustomerSubject(latestMessage.type, latestMessage.subject) : "FLYERO meldet sich, sobald etwas nötig ist."}` : "Wenn FLYERO etwas von Ihnen braucht, steht es hier."}</span>
         <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
       </section>
 
-      <DataSection title="Aktuelle Hinweise" description="Kurze Meldungen ohne interne Technik.">
+      <DataSection title="Aktuelle Hinweise" description="Die neuesten Meldungen zuerst. Ältere Hinweise bleiben im System gespeichert.">
         <div className="customerMessageList">
           {messages.map((message) => {
             const latestQueueStatus = message.queues[0]?.status;
@@ -62,19 +62,22 @@ export default async function CustomerNotificationsPage() {
         </div>
       </DataSection>
 
-      <DataSection title="Zustellung" description="Wichtige Hinweise stehen immer im Portal. Zusätzliche Kanäle sind hier zusammengefasst.">
-        <div className="customerPreferenceList">
-          {preferences.map((preference) => (
-            <p key={preference.id}>
-              <strong>{customerPreferenceLabel(preference.type)}</strong>
-              <span>{CUSTOMER_CHANNEL_LABELS[preference.channel]} · {preference.enabled ? "aktiv" : "deaktiviert"} · {customerNotificationTypeLabel(preference.type)}</span>
-            </p>
-          ))}
-          {preferences.length === 0 ? (
-            <EmptyState title="Standard aktiv." description="Wichtige Nachrichten werden automatisch im Portal angezeigt." />
-          ) : null}
-        </div>
-      </DataSection>
+      <details className="customerSoftDetails">
+        <summary>Benachrichtigungen einstellen</summary>
+        <DataSection title="Zustellung" description="Wichtige Hinweise stehen immer im Portal. Zusätzliche Kanäle sind hier zusammengefasst.">
+          <div className="customerPreferenceList">
+            {preferences.map((preference) => (
+              <p key={preference.id}>
+                <strong>{customerPreferenceLabel(preference.type)}</strong>
+                <span>{CUSTOMER_CHANNEL_LABELS[preference.channel]} · {preference.enabled ? "aktiv" : "deaktiviert"} · {customerNotificationTypeLabel(preference.type)}</span>
+              </p>
+            ))}
+            {preferences.length === 0 ? (
+              <EmptyState title="Standard aktiv." description="Wichtige Nachrichten werden automatisch im Portal angezeigt." />
+            ) : null}
+          </div>
+        </DataSection>
+      </details>
     </CustomerPortalShell>
   );
 }

@@ -5033,6 +5033,15 @@ body {
   padding: 0 18px 18px;
 }
 
+.customerSoftDetails > .dataSection {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .customerSoftDetails p {
   margin: 0;
   color: #a7b2c2;
@@ -5297,6 +5306,15 @@ body {
 .customerPreferenceList span {
   color: #9aa7b8;
   font-size: 0.88rem;
+}
+
+.customerMessageItem > div > span:first-child,
+.customerMessageItem > div > strong {
+  display: block;
+}
+
+.customerMessageItem > div > span:first-child {
+  margin-bottom: 4px;
 }
 
 .customerItemMeta span {
