@@ -2,6 +2,7 @@ import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
 import type { UserRole } from "@prisma/client";
 import { ROLE_HOME } from "@/lib/constants";
+import { publicUrl } from "@/lib/publicUrl";
 
 const COOKIE_NAME = process.env.AUTH_COOKIE_NAME || "ecc_session";
 
@@ -50,13 +51,13 @@ export async function proxy(request: NextRequest) {
   const role = await getRoleFromRequest(request);
 
   if (!role) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = publicUrl("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   if (!protectedRoute.roles.includes(role)) {
-    return NextResponse.redirect(new URL(ROLE_HOME[role], request.url));
+    return NextResponse.redirect(publicUrl(ROLE_HOME[role], request.url));
   }
 
   return NextResponse.next();

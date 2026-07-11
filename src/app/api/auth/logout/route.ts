@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { clearSessionCookie, getSession } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { publicUrl } from "@/lib/publicUrl";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (request.headers.get("accept")?.includes("text/html")) {
-    return NextResponse.redirect(new URL("/login", request.url), { status: 303 });
+    return NextResponse.redirect(publicUrl("/login", request.url), { status: 303 });
   }
 
   return Response.json({ ok: true });

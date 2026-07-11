@@ -6,6 +6,7 @@ import { readBody, errorResponse } from "@/lib/request";
 import { loginSchema } from "@/lib/validators";
 import { createAuditLog } from "@/lib/audit";
 import { ROLE_HOME } from "@/lib/constants";
+import { publicUrl } from "@/lib/publicUrl";
 
 function safeNext(value: unknown) {
   if (typeof value !== "string") return "";
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (request.headers.get("accept")?.includes("text/html")) {
-    return NextResponse.redirect(new URL(next || ROLE_HOME[user.role], request.url), {
+    return NextResponse.redirect(publicUrl(next || ROLE_HOME[user.role], request.url), {
       status: 303,
     });
   }
