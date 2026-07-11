@@ -1,0 +1,95 @@
+# FLYERO Deployment auf Hetzner
+
+Diese Anleitung beschreibt den einfachen MVP-Produktionsbetrieb auf einem Hetzner-Server mit Docker Compose, Postgres und Caddy.
+
+## DNS
+
+Bei IONOS:
+
+```text
+A      @      167.235.238.254
+A      www    167.235.238.254
+```
+
+## Serverstruktur
+
+```text
+/opt/flyero
+  Dockerfile
+  docker-compose.production.yml
+  Caddyfile
+  .env.production
+```
+
+## Erstes Deployment
+
+```bash
+sudo mkdir -p /opt/flyero
+sudo chown -R flyero:flyero /opt/flyero
+cd /opt/flyero
+git clone https://github.com/Slidebnb/flyero-ecc.git .
+cp .env.production.example .env.production
+nano .env.production
+docker compose -f docker-compose.production.yml build
+docker compose -f docker-compose.production.yml up -d postgres
+docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy
+docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml ps
+```
+
+## ENV-Pflichtwerte
+
+```env
+POSTGRES_PASSWORD="..."
+DATABASE_URL="postgresql://flyero:...@postgres:5432/flyero?schema=public"
+AUTH_SECRET="..."
+APP_URL="https://flyero.org"
+NEXT_PUBLIC_SITE_URL="https://flyero.org"
+```
+
+Für echte Registrierungs-E-Mails:
+
+```env
+EMAIL_PROVIDER="resend"
+EMAIL_FROM="FLYERO <noreply@flyero.org>"
+RESEND_API_KEY="..."
+```
+
+Alternativ SMTP:
+
+```env
+EMAIL_PROVIDER="smtp"
+SMTP_HOST="..."
+SMTP_PORT="587"
+SMTP_USER="..."
+SMTP_PASS="..."
+SMTP_FROM="FLYERO <noreply@flyero.org>"
+```
+
+## Updates
+
+```bash
+cd /opt/flyero
+git pull
+docker compose -f docker-compose.production.yml build app
+docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy
+docker compose -f docker-compose.production.yml up -d
+docker compose -f docker-compose.production.yml logs -f app
+```
+
+## Checks
+
+```bash
+curl -I https://flyero.org
+curl https://flyero.org/api/health
+docker compose -f docker-compose.production.yml ps
+docker compose -f docker-compose.production.yml logs --tail=100 app
+docker compose -f docker-compose.production.yml logs --tail=100 caddy
+```
+
+## Hinweise
+
+- Postgres ist nur im Docker-Netz erreichbar.
+- Caddy verwaltet HTTPS-Zertifikate automatisch.
+- `storage` und `public/generated` liegen in Docker-Volumes.
+- Keine Demo-Seeds in echter Produktion ausführen, außer bewusst für eine geschlossene Beta.
