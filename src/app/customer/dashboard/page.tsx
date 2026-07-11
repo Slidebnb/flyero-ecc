@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Camera, FileText, MapPinned, Navigation, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
-import { UserRole } from "@prisma/client";
+import { OrderStatus, type ReportStatus, UserRole } from "@prisma/client";
+import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_ORDER_STATUS_LABELS, customerAreaName, customerOrderName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
 import { EmptyState, StatusBadge } from "@/app/PortalComponents";
@@ -19,26 +20,120 @@ function formatDate(value?: Date | null) {
   return value ? value.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }) : "Termin offen";
 }
 
-function ProofPreview({ hasRealReport }: { hasRealReport: boolean }) {
+type DashboardOrder = {
+  id: string;
+  orderNumber: string;
+  targetAreaName: string;
+  city: string;
+  postalCode: string;
+  flyerQuantity: number;
+  status: OrderStatus;
+  preferredStartDate: Date;
+  calculatedGrossPrice: unknown;
+  targetAreaGeoJson: unknown;
+  distributionArea: { geoJson: unknown; geometryGeoJson: unknown } | null;
+};
+
+type DashboardReport = {
+  id: string;
+  reportNumber: string;
+  status: ReportStatus;
+  pdfUrl: string | null;
+  publishedAt: Date | null;
+  createdAt: Date;
+  order: {
+    orderNumber: string;
+    targetAreaName: string;
+    city: string;
+    targetAreaGeoJson: unknown;
+    distributionArea: { geoJson: unknown; geometryGeoJson: unknown } | null;
+    documents: { id: string; documentType: string }[];
+  };
+  tour: {
+    photoProofs: { id: string }[];
+    _count: { gpsPoints: number };
+  };
+};
+
+const runningStatuses = new Set<OrderStatus>();
+
+const completedStatuses = new Set<OrderStatus>([
+  OrderStatus.DISTRIBUTION_APPROVED,
+  OrderStatus.REPORT_READY_PREVIEW,
+]);
+
+function evidenceState(order: DashboardOrder | null, report: DashboardReport | null) {
+  if (report) return "completed";
+  if (!order) return "empty";
+  if (runningStatuses.has(order.status)) return "running";
+  if (completedStatuses.has(order.status)) return "review";
+  return "planned";
+}
+
+function evidenceGeoJson(order: DashboardOrder | null, report: DashboardReport | null) {
+  return report?.order.distributionArea?.geoJson
+    ?? report?.order.distributionArea?.geometryGeoJson
+    ?? report?.order.targetAreaGeoJson
+    ?? order?.distributionArea?.geoJson
+    ?? order?.distributionArea?.geometryGeoJson
+    ?? order?.targetAreaGeoJson
+    ?? null;
+}
+
+function CampaignEvidencePreview({ order, report, compact = false }: { order: DashboardOrder | null; report: DashboardReport | null; compact?: boolean }) {
+  const state = evidenceState(order, report);
+  const geoJson = evidenceGeoJson(order, report);
+  const gpsPoints = report?.tour._count.gpsPoints ?? 0;
+  const photoCount = report?.tour.photoProofs.length ?? 0;
+  const hasExternalGpsDocument = Boolean(report?.order.documents.some((document) => document.documentType === "REPORT"));
+  const hasGpsEvidence = Boolean(report && (gpsPoints > 0 || hasExternalGpsDocument || report.pdfUrl));
+  const hasPdf = Boolean(report?.pdfUrl);
+  const hasPublishedReport = report?.status === "PUBLISHED";
+  const title =
+    state === "empty"
+      ? "Noch kein Nachweis verfügbar."
+      : state === "completed"
+        ? "Geprüfter Nachweis verfügbar."
+        : state === "running"
+          ? "Verteilung wird vorbereitet."
+          : state === "review"
+            ? "Nachweise werden geprüft."
+            : "Gebiet geplant.";
+  const description =
+    state === "empty"
+      ? "Sobald die Verteilung abgeschlossen ist, sehen Sie hier GPS-Spur, Fotos und PDF-Bericht."
+      : state === "completed"
+        ? "Diese Übersicht basiert auf freigegebenen Kampagnendaten und geprüften Nachweisen."
+        : state === "running"
+          ? "FLYERO koordiniert die Zustellung. Nachweise erscheinen erst nach Prüfung."
+          : state === "review"
+            ? "Die Verteilung ist dokumentiert. FLYERO prüft Nachweise vor der Freigabe."
+            : "Das Verteilgebiet ist geplant. GPS-Nachweis, Fotos und PDF-Bericht folgen nach Durchführung und Prüfung.";
   const proofItems = [
-    { icon: Navigation, label: "GPS-Spur", value: hasRealReport ? "geprüft" : "Beispiel Koblenz" },
-    { icon: Camera, label: "Fotos", value: hasRealReport ? "im Bericht" : "Pins sichtbar" },
-    { icon: ShieldCheck, label: "Tour", value: hasRealReport ? "freigegeben" : "Beispielprüfung" },
-    { icon: FileText, label: "PDF", value: hasRealReport ? "bereit" : "Vorschau" },
+    { icon: Navigation, label: "GPS-Nachweis", value: hasGpsEvidence ? "verfügbar" : state === "running" ? "in Erfassung" : state === "empty" ? "noch nicht vorhanden" : "folgt" },
+    { icon: Camera, label: "Fotos", value: photoCount > 0 ? `${photoCount} freigegeben` : state === "running" ? "werden gesammelt" : state === "empty" ? "noch nicht vorhanden" : "folgen" },
+    { icon: ShieldCheck, label: "Prüfung", value: hasPublishedReport ? "abgeschlossen" : state === "empty" ? "noch nicht gestartet" : "nach Abschluss" },
+    { icon: FileText, label: "PDF-Bericht", value: hasPdf ? "bereit" : state === "empty" ? "noch nicht vorhanden" : "wird nach Abschluss erstellt" },
   ];
 
   return (
-    <div className="customerProofPreview" aria-label="FLYERO GPS- und Berichtsvorschau">
-      <div className="proofMapCanvas" aria-hidden="true">
-        <span className="proofRouteLine proofRouteLineA" />
-        <span className="proofRouteLine proofRouteLineB" />
-        <span className="proofRouteLine proofRouteLineC" />
-        <i className="proofPin proofPinA" />
-        <i className="proofPin proofPinB" />
-        <i className="proofPin proofPinC" />
-        <strong>Koblenz Süd</strong>
+    <div className={`customerEvidencePreview${compact ? " compact" : ""}`} aria-label="FLYERO Nachweisstatus">
+      <div className="evidencePreviewHeader">
+        <span>{state === "completed" ? "Echte Nachweise" : "Nachweisstatus"}</span>
+        <h3>{title}</h3>
+        <p>{description}</p>
       </div>
-      <div className="proofChecklist">
+      {geoJson && state !== "empty" ? (
+        <div className="evidenceMapFrame">
+          <DistributionAreaPreviewMap geoJson={geoJson} height={compact ? 180 : 230} />
+        </div>
+      ) : (
+        <div className="evidenceEmptyState">
+          <strong>{state === "empty" ? "Noch kein Nachweis verfügbar." : "Nachweis wird nach der Verteilung erstellt."}</strong>
+          <span>{state === "empty" ? "Starten Sie eine Kampagne, danach führt FLYERO Sie Schritt für Schritt weiter." : "Keine künstliche GPS-Spur, keine Demo-Fotos: hier erscheinen nur geprüfte echte Nachweise."}</span>
+        </div>
+      )}
+      <div className="evidenceStatusGrid">
         {proofItems.map((item) => {
           const Icon = item.icon;
           return (
@@ -101,6 +196,8 @@ export default async function CustomerDashboardPage() {
         status: true,
         preferredStartDate: true,
         calculatedGrossPrice: true,
+        targetAreaGeoJson: true,
+        distributionArea: { select: { geoJson: true, geometryGeoJson: true } },
       },
     }),
     prisma.report.findFirst({
@@ -111,8 +208,27 @@ export default async function CustomerDashboardPage() {
         reportNumber: true,
         status: true,
         pdfUrl: true,
+        publishedAt: true,
         createdAt: true,
-        order: { select: { orderNumber: true, targetAreaName: true, city: true } },
+        order: {
+          select: {
+            orderNumber: true,
+            targetAreaName: true,
+            city: true,
+            targetAreaGeoJson: true,
+            distributionArea: { select: { geoJson: true, geometryGeoJson: true } },
+            documents: {
+              where: { customerVisible: true, status: "APPROVED" },
+              select: { id: true, documentType: true },
+            },
+          },
+        },
+        tour: {
+          select: {
+            photoProofs: { where: { customerVisible: true, reviewStatus: "APPROVED" }, select: { id: true } },
+            _count: { select: { gpsPoints: true } },
+          },
+        },
       },
     }),
     prisma.invoice.findFirst({
@@ -143,7 +259,7 @@ export default async function CustomerDashboardPage() {
             <Link href={primaryReportHref}>Nachweis oder Rechnung</Link>
           </div>
         </div>
-        <ProofPreview hasRealReport={Boolean(latestReport)} />
+        <CampaignEvidencePreview order={lastOrder} report={latestReport} />
       </section>
 
       <div className="customerMissionGrid">
@@ -182,16 +298,16 @@ export default async function CustomerDashboardPage() {
         <section className="customerMissionPanel proofPanel">
           <div className="missionPanelHeader">
             <span>Welche Nachweise liegen vor?</span>
-            <h2>{latestReport ? latestReport.reportNumber : "Beispiel-Nachweis Koblenz"}</h2>
+            <h2>{latestReport ? latestReport.reportNumber : "Nachweise erscheinen erst nach der Verteilung"}</h2>
           </div>
-          <ProofPreview hasRealReport={Boolean(latestReport)} />
+          <CampaignEvidencePreview order={lastOrder} report={latestReport} compact />
           {latestReport ? (
             <div className="proofPanelFooter">
               <p>{customerAreaName(latestReport.order.targetAreaName)} / {latestReport.order.city}</p>
               <Link className="customerPanelLink" href={`/customer/reports/${latestReport.id}`}>Bericht ansehen<ArrowRight aria-hidden="true" /></Link>
             </div>
           ) : (
-            <p className="proofExampleNote">Beispielvorschau: echte GPS-Spuren, Fotos und PDF-Berichte erscheinen hier nach einer geprüften Tour.</p>
+            <p className="proofExampleNote">Noch kein Nachweis verfügbar. Sobald die Verteilung abgeschlossen ist, sehen Sie hier GPS-Spur, Fotos und PDF-Bericht.</p>
           )}
         </section>
 

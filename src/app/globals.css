@@ -5072,6 +5072,22 @@ body {
   opacity: 0;
 }
 
+.customerUploadLocked {
+  display: grid;
+  gap: 12px;
+}
+
+.customerUploadLocked > button[disabled] {
+  width: fit-content;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #8f9baa;
+  cursor: not-allowed;
+  padding: 11px 16px;
+  font-weight: 900;
+}
+
 .customerUnifiedContent .messageCard,
 .customerUnifiedContent .portalList p {
   border-bottom: 1px solid rgba(255,255,255,0.08);
@@ -5464,88 +5480,96 @@ body {
   height: 18px;
 }
 
-.customerProofPreview {
+.customerEvidencePreview {
   display: grid;
-  grid-template-rows: minmax(198px, 1fr) auto;
-  gap: 10px;
+  grid-template-rows: auto minmax(160px, 1fr) auto;
+  gap: 12px;
   overflow: hidden;
   min-height: 320px;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 24px;
   background:
-    linear-gradient(180deg, rgba(10, 22, 34, 0.72), rgba(4, 8, 12, 0.92)),
+    linear-gradient(180deg, rgba(10, 22, 34, 0.76), rgba(4, 8, 12, 0.94)),
     #071019;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 28px 76px rgba(0, 0, 0, 0.24);
   padding: 14px;
 }
 
-.proofMapCanvas {
-  position: relative;
-  min-height: 198px;
-  overflow: hidden;
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at 44% 48%, rgba(74, 144, 255, 0.24), transparent 20%),
-    repeating-linear-gradient(26deg, transparent 0 30px, rgba(92, 122, 156, 0.24) 31px 33px, transparent 34px 76px),
-    repeating-linear-gradient(116deg, transparent 0 34px, rgba(92, 122, 156, 0.18) 35px 37px, transparent 38px 82px),
-    linear-gradient(140deg, #0b1a27, #07111a 58%, #031016);
+.customerEvidencePreview.compact {
+  min-height: 280px;
+  padding: 12px;
 }
 
-.proofMapCanvas::before {
-  content: "";
-  position: absolute;
-  inset: 16% 9% 23% 13%;
-  border: 2px solid rgba(74, 144, 255, 0.88);
-  border-radius: 43% 57% 46% 54%;
-  background: rgba(31, 122, 255, 0.20);
-  box-shadow: 0 0 42px rgba(74, 144, 255, 0.34);
+.evidencePreviewHeader {
+  display: grid;
+  gap: 5px;
 }
 
-.proofRouteLine {
-  position: absolute;
-  height: 3px;
-  border-radius: 999px;
-  background: #55e071;
-  box-shadow: 0 0 20px rgba(85, 224, 113, 0.64);
-  transform-origin: left center;
+.evidencePreviewHeader span {
+  color: #b7e800;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
-.proofRouteLineA { width: 122px; left: 22%; top: 61%; transform: rotate(-18deg); }
-.proofRouteLineB { width: 96px; left: 43%; top: 48%; transform: rotate(31deg); }
-.proofRouteLineC { width: 84px; left: 55%; top: 33%; transform: rotate(-27deg); }
-
-.proofPin {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  border: 3px solid #ffffff;
-  border-radius: 50%;
-  background: #55e071;
-  box-shadow: 0 0 0 8px rgba(85, 224, 113, 0.16);
-}
-
-.proofPinA { left: 28%; top: 56%; }
-.proofPinB { left: 50%; top: 45%; }
-.proofPinC { left: 68%; top: 31%; }
-
-.proofMapCanvas strong {
-  position: absolute;
-  left: 20px;
-  bottom: 18px;
-  border-radius: 999px;
-  background: rgba(3, 5, 7, 0.76);
+.evidencePreviewHeader h3 {
+  margin: 0;
   color: #ffffff;
-  padding: 8px 12px;
-  font-size: 0.84rem;
+  font-size: clamp(1.08rem, 1.4vw, 1.45rem);
+  line-height: 1.12;
 }
 
-.proofChecklist {
+.evidencePreviewHeader p {
+  margin: 0;
+  color: #aeb9c8;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.evidenceMapFrame {
+  min-height: 160px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.evidenceMapFrame .mapFallback,
+.evidenceMapFrame .areaMap {
+  min-height: inherit;
+  border: 0;
+  border-radius: 18px;
+}
+
+.evidenceEmptyState {
+  min-height: 170px;
+  display: grid;
+  align-content: center;
+  gap: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  padding: 18px;
+}
+
+.evidenceEmptyState strong {
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.evidenceEmptyState span {
+  color: #9eabbc;
+  line-height: 1.5;
+}
+
+.evidenceStatusGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
-.proofChecklist div {
+.evidenceStatusGrid div {
   display: grid;
   gap: 5px;
   min-height: 82px;
@@ -5555,7 +5579,7 @@ body {
   padding: 10px;
 }
 
-.proofChecklist span {
+.evidenceStatusGrid span {
   width: 34px;
   height: 34px;
   display: grid;
@@ -5565,13 +5589,13 @@ body {
   color: #b7e800;
 }
 
-.proofChecklist p {
+.evidenceStatusGrid p {
   margin: 0;
   color: #98a6b8;
   font-size: 0.74rem;
 }
 
-.proofChecklist strong {
+.evidenceStatusGrid strong {
   color: #ffffff;
   font-size: 0.85rem;
 }
@@ -5664,16 +5688,7 @@ body {
   text-align: right;
 }
 
-.proofPanel .customerProofPreview {
-  min-height: 280px;
-  padding: 12px;
-}
-
-.proofPanel .proofMapCanvas {
-  min-height: 160px;
-}
-
-.proofPanel .proofChecklist {
+.proofPanel .evidenceStatusGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -5769,7 +5784,7 @@ body {
   }
 
   .customerCommandCopy,
-  .customerProofPreview,
+  .customerEvidencePreview,
   .customerMissionPanel {
     min-height: auto;
   }

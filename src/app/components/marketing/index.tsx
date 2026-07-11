@@ -266,7 +266,7 @@ export function HeroVisual() {
 }
 
 export function ProofMockup({ area = "Koblenz Süd" }: { area?: string }) {
-  const proofItems = ["GPS-Spur aktiv", "12 Fotos geprüft", "PDF-Bericht bereit", "Tour freigegeben"];
+  const proofItems = ["GPS-Nachweis", "Foto-Dokumentation", "PDF-Bericht", "FLYERO Prüfung"];
 
   return (
     <div className="mkProofMockup" aria-label={`FLYERO Nachweisvorschau für ${area}`}>

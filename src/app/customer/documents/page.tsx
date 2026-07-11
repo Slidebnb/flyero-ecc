@@ -73,8 +73,8 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
       <section className="customerFocusPanel">
         <div>
           <span className="customerTinyLabel">Nächster Schritt</span>
-          <h2>{hasOrders ? (openDocument ? "Dateistatus prüfen oder neue Datei hochladen." : "Flyerdatei hochladen.") : "Erst eine Kampagne starten."}</h2>
-          <p>{hasOrders ? "Eine Datei, eine Kampagne, danach prüft FLYERO die Druckdaten." : "Dateien und Druck gehören immer zu einer Kampagne."}</p>
+          <h2>{hasOrders ? (openDocument ? "Dateistatus prüfen oder neue Datei hochladen." : "Flyerdatei hochladen.") : "Erst Kampagne starten"}</h2>
+          <p>{hasOrders ? "Druckdaten können hochgeladen werden, danach prüft FLYERO die Datei." : "Druckdaten können hochgeladen werden, sobald eine Kampagne angelegt ist."}</p>
         </div>
         {hasOrders ? (
           <a className="primaryButton" href="#flyer-upload">Datei hochladen</a>
@@ -98,7 +98,10 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
               <button type="submit">Datei senden</button>
             </form>
           ) : (
-            <EmptyState title="Noch keine Kampagne." description="Starten Sie zuerst eine Verteilung, dann können Dateien zugeordnet werden." action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }} />
+            <div className="customerUploadLocked">
+              <EmptyState title="Noch keine Kampagne." description="Starten Sie zuerst eine Verteilung, dann können Dateien zugeordnet werden." action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }} />
+              <button type="button" disabled={orders.length === 0}>Erst Kampagne starten</button>
+            </div>
           )}
         </DataSection>
 
