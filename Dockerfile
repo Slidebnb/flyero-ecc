@@ -2,6 +2,7 @@ FROM node:22-bookworm-slim AS app
 
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL=postgresql://flyero:flyero@localhost:5432/flyero?schema=public
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates \
