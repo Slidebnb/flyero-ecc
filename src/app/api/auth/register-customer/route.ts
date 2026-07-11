@@ -11,6 +11,7 @@ import {
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
+import { sendVerificationEmail } from "@/lib/verificationEmail";
 
 function safeNext(value: unknown) {
   if (typeof value !== "string") return "";
@@ -90,6 +91,14 @@ export async function POST(request: NextRequest) {
       title: "Neuer Kunde registriert",
       message: `${data.companyName} hat ein Kundenkonto erstellt.`,
     });
+    const verificationDelivery = await sendVerificationEmail({
+      email: user.email,
+      token: verificationToken,
+      requestUrl: request.url,
+    }).then(
+      () => ({ sent: true, error: null }),
+      (error) => ({ sent: false, error: error instanceof Error ? error.message : "Versand fehlgeschlagen" }),
+    );
 
     if (request.headers.get("accept")?.includes("text/html")) {
       const loginUrl = publicUrl("/login", request.url);
@@ -104,6 +113,8 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           role: user.role,
           redirectTo: next ? `/login?next=${encodeURIComponent(next)}` : "/login",
+          verificationEmailSent: verificationDelivery.sent,
+          verificationEmailError: verificationDelivery.sent ? undefined : verificationDelivery.error,
           verificationToken:
             process.env.NODE_ENV === "production" ? undefined : verificationToken,
         },

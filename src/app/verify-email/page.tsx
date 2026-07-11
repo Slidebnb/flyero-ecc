@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { VerifyEmailForm } from "@/app/verify-email/VerifyEmailForm";
 import { noIndexMetadata } from "@/app/seo";
 
 export const metadata: Metadata = {
@@ -18,22 +19,14 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
   return (
     <main className="authShell">
       <section className="authPanel compact">
-        <Link href="/" className="authBack">Zur Startseite</Link>
+        <Link href="/" className="authBack">
+          Zur Startseite
+        </Link>
         <h1>E-Mail bestätigen</h1>
         <p className="muted">
-          Gib den Verifizierungstoken ein. Nach erfolgreicher Bestätigung kannst
-          du dich einloggen.
+          Bestätige deine E-Mail-Adresse über den Link aus deiner E-Mail oder fordere einen neuen Link an.
         </p>
-        <form action="/api/auth/verify-email" method="post" className="form">
-          <label>
-            Verifizierungstoken
-            <input name="token" defaultValue={params.token || ""} required />
-          </label>
-          <button type="submit">E-Mail bestätigen</button>
-        </form>
-        <p className="muted">
-          Bereits bestätigt? <Link href="/login">Zum Login</Link>
-        </p>
+        <VerifyEmailForm initialToken={params.token || ""} />
       </section>
     </main>
   );

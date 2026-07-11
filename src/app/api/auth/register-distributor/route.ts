@@ -11,6 +11,7 @@ import {
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
+import { sendVerificationEmail } from "@/lib/verificationEmail";
 
 export async function POST(request: NextRequest) {
   const parsed = distributorRegisterSchema.safeParse(await readBody(request));
@@ -90,6 +91,14 @@ export async function POST(request: NextRequest) {
       title: "Neuer Verteiler registriert",
       message: `${data.firstName} ${data.lastName} wartet nach E-Mail-Bestätigung auf Prüfung.`,
     });
+    const verificationDelivery = await sendVerificationEmail({
+      email: user.email,
+      token: verificationToken,
+      requestUrl: request.url,
+    }).then(
+      () => ({ sent: true, error: null }),
+      (error) => ({ sent: false, error: error instanceof Error ? error.message : "Versand fehlgeschlagen" }),
+    );
 
     if (request.headers.get("accept")?.includes("text/html")) {
       return NextResponse.redirect(publicUrl("/login", request.url), { status: 303 });
@@ -101,6 +110,8 @@ export async function POST(request: NextRequest) {
         data: {
           userId: user.id,
           role: user.role,
+          verificationEmailSent: verificationDelivery.sent,
+          verificationEmailError: verificationDelivery.sent ? undefined : verificationDelivery.error,
           verificationToken:
             process.env.NODE_ENV === "production" ? undefined : verificationToken,
         },

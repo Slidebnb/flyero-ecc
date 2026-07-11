@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   await createNotification({
     userId: user.id,
     type: "EMAIL_VERIFIED",
-    title: "E-Mail bestaetigt",
+    title: "E-Mail bestätigt",
     message:
       user.role === "DISTRIBUTOR"
         ? "Dein Profil wird jetzt geprüft."
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     await notifyAdmins({
       type: "DISTRIBUTOR_PENDING_REVIEW",
       title: "Verteiler wartet auf Prüfung",
-      message: `${user.email} hat die E-Mail bestaetigt und wartet auf Freigabe.`,
+      message: `${user.email} hat die E-Mail bestätigt und wartet auf Freigabe.`,
     });
   }
 

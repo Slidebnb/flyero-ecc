@@ -47,7 +47,15 @@ export async function POST(request: NextRequest) {
   }
 
   if (user.status === "EMAIL_UNVERIFIED") {
-    return errorResponse("Bitte bestätige zuerst deine E-Mail-Adresse.", 403);
+    return Response.json(
+      {
+        ok: false,
+        code: "EMAIL_UNVERIFIED",
+        error: "Bitte bestätige zuerst deine E-Mail-Adresse.",
+        email: user.email,
+      },
+      { status: 403 },
+    );
   }
 
   await setSessionCookie({ id: user.id, email: user.email, role: user.role, warehouseId: user.warehouseId });

@@ -6066,6 +6066,40 @@ body {
   text-underline-offset: 4px;
 }
 
+.authNotice {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 16px;
+  background: #f7f9fb;
+  color: #111111;
+  line-height: 1.45;
+}
+
+.authNotice strong {
+  font-size: 0.98rem;
+}
+
+.authNotice span {
+  color: #3d4854;
+}
+
+.authNotice.success {
+  border-color: rgba(75, 176, 89, 0.34);
+  background: #effaf1;
+}
+
+.authNotice.warning {
+  border-color: rgba(216, 151, 34, 0.36);
+  background: #fff7e8;
+}
+
+.authNotice.danger {
+  border-color: rgba(230, 91, 88, 0.36);
+  background: #fff1f0;
+}
+
 .authPanel .form {
   display: grid;
   gap: 16px;
@@ -6122,6 +6156,11 @@ body {
   background: #a6d900;
 }
 
+.authPanel button:disabled {
+  cursor: progress;
+  opacity: 0.68;
+}
+
 .authPanel .form button,
 .authPanel .form .checkbox,
 .authPanel .form .fieldset,
@@ -6163,6 +6202,58 @@ body {
   height: 18px;
   padding: 0;
   accent-color: #b7e800;
+}
+
+.authHelpPanel {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  color: #111111;
+}
+
+.authHelpPanel p {
+  margin: 0;
+  color: #5f6b78;
+  line-height: 1.5;
+}
+
+.authHelpPanel label {
+  display: grid;
+  gap: 8px;
+  color: #222b35;
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.authHelpPanel input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d8dee7;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #ffffff;
+  color: #111111;
+  font: inherit;
+}
+
+.authHelpPanel input:focus {
+  outline: 3px solid rgba(183, 232, 0, 0.34);
+  border-color: #8fb800;
+}
+
+.authHelpPanel button {
+  min-height: 46px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 18px;
+  background: #111111;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
 }
 
 .flyeroAuthShell {
@@ -6239,6 +6330,31 @@ body {
   color: #ffffff;
 }
 
+.flyeroAuthPanel .authNotice {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.flyeroAuthPanel .authNotice span {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.flyeroAuthPanel .authNotice.success {
+  border-color: rgba(167, 255, 0, 0.32);
+  background: rgba(167, 255, 0, 0.12);
+}
+
+.flyeroAuthPanel .authNotice.warning {
+  border-color: rgba(255, 198, 87, 0.34);
+  background: rgba(255, 198, 87, 0.12);
+}
+
+.flyeroAuthPanel .authNotice.danger {
+  border-color: rgba(255, 101, 88, 0.34);
+  background: rgba(255, 101, 88, 0.12);
+}
+
 .authProofStrip {
   display: flex;
   flex-wrap: wrap;
@@ -6285,6 +6401,21 @@ body {
 
 .flyeroAuthPanel .form button:hover {
   background: #b8ff23;
+}
+
+.flyeroAuthPanel .authHelpPanel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.flyeroAuthPanel .authHelpPanel p {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.flyeroAuthPanel .authHelpPanel button {
+  background: #ffffff;
+  color: #111111;
 }
 
 @media (max-width: 720px) {
