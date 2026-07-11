@@ -5,6 +5,7 @@ import { DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalC
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getMonitoringDashboard, runHealthCheck } from "@/lib/monitoring";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 function healthTone(status?: HealthStatus | null) {
   if (status === HealthStatus.OK) return "success";
@@ -32,12 +33,7 @@ export default async function AdminMonitoringPage() {
       eyebrow="Admin Monitoring"
       title="Systemstatus"
       description="Zentrale Übersicht für Health Checks, Fehlerlogs, Background Jobs und Queue-Zustände."
-      navItems={[
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/monitoring", label: "Monitoring" },
-        { href: "/admin/monitoring/errors", label: "Fehlerlogs" },
-        { href: "/admin/settings", label: "Einstellungen" },
-      ]}
+      navItems={adminNavItems}
     >
       <section className="portalMetrics">
         <MetricTile label="Gesamtstatus" value={latest?.status ?? "OK"} tone={healthTone(latest?.status)} />

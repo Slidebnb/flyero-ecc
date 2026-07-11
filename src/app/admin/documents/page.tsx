@@ -4,6 +4,7 @@ import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@
 import { requireRole } from "@/lib/auth";
 import { addDocumentComment, approveDocument, DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, getDocumentAnalytics, listDocuments, rejectDocument } from "@/lib/documents";
 import { prisma } from "@/lib/prisma";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function approveAction(formData: FormData) {
   "use server";
@@ -50,7 +51,7 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
   ]);
 
   return (
-    <PortalShell eyebrow="Adminbereich" title="Dokumentenzentrale" description="Druckdateien, Freigaben, Versionen und Dokumentrechte zentral prüfen." navItems={[{ href: "/admin/dashboard", label: "Dashboard" }, { href: "/admin/print-orders", label: "Druckaufträge" }, { href: "/admin/print-partners", label: "Druckpartner" }, { href: "/admin/support", label: "Support" }]}>
+    <PortalShell eyebrow="Adminbereich" title="Dokumentenzentrale" description="Druckdateien, Freigaben, Versionen und Dokumentrechte zentral prüfen." navItems={adminNavItems}>
       <section className="portalMetrics">
         <MetricTile label="Dokumente" value={analytics.documents} />
         <MetricTile label="Versionen" value={analytics.versions} />

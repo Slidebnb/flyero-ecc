@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { ActionPanel, DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { getAssignableUsers, listCrmLeads, parseLeadListFilters, updateCrmLead } from "@/lib/crm";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type CrmPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -64,13 +65,7 @@ export default async function AdminCrmPage({ searchParams }: CrmPageProps) {
       eyebrow="CRM"
       title="Leadpipeline"
       description="Interessenten aus Landingpage, Kontaktformular und Vertrieb sauber qualifizieren, nachfassen und in Kunden umwandeln."
-      navItems={[
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/crm", label: "CRM" },
-        { href: "/admin/crm/followups", label: "Follow-ups" },
-        { href: "/admin/leads", label: "Alte Leadliste" },
-        { href: "/admin/analytics", label: "Analytics" },
-      ]}
+      navItems={adminNavItems}
     >
       <section className="portalMetrics">
         <MetricTile label="Leads im Filter" value={leads.length} />

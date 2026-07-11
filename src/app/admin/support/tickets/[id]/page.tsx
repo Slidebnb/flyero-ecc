@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { SupportTicketStatus, TicketMessageVisibility, TicketPriority, UserRole } from "@prisma/client";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 import { ActionPanel, DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -68,12 +69,7 @@ export default async function AdminTicketDetailPage({ params }: PageProps) {
       eyebrow="Admin Support"
       title={ticket.ticketNumber}
       description={ticket.subject}
-      navItems={[
-        { href: "/admin/support", label: "Support" },
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/reports", label: "Berichte" },
-        { href: "/admin/tours", label: "Touren" },
-      ]}
+      navItems={adminNavItems}
     >
       <div className="portalDashboardGrid">
         <DataSection title="Kontext">

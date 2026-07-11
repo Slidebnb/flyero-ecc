@@ -1,5 +1,5 @@
-﻿import Link from "next/link";
-import { AreaDataSourceType, DistributionAreaStatus, DistributionAreaType, UserRole } from "@prisma/client";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+﻿import { AreaDataSourceType, DistributionAreaStatus, DistributionAreaType, UserRole } from "@prisma/client";
 import { DistributionAreaEditor } from "@/app/components/DistributionAreaEditor";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { requireRole } from "@/lib/auth";
@@ -78,18 +78,7 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
   }));
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Gebietsmanagement</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/orders">Aufträge</Link>
-          <Link href="/admin/dispatch">Disposition</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title="Gebietsmanagement">
 
       <section className="gridCards">
         <article className="card"><strong>{areas.length}</strong><span>Gebiete</span></article>
@@ -304,7 +293,7 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
         ))}
         {areas.length === 0 ? <p className="muted">Keine Gebiete gefunden.</p> : null}
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }
 

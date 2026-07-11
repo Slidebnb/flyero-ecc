@@ -1,5 +1,5 @@
-﻿import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+﻿import { revalidatePath } from "next/cache";
 import { Prisma, UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
@@ -45,8 +45,7 @@ export default async function PricingSettingsPage() {
   const settingValue = (key: string) => settings.find((setting) => setting.key === key)?.valueDecimal.toString() ?? "0";
 
   return (
-    <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Preise</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
+    <AdminPortalShell eyebrow="Einstellungen" title="Preise">
       <form action={savePricing} className="panel stack widePanel">
         <div className="formGrid">
           <label>MwSt.<input name={PRICING_SETTING_KEYS.vatRate} defaultValue={settingValue(PRICING_SETTING_KEYS.vatRate)} /></label>
@@ -72,7 +71,7 @@ export default async function PricingSettingsPage() {
         </div>
         <button type="submit">Speichern</button>
       </form>
-    </main>
+    </AdminPortalShell>
   );
 }
 

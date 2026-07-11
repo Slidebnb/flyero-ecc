@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
-import { ActionPanel, DataSection, MetricTile, PortalShell } from "@/app/PortalComponents";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { ActionPanel, DataSection, MetricTile } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -36,28 +37,10 @@ export default async function AdminDashboardPage() {
   ]);
 
   return (
-    <PortalShell
+    <AdminPortalShell
       eyebrow="Adminbereich"
       title="Übersicht"
       description="Operativer Kontrollraum für Aufträge, Leads, Zahlungen, Lager und Tourprüfung."
-      navItems={[
-        { href: "/admin/orders", label: "Aufträge" },
-        { href: "/admin/orders?status=PAID_WAITING_FOR_ADMIN_REVIEW", label: "Bezahlte Prüfung" },
-        { href: "/admin/payments", label: "Payments" },
-        { href: "/admin/leads", label: "Leads" },
-        { href: "/admin/crm", label: "CRM" },
-        { href: "/admin/support", label: "Support" },
-        { href: "/admin/documents", label: "Dokumente" },
-        { href: "/admin/analytics", label: "Analytics" },
-        { href: "/admin/monitoring", label: "Monitoring" },
-        { href: "/admin/invoices", label: "Rechnungen" },
-        { href: "/admin/accounting", label: "Buchhaltung" },
-        { href: "/admin/distributors", label: "Verteilerprüfung" },
-        { href: "/admin/warehouse", label: "Lager" },
-        { href: "/admin/logistics", label: "Logistik" },
-        { href: "/admin/settings", label: "Einstellungen" },
-        { href: "/admin/tours", label: "Touren" },
-      ]}
     >
       <section className="portalMetrics">
         <MetricTile label="Neue Kunden" value={newCustomers} />
@@ -98,6 +81,6 @@ export default async function AdminDashboardPage() {
           </div>
         </DataSection>
       </div>
-    </PortalShell>
+    </AdminPortalShell>
   );
 }

@@ -4,15 +4,8 @@ import { DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalC
 import { requireRole } from "@/lib/auth";
 import { getLogisticsAnalytics } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
-const adminNav = [
-  { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/logistics", label: "Logistik" },
-  { href: "/admin/logistics/shipments", label: "Sendungen" },
-  { href: "/admin/warehouse", label: "Lager alt" },
-  { href: "/admin/orders", label: "Aufträge" },
-  { href: "/admin/settings", label: "Einstellungen" },
-];
 
 export default async function AdminLogisticsPage() {
   await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
@@ -25,7 +18,7 @@ export default async function AdminLogisticsPage() {
   ]);
 
   return (
-    <PortalShell eyebrow="Admin Logistik" title="Logistik-Zentrale" description="Multi-Lager, Lieferungen, Umlagerungen und Inventurdifferenzen im Überblick." navItems={adminNav}>
+    <PortalShell eyebrow="Admin Logistik" title="Logistik-Zentrale" description="Multi-Lager, Lieferungen, Umlagerungen und Inventurdifferenzen im Überblick." navItems={adminNavItems}>
       <section className="portalMetrics">
         <MetricTile label="Aktive Lager" value={warehouses.filter((item) => item.isActive).length} tone="success" />
         <MetricTile label="Offene Lieferungen" value={analytics.openShipments} tone={analytics.openShipments ? "warning" : "success"} />

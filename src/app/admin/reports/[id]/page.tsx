@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { collectReportData } from "@/lib/reports";
 import { prisma } from "@/lib/prisma";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -22,18 +23,8 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
   const deviations = await prisma.distributionDeviation.findMany({ where: { orderId: report.orderId }, orderBy: { createdAt: "asc" } });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbericht</p>
-          <h1>{report.reportNumber}</h1>
-          <span className="badge">{report.status}</span>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/reports">Alle Berichte</Link>
-          <Link href={`/admin/tours/${report.tourId}`}>Tour</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title={report.reportNumber}>
+      <div className="portalActions"><Link href="/admin/reports">Alle Berichte</Link></div>
 
       <section className="gridCards">
         <article className="card"><strong>{data.qualityScore}</strong><span>GPS-Score</span></article>
@@ -64,7 +55,7 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
               <tr><th>Gebiet</th><td>{report.order.targetAreaName}</td></tr>
               <tr><th>Interne Prüfung</th><td>{report.internalReviewStatus}</td></tr>
               <tr><th>Generiert</th><td>{formatDateTime(report.generatedAt)}</td></tr>
-              <tr><th>Geprueft</th><td>{formatDateTime(report.reviewedAt ?? report.approvedAt)}</td></tr>
+              <tr><th>Geprüft</th><td>{formatDateTime(report.reviewedAt ?? report.approvedAt)}</td></tr>
               <tr><th>Veröffentlicht</th><td>{formatDateTime(report.publishedAt)}</td></tr>
               <tr><th>Prüfcode</th><td>{report.verificationCode}</td></tr>
               <tr><th>Checksum</th><td>{report.checksum ?? "-"}</td></tr>
@@ -100,6 +91,6 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
           }))}
         />
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }

@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { AccountingExportFormat, AccountingExportType, UserRole } from "@prisma/client";
 import { createAccountingExport, archiveExport } from "@/lib/accountingExport";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 async function startExport(formData: FormData) {
   "use server";
@@ -44,19 +44,7 @@ export default async function AdminAccountingPage() {
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Buchhaltungsexport</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/invoices">Rechnungen</Link>
-          <Link href="/admin/payments">Payments</Link>
-          <Link href="/admin/settings">Einstellungen</Link>
-          <Link href="/admin/dashboard">Dashboard</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title="Buchhaltungsexport">
 
       <section className="panel stack widePanel">
         <h2 className="sectionTitle">Neuer Export</h2>
@@ -105,6 +93,6 @@ export default async function AdminAccountingPage() {
           </tbody>
         </table>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }

@@ -3,6 +3,7 @@ import { UserRole } from "@prisma/client";
 import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { listPrintOrders, listPrintPartners, PRINT_STATUS_LABELS, updatePrintOrder } from "@/lib/documents";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function updateAction(formData: FormData) {
   "use server";
@@ -21,7 +22,7 @@ export default async function AdminPrintOrdersPage() {
   const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const [printOrders, partners] = await Promise.all([listPrintOrders(session), listPrintPartners()]);
   return (
-    <PortalShell eyebrow="Adminbereich" title="Druckaufträge" description="Status, Partner, Tracking und manuelle FLYERO-Druckpreise pflegen." navItems={[{ href: "/admin/documents", label: "Dokumente" }, { href: "/admin/print-partners", label: "Druckpartner" }, { href: "/admin/warehouse", label: "Lager" }]}>
+    <PortalShell eyebrow="Adminbereich" title="Druckaufträge" description="Status, Partner, Tracking und manuelle FLYERO-Druckpreise pflegen." navItems={adminNavItems}>
       <section className="portalMetrics">
         <MetricTile label="Druckaufträge" value={printOrders.length} />
         <MetricTile label="Produktion" value={printOrders.filter((item) => item.status === "IN_PRODUCTION").length} />

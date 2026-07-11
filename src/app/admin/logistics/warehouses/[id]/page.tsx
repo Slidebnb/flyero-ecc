@@ -4,6 +4,7 @@ import { UserRole } from "@prisma/client";
 import { DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -30,7 +31,7 @@ export default async function AdminWarehouseDetailPage({ params }: PageProps) {
       eyebrow="Admin Logistik"
       title={warehouse.name}
       description={`${warehouse.code} / ${warehouse.postalCode} ${warehouse.city}`}
-      navItems={[{ href: "/admin/logistics", label: "Logistik" }, { href: "/admin/logistics/shipments", label: "Sendungen" }, { href: "/admin/dashboard", label: "Dashboard" }]}
+      navItems={adminNavItems}
     >
       <section className="portalMetrics">
         <MetricTile label="Auslastung" value={`${utilizationPercent}%`} tone={typeof utilizationPercent === "number" && utilizationPercent > 90 ? "warning" : "neutral"} />

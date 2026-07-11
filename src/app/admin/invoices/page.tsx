@@ -4,6 +4,7 @@ import { EmptyState } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 export default async function AdminInvoicesPage() {
   await requireRole([UserRole.ADMIN]);
@@ -13,18 +14,7 @@ export default async function AdminInvoicesPage() {
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Rechnungen</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/orders">Aufträge</Link>
-          <Link href="/admin/payments">Payments</Link>
-          <Link href="/admin/dashboard">Dashboard</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title="Rechnungen">
 
       <section className="panel tableWrap widePanel">
         <table>
@@ -67,7 +57,7 @@ export default async function AdminInvoicesPage() {
           </tbody>
         </table>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }
 

@@ -4,6 +4,7 @@ import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type SearchParams = Promise<{
   status?: string;
@@ -40,11 +41,7 @@ export default async function AdminMonitoringErrorsPage({ searchParams }: { sear
       eyebrow="Admin Monitoring"
       title="Fehlerlogs"
       description="Zentrale Liste für technische Fehler, Status und Bearbeitung."
-      navItems={[
-        { href: "/admin/monitoring", label: "Monitoring" },
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/settings", label: "Einstellungen" },
-      ]}
+      navItems={adminNavItems}
     >
       <DataSection title="Filter">
         <form className="form grid" method="get">

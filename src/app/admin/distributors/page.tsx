@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { DistributorReviewStatus, UserRole } from "@prisma/client";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -28,16 +29,7 @@ export default async function AdminDistributorsPage({ searchParams }: PageProps)
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Verteilerprüfung</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/dashboard">Dashboard</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title="Verteilerprüfung">
 
       <section className="panel stack">
         <div className="nav">
@@ -87,6 +79,6 @@ export default async function AdminDistributorsPage({ searchParams }: PageProps)
           </table>
         </div>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }

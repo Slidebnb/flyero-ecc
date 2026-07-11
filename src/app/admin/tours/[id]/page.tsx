@@ -8,6 +8,7 @@ import { formatDateTime } from "@/lib/format";
 import { analyzeRoute, normalizeRoutePoint } from "@/lib/routeAnalysis";
 import { openTourReview } from "@/lib/tours";
 import { prisma } from "@/lib/prisma";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -44,18 +45,8 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
   const latestReport = tour.reports[0] ?? null;
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Tourprüfung</p>
-          <h1>{tour.order.orderNumber}</h1>
-          <span className="badge">{TOUR_STATUS_LABELS[tour.status]}</span>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/tours">Alle Touren</Link>
-          <Link href="/admin/dashboard">Dashboard</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Tourprüfung" title={tour.order.orderNumber}>
+      <div className="portalActions"><span className="badge">{TOUR_STATUS_LABELS[tour.status]}</span><Link href="/admin/tours">Alle Touren</Link></div>
 
       <section className="gridCards">
         <article className="card"><strong>{analysis.pointCount}</strong><span>GPS-Punkte</span></article>
@@ -217,6 +208,6 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
           </table>
         </div>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }

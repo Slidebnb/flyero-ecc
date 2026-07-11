@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DISTRIBUTOR_STATUS_LABELS } from "@/lib/constants";
 import { asObject, formatAddress, formatDate } from "@/lib/format";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -29,20 +30,8 @@ export default async function AdminDistributorDetailPage({ params }: PageProps) 
     : "-";
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>
-            {profile.firstName} {profile.lastName}
-          </h1>
-          <span className="badge">{DISTRIBUTOR_STATUS_LABELS[profile.reviewStatus]}</span>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/distributors">Zur Liste</Link>
-          <Link href="/admin/dashboard">Dashboard</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title={`${profile.firstName} ${profile.lastName}`}>
+      <div className="portalActions"><span className="badge">{DISTRIBUTOR_STATUS_LABELS[profile.reviewStatus]}</span><Link href="/admin/distributors">Zur Liste</Link></div>
 
       <section className="gridCards">
         <article className="card">
@@ -155,6 +144,6 @@ export default async function AdminDistributorDetailPage({ params }: PageProps) 
           </div>
         </form>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }

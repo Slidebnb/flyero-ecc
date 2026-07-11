@@ -1,5 +1,5 @@
-﻿import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+﻿import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { getNumberingSettings, updateNumberingSettings } from "@/lib/settings";
@@ -25,8 +25,7 @@ export default async function NumberingSettingsPage() {
   await requireRole([UserRole.ADMIN]);
   const settings = await getNumberingSettings();
   return (
-    <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Nummernkreise</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
+    <AdminPortalShell eyebrow="Einstellungen" title="Nummernkreise">
       <form action={saveNumbering} className="panel stack widePanel">
         <div className="formGrid">
           {(["invoice", "report", "order"] as const).map((kind) => (
@@ -40,7 +39,7 @@ export default async function NumberingSettingsPage() {
         </div>
         <button type="submit">Vorsichtig speichern</button>
       </form>
-    </main>
+    </AdminPortalShell>
   );
 }
 

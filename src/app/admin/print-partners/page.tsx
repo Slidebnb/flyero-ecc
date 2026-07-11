@@ -3,6 +3,7 @@ import { UserRole } from "@prisma/client";
 import { ActionPanel, DataSection, EmptyState, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { createPrintPartner, listPrintPartners, updatePrintPartner } from "@/lib/documents";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function createAction(formData: FormData) {
   "use server";
@@ -29,7 +30,7 @@ export default async function AdminPrintPartnersPage() {
   await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const partners = await listPrintPartners();
   return (
-    <PortalShell eyebrow="Adminbereich" title="Druckpartner" description="Partnerkontakte, Status und Konditionen sauber pflegen." navItems={[{ href: "/admin/documents", label: "Dokumente" }, { href: "/admin/print-orders", label: "Druckaufträge" }, { href: "/admin/dashboard", label: "Dashboard" }]}>
+    <PortalShell eyebrow="Adminbereich" title="Druckpartner" description="Partnerkontakte, Status und Konditionen sauber pflegen." navItems={adminNavItems}>
       <ActionPanel title="Druckpartner anlegen">
         <form action={createAction} className="form grid">
           <label>Firma<input name="companyName" required /></label>

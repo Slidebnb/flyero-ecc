@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { TOUR_STATUS_LABELS } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 export default async function AdminToursPage() {
   await requireRole([UserRole.ADMIN]);
@@ -31,18 +32,7 @@ export default async function AdminToursPage() {
   ]);
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Touren</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/warehouse">Lager</Link>
-          <Link href="/admin/orders">Aufträge</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title="Touren">
 
       <section className="panel stack widePanel">
         <h2 className="sectionTitle">Tour zuweisen</h2>
@@ -114,6 +104,6 @@ export default async function AdminToursPage() {
           </table>
         </div>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }

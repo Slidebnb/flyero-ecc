@@ -1,8 +1,16 @@
-﻿import Link from "next/link";
 import { UserRole } from "@prisma/client";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { WAREHOUSE_INVENTORY_STATUS_LABELS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+
+function statusTone(status: string) {
+  if (status === "READY_FOR_PICKUP") return "success";
+  if (status === "MISSING" || status === "DAMAGED") return "danger";
+  if (status === "INBOUND" || status === "CHECKED_IN") return "warning";
+  return "neutral";
+}
 
 export default async function AdminWarehousePage() {
   await requireRole([UserRole.ADMIN]);
@@ -17,48 +25,66 @@ export default async function AdminWarehousePage() {
     }),
   ]);
 
+  const readyForPickup = inventory.filter((item) => item.status === "READY_FOR_PICKUP").length;
+  const expectedFlyers = inventory.reduce((sum, item) => sum + item.expectedFlyers, 0);
+  const remainingFlyers = inventory.reduce((sum, item) => sum + (item.remainingFlyers ?? item.expectedFlyers), 0);
+
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Lagerverwaltung</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/orders">Alle Aufträge</Link>
-          <Link href="/admin/distributors">Verteilerprüfung</Link>
-        </nav>
-      </header>
-
-      <section className="gridCards">
-        <article className="card"><strong>{warehouses}</strong><span>Lager</span></article>
-        <article className="card"><strong>{locations}</strong><span>Regalplaetze</span></article>
-        <article className="card"><strong>{inventory.length}</strong><span>Aktive Bestaende</span></article>
+    <AdminPortalShell
+      title="Lager"
+      description="Wareneingang, Lagerplätze und abholbereite Flyer zentral prüfen."
+    >
+      <section className="portalMetrics">
+        <MetricTile label="Lager" value={warehouses} />
+        <MetricTile label="Lagerplätze" value={locations} />
+        <MetricTile label="Aktive Bestände" value={inventory.length} />
+        <MetricTile label="Abholbereit" value={readyForPickup} tone={readyForPickup ? "success" : "neutral"} />
+        <MetricTile label="Erwartete Flyer" value={expectedFlyers.toLocaleString("de-DE")} />
+        <MetricTile label="Restmenge" value={remainingFlyers.toLocaleString("de-DE")} />
       </section>
 
-      <section className="panel stack widePanel" style={{ marginTop: 18 }}>
-        <h2 className="sectionTitle">Lagerbestaende</h2>
-        <div className="tableWrap">
-          <table>
-            <thead><tr><th>Auftrag</th><th>Kunde</th><th>Status</th><th>Platz</th><th>Rest</th></tr></thead>
-            <tbody>
-              {inventory.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.order.orderNumber}</td>
-                  <td>{item.order.customer.companyName}</td>
-                  <td>{WAREHOUSE_INVENTORY_STATUS_LABELS[item.status]}</td>
-                  <td>{item.warehouseLocation?.fullLabel ?? "-"}</td>
-                  <td>{item.remainingFlyers ?? item.expectedFlyers}</td>
+      <DataSection
+        title="Lagerbestände"
+        description="Die wichtigsten Lagerbewegungen und Abholzustände auf einen Blick."
+      >
+        {inventory.length ? (
+          <div className="tableWrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Auftrag</th>
+                  <th>Kunde</th>
+                  <th>Status</th>
+                  <th>Lagerplatz</th>
+                  <th>Erwartet</th>
+                  <th>Rest</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+              </thead>
+              <tbody>
+                {inventory.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.order.orderNumber}</td>
+                    <td>{item.order.customer.companyName}</td>
+                    <td>
+                      <StatusBadge tone={statusTone(item.status)}>
+                        {WAREHOUSE_INVENTORY_STATUS_LABELS[item.status]}
+                      </StatusBadge>
+                    </td>
+                    <td>{item.warehouseLocation?.fullLabel ?? "-"}</td>
+                    <td>{item.expectedFlyers.toLocaleString("de-DE")}</td>
+                    <td>{(item.remainingFlyers ?? item.expectedFlyers).toLocaleString("de-DE")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <EmptyState
+            title="Noch keine Lagerbestände vorhanden."
+            description="Sobald Druckdaten oder Flyer im Lager eingecheckt werden, erscheint hier die operative Übersicht."
+          />
+        )}
+      </DataSection>
+    </AdminPortalShell>
   );
 }
-
-
-

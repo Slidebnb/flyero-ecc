@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 import { requireRole } from "@/lib/auth";
 import {
   DISPATCH_STATUS_LABELS,
@@ -86,18 +87,8 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>{order.orderNumber}</h1>
-          <span className="badge">{ORDER_STATUS_LABELS[order.status]}</span>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/orders">Alle Aufträge</Link>
-          <Link href="/admin/dashboard">Dashboard</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title={order.orderNumber}>
+      <div className="portalActions"><span className="badge">{ORDER_STATUS_LABELS[order.status]}</span><Link href="/admin/orders">Alle Aufträge</Link></div>
 
       <section className="gridCards">
         <article className="card">
@@ -465,8 +456,6 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           </table>
         </div>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }
-
-

@@ -9,6 +9,7 @@ import { formatDateTime } from "@/lib/format";
 import { createSystemLog } from "@/lib/monitoring";
 import { processPendingNotifications, retryFailedNotification } from "@/lib/notificationWorker";
 import { prisma } from "@/lib/prisma";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function processQueueAction() {
   "use server";
@@ -85,12 +86,7 @@ export default async function AdminNotificationQueuePage() {
       eyebrow="Adminbereich"
       title="E-Mail Queue"
       description="Wartende, gesendete und fehlgeschlagene E-Mails zentral verarbeiten."
-      navItems={[
-        { href: "/admin/notifications", label: "Nachrichten" },
-        { href: "/admin/notifications/queue", label: "Queue" },
-        { href: "/admin/monitoring", label: "Monitoring" },
-        { href: "/admin/dashboard", label: "Dashboard" },
-      ]}
+      navItems={adminNavItems}
     >
       <section className="portalMetrics">
         <MetricTile label="Wartend" value={countFor(NotificationQueueStatus.PENDING)} tone="warning" />

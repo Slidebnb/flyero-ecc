@@ -2,6 +2,7 @@ import { ShipmentStatus, ShipmentType, UserRole } from "@prisma/client";
 import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type PageProps = { searchParams?: Promise<Record<string, string | undefined>> };
 
@@ -21,7 +22,7 @@ export default async function AdminLogisticsShipmentsPage({ searchParams }: Page
     prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: { id: true, orderNumber: true, targetAreaName: true } }),
   ]);
   return (
-    <PortalShell eyebrow="Admin Logistik" title="Sendungsverwaltung" description="Sendungen filtern, anlegen und Status zentral pflegen." navItems={[{ href: "/admin/logistics", label: "Logistik" }, { href: "/admin/dashboard", label: "Dashboard" }]}>
+    <PortalShell eyebrow="Admin Logistik" title="Sendungsverwaltung" description="Sendungen filtern, anlegen und Status zentral pflegen." navItems={adminNavItems}>
       <DataSection title="Sendung anlegen">
         <form className="form grid" action="/api/admin/logistics/shipments" method="post">
           <label>Auftrag<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{order.orderNumber} / {order.targetAreaName}</option>)}</select></label>

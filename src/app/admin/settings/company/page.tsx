@@ -1,5 +1,5 @@
-﻿import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+﻿import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { getCompanySettings, updateCompanySettings } from "@/lib/settings";
@@ -33,8 +33,7 @@ export default async function CompanySettingsPage() {
   ] as const;
 
   return (
-    <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Firma</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
+    <AdminPortalShell eyebrow="Einstellungen" title="Firma">
       <form action={saveCompany} className="panel stack widePanel">
         <div className="formGrid">
           {fields.map(([name, label]) => (
@@ -43,7 +42,7 @@ export default async function CompanySettingsPage() {
         </div>
         <button type="submit">Speichern</button>
       </form>
-    </main>
+    </AdminPortalShell>
   );
 }
 

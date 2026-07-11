@@ -4,6 +4,7 @@ import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@
 import { requireRole } from "@/lib/auth";
 import { getCrmFollowups } from "@/lib/crm";
 import { formatDateTime } from "@/lib/format";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 function FollowupList({
   title,
@@ -40,11 +41,7 @@ export default async function CrmFollowupsPage() {
       eyebrow="CRM"
       title="Follow-ups"
       description="Heute fällige, überfällige und unvollständige Lead-Nachfassaktionen priorisieren."
-      navItems={[
-        { href: "/admin/crm", label: "CRM" },
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/analytics", label: "Analytics" },
-      ]}
+      navItems={adminNavItems}
     >
       <section className="portalMetrics">
         <MetricTile label="Überfällig" value={followups.overdue.length} tone={followups.overdue.length ? "danger" : "neutral"} />

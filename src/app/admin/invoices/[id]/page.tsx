@@ -1,3 +1,4 @@
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 ﻿import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
@@ -22,19 +23,8 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
   });
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminrechnung</p>
-          <h1>{invoice.invoiceNumber}</h1>
-          <span className="badge">{invoice.status}</span>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/invoices">Alle Rechnungen</Link>
-          <Link href={`/admin/orders/${invoice.orderId}`}>Auftrag</Link>
-          {invoice.pdfUrl ? <a href={`/api/admin/invoices/${invoice.id}/download`}>PDF ansehen</a> : null}
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title={invoice.invoiceNumber}>
+      <div className="portalActions"><Link href="/admin/invoices">Alle Rechnungen</Link></div>
 
       <section className="gridCards">
         <article className="card"><strong>{formatCurrency(invoice.subtotalNet)}</strong><span>Netto</span></article>
@@ -108,12 +98,11 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
                   <td><pre>{JSON.stringify(log.newValues ?? log.oldValues ?? {}, null, 2)}</pre></td>
                 </tr>
               ))}
-              {auditLogs.length === 0 ? <tr><td colSpan={3}>Keine Audit-Eintraege.</td></tr> : null}
+              {auditLogs.length === 0 ? <tr><td colSpan={3}>Keine Audit-Einträge.</td></tr> : null}
             </tbody>
           </table>
         </div>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }
-

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SupportTicketStatus, TicketPriority, TicketType, UserRole } from "@prisma/client";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import {
@@ -29,13 +30,7 @@ export default async function AdminSupportPage({ searchParams }: { searchParams:
       eyebrow="Adminbereich"
       title="Support & Reklamationen"
       description="Zentrale Prüfung für Kundenanfragen, Reklamationen, Tourprobleme und interne Klärfälle."
-      navItems={[
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/orders", label: "Aufträge" },
-        { href: "/admin/reports", label: "Berichte" },
-        { href: "/admin/tours", label: "Touren" },
-        { href: "/admin/analytics", label: "Analytics" },
-      ]}
+      navItems={adminNavItems}
     >
       <section className="portalMetrics">
         <MetricTile label="Offene Tickets" value={analytics.openTickets} tone={analytics.openTickets ? "warning" : "success"} />

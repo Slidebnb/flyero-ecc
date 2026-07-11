@@ -8,6 +8,7 @@ import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { ignoreErrorLog, markErrorLogInProgress, resolveErrorLog } from "@/lib/monitoring";
 import { prisma } from "@/lib/prisma";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -55,11 +56,7 @@ export default async function AdminMonitoringErrorDetailPage({ params }: PagePro
       eyebrow="Admin Monitoring"
       title="Fehlerdetail"
       description="Stacktrace und Metadata bleiben ausschließlich im geschützten Adminbereich sichtbar."
-      navItems={[
-        { href: "/admin/monitoring", label: "Monitoring" },
-        { href: "/admin/monitoring/errors", label: "Fehlerlogs" },
-        { href: "/admin/dashboard", label: "Dashboard" },
-      ]}
+      navItems={adminNavItems}
     >
       <section className="portalMetrics">
         <MetricLike label="Severity">

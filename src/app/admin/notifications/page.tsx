@@ -5,6 +5,7 @@ import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { EmptyState } from "@/app/PortalComponents";
 import { TemplatePreviewForm } from "./TemplatePreviewForm";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 type PageProps = {
   searchParams: Promise<{ read?: string; type?: string; date?: string }>;
@@ -43,19 +44,7 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
   const types = [...new Set(messages.map((message) => message.type))].sort();
 
   return (
-    <main className="appShell">
-      <header className="topbar">
-        <div>
-          <p className="eyebrow">Adminbereich</p>
-          <h1>Nachrichtenzentrale</h1>
-        </div>
-        <nav className="nav">
-          <Link href="/admin/dashboard">Dashboard</Link>
-          <Link href="/admin/settings">Einstellungen</Link>
-          <Link href="/admin/dispatch">Disposition</Link>
-          <Link href="/admin/notifications/queue">E-Mail Queue</Link>
-        </nav>
-      </header>
+    <AdminPortalShell eyebrow="Adminbereich" title="Nachrichtenzentrale">
 
       <section className="gridCards">
         <article className="card"><strong>{messages.length}</strong><span>Nachrichten</span></article>
@@ -201,6 +190,6 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
           </table>
         </div>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }

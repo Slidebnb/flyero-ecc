@@ -4,6 +4,7 @@ import { ActionPanel, DataSection, EmptyState, PortalShell, StatusBadge } from "
 import { requireRole } from "@/lib/auth";
 import { addLeadNote, changeLeadStatus, convertLeadToCustomer, getAssignableUsers, getCrmLead, updateCrmLead } from "@/lib/crm";
 import { formatDateTime } from "@/lib/format";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type LeadDetailProps = {
   params: Promise<{ id: string }>;
@@ -90,11 +91,7 @@ export default async function LeadDetailPage({ params }: LeadDetailProps) {
       eyebrow="CRM Lead"
       title={lead.companyName || lead.name}
       description={`${lead.email} / ${lead.city || "Ort offen"} / Quelle: ${lead.source}`}
-      navItems={[
-        { href: "/admin/crm", label: "CRM" },
-        { href: "/admin/crm/followups", label: "Follow-ups" },
-        { href: "/admin/analytics", label: "Analytics" },
-      ]}
+      navItems={adminNavItems}
     >
       <section className="detailGrid">
         <ActionPanel title="Stammdaten">

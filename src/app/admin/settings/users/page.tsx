@@ -1,5 +1,5 @@
-﻿import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+﻿import { revalidatePath } from "next/cache";
 import { UserRole, UserStatus } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { listInternalUsers, setInternalUserStatus } from "@/lib/settings";
@@ -19,8 +19,7 @@ export default async function UsersSettingsPage() {
   await requireRole([UserRole.ADMIN]);
   const users = await listInternalUsers();
   return (
-    <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Benutzer</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
+    <AdminPortalShell eyebrow="Einstellungen" title="Benutzer">
       <section className="panel stack widePanel">
         <div className="tableWrap">
           <table><thead><tr><th>E-Mail</th><th>Rolle</th><th>Status</th><th>Aktion</th></tr></thead><tbody>
@@ -44,7 +43,7 @@ export default async function UsersSettingsPage() {
           </tbody></table>
         </div>
       </section>
-    </main>
+    </AdminPortalShell>
   );
 }
 

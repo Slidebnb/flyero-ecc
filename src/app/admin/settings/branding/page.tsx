@@ -1,5 +1,5 @@
-﻿import Link from "next/link";
-import { revalidatePath } from "next/cache";
+import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+﻿import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { getBrandingSettings, updateBrandingSettings } from "@/lib/settings";
@@ -15,8 +15,7 @@ export default async function BrandingSettingsPage() {
   await requireRole([UserRole.ADMIN]);
   const settings = await getBrandingSettings();
   return (
-    <main className="appShell">
-      <header className="topbar"><div><p className="eyebrow">Einstellungen</p><h1>Branding</h1></div><nav className="nav"><Link href="/admin/settings">Zurück</Link></nav></header>
+    <AdminPortalShell eyebrow="Einstellungen" title="Branding">
       <form action={saveBranding} className="panel stack widePanel">
         <div className="formGrid">
           <label>Logo URL<input name="logoUrl" defaultValue={settings.logoUrl ?? ""} /></label>
@@ -28,7 +27,7 @@ export default async function BrandingSettingsPage() {
         </div>
         <button type="submit">Speichern</button>
       </form>
-    </main>
+    </AdminPortalShell>
   );
 }
 

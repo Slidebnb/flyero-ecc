@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
+import { adminNavItems } from "@/app/admin/AdminPortalShell";
 import {
   getAnalyticsFilterOptions,
   getBusinessOverview,
@@ -105,14 +106,7 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
       eyebrow="Adminbereich"
       title="Analytics"
       description="Geschäftszahlen, Plattformaktivität und operative Leistung auf einen Blick."
-      navItems={[
-        { href: "/admin/dashboard", label: "Dashboard" },
-        { href: "/admin/analytics", label: "Analytics" },
-        { href: "/admin/orders", label: "Aufträge" },
-        { href: "/admin/payments", label: "Payments" },
-        { href: "/admin/reports", label: "Reports" },
-        { href: "/admin/leads", label: "Leads" },
-      ]}
+      navItems={adminNavItems}
     >
       <DataSection title="Filter" description="Standard ist der Zeitraum der letzten 30 Tage. Alle KPIs werden direkt aus operativen Tabellen berechnet.">
         <form className="form analyticsFilterGrid" action="/admin/analytics" method="get">
