@@ -33,6 +33,7 @@ export default async function CustomerPaymentsPage() {
     orderBy: { updatedAt: "desc" },
   });
   const openPayment = payments.find((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING", "FAILED"].includes(payment.status));
+  const visiblePayments = payments.slice(0, 10);
 
   return (
     <CustomerPortalShell active="/customer/payments" title="Zahlungen" description="Offene Zahlung prüfen oder bezahlte Kampagne öffnen.">
@@ -42,9 +43,9 @@ export default async function CustomerPaymentsPage() {
         {openPayment ? <Link className="primaryButton" href={`/customer/orders/${openPayment.orderId}`}>Zahlung prüfen</Link> : null}
       </section>
 
-      <DataSection title="Zahlungen" description="Jeder Eintrag führt direkt zur passenden Kampagne.">
+      <DataSection title="Zahlungen" description="Die neuesten Zahlungen zuerst. Jeder Eintrag führt direkt zur passenden Kampagne.">
         <div className="customerCampaignList">
-          {payments.map((payment) => (
+          {visiblePayments.map((payment) => (
             <article className="customerCampaignItem" key={payment.id}>
               <div>
                 <div className="customerItemHeader">
@@ -63,6 +64,9 @@ export default async function CustomerPaymentsPage() {
               </Link>
             </article>
           ))}
+          {payments.length > visiblePayments.length ? (
+            <p className="customerListHint">Weitere Zahlungen bleiben gespeichert. Die aktuell wichtigsten Einträge stehen oben.</p>
+          ) : null}
           {payments.length === 0 ? (
             <EmptyState
               title="Noch keine Zahlungen vorhanden."

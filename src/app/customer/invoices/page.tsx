@@ -23,6 +23,7 @@ export default async function CustomerInvoicesPage() {
     orderBy: { invoiceDate: "desc" },
   });
   const latestInvoice = invoices[0] ?? null;
+  const visibleInvoices = invoices.slice(0, 10);
 
   return (
     <CustomerPortalShell active="/customer/invoices" title="Rechnungen" description="Rechnung finden, PDF laden oder direkt zur Kampagne wechseln.">
@@ -39,9 +40,9 @@ export default async function CustomerInvoicesPage() {
         )}
       </section>
 
-      <DataSection title="Alle Rechnungen" description="PDF laden oder die passende Kampagne öffnen.">
+      <DataSection title="Alle Rechnungen" description="Die neuesten Rechnungen zuerst. PDF laden oder die passende Kampagne öffnen.">
         <div className="customerCampaignList">
-          {invoices.map((invoice) => (
+          {visibleInvoices.map((invoice) => (
             <article className="customerCampaignItem" key={invoice.id}>
               <div>
                 <div className="customerItemHeader">
@@ -62,6 +63,9 @@ export default async function CustomerInvoicesPage() {
               )}
             </article>
           ))}
+          {invoices.length > visibleInvoices.length ? (
+            <p className="customerListHint">Weitere Rechnungen bleiben gespeichert. Die aktuell wichtigsten Einträge stehen oben.</p>
+          ) : null}
           {invoices.length === 0 ? (
             <EmptyState
               title="Noch keine Rechnungen vorhanden."

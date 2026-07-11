@@ -85,6 +85,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
   const selectedReportIndex = reportId ? reports.findIndex((report) => report.id === reportId) : -1;
   const waitingTicket = tickets.find((ticket) => ticket.status === "WAITING_FOR_CUSTOMER");
   const open = tickets.filter((ticket) => !["RESOLVED", "CLOSED"].includes(ticket.status)).length;
+  const visibleTickets = tickets.slice(0, 8);
 
   return (
     <CustomerPortalShell
@@ -96,7 +97,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
         <div>
           <span className="customerTinyLabel">Schnellkontakt</span>
           <h2>{waitingTicket ? "FLYERO wartet auf Ihre Antwort." : "Wobei dürfen wir helfen?"}</h2>
-          <p>{waitingTicket ? customerSafeText(waitingTicket.subject, "FLYERO hat eine Rückfrage zu Ihrer Kampagne.") : "Kurz beschreiben reicht. Wenn möglich, wählen Sie direkt eine Kampagne oder einen Bericht aus."}</p>
+          <p>{waitingTicket ? customerSafeText(waitingTicket.subject, "FLYERO hat eine Rückfrage zu Ihrer Kampagne.") : "Kurz beschreiben reicht. Kampagne oder Bericht können Sie bei Bedarf ergänzen."}</p>
         </div>
         {waitingTicket ? (
           <Link className="primaryButton" href={`/customer/support/tickets/${waitingTicket.id}`}>Antworten</Link>
@@ -121,34 +122,39 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
               <input name="subject" required placeholder="z. B. Rückfrage zur Verteilung" />
             </label>
             <label>
-              Kampagne optional
-              <select name="orderKey" defaultValue="">
-                <option value="">Keine Kampagne auswählen</option>
-                {orders.map((order, index) => (
-                  <option key={String(index)} value={String(index)}>{customerOrderName(order.orderNumber)} - {customerAreaName(order.targetAreaName)}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Bericht optional
-              <select name="reportKey" defaultValue={selectedReportIndex >= 0 ? String(selectedReportIndex) : ""}>
-                <option value="">Keinen Bericht auswählen</option>
-                {reports.map((report, index) => (
-                  <option key={String(index)} value={String(index)}>{customerReportName(report.reportNumber)} - {customerAreaName(report.order.targetAreaName)}</option>
-                ))}
-              </select>
-            </label>
-            <label>
               Nachricht
               <textarea name="description" required rows={5} placeholder="Wobei dürfen wir helfen?" />
             </label>
+            <details className="customerSoftDetails compact">
+              <summary>Kampagne oder Bericht zuordnen</summary>
+              <div className="customerSimpleFormInline">
+                <label>
+                  Kampagne optional
+                  <select name="orderKey" defaultValue="">
+                    <option value="">Keine Kampagne auswählen</option>
+                    {orders.map((order, index) => (
+                      <option key={String(index)} value={String(index)}>{customerOrderName(order.orderNumber)} - {customerAreaName(order.targetAreaName)}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Bericht optional
+                  <select name="reportKey" defaultValue={selectedReportIndex >= 0 ? String(selectedReportIndex) : ""}>
+                    <option value="">Keinen Bericht auswählen</option>
+                    {reports.map((report, index) => (
+                      <option key={String(index)} value={String(index)}>{customerReportName(report.reportNumber)} - {customerAreaName(report.order.targetAreaName)}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </details>
             <button type="submit">Nachricht senden</button>
           </form>
         </DataSection>
 
-        <DataSection title={open ? "Offene Rückfragen" : "Meine Nachrichten"} description="Nur das öffnen, was gerade wichtig ist.">
+        <DataSection title={open ? "Offene Rückfragen" : "Meine Nachrichten"} description="Die neuesten Anfragen zuerst. Ältere Nachrichten bleiben im Verlauf gespeichert.">
           <div className="customerCampaignList compact">
-            {tickets.map((ticket) => (
+            {visibleTickets.map((ticket) => (
               <article className="customerCampaignItem" key={ticket.id}>
                 <div>
                   <div className="customerItemHeader">
@@ -160,6 +166,9 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
                 <Link className="secondaryButton" href={`/customer/support/tickets/${ticket.id}`}>Öffnen</Link>
               </article>
             ))}
+            {tickets.length > visibleTickets.length ? (
+              <p className="customerListHint">Weitere Nachrichten bleiben gespeichert. Die wichtigsten aktuellen Einträge stehen oben.</p>
+            ) : null}
             {tickets.length === 0 ? (
               <EmptyState title="Noch keine Nachricht." description="Wenn etwas unklar ist, schreiben Sie FLYERO direkt hier." />
             ) : null}

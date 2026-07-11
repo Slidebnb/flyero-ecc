@@ -5006,6 +5006,17 @@ body {
   list-style: none;
 }
 
+.customerSoftDetails.compact {
+  margin: 4px 0;
+  border-radius: 16px;
+}
+
+.customerSoftDetails.compact summary {
+  min-height: 48px;
+  padding: 0 14px;
+  font-size: 0.92rem;
+}
+
 .customerSoftDetails summary::-webkit-details-marker {
   display: none;
 }
@@ -5045,6 +5056,12 @@ body {
 .customerSoftDetails p {
   margin: 0;
   color: #a7b2c2;
+}
+
+.customerSimpleFormInline {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px;
 }
 
 .customerFilePicker {
@@ -5315,6 +5332,13 @@ body {
 
 .customerMessageItem > div > span:first-child {
   margin-bottom: 4px;
+}
+
+.customerListHint {
+  margin: 2px 0 0;
+  color: #9aa7b8;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .customerItemMeta span {
