@@ -10,6 +10,7 @@ import {
 } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { publicUrl } from "@/lib/publicUrl";
 
 function safeNext(value: unknown) {
   if (typeof value !== "string") return "";
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (request.headers.get("accept")?.includes("text/html")) {
-      const loginUrl = new URL("/login", request.url);
+      const loginUrl = publicUrl("/login", request.url);
       if (next) loginUrl.searchParams.set("next", next);
       return NextResponse.redirect(loginUrl, { status: 303 });
     }
