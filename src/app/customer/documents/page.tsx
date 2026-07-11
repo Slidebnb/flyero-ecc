@@ -63,6 +63,8 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
   ]);
   const hasOrders = orders.length > 0;
   const openDocument = documents.find((item) => item.status === "REJECTED" || item.status === "UNDER_REVIEW");
+  const visibleDocuments = documents.slice(0, 8);
+  const visiblePrintOrders = printOrders.slice(0, 5);
 
   return (
     <CustomerPortalShell
@@ -83,7 +85,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
         )}
       </section>
 
-      <DataSection title="Flyerdatei senden" description="Wählen Sie die Kampagne und laden Sie die Datei hoch. FLYERO prüft den Rest." id="flyer-upload">
+      <DataSection title="Flyerdatei senden" description="Kampagne wählen, Datei senden. FLYERO prüft den Rest." id="flyer-upload">
           {hasOrders ? (
             <form action={uploadDocument} className="form customerSimpleForm">
               <label>Kampagne<select name="orderId" required>{orders.map((order) => <option key={order.id} value={order.id}>{customerOrderName(order.orderNumber)} - {customerAreaName(order.targetAreaName)}</option>)}</select></label>
@@ -93,7 +95,12 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
                 <small>PDF, Bild, ZIP, AI oder INDD</small>
                 <input name="file" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.zip,.ai,.indd" required />
               </label>
-              <label>Titel optional<input name="title" placeholder="z. B. Flyer Frühjahr" /></label>
+              <details className="customerSoftDetails compact">
+                <summary>Titel optional ergänzen</summary>
+                <div className="customerSimpleFormInline">
+                  <label>Titel optional<input name="title" placeholder="z. B. Flyer Frühjahr" /></label>
+                </div>
+              </details>
               <input type="hidden" name="documentType" value="PRINT_FILE" />
               <button type="submit">Datei senden</button>
             </form>
@@ -123,16 +130,19 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
         </div>
       </details>
 
-      <DataSection title="Freigaben & Dateien" description="Alles Wichtige als kurze Liste, ohne Tabellen-Suche." id="documents-list">
-        <div className="customerCompactFilter">
+      <DataSection title="Freigaben & Dateien" description="Die neuesten Dateien zuerst. Details öffnen Sie nur bei Bedarf." id="documents-list">
+        <details className="customerSoftDetails compact">
+          <summary>Dateien suchen oder filtern</summary>
+          <div className="customerCompactFilter">
           <form className="form customerSimpleForm">
             <label>Suche<input name="q" defaultValue={params.q ?? ""} placeholder="Titel, Datei oder Kampagne" /></label>
             <label>Status<select name="status" defaultValue={params.status ?? ""}><option value="">Alle Status</option>{Object.entries(CUSTOMER_DOCUMENT_STATUS_LABELS).map(([status, label]) => <option key={status} value={status}>{label}</option>)}</select></label>
             <button type="submit">Filtern</button>
           </form>
-        </div>
+          </div>
+        </details>
         <div className="customerMessageList">
-          {documents.map((document) => (
+          {visibleDocuments.map((document) => (
             <article className="customerMessageItem" key={document.id}>
               <div className="customerItemHeader">
                 <strong>{customerSafeText(document.title, "Druckdatei")}</strong>
@@ -146,13 +156,16 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
               <a className="secondaryButton" href={`/api/customer/documents/${document.id}/download`}>Download</a>
             </article>
           ))}
+          {documents.length > visibleDocuments.length ? (
+            <p className="customerListHint">Weitere Dateien bleiben gespeichert. Die aktuell wichtigsten Einträge stehen oben.</p>
+          ) : null}
           {documents.length === 0 ? <EmptyState title="Noch keine Dateien." description="Sobald Dateien hochgeladen wurden, erscheinen sie hier." /> : null}
         </div>
       </DataSection>
 
-      <DataSection title="Druckstatus" description="Nur laufende oder angefragte Druckaufträge.">
+      <DataSection title="Druckstatus" description="Nur die aktuellen Druckthemen. Ältere Vorgänge bleiben gespeichert.">
         <div className="customerMessageList">
-          {printOrders.map((printOrder) => (
+          {visiblePrintOrders.map((printOrder) => (
             <article className="customerMessageItem" key={printOrder.id}>
               <div className="customerItemHeader">
                 <strong>{customerOrderName(printOrder.order.orderNumber)}</strong>
@@ -164,6 +177,9 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
               </div>
             </article>
           ))}
+          {printOrders.length > visiblePrintOrders.length ? (
+            <p className="customerListHint">Weitere Druckaufträge bleiben gespeichert.</p>
+          ) : null}
           {printOrders.length === 0 ? <EmptyState title="Noch keine Druckaufträge." description="Wenn FLYERO den Druck übernimmt, sehen Sie hier den Stand." /> : null}
         </div>
       </DataSection>

@@ -75,6 +75,9 @@ async function customerPage(path, cookie) {
 function assertCustomerLanguage(html, path) {
   for (const forbidden of [
     "Seed Modul",
+    "Module 22",
+    "Module 23",
+    "Smoke Druckdatei",
     "Smoke-Test",
     "Checkout Smoke",
     "seed.module",

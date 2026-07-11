@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_DOCUMENT_STATUS_LABELS, customerAreaName, customerOrderName } from "@/app/customer/customerUx";
+import { CUSTOMER_DOCUMENT_STATUS_LABELS, customerAreaName, customerOrderName, customerSafeFilename, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { DOCUMENT_TYPE_LABELS, listDocuments } from "@/lib/documents";
@@ -39,12 +39,12 @@ export default async function CustomerOrderDocumentsPage({ params }: PageProps) 
           {documents.map((document) => (
             <article className="customerMessageItem" key={document.id}>
               <div className="customerItemHeader">
-                <strong>{document.title}</strong>
+                <strong>{customerSafeText(document.title, "Druckdatei")}</strong>
                 <StatusBadge>{CUSTOMER_DOCUMENT_STATUS_LABELS[document.status]}</StatusBadge>
               </div>
               <div className="customerItemMeta">
                 <span>{DOCUMENT_TYPE_LABELS[document.documentType]}</span>
-                <span>{document.originalFilename}</span>
+                <span>{customerSafeFilename(document.originalFilename, document.extension)}</span>
                 <span>{document.versions.length} Version{document.versions.length === 1 ? "" : "en"}</span>
               </div>
               <a className="secondaryButton" href={`/api/customer/documents/${document.id}/download`}>Download</a>

@@ -165,38 +165,47 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
       </DataSection>
 
       {order.customerOwnFlyers && order.assignedWarehouse ? (
-        <DataSection title="Flyer an Lager senden" description="Bitte die Kampagnennummer gut sichtbar auf jedes Paket schreiben.">
-          <div className="customerFactList">
-            <p><span>Kampagnennummer</span><strong>{customerOrderName(order.orderNumber)}</strong></p>
-            <p><span>Lieferadresse</span><strong>{warehouseAddressText(order.assignedWarehouse)}</strong></p>
-            <p><span>Sendung</span><strong>{customerShipment?.trackingNumber ?? "Noch nicht hinterlegt"}</strong></p>
-            <p><span>Status</span><strong>{customerShipment?.status ?? "Wird erwartet"}</strong></p>
-          </div>
-        </DataSection>
+        <details className="customerSoftDetails">
+          <summary>Lieferung an FLYERO ansehen</summary>
+          <DataSection title="Flyer an Lager senden" description="Nur wichtig, wenn Sie eigene Flyer anliefern.">
+            <div className="customerFactList">
+              <p><span>Kampagnennummer</span><strong>{customerOrderName(order.orderNumber)}</strong></p>
+              <p><span>Lieferadresse</span><strong>{warehouseAddressText(order.assignedWarehouse)}</strong></p>
+              <p><span>Sendung</span><strong>{customerShipment?.trackingNumber ?? "Noch nicht hinterlegt"}</strong></p>
+              <p><span>Status</span><strong>{customerShipment?.status ?? "Wird erwartet"}</strong></p>
+            </div>
+          </DataSection>
+        </details>
       ) : null}
 
       {order.warehouseInventory ? (
-        <DataSection title="Lagerstatus" description="Sobald die Flyer bereit sind, plant FLYERO die Verteilung.">
-          <div className="customerFactList compact">
-            <p><span>Status</span><strong>{WAREHOUSE_INVENTORY_STATUS_LABELS[order.warehouseInventory.status]}</strong></p>
-            <p><span>Erhalten</span><strong>{order.warehouseInventory.receivedFlyers ?? 0} von {order.warehouseInventory.expectedFlyers}</strong></p>
-            <p><span>Restbestand</span><strong>{order.warehouseInventory.remainingFlyers ?? "-"} · {REMAINING_STOCK_STATUS_LABELS[order.warehouseInventory.remainingStockStatus]}</strong></p>
-          </div>
-        </DataSection>
+        <details className="customerSoftDetails">
+          <summary>Lagerstand ansehen</summary>
+          <DataSection title="Lagerstatus" description="Sobald die Flyer bereit sind, plant FLYERO die Verteilung.">
+            <div className="customerFactList compact">
+              <p><span>Status</span><strong>{WAREHOUSE_INVENTORY_STATUS_LABELS[order.warehouseInventory.status]}</strong></p>
+              <p><span>Erhalten</span><strong>{order.warehouseInventory.receivedFlyers ?? 0} von {order.warehouseInventory.expectedFlyers}</strong></p>
+              <p><span>Restbestand</span><strong>{order.warehouseInventory.remainingFlyers ?? "-"} · {REMAINING_STOCK_STATUS_LABELS[order.warehouseInventory.remainingStockStatus]}</strong></p>
+            </div>
+          </DataSection>
+        </details>
       ) : null}
 
-      <DataSection title="Letzte Updates" description="Nur die letzten relevanten Schritte, damit es übersichtlich bleibt.">
-        <div className="customerTimeline">
-          {order.statusEvents.map((event) => (
-            <p key={event.id}>
-              <span>{formatDateTime(event.createdAt)}</span>
-              <strong>{CUSTOMER_ORDER_STATUS_LABELS[event.toStatus]}</strong>
-              <small>{event.note || "Status aktualisiert."}</small>
-            </p>
-          ))}
-          {order.statusEvents.length === 0 ? <p><strong>Noch keine Updates.</strong><small>FLYERO meldet sich, sobald etwas passiert.</small></p> : null}
-        </div>
-      </DataSection>
+      <details className="customerSoftDetails">
+        <summary>Letzte Updates ansehen</summary>
+        <DataSection title="Letzte Updates" description="Nur die letzten relevanten Schritte.">
+          <div className="customerTimeline">
+            {order.statusEvents.map((event) => (
+              <p key={event.id}>
+                <span>{formatDateTime(event.createdAt)}</span>
+                <strong>{CUSTOMER_ORDER_STATUS_LABELS[event.toStatus]}</strong>
+                <small>{event.note || "Status aktualisiert."}</small>
+              </p>
+            ))}
+            {order.statusEvents.length === 0 ? <p><strong>Noch keine Updates.</strong><small>FLYERO meldet sich, sobald etwas passiert.</small></p> : null}
+          </div>
+        </DataSection>
+      </details>
     </CustomerPortalShell>
   );
 }

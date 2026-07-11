@@ -14,6 +14,7 @@ export default async function CustomerReportsPage() {
     orderBy: { updatedAt: "desc" },
   });
   const latestReport = reports[0] ?? null;
+  const visibleReports = reports.slice(0, 8);
 
   return (
     <CustomerPortalShell active="/customer/reports" title="Nachweise" description="Freigegebene GPS-Nachweise, Fotos und PDF-Berichte an einem Ort.">
@@ -32,7 +33,7 @@ export default async function CustomerReportsPage() {
 
       <DataSection title="Verteilnachweise" description="Nur geprüfte und veröffentlichte Nachweise werden hier angezeigt.">
         <div className="customerCampaignList">
-          {reports.map((report) => (
+          {visibleReports.map((report) => (
             <article className="customerCampaignItem" key={report.id}>
               <div>
                 <div className="customerItemHeader">
@@ -49,6 +50,9 @@ export default async function CustomerReportsPage() {
               <Link className="primaryButton" href={`/customer/reports/${report.id}`}>Nachweis ansehen</Link>
             </article>
           ))}
+          {reports.length > visibleReports.length ? (
+            <p className="customerListHint">Weitere Nachweise bleiben gespeichert. Die neuesten freigegebenen Berichte stehen oben.</p>
+          ) : null}
           {reports.length === 0 ? (
             <EmptyState
               title="Noch keine Nachweise verfügbar."

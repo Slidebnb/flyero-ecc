@@ -22,6 +22,7 @@ export default async function CustomerOrdersPage() {
   });
   const openPayment = orders.filter((order) => ["PAYMENT_PENDING", "PAYMENT_FAILED"].includes(order.status)).length;
   const latestOrder = orders[0] ?? null;
+  const visibleOrders = orders.slice(0, 10);
 
   return (
     <CustomerPortalShell
@@ -38,9 +39,9 @@ export default async function CustomerOrdersPage() {
         <Link className="primaryButton" href="/customer/orders/new">Neue Kampagne starten</Link>
       </section>
 
-      <DataSection title="Meine Kampagnen" description="Details öffnen Sie nur, wenn Sie sie brauchen.">
+      <DataSection title="Meine Kampagnen" description="Die neuesten Kampagnen zuerst. Pro Kampagne gibt es genau die nächste sinnvolle Aktion.">
         <div className="customerCampaignList">
-          {orders.map((order) => {
+          {visibleOrders.map((order) => {
             const action = customerOrderAction(order.status, order.id);
             return (
               <article className="customerCampaignItem" key={order.id}>
@@ -61,6 +62,9 @@ export default async function CustomerOrdersPage() {
               </article>
             );
           })}
+          {orders.length > visibleOrders.length ? (
+            <p className="customerListHint">Weitere Kampagnen bleiben gespeichert. Die aktuell wichtigsten Einträge stehen oben.</p>
+          ) : null}
           {orders.length === 0 ? (
             <EmptyState
               title="Noch keine Kampagnen."

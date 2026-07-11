@@ -194,7 +194,7 @@ export function safeCustomerMessage(type: string, body: string) {
 export function customerSafeText(value: string | null | undefined, fallback: string) {
   const text = String(value || "").trim();
   if (!text) return fallback;
-  if (/Seed Modul|seed\.module|Smoke-Test|Smoke Fixture|Smoke-Fixture|Checkout Smoke|DEMO-|localhost|UNDER_REVIEW|READY_FOR_REVIEW|EXTERNAL_GPS_REPORT|INTERNAL_TRACKING|OrderStatus|ReportStatus/i.test(text)) {
+  if (/Seed Modul|seed\.module|Smoke|Module\s+\d+|Modul\s+\d+|Fixture|DEMO-|localhost|UNDER_REVIEW|READY_FOR_REVIEW|EXTERNAL_GPS_REPORT|INTERNAL_TRACKING|OrderStatus|ReportStatus/i.test(text)) {
     return fallback;
   }
   return text;
