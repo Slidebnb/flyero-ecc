@@ -25,7 +25,7 @@ assert.match(timer, /RandomizedDelaySec=/);
 assert.match(timer, /flyero-backup\.service/);
 assert.match(failure, /logger/);
 assert.match(failure, /journalctl|flyero-backup/);
-for (const variable of ["BACKUP_RESTIC_REPOSITORY", "BACKUP_RESTIC_PASSWORD_FILE", "ENV_FILE", "COMPOSE_FILE"]) {
+for (const variable of ["BACKUP_RESTIC_REPOSITORY", "BACKUP_RESTIC_PASSWORD_FILE", "BACKUP_READ_DATA_SUBSET", "ENV_FILE", "COMPOSE_FILE"]) {
   assert.ok(env.includes(variable), `Backup-Umgebung braucht ${variable}.`);
 }
 assert.match(installer, /systemctl daemon-reload/);

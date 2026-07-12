@@ -176,6 +176,9 @@ jobs:
       - name: Backup scheduler smoke
         run: npm run test:backup-scheduler
 
+      - name: Backup verification contract smoke
+        run: node tests/backup-verification-smoke.mjs
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

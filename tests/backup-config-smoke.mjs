@@ -29,6 +29,7 @@ assert.match(backup, /pg_dump/, "Backup muss PostgreSQL sichern.");
 assert.match(backup, /--format=custom/, "PostgreSQL-Dump muss im wiederherstellbaren Custom-Format erfolgen.");
 assert.match(backup, /restic backup/, "Backup muss ein verschluesseltes Restic-Repository verwenden.");
 assert.match(backup, /restic forget/, "Backup muss eine dokumentierte Retention anwenden.");
+assert.match(backup, /restic check/, "Backup muss die Restic-Repository-Integrität prüfen.");
 assert.match(backup, /sha256sum/, "Backup muss Integritaetschecksummen schreiben.");
 assert.match(backup, /trap .*cleanup|trap cleanup/, "Backup muss temporaere Dateien sicher bereinigen.");
 assert.match(backup, /app\/storage\/generated/, "Backup muss den tatsaechlichen Generated-Storage sichern.");
@@ -54,6 +55,7 @@ for (const variable of [
   "BACKUP_RETENTION_DAILY",
   "BACKUP_RETENTION_WEEKLY",
   "BACKUP_RETENTION_MONTHLY",
+  "BACKUP_READ_DATA_SUBSET",
 ]) {
   assert.ok(envExample.includes(variable), `.env.production.example braucht ${variable}.`);
 }

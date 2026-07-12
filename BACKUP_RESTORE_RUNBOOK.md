@@ -38,6 +38,7 @@ BACKUP_RESTIC_PASSWORD_FILE="/etc/flyero/restic-password"
 BACKUP_RETENTION_DAILY="7"
 BACKUP_RETENTION_WEEKLY="4"
 BACKUP_RETENTION_MONTHLY="12"
+BACKUP_READ_DATA_SUBSET="1/20"
 ```
 
 ## Automatischer systemd-Timer
@@ -92,6 +93,24 @@ bash scripts/restore-production.sh
 ```
 
 Das Skript laedt den Snapshot in ein temporaeres Verzeichnis, prueft Manifest und Checksummen und beendet sich danach ohne Datenbank- oder Storage-Schreibzugriff.
+
+### Verify-only-Evidenz
+
+Fuer einen nachvollziehbaren Betreiber-Nachweis kann die komplette Verify-only-Pruefung
+mit einem explizit ausgewaehlten Snapshot ausgefuehrt werden:
+
+```bash
+cd /opt/flyero
+export RESTIC_SNAPSHOT_ID="<gepruefte-snapshot-id>"
+export BACKUP_EVIDENCE_FILE="/var/lib/flyero/backup-evidence/verify-$(date -u +%Y%m%dT%H%M%SZ).txt"
+bash scripts/verify-backup.sh
+```
+
+Die geschuetzte Evidenzdatei dokumentiert Snapshot-Aufloesung, den Restic-Integritaetscheck
+und den Verify-only-Restore inklusive Manifest-Pruefung. Sie enthaelt keine Zugangsdaten.
+`BACKUP_READ_DATA_SUBSET=1/20` prueft einen Teil der Repository-Daten pro Lauf; ein echter
+Staging-Restore mit Testdaten bleibt zusaetzlich erforderlich und wird nicht durch diese
+Verify-only-Evidenz ersetzt.
 
 ## Staging-Restore
 

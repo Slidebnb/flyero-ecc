@@ -7,6 +7,7 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.production.yml}"
 ENV_FILE="${ENV_FILE:-.env.production}"
 BACKUP_ROOT="${BACKUP_STAGING_ROOT:-$(mktemp -d "${TMPDIR:-/tmp}/flyero-backup.XXXXXX")}"
 BACKUP_TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+READ_DATA_SUBSET="${BACKUP_READ_DATA_SUBSET:-1/20}"
 
 cleanup() {
   rm -rf -- "$BACKUP_ROOT"
@@ -21,6 +22,11 @@ fi
 
 : "${BACKUP_RESTIC_REPOSITORY:?BACKUP_RESTIC_REPOSITORY muss gesetzt sein}"
 : "${BACKUP_RESTIC_PASSWORD_FILE:?BACKUP_RESTIC_PASSWORD_FILE muss gesetzt sein}"
+
+if [[ ! "$READ_DATA_SUBSET" =~ ^[0-9]+(/[0-9]+)?$ ]]; then
+  printf 'Ungueltige BACKUP_READ_DATA_SUBSET: %s\n' "$READ_DATA_SUBSET" >&2
+  exit 1
+fi
 
 if [[ ! -r "$BACKUP_RESTIC_PASSWORD_FILE" ]]; then
   printf 'Restic-Passwortdatei ist nicht lesbar: %s\n' "$BACKUP_RESTIC_PASSWORD_FILE" >&2
@@ -81,5 +87,7 @@ restic forget \
   --keep-weekly "${BACKUP_RETENTION_WEEKLY:-4}" \
   --keep-monthly "${BACKUP_RETENTION_MONTHLY:-12}" \
   --prune
+
+restic check --read-data-subset="$READ_DATA_SUBSET" --no-lock
 
 printf 'FLYERO Backup erfolgreich erstellt: %s\n' "$BACKUP_TIMESTAMP"
