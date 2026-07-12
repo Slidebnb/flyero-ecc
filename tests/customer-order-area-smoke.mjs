@@ -82,6 +82,22 @@ function recommendedFlyers(households) {
   return Math.max(500, Math.ceil((households * 1.1) / 100) * 100);
 }
 
+const premiumPricingExamples = [
+  [100, "599"],
+  [500, "599"],
+  [1000, "599"],
+  [1500, "599"],
+  [2000, "760"],
+  [3000, "1140"],
+  [5000, "1900"],
+  [5001, "1900.34"],
+  [7500, "2750"],
+  [10000, "3600"],
+  [10001, "3600.31"],
+  [15000, "5150"],
+  [20000, "6700"],
+];
+
 const server = await ensureServer();
 try {
   const customerCookie = await login("kunde.immobilien@example.com");
@@ -109,6 +125,7 @@ try {
   const overviewEnd = wizard.indexOf("</aside>", overviewStart);
   const overview = overviewStart >= 0 && overviewEnd > overviewStart ? wizard.slice(overviewStart, overviewEnd) : "";
   assert(overview, "Gebietsuebersicht wurde im Wizard nicht gefunden.");
+  assert(!overview.includes("Empfohlene Flyerzahl</dt>"), "Gebietsuebersicht zeigt entfernte Kennzahl: Empfohlene Flyerzahl");
   for (const removedLabel of ["Haushalte</dt>", "Laufstrecke</dt>", "Zustelldauer</dt>", "Benötigte Verteiler</dt>"]) {
     assert(!overview.includes(removedLabel), `Gebietsuebersicht zeigt entfernte Kennzahl: ${removedLabel}`);
   }
@@ -120,7 +137,14 @@ try {
     "singleDistributorMinutes",
     "local-56170",
   ]);
-  includes("src/lib/pricing.ts", ["pricing-rule-v1"]);
+  includes("src/lib/pricing.ts", [
+    "premium-distribution-v2",
+    "calculatePremiumDistributionNetPrice",
+    "minimumOrderValueNet",
+    "tier1Rate",
+    "tier2Rate",
+    "tier3Rate",
+  ]);
   assert(!smartMaps.includes("input.households ??"), "Server darf Browser-Haushalte nicht als Wahrheit uebernehmen.");
 
   const areas = await prisma.distributionArea.findMany({
@@ -161,7 +185,7 @@ try {
     assert(item.data.metrics.confidence, "Confidence fehlt.");
     assert(item.data.metrics.source, "Berechnungsquelle fehlt.");
     assert(item.data.metrics.householdCountSource, "Household-Quelle fehlt.");
-    assert(item.data.metrics.pricingVersion === "pricing-rule-v1", "Pricing-Version fehlt.");
+    assert(item.data.metrics.pricingVersion === "premium-distribution-v2", "Pricing-Version fehlt.");
     assert(item.data.metrics.areaReference, "Area-Referenz fehlt.");
     assert(item.data.metrics.calculatedAt, "Berechnungszeitpunkt fehlt.");
     assert(item.data.metrics.calculationVersion === "order-area-v1", "Calculation-Version fehlt.");
@@ -177,6 +201,11 @@ try {
   assert(large.data.metrics.households > small.data.metrics.households, "Manuelle Gebietsgroesse aendert Haushalte nicht.");
   assert(large.data.metrics.routeDistanceMeters > small.data.metrics.routeDistanceMeters, "Manuelle Gebietsgroesse aendert Laufstrecke nicht.");
   assert(Number(large.data.metrics.grossPrice) > Number(small.data.metrics.grossPrice), "Manuelle Gebietsgroesse aendert Preis nicht.");
+
+  for (const [flyerQuantity, expectedNet] of premiumPricingExamples) {
+    const quote = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&coverageAreaSqm=${smallArea}&flyerQuantity=${flyerQuantity}`, { cookie: customerCookie });
+    assert(quote.data.metrics.netPrice === expectedNet, `${flyerQuantity} Flyer: erwartet ${expectedNet} netto, bekam ${quote.data.metrics.netPrice}`);
+  }
 
   const page = await fetchWithTimeout(`${baseUrl}/customer/orders/new`, { headers: { cookie: customerCookie } });
   const html = await page.text();

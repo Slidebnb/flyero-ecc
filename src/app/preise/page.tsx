@@ -15,7 +15,7 @@ import { createSeoMetadata } from "@/app/seo";
 export const metadata = createSeoMetadata({
   title: "Preise für Flyerverteilung",
   description:
-    "FLYERO Preise richten sich nach Gebiet, Flyeranzahl, Haushalten, Zeitraum und Zusatzleistungen. Der Preis wird vor der Buchung angezeigt.",
+    "FLYERO ist eine nachweisbare Premium-Flyerverteilung mit Gebietsauswahl, GPS-Nachweis, Foto-Dokumentation und PDF-Bericht.",
   path: "/preise",
   keywords: ["Flyerverteilung Preise", "Flyer verteilen Kosten", "Werbeflyer Kosten"],
 });
@@ -28,8 +28,8 @@ const priceFactors = [
 ] as const;
 
 const priceDetails = [
-  ["Gebiet", "PLZ, Ort oder gezeichnete Fläche bestimmen Haushalte, Laufwege und Verteilerbedarf."],
-  ["Material", "Format, Gewicht, Druckdaten und Lagerung beeinflussen Vorbereitung und Handling."],
+  ["Mindestauftrag", "599 € netto inklusive Gebietsplanung, GPS-Nachweis, Foto-Dokumentation und PDF-Bericht."],
+  ["Gebiet", "PLZ, Ort oder gezeichnete Fläche bestimmen Planung, Aufwand und Zustellbarkeit."],
   ["Zeitfenster", "Standardverteilung, enge Termine oder Expresswünsche verändern die operative Planung."],
   ["Nachweis", "GPS-Spur, Foto-Dokumentation, Admin-Prüfung und PDF-Bericht sind Teil des Qualitätsprozesses."],
 ] as const;
@@ -44,8 +44,9 @@ export default function PricingPage() {
             <p className="mkEyebrow">Preise</p>
             <h1 id="pricing-hero-title">Klare Kalkulation vor der Buchung.</h1>
             <p className="mkHeroLead">
-              Der Endpreis wird im Auftrag anhand von Gebiet, Menge, Zeitraum und Zusatzleistungen berechnet.
-              Sie sehen die Kosten, bevor Sie verbindlich buchen.
+              Mindestauftrag 599 € netto inklusive Gebietsplanung, GPS-Nachweis,
+              Foto-Dokumentation und PDF-Bericht. Sie sehen die Kosten netto zzgl. MwSt.,
+              bevor Sie verbindlich buchen.
             </p>
             <div className="mkHeroActions">
               <MarketingButton href="/verteilung-anfragen">Preis anfragen</MarketingButton>

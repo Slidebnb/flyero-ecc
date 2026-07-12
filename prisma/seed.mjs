@@ -101,11 +101,15 @@ async function ensurePricing() {
   }
 
   const rules = [
-    { minQuantity: 1, maxQuantity: 2000, pricePerUnit: "0.14", minimumNetPrice: "250" },
-    { minQuantity: 2001, maxQuantity: 5000, pricePerUnit: "0.12", minimumNetPrice: "250" },
-    { minQuantity: 5001, maxQuantity: 10000, pricePerUnit: "0.105", minimumNetPrice: "250" },
-    { minQuantity: 10001, maxQuantity: null, pricePerUnit: "0.095", minimumNetPrice: "250" },
+    { minQuantity: 1, maxQuantity: 5000, pricePerUnit: "0.38", basePrice: "0", minimumNetPrice: "599" },
+    { minQuantity: 5001, maxQuantity: 10000, pricePerUnit: "0.34", basePrice: "1900", minimumNetPrice: "599" },
+    { minQuantity: 10001, maxQuantity: null, pricePerUnit: "0.31", basePrice: "3600", minimumNetPrice: "599" },
   ];
+
+  await prisma.pricingRule.updateMany({
+    where: { serviceType: "FLYER_DISTRIBUTION" },
+    data: { isActive: false },
+  });
 
   for (const rule of rules) {
     const existing = await prisma.pricingRule.findFirst({
@@ -122,13 +126,36 @@ async function ensurePricing() {
           serviceType: "FLYER_DISTRIBUTION",
           minQuantity: rule.minQuantity,
           maxQuantity: rule.maxQuantity,
-          basePrice: new Prisma.Decimal("0"),
+          basePrice: new Prisma.Decimal(rule.basePrice),
           pricePerUnit: new Prisma.Decimal(rule.pricePerUnit),
           minimumNetPrice: new Prisma.Decimal(rule.minimumNetPrice),
         },
       });
+    } else {
+      await prisma.pricingRule.update({
+        where: { id: existing.id },
+        data: {
+          basePrice: new Prisma.Decimal(rule.basePrice),
+          pricePerUnit: new Prisma.Decimal(rule.pricePerUnit),
+          minimumNetPrice: new Prisma.Decimal(rule.minimumNetPrice),
+          isActive: true,
+        },
+      });
     }
   }
+}
+
+function calculatePremiumDistributionNetPrice(flyerQuantity) {
+  const safeQuantity = Math.max(0, Math.floor(flyerQuantity));
+  if (safeQuantity <= 5000) return new Prisma.Decimal("0.38").mul(safeQuantity).toDecimalPlaces(2);
+  if (safeQuantity <= 10000) {
+    return new Prisma.Decimal("1900")
+      .plus(new Prisma.Decimal("0.34").mul(safeQuantity - 5000))
+      .toDecimalPlaces(2);
+  }
+  return new Prisma.Decimal("3600")
+    .plus(new Prisma.Decimal("0.31").mul(safeQuantity - 10000))
+    .toDecimalPlaces(2);
 }
 
 async function calculateSeedPrice(flyerQuantity) {
@@ -145,12 +172,10 @@ async function calculateSeedPrice(flyerQuantity) {
     (await prisma.pricingSetting.findUnique({ where: { key: "vat_rate" } }))
       ?.valueDecimal ?? new Prisma.Decimal("0.19");
   const basePrice = rule?.basePrice ?? new Prisma.Decimal("0");
-  const pricePerUnit = rule?.pricePerUnit ?? new Prisma.Decimal("0.12");
-  const minimumNetPrice = rule?.minimumNetPrice ?? new Prisma.Decimal("250");
-  const net = Prisma.Decimal.max(
-    basePrice.plus(pricePerUnit.mul(flyerQuantity)),
-    minimumNetPrice,
-  ).toDecimalPlaces(2);
+  const pricePerUnit = rule?.pricePerUnit ?? new Prisma.Decimal("0.38");
+  const minimumNetPrice = rule?.minimumNetPrice ?? new Prisma.Decimal("599");
+  const baseDistributionNet = calculatePremiumDistributionNetPrice(flyerQuantity);
+  const net = Prisma.Decimal.max(baseDistributionNet, new Prisma.Decimal("599")).toDecimalPlaces(2);
   const vat = net.mul(vatRate).toDecimalPlaces(2);
 
   return {
@@ -165,6 +190,26 @@ async function calculateSeedPrice(flyerQuantity) {
       minimumNetPrice: minimumNetPrice.toString(),
       vatRate: vatRate.toString(),
       ruleId: rule?.id ?? null,
+      pricingVersion: "premium-distribution-v2",
+      minimumOrderValueNet: "599",
+      tier1Rate: "0.38",
+      tier2Rate: "0.34",
+      tier3Rate: "0.31",
+      tier1Limit: 5000,
+      tier2Limit: 10000,
+      baseDistributionNet: baseDistributionNet.toString(),
+      areaDifficultyFactor: "1",
+      areaDifficulty: "NORMAL",
+      surcharges: {
+        expressSurchargePercent: 30,
+        weekendSurchargePercent: 25,
+        additionalAreaFeeNet: "49",
+        pickupFeeNet: "49",
+        storageFeeNet: "29",
+      },
+      calculatedNet: net.toString(),
+      calculatedGross: net.plus(vat).toDecimalPlaces(2).toString(),
+      calculatedAt: new Date().toISOString(),
     },
   };
 }

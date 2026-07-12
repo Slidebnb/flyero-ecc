@@ -489,7 +489,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const households = intelligence?.metrics.households ?? localHouseholds;
   const routeDistanceMeters = intelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
   const routeDurationMinutes = intelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
-  const grossPrice = intelligence?.metrics.grossPrice ?? "0";
+  const netPrice = intelligence?.metrics.netPrice ?? "0";
   const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
   const recommendedFlyerQuantity = recommendedFlyersForHouseholds(households);
   const deliverabilityScore = intelligence?.metrics.score ?? null;
@@ -524,7 +524,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     areaKm2: coverageAreaSqm / 1_000_000,
     householdCount: households,
     recommendedFlyerQuantity,
-    pricePreview: grossPrice,
+    pricePreview: netPrice,
     walkingDistanceKm: routeDistanceMeters / 1000,
     deliveryDurationMinutes: routeDurationMinutes,
     warehouseSuggestion: intelligence?.warehouse?.city ?? null,
@@ -555,7 +555,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     city,
     deliverabilityScore,
     distributorNeed,
-    grossPrice,
+    netPrice,
     households,
     householdCountSource,
     intelligence?.metrics.areaReference?.coverageAreaSqm,
@@ -791,12 +791,6 @@ export function SmartOrderWizard({ areas, today }: Props) {
   useEffect(() => {
     fetchSuggestions(query);
   }, [fetchSuggestions, query]);
-
-  useEffect(() => {
-    if (!flyerQuantityTouched && recommendedFlyerQuantity !== flyerQuantity) {
-      setFlyerQuantity(recommendedFlyerQuantity);
-    }
-  }, [flyerQuantity, flyerQuantityTouched, recommendedFlyerQuantity]);
 
   useEffect(() => {
     if (lastIntelligenceRequestRef.current === intelligenceRequestQuery) {
@@ -1122,7 +1116,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     { id: 2, title: "Flyer & Druck", detail: "Flyer, Druckdaten und Menge festlegen", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung & Hinweise", detail: "Verteilart, Zielgruppe und Hinweise", value: distributionType },
     { id: 4, title: "Zeitraum & Auslieferung", detail: "Bestimme Zeitraum und Auslieferung", value: startDate },
-    { id: 5, title: "Zusammenfassung", detail: "Prüfe Gebiet, Preis und Nachweise", value: formatCurrency(grossPrice) },
+    { id: 5, title: "Zusammenfassung", detail: "Prüfe Gebiet, Preis und Nachweise", value: formatCurrency(netPrice) },
     { id: 6, title: "Abschluss", detail: "Buchen, anfragen oder klassisch senden", value: "3 Wege" },
   ];
   const orderNavGroups = Array.from(new Set(orderNavItems.map((item) => item.group)));
@@ -1263,14 +1257,6 @@ export function SmartOrderWizard({ areas, today }: Props) {
             <button type="button" onClick={() => moveQuantity(1000)}>+</button>
             <span>Stück</span>
           </div>
-          <div className="flyerRecommendation">
-            <span>Empfohlen</span>
-            <strong>Für das markierte Gebiet + 10 % Reserve: {formatNumber(recommendedFlyerQuantity)} Flyer</strong>
-            <button type="button" onClick={() => {
-              setFlyerQuantityTouched(true);
-              setFlyerQuantity(recommendedFlyerQuantity);
-            }}>Empfehlung übernehmen</button>
-          </div>
         </section>
       );
     }
@@ -1339,7 +1325,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
             <span><strong>{formatNumber(households)}</strong>Haushalte geschätzt</span>
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
             <span><strong>{formatNumber(flyerQuantity)}</strong>Flyer</span>
-            <span><strong>{formatCurrency(grossPrice)}</strong>Geschätzter Preis</span>
+            <span><strong>{formatCurrency(netPrice)}</strong>Preis netto zzgl. MwSt.</span>
             <span><strong>{areaStats.warehouseSuggestion ?? "wird geprüft"}</strong>Lager</span>
           </div>
           <p className="orderReviewNotice">Die Buchung wird nach Zahlung durch FLYERO geprüft. Gebiet, Druckdaten und Zustellbarkeit werden final bestätigt.</p>
@@ -1470,8 +1456,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
         </div>
 
         <div className="orderPriceFooter">
-          <span>Geschätzter Preis (brutto)</span>
-          <strong>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</strong>
+          <span>Preis netto zzgl. MwSt.</span>
+          <strong>{Number(netPrice) > 0 ? formatCurrency(netPrice) : "wird berechnet"}</strong>
           <button type="button" onClick={() => setActiveStep((step) => Math.min(6, step + 1))}>
             {activeStep >= 6 ? "Abschluss wählen" : "Weiter"}
             <span aria-hidden="true">→</span>
@@ -1540,8 +1526,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
           </div>
           <dl>
             <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
-            <div><dt>Empfohlene Flyerzahl</dt><dd>{recommendedFlyerQuantity > 0 ? `${formatNumber(recommendedFlyerQuantity)} Stück` : "wird geprüft"}</dd></div>
-            <div><dt>Geschätzter Preis</dt><dd>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</dd></div>
+            <div><dt>Preis netto zzgl. MwSt.</dt><dd>{Number(netPrice) > 0 ? formatCurrency(netPrice) : "wird berechnet"}</dd></div>
             <div><dt>Nächstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird geprüft"}</dd></div>
           </dl>
           <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore)}</p>
