@@ -1,12 +1,11 @@
-import { UserRole } from "@prisma/client";
 import { analyticsRowsToCsv, getAnalyticsExportRows, parseAnalyticsFilters } from "@/lib/analytics";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET(request: Request) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.ANALYTICS_EXPORT);
     const url = new URL(request.url);
     const filters = parseAnalyticsFilters({
       from: url.searchParams.get("from"),

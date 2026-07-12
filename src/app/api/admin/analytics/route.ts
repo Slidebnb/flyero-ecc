@@ -1,7 +1,6 @@
-import { UserRole } from "@prisma/client";
 import { getBusinessOverview, parseAnalyticsFilters } from "@/lib/analytics";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 function filtersFromUrl(request: Request) {
@@ -18,7 +17,7 @@ function filtersFromUrl(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.ANALYTICS_VIEW);
     const filters = filtersFromUrl(request);
     const data = await getBusinessOverview(filters);
     await createAuditLog({

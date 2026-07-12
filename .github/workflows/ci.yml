@@ -137,6 +137,9 @@ jobs:
       - name: Authentication abuse protection smoke
         run: npm run test:auth-abuse
 
+      - name: Permission matrix smoke
+        run: npm run test:permissions
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

@@ -481,6 +481,7 @@ Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgen
 - **Placeholder-Uploads: behoben.** Der Dokumentservice lehnt fehlende oder leere Inhalte ab und erzeugt keinen synthetischen Ersatzinhalt mehr.
 - **Dokumentversionen: verbessert.** `DocumentVersion.storageKey` speichert für neu erzeugte Dateien den unveränderlichen privaten Storage-Key. Versionsdownloads lesen exakt diese Version; historische Versionen ohne nachweisbaren Key bleiben bewusst nicht abrufbar.
 - **Premium-Preislogik: vorhanden.** Die marginale Staffel und der Mindestauftrag von 599 EUR netto sind als `premium-distribution-v4` versioniert und werden über Gebiet-/Checkout-Smokes mit Schwellenfallprüfungen verifiziert.
+- **Zentrale Permission-Matrix: teilweise vorhanden.** `src/lib/permissions.ts` definiert die ersten maschinenlesbaren Berechtigungen. Finanz-, Preis-, Nutzer- und Veröffentlichungsaktionen sind serverseitig auf `ADMIN` begrenzt; operative Reportprüfung und Analytics-Lesen sind für Support/Disposition getrennt freigegeben. Der Tenant-Scope und die vollständige Migration aller APIs bleiben offen.
 
 Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `FILE-08` nicht mehr als unverändert fehlend zu bewerten. `SEC-04` und `FILE-04` sind teilweise beziehungsweise durch die Folgeänderung für neu erzeugte Versionen behoben; Quarantäne, Malware-Scan und Altbestandsmigration bleiben offen.
 

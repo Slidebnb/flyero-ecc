@@ -1,15 +1,15 @@
 import { NextRequest } from "next/server";
-import { Prisma, ServiceType, UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Prisma, ServiceType } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { ensureDefaultPricingSettings, getPricingSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.PRICING_MANAGE);
     return successResponse(await getPricingSettings());
   } catch (error) {
     return routeErrorResponse(error);
@@ -18,7 +18,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.PRICING_MANAGE);
     await ensureDefaultPricingSettings();
     const body = await readBody(request) as Record<string, unknown>;
     const settings = body.settings as Record<string, unknown> | undefined;

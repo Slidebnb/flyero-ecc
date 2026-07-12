@@ -1,13 +1,12 @@
-import { UserRole } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.ACCOUNTING_EXPORT_DOWNLOAD);
     const { id } = await context.params;
     const accountingExport = await prisma.accountingExport.findUnique({ where: { id } });
     if (!accountingExport?.fileUrl) throw new Error("Exportdatei wurde nicht gefunden.");

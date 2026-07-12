@@ -1,6 +1,5 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { approveReport } from "@/lib/reports";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 
@@ -8,7 +7,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.REPORT_REVIEW);
     const { id } = await context.params;
     const report = await approveReport({ reportId: id, adminUserId: session.id });
     if (request.headers.get("accept")?.includes("text/html")) {

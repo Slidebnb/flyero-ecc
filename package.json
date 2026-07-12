@@ -43,6 +43,7 @@
     "test:auth-ux": "node -r dotenv/config tests/auth-ux-smoke.mjs",
     "test:auth-session": "node -r dotenv/config tests/auth-session-smoke.mjs",
     "test:auth-abuse": "node -r dotenv/config tests/auth-abuse-smoke.mjs",
+    "test:permissions": "node tests/permission-matrix-smoke.mjs",
     "test:security-headers": "node tests/security-headers-smoke.mjs",
     "test:upload-security": "node tests/upload-security-smoke.mjs",
     "test:ci-config": "node tests/ci-config-smoke.mjs",

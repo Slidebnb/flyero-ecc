@@ -1,0 +1,46 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+
+const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing] = await Promise.all([
+  readFile("src/lib/permissions.ts", "utf8"),
+  readFile("PERMISSION_MATRIX.md", "utf8"),
+  readFile("src/app/api/admin/settings/users/route.ts", "utf8"),
+  readFile("src/app/api/admin/settings/users/[id]/status/route.ts", "utf8"),
+  readFile("src/app/api/admin/payments/[id]/refund/route.ts", "utf8"),
+  readFile("src/app/api/admin/reports/[id]/publish/route.ts", "utf8"),
+  readFile("src/app/api/admin/reports/[id]/approve/route.ts", "utf8"),
+  readFile("src/app/api/admin/analytics/route.ts", "utf8"),
+  readFile("src/app/api/admin/analytics/export/route.ts", "utf8"),
+  readFile("src/app/api/admin/accounting/exports/route.ts", "utf8"),
+  readFile("src/app/api/admin/settings/pricing/route.ts", "utf8"),
+]);
+
+for (const permission of [
+  "ACCOUNTING_EXPORT",
+  "ANALYTICS_EXPORT",
+  "INTERNAL_USERS_MANAGE",
+  "PAYMENT_REFUND",
+  "PRICING_MANAGE",
+  "REPORT_PUBLISH",
+]) {
+  assert.match(permissions, new RegExp(`${permission}:`), `Permission ${permission} fehlt.`);
+}
+assert.match(permissions, /SUPPORT_DISPATCHER/);
+assert.match(permissions, /REPORT_REVIEW/);
+assert.match(matrix, /Support\/Disposition[\s\S]*?Nein/);
+
+for (const [source, permission] of [
+  [users, "INTERNAL_USERS_MANAGE"],
+  [userStatus, "INTERNAL_USERS_MANAGE"],
+  [refund, "PAYMENT_REFUND"],
+  [reportPublish, "REPORT_PUBLISH"],
+  [reportApprove, "REPORT_REVIEW"],
+  [analytics, "ANALYTICS_VIEW"],
+  [analyticsExport, "ANALYTICS_EXPORT"],
+  [accounting, "ACCOUNTING_EXPORT"],
+  [pricing, "PRICING_MANAGE"],
+]) {
+  assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
+}
+
+console.log("Permission-Matrix Smoke-Test erfolgreich abgeschlossen.");
