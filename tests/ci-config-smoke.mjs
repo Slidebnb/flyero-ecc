@@ -33,6 +33,7 @@ assert.match(ci, /CUSTOMER_ORDER_CHECKOUT_BASE_URL:\s*http:\/\/127\.0\.0\.1:3000
 assert.match(ci, /BETA_BASE_URL:\s*http:\/\/127\.0\.0\.1:3000/, "Beta-Smokes muessen den gemeinsamen CI-Server verwenden.");
 assert.match(ci, /name:\s*Start shared test server/, "CI muss genau einen gemeinsamen Next-Testserver starten.");
 assert.match(ci, /flyero-dev\.log/, "CI muss die Testserver-Ausgabe fuer Fehlerdiagnosen sichern.");
+assert.match(ci, /npm run test:security-headers/, "CI muss die Security-Header-Konfiguration pruefen.");
 for (const script of [
   "test:auth-ux",
   "test:auth-session",

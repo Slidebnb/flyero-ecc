@@ -67,6 +67,9 @@ jobs:
       - name: Validate CI configuration
         run: npm run test:ci-config
 
+      - name: Validate security headers
+        run: npm run test:security-headers
+
   critical-smoke:
     name: Critical PostgreSQL smoke tests
     runs-on: ubuntu-latest
