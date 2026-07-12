@@ -7104,7 +7104,13 @@ body {
 
 /* Order wizard polish: clearer steps, calmer controls and a readable area summary. */
 .orderExperience {
-  grid-template-columns: 112px minmax(430px, 470px) minmax(0, 1fr);
+  grid-template-columns: 216px minmax(430px, 470px) minmax(0, 1fr);
+}
+
+@media (max-width: 1120px) and (min-width: 821px) {
+  .orderExperience {
+    grid-template-columns: 190px minmax(360px, 420px) minmax(0, 1fr);
+  }
 }
 
 .orderStepPanel {

@@ -140,13 +140,13 @@ type OrderDraft = {
 };
 
 const orderNavItems = [
-  { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard },
-  { href: "/customer/orders/new", label: "Neue Verteilung", icon: Plus, active: true },
-  { href: "/customer/orders", label: "Kampagnen", icon: ListChecks },
-  { href: "/customer/reports", label: "Berichte", icon: FileText },
-  { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText },
-  { href: "/customer/documents", label: "Dateien", icon: FileStack },
-  { href: "/customer/support", label: "Hilfe", icon: CircleHelp },
+  { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
+  { href: "/customer/orders/new", label: "Neue Verteilung", icon: Plus, group: "Start", active: true },
+  { href: "/customer/orders", label: "Kampagnen", icon: ListChecks, group: "Start" },
+  { href: "/customer/reports", label: "Nachweise", icon: FileText, group: "Ergebnisse" },
+  { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Ergebnisse" },
+  { href: "/customer/documents", label: "Dateien", icon: FileStack, group: "Ergebnisse" },
+  { href: "/customer/support", label: "Hilfe", icon: CircleHelp, group: "Hilfe" },
 ];
 
 type GoogleLatLng = { lat: () => number; lng: () => number };
@@ -1121,6 +1121,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
     { id: 5, title: "Zusammenfassung", detail: "Prüfe Gebiet, Preis und Nachweise", value: formatCurrency(grossPrice) },
     { id: 6, title: "Abschluss", detail: "Buchen, anfragen oder klassisch senden", value: "3 Wege" },
   ];
+  const orderNavGroups = Array.from(new Set(orderNavItems.map((item) => item.group)));
+
   function renderStepContent(stepId: number) {
     if (stepId === 1) {
       return (
@@ -1383,17 +1385,22 @@ export function SmartOrderWizard({ areas, today }: Props) {
       <input type="hidden" name="contactPhone" value={contactPhone} />
       <input type="hidden" name="notes" value={`${notes}${notes ? "\n" : ""}Produkt: ${productFormat}. Zielgruppe: ${targetGroup}.`} />
 
-      <aside className="orderSideNav" aria-label="Bestellnavigation">
+      <aside className="orderSideNav customerSideNav" aria-label="Kundennavigation">
         <OrderLogo />
-        {orderNavItems.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link key={item.href} href={item.href} className={item.active ? "sideNavActive" : ""}>
-              <span><Icon aria-hidden="true" /></span>
-              {item.label}
-            </Link>
-          );
-        })}
+        {orderNavGroups.map((group) => (
+          <div className="customerSideNavSection" key={group}>
+            <small>{group}</small>
+            {orderNavItems.filter((item) => item.group === group).map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.href} href={item.href} className={item.active ? "sideNavActive" : ""}>
+                  <span><Icon aria-hidden="true" /></span>
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
         <div className="sideNavFooter">
           <button
             type="button"

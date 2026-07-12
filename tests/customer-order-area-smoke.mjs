@@ -94,6 +94,9 @@ try {
     "Du hast dein Gebiet manuell angepasst.",
     "Neues Gebiet \u00fcbernehmen",
     "Aktuelles Gebiet behalten",
+    "orderNavGroups",
+    "customerSideNavSection",
+    'className="orderSideNav customerSideNav"',
   ]);
   assert(!wizard.includes("Math.random"), "Wizard darf keine Zufallswerte fuer Gebietsuebersicht nutzen.");
   for (const forbidden of ["8.414", "8414", "1.249,50", "1249.50", "FeatureCollection</", "GeoJSON</"]) {
