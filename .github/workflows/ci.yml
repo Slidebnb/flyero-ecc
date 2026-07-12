@@ -140,6 +140,9 @@ jobs:
       - name: Permission matrix smoke
         run: npm run test:permissions
 
+      - name: Audit log context smoke
+        run: npm run test:audit-log-v2
+
       - name: Retention policy smoke
         run: npm run test:retention
 

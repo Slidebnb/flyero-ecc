@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { clearSessionCookie, getSession, revokeSession } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { publicUrl } from "@/lib/publicUrl";
+import { auditRequestContext } from "@/lib/auditRequestContext";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
@@ -14,6 +15,8 @@ export async function POST(request: NextRequest) {
       action: "auth.logout",
       entityType: "User",
       entityId: session.id,
+      requestContext: auditRequestContext(request),
+      result: "SUCCESS",
     });
   }
 

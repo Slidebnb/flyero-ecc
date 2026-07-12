@@ -42,7 +42,7 @@ Die groessten aktuellen Risiken sind:
 4. `P1` Login, Registrierung und Verifizierungs-Resend haben keinen zentralen, verteilten Abuse-/Brute-Force-Schutz. Der vorhandene Lead-Schutz ist nur ein In-Memory-Bucket pro Prozess.
 5. `P1` Datei- und MIME-Pruefung basiert ueberwiegend auf Endung und mitgeliefertem MIME-Typ; Malware-Scan, Content-Sniffing, Quarantaene und Objekt-Storage fehlen.
 6. `P1` CI/CD, Branch-Schutz, automatische Security-Scans, Staging und reproduzierbare Release-Gates sind im Repo nicht vorhanden.
-7. `P1` AuditLogs enthalten keine feste Mandanten-ID, IP, User-Agent, Ergebnis oder Request-ID. Fuer Compliance und Vorfallsanalyse reicht das aktuelle Modell nicht.
+7. `P1` AuditLogs hatten im urspruenglichen Stand keine Request-ID, IP, User-Agent oder Ergebnisangabe. Diese Kontextfelder sind inzwischen technisch ergaenzt; Mandanten-ID, vollstaendige Anbindung aller kritischen Aktionen und extern manipulationsgeschuetzte Archivierung bleiben offen.
 8. `P1` Externes Monitoring, Alarmierung, zentrale Request-Korrelation und Uptime-/Backup-Ueberwachung fehlen.
 
 Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock-Zahlungen sind in Produktion standardmaessig deaktiviert, generierte PDFs werden inzwischen unter privatem Storage abgelegt, Kunden-Downloads sind rollen- und eigentumsgeprueft, externe GPS-Berichte koennen ohne erfundene Coverage veroeffentlicht werden, und die Domain ist per HTTPS erreichbar.
@@ -486,6 +486,17 @@ Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgen
 - **Privater Object-Storage-Pfad: technisch vorbereitet, operativ noch offen.** `src/lib/privateObjectStorage.ts` bündelt lokale und S3-kompatible private Ablage für Dokumente sowie generierte Dateien. Lokal bleibt der Entwicklungsfallback aktiv; Produktion muss Bucket, Verschlüsselung, Versionierung, Lifecycle, initiale Migration und Restore-Test noch nachweisen.
 
 Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `FILE-08` nicht mehr als unverändert fehlend zu bewerten. `SEC-04` und `FILE-04` sind teilweise beziehungsweise durch die Folgeänderung für neu erzeugte Versionen behoben; Quarantäne, Malware-Scan und Altbestandsmigration bleiben offen.
+
+### P1 AuditLog-v2
+
+Der AuditLog-Kontext wurde als begrenzte, rueckwaertskompatible Erweiterung umgesetzt:
+
+- `requestId`, `ipAddress`, `userAgent` und `result` sind nullable beziehungsweise mit `SUCCESS` vorbelegt, damit historische Eintraege migrierbar bleiben.
+- `src/lib/auditRequestContext.ts` uebernimmt nur eine begrenzte Request-ID, den ersten Proxy-IP-Wert und maximal 512 Zeichen User-Agent. Passwoerter, Cookies, Tokens und Request-Bodies werden nicht gespeichert.
+- Login und Logout schreiben den Request-Kontext mit. Bestehende Service-Aufrufe bleiben ohne kuenstliche Nachruestung kompatibel.
+- `tests/audit-log-v2-smoke.mjs` und der CI-Critical-Smoke pruefen Schema, Migration, Sanitization und die beiden Auth-Routen.
+
+Noch offen sind Tenant-ID, die Anbindung von Zahlungs-/Webhook-/Dokument-/Report-Aktionen sowie ein externes, manipulationsgeschuetztes Logziel mit verbindlicher Aufbewahrung.
 
 ### P1 CI- und Security-Gates
 

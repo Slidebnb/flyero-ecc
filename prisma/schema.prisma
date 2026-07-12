@@ -2007,12 +2007,17 @@ model AuditLog {
   oldValues  Json?
   newValues  Json?
   metadata   Json?
+  requestId  String?
+  ipAddress  String?
+  userAgent  String?
+  result     String   @default("SUCCESS")
   createdAt  DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId])
   @@index([userId, createdAt])
+  @@index([requestId])
 }
 
 model Notification {

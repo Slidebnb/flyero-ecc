@@ -8,6 +8,7 @@ import { createAuditLog } from "@/lib/audit";
 import { ROLE_HOME } from "@/lib/constants";
 import { publicUrl } from "@/lib/publicUrl";
 import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
+import { auditRequestContext } from "@/lib/auditRequestContext";
 
 function safeNext(value: unknown) {
   if (typeof value !== "string") return "";
@@ -74,6 +75,8 @@ export async function POST(request: NextRequest) {
     entityType: "User",
     entityId: user.id,
     newValues: { role: user.role, status: user.status },
+    requestContext: auditRequestContext(request),
+    result: "SUCCESS",
   });
 
   if (request.headers.get("accept")?.includes("text/html")) {
