@@ -10,6 +10,7 @@ export const Permission = {
   DOCUMENT_REVIEW: "document.review",
   INTERNAL_USERS_MANAGE: "internal-users.manage",
   PAYMENT_REFUND: "payment.refund",
+  PAYMENT_RECONCILE: "payment.reconcile",
   PRICING_MANAGE: "pricing.manage",
   REPORT_REVIEW: "report.review",
   REPORT_PUBLISH: "report.publish",

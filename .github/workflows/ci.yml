@@ -143,6 +143,9 @@ jobs:
       - name: Public abuse protection smoke
         run: npm run test:public-abuse
 
+      - name: Payment reconciliation contract smoke
+        run: npm run test:payment-reconciliation
+
       - name: Password reset smoke
         run: npm run test:password-reset
 

@@ -259,6 +259,19 @@ enum PaymentStatus {
   PARTIALLY_REFUNDED
 }
 
+enum PaymentReconciliationRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum PaymentReconciliationResult {
+  MATCH
+  MISMATCH
+  REMOTE_MISSING
+  ERROR
+}
+
 enum RefundType {
   FULL
   PARTIAL
@@ -1630,12 +1643,51 @@ model Payment {
   refunds   Refund[]
   histories PaymentStatusHistory[]
   invoices  Invoice[]
+  reconciliationIssues PaymentReconciliationIssue[]
 
   @@index([orderId, status])
   @@index([customerId, status])
   @@index([tenantId, status])
   @@index([providerId, status])
   @@index([createdAt])
+}
+
+model PaymentReconciliationRun {
+  id             String                       @id @default(cuid())
+  providerCode   String
+  status         PaymentReconciliationRunStatus @default(RUNNING)
+  dryRun         Boolean                      @default(true)
+  checkedCount   Int                          @default(0)
+  matchedCount   Int                          @default(0)
+  mismatchCount  Int                          @default(0)
+  missingCount   Int                          @default(0)
+  errorCount     Int                          @default(0)
+  startedAt      DateTime                     @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime                     @default(now())
+
+  issues PaymentReconciliationIssue[]
+
+  @@index([providerCode, status, startedAt])
+}
+
+model PaymentReconciliationIssue {
+  id             String                    @id @default(cuid())
+  runId          String
+  paymentId      String?
+  result         PaymentReconciliationResult
+  localStatus    PaymentStatus?
+  remoteStatus   String?
+  amountMismatch Boolean                   @default(false)
+  currencyMismatch Boolean                 @default(false)
+  details        Json?
+  createdAt      DateTime                  @default(now())
+
+  run     PaymentReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  payment Payment?                 @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([runId, result])
+  @@index([paymentId, createdAt])
 }
 
 model PaymentEvent {

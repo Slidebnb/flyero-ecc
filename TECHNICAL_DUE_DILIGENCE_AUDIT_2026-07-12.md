@@ -30,7 +30,7 @@ Status:
 
 ## 2. Executive Summary
 
-FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 73 Prisma-Modellen, 58 Enums, 182 API-Routen, 90 Seiten, 34 Migrationen und 49 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
+FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 75 Prisma-Modellen, 60 Enums, 183 API-Routen, 90 Seiten, 35 Migrationen und 50 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
 
 Der aktuelle Stand ist dennoch noch kein vollstaendig belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Eine erste Mandantengrundlage ist jetzt vorhanden: `Tenant`, `TenantMembership` sowie verpflichtende `tenantId`-Felder auf den kundenbezogenen Kernmodellen. Kundenregistrierung, Lead-Konvertierung, Seed-Daten und zentrale Customer-APIs erzeugen bzw. pruefen aktive Kundenmandanten. Plattform-Admin und interne Rollen sind weiterhin global; zentrale Tenant-Permissions, Mitarbeiterverwaltung und vollstaendige Tenant-Policies sind noch offen.
 
@@ -60,7 +60,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 | Storage | Lokaler privater Dateispeicher und Docker-Volumes | teilweise |
 | Reporting | Report-Snapshots, Freigabe, private Downloads, externe GPS-Belege | teilweise |
 | Deployment | Docker Compose, Caddy, HTTPS, Postgres | vorhanden fuer Einzelserver-MVP |
-| Tests | 49 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission-, Tenant- und Report-Smokes | teilweise |
+| Tests | 50 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission-, Tenant- und Report-Smokes | teilweise |
 | CI/CD | GitHub Actions fuer Prisma, Lint, Build, Security und kritische PostgreSQL-Smokes | vorhanden im Repo; Branch-Schutz/Staging extern offen |
 
 ### Architekturstaerken
@@ -85,7 +85,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 ### Vorhanden
 
-- 73 Modelle und 58 Enums bilden Order, Payment, Invoice, Warehouse, Dispatch, Tour, GPS, Report, Dokumente, CRM, Notifications, Monitoring, Audit und Tenant-Grundlagen ab.
+- 75 Modelle und 60 Enums bilden Order, Payment, Invoice, Warehouse, Dispatch, Tour, GPS, Report, Dokumente, CRM, Notifications, Monitoring, Audit und Tenant-Grundlagen ab.
 - Fremdschluessel, Indizes, eindeutige Constraints und Zeitstempel sind an vielen Kernmodellen vorhanden.
 - Stripe-Event-IDs sind eindeutig, Reportnummern und Verifikationscodes sind eindeutig.
 - Migrationen sind versioniert und werden im Deployment mit `prisma migrate deploy` angewendet.
@@ -218,7 +218,7 @@ Betroffene personenbezogene Daten umfassen Kontaktdaten, Rechnungsadressen, Vert
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
 | PAY-01 | Kein nachgewiesener Live-Mode-Abnahmetest mit echten Stripe-Testevents | P1 | Signierte Webhooks, Retry, Out-of-order Events, Abbruch und Refund in Staging testen. |
-| PAY-02 | Kein automatischer Reconciliation-Job | P1 | Stripe-Zahlungen regelmaessig gegen interne Payment-/Order-Stati abgleichen. |
+| PAY-02 | Read-only Stripe-Reconciliation mit persistierten Runs und Issues ist vorhanden; Scheduler-/Live-Stripe-Nachweis bleibt operativ offen | P1 | Job serverseitig regelmaessig ausfuehren, Fehler alarmieren und signierte Staging-/Live-Testevents nachweisen. |
 | PAY-03 | Mock-Mechanismus bleibt im produktiven Code | P2 | Explizite Build-/Runtime-Grenze und Deployment-Check fuer `ENABLE_MOCK_PAYMENTS=false`. |
 | PAY-04 | Kein dokumentierter Chargeback-/Dispute-Prozess | P1 | Dispute-Events, Sperrlogik, Audit und operative Verantwortlichkeit ergaenzen. |
 | PAY-05 | Kein getrenntes Staging-/Live-Secrets-Konzept im Repo dokumentiert | P1 | Environments, Key-Rotation und Secret-Verantwortung dokumentieren. |

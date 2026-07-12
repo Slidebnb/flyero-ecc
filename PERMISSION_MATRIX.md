@@ -14,6 +14,7 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `document.review` | Ja | Ja | Nein | Nein | Nein |
 | `internal-users.manage` | Ja | Nein | Nein | Nein | Nein |
 | `payment.refund` | Ja | Nein | Nein | Nein | Nein |
+| `payment.reconcile` | Ja | Nein | Nein | Nein | Nein |
 | `pricing.manage` | Ja | Nein | Nein | Nein | Nein |
 | `report.review` | Ja | Ja | Nein | Nein | Nein |
 | `report.publish` | Ja | Nein | Nein | Nein | Nein |

@@ -50,6 +50,8 @@
     "test:audit-log-v2": "node tests/audit-log-v2-smoke.mjs",
     "retention:report": "node -r dotenv/config scripts/retention.mjs",
     "retention:purge": "node -r dotenv/config scripts/retention.mjs --apply",
+    "payments:reconcile": "node -r dotenv/config scripts/reconcile-stripe.mjs",
+    "test:payment-reconciliation": "node --experimental-strip-types tests/payment-reconciliation-smoke.mjs",
     "test:retention": "node -r dotenv/config tests/retention-smoke.mjs",
     "test:private-storage": "node tests/private-storage-smoke.mjs",
     "test:security-headers": "node tests/security-headers-smoke.mjs",
