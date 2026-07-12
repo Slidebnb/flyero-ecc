@@ -43,6 +43,7 @@ for (const script of [
   "test:permissions",
   "test:retention",
   "test:private-storage",
+  "test:backup-scheduler",
   "test:module25",
   "test:customer-order-area",
   "test:customer-order-checkout",

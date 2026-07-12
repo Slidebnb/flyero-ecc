@@ -1,0 +1,19 @@
+[Unit]
+Description=FLYERO verschluesseltes Produktionsbackup
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+OnFailure=flyero-backup-failure@%n.service
+
+[Service]
+Type=oneshot
+User=flyero
+Group=flyero
+SupplementaryGroups=docker
+WorkingDirectory=/opt/flyero
+EnvironmentFile=-/etc/flyero/backup.env
+ExecStartPre=/usr/bin/test -r /etc/flyero/restic-password
+ExecStart=/usr/bin/flock --nonblock /tmp/flyero-backup.lock /usr/bin/env bash /opt/flyero/scripts/backup-production.sh
+PrivateTmp=true
+NoNewPrivileges=true
+TimeoutStartSec=2h

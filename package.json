@@ -55,6 +55,7 @@
     "test:upload-security": "node tests/upload-security-smoke.mjs",
     "test:ci-config": "node tests/ci-config-smoke.mjs",
     "backup:config": "node tests/backup-config-smoke.mjs",
+    "test:backup-scheduler": "node tests/backup-scheduler-smoke.mjs",
     "test:public-url": "node --experimental-strip-types tests/public-url-smoke.mjs",
     "test:area-data-import": "node -r dotenv/config tests/area-data-import-smoke.mjs",
     "test:distribution-reports": "node -r dotenv/config tests/distribution-reports-smoke.mjs",

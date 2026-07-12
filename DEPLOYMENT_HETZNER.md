@@ -37,6 +37,18 @@ docker compose -f docker-compose.production.yml up -d
 docker compose -f docker-compose.production.yml ps
 ```
 
+## Automatische Backups
+
+Backups sind nur belastbar, wenn das externe Restic-Ziel eingerichtet und der Timer aktiviert ist. Die Einrichtung ist in `BACKUP_RESTORE_RUNBOOK.md` beschrieben; der versionierte Installer ist:
+
+```bash
+cd /opt/flyero
+sudo bash scripts/install-backup-systemd.sh
+sudo systemctl status flyero-backup.timer
+```
+
+Ohne `/etc/flyero/backup.env` und `/etc/flyero/restic-password` bricht der Installer ab. Ein erfolgreicher GitHub-Push oder ein laufender App-Container ist kein Backupnachweis.
+
 ## ENV-Pflichtwerte
 
 ```env

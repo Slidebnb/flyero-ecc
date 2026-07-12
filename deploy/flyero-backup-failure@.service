@@ -1,0 +1,7 @@
+[Unit]
+Description=FLYERO Backup-Fehler im Systemjournal
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/logger -t flyero-backup "Backup fehlgeschlagen: %i. Pruefe journalctl -u flyero-backup.service."
+

@@ -28,7 +28,7 @@ Dieses Runbook beschreibt den technischen Backup-Pfad fuer die Einzelserver-Beta
 4. `BACKUP_RESTIC_REPOSITORY` und `BACKUP_RESTIC_PASSWORD_FILE` in der Produktionsumgebung setzen.
 5. Das Repository einmalig mit `restic init` initialisieren.
 6. Einen manuellen Backup-Lauf ausfuehren und mit `restic snapshots` pruefen.
-7. Einen Cronjob oder systemd-Timer mit eingeschraenktem Service-User einrichten. Der Job darf nur auf Docker Compose und das Restic-Repository zugreifen.
+7. Den versionierten systemd-Timer installieren. Der Job laeuft als `flyero`, nutzt `flock` gegen parallele Ausfuehrung und bricht bei fehlender Restic-Konfiguration ab.
 
 Beispiel fuer die nicht geheimen Variablen:
 
@@ -38,6 +38,31 @@ BACKUP_RESTIC_PASSWORD_FILE="/etc/flyero/restic-password"
 BACKUP_RETENTION_DAILY="7"
 BACKUP_RETENTION_WEEKLY="4"
 BACKUP_RETENTION_MONTHLY="12"
+```
+
+## Automatischer systemd-Timer
+
+Nach Einrichtung von `/etc/flyero/backup.env` und `/etc/flyero/restic-password`:
+
+```bash
+cd /opt/flyero
+sudo install -d -m 0750 /etc/flyero
+sudo install -o root -g root -m 0600 deploy/flyero-backup.env.example /etc/flyero/backup.env
+sudo nano /etc/flyero/backup.env
+sudo sh -c 'umask 077; head -c 32 /dev/urandom | base64 > /etc/flyero/restic-password'
+sudo chown root:flyero /etc/flyero /etc/flyero/restic-password
+sudo chmod 0750 /etc/flyero
+sudo chmod 0640 /etc/flyero/restic-password
+sudo restic -r "$(grep '^BACKUP_RESTIC_REPOSITORY=' /etc/flyero/backup.env | cut -d= -f2-)" init
+sudo bash scripts/install-backup-systemd.sh
+sudo systemctl status flyero-backup.timer
+```
+
+Der Timer startet taeglich um 03:15 UTC mit bis zu 15 Minuten Zufallsverzoegerung. Ein paralleler Lauf wird durch `flock` abgewiesen. Fehler erscheinen im Systemjournal und loesen den Failure-Service aus:
+
+```bash
+sudo journalctl -u flyero-backup.service -n 100 --no-pager
+sudo journalctl -u 'flyero-backup-failure@*' -n 50 --no-pager
 ```
 
 ## Backup ausfuehren
@@ -98,7 +123,7 @@ Nie alle Flags blind auf Produktion setzen. Vor jedem produktiven Restore muss e
 
 - Echten Hetzner-Storage-Box-Account und Restic-Repository einrichten.
 - Bei S3-Betrieb Bucket-Versionierung, Verschlüsselung, Lifecycle sowie den Export-/Import-Restore mit echten Testdaten nachweisen.
-- Cron/systemd-Timer mit Fehleralarm einrichten.
+- Externen Alarmkanal fuer den systemd-Failure-Service anbinden; das lokale Journal allein ersetzt keine Alarmierung.
 - Verschluesseltes Backupziel und Zugriffskontrolle dokumentieren.
 - Ersten Staging-Restore nachweisen.
 - RPO/RTO nach realer Laufzeit bestaetigen.

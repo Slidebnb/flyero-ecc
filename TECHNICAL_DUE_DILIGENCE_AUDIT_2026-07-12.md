@@ -486,6 +486,18 @@ Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgen
 
 Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `FILE-08` nicht mehr als unverändert fehlend zu bewerten. `SEC-04` und `FILE-04` sind teilweise beziehungsweise durch die Folgeänderung für neu erzeugte Versionen behoben; Quarantäne, Malware-Scan und Altbestandsmigration bleiben offen.
 
+### P0 Backup-Scheduler
+
+Der automatische Betriebsweg ist als Repository-Paket vorbereitet:
+
+- `deploy/flyero-backup.service` laeuft als Benutzer `flyero`, nutzt eine private `/etc/flyero`-Konfiguration und verhindert parallele Laeufe mit `flock`.
+- `deploy/flyero-backup.timer` plant taegliche Backups mit `Persistent=true` und einer Zufallsverzoegerung.
+- Ein Failure-Service schreibt fehlgeschlagene Laeufe ins Systemjournal; ein externer Alarmkanal bleibt bewusst Betreiberaufgabe.
+- `scripts/install-backup-systemd.sh` bricht ohne Restic, Docker, Konfiguration oder Passwortdatei ab und aktiviert den Timer erst nach den Checks.
+- `tests/backup-scheduler-smoke.mjs` und der CI-Critical-Smoke pruefen Units, Installer und Konfigurationsvertrag.
+
+Das ist noch kein produktiver Backupnachweis: Hetzner Storage Box/S3, Restic-Initialisierung und ein echter Staging-Restore muessen auf dem Server ausgefuehrt und dokumentiert werden.
+
 ### P1 AuditLog-v2
 
 Der AuditLog-Kontext wurde als begrenzte, rueckwaertskompatible Erweiterung umgesetzt:

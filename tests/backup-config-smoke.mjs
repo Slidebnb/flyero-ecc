@@ -15,6 +15,15 @@ const [backup, restore, runbook, envExample, packageJson] = await Promise.all([
   read("package.json").then(JSON.parse),
 ]);
 
+for (const file of [
+  "deploy/flyero-backup.service",
+  "deploy/flyero-backup.timer",
+  "deploy/flyero-backup-failure@.service",
+  "scripts/install-backup-systemd.sh",
+]) {
+  assert.ok(existsSync(file), `${file} fehlt.`);
+}
+
 assert.match(backup, /set -Eeuo pipefail/, "Backup muss bei Fehlern sofort abbrechen.");
 assert.match(backup, /pg_dump/, "Backup muss PostgreSQL sichern.");
 assert.match(backup, /--format=custom/, "PostgreSQL-Dump muss im wiederherstellbaren Custom-Format erfolgen.");
@@ -49,5 +58,6 @@ for (const variable of [
   assert.ok(envExample.includes(variable), `.env.production.example braucht ${variable}.`);
 }
 assert.equal(packageJson.scripts["backup:config"], "node tests/backup-config-smoke.mjs", "package.json braucht backup:config.");
+assert.equal(packageJson.scripts["test:backup-scheduler"], "node tests/backup-scheduler-smoke.mjs", "package.json braucht test:backup-scheduler.");
 
 console.log("backup-config smoke ok");

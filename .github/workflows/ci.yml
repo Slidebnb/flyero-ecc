@@ -155,6 +155,9 @@ jobs:
       - name: Private object storage smoke
         run: npm run test:private-storage
 
+      - name: Backup scheduler smoke
+        run: npm run test:backup-scheduler
+
       - name: Launch hardening smoke
         run: npm run test:module25
 
