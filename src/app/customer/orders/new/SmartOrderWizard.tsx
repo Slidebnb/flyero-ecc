@@ -1002,7 +1002,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       setHeatmapNotice(
         mapsBrowserKeyConfigured
           ? "Die Zeichenfunktion lädt noch. Bitte kurz warten und erneut versuchen."
-          : "Google Maps ist live noch nicht konfiguriert. Bitte NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY auf dem Server setzen und die App neu bauen.",
+          : "Die Live-Karte ist gerade nicht verfügbar. Sie können die Anfrage trotzdem senden oder FLYERO hilft bei der Gebietsauswahl.",
       );
       return;
     }
@@ -1453,11 +1453,11 @@ export function SmartOrderWizard({ areas, today }: Props) {
         {!mapsReady ? <MiniMapFallback center={center} polygon={polygon} showHeatmap={showHeatmap} /> : null}
         {!mapsReady ? (
           <div className="mapConfigNotice" role="status">
-            <strong>{mapsBrowserKeyConfigured ? "Karte wird geladen" : "Google Maps Key fehlt"}</strong>
+            <strong>{mapsBrowserKeyConfigured ? "Karte wird geladen" : "Live-Karte aktuell nicht verfügbar"}</strong>
             <span>
               {mapsBrowserKeyConfigured
-                ? "Falls die Karte nicht erscheint, prüfen Sie Browser-Key, Domain-Freigabe und Google Maps APIs."
-                : "Für Live-Karte und Gebiet zeichnen muss NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY auf dem Server gesetzt und die App neu gebaut werden."}
+                ? "Einen Moment bitte. Falls die Karte nicht erscheint, können Sie die Anfrage trotzdem senden."
+                : "Sie können die Anfrage trotzdem senden. FLYERO prüft das Gebiet anschließend persönlich mit Ihnen."}
             </span>
           </div>
         ) : null}

@@ -173,7 +173,7 @@ try {
     .replace(/<style[\s\S]*?<\/style>/gi, "")
     .replace(/<svg[\s\S]*?<\/svg>/gi, "")
     .replace(/<input[^>]*type="hidden"[^>]*>/gi, "");
-  for (const forbidden of ["GeoJSON", "FeatureCollection", "interne ID", "technischer Fehler"]) {
+  for (const forbidden of ["GeoJSON", "FeatureCollection", "interne ID", "technischer Fehler", "NEXT_PUBLIC", "Google Maps Key fehlt"]) {
     assert(!visible.includes(forbidden), `Sichtbarer technischer Begriff gefunden: ${forbidden}`);
   }
 
