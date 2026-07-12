@@ -503,6 +503,15 @@ tenant-scoped Support-Auswertungen nicht als fremde Daten sichtbar gemacht. Der 
 `tests/analytics-tenant-scope-smoke.mjs` prueft den Vertrag; ein vollstaendiger A/B-
 Integrationstest fuer jede interne Ressource steht weiterhin aus.
 
+### Dispatch-Tenant-Scope
+
+Der Support-/Dispositionspfad validiert Auftragszugriffe jetzt gegen die aktive
+Tenant-ID. Dispatch-Dashboard, Empfehlungen, Auto-Zuweisung, Zuweisung und das
+Ignorieren von Empfehlungen reichen den Scope serverseitig bis in die Prisma-
+Abfragen durch. Plattform-Admins bleiben global; fehlende Tenant-Zuordnung bei
+Nicht-Admins fuehrt zu einem leeren, nicht zu einem globalen Scope. Die weitere
+Migration von Logistik-, CRM-, Monitoring- und Nebenressourcen bleibt offen.
+
 ### P0 Backup-Scheduler
 
 Der automatische Betriebsweg ist als Repository-Paket vorbereitet:

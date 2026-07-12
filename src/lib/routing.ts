@@ -154,11 +154,12 @@ export async function calculateBestDistributor(input: {
     : null;
 }
 
-export async function clusterOrders(input: { city?: string | null; postalCode?: string | null; days?: number }) {
+export async function clusterOrders(input: { city?: string | null; postalCode?: string | null; days?: number; tenantId?: string | null }) {
   const since = new Date(Date.now() - (input.days ?? 90) * 24 * 60 * 60 * 1000);
   const orders = await prisma.order.findMany({
     where: {
       createdAt: { gte: since },
+      ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }),
       ...(input.city ? { city: { equals: input.city, mode: "insensitive" } } : {}),
       ...(input.postalCode ? { postalCode: { startsWith: input.postalCode.slice(0, 3) } } : {}),
     },
@@ -192,7 +193,7 @@ export async function clusterOrders(input: { city?: string | null; postalCode?: 
   }));
 }
 
-export async function combineOrders(input: { city?: string | null; postalCode?: string | null }) {
+export async function combineOrders(input: { city?: string | null; postalCode?: string | null; tenantId?: string | null }) {
   const clusters = await clusterOrders(input);
   return clusters
     .filter((cluster) => cluster.orders.length >= 2)

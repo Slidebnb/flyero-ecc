@@ -5,8 +5,9 @@ import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const recommendations = await prisma.autoDispatchRecommendation.findMany({
+      where: session.role === UserRole.ADMIN ? {} : { order: { tenantId: session.tenantId ?? "__no_tenant__" } },
       include: { order: { include: { customer: true } }, distributor: true },
       orderBy: [{ status: "asc" }, { score: "desc" }, { createdAt: "desc" }],
       take: 200,

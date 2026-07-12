@@ -182,6 +182,9 @@ jobs:
       - name: Analytics tenant scope smoke
         run: npm run test:analytics-tenant-scope
 
+      - name: Dispatch tenant scope smoke
+        run: npm run test:dispatch-tenant-scope
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

@@ -5,7 +5,7 @@ import { routeErrorResponse } from "@/lib/request";
 
 export async function GET(request: Request) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const url = new URL(request.url);
     const dashboard = await getDispatchDashboard({
       city: url.searchParams.get("city") || undefined,
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
       status: url.searchParams.get("status") || undefined,
       date: url.searchParams.get("date") || undefined,
       warehouseId: url.searchParams.get("warehouse") || undefined,
-    });
+    }, session.role === UserRole.ADMIN ? undefined : session.tenantId);
 
     return Response.json({ ok: true, data: dashboard });
   } catch (error) {

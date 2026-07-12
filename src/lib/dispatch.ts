@@ -9,6 +9,27 @@ const ACTIVE_ASSIGNMENT_STATUSES: DispatchAssignmentStatus[] = ["ASSIGNED", "ACC
 const ACTIVE_TOUR_STATUSES = ["ASSIGNED", "READY", "PICKED_UP", "STARTED", "PAUSED", "RESUMED"] as const;
 const COMPLETED_TOUR_STATUSES = ["COMPLETED", "UNDER_REVIEW", "APPROVED"] as const;
 
+function orderTenantWhere(tenantId: string | null | undefined) {
+  return tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" };
+}
+
+function orderRelationTenantWhere(tenantId: string | null | undefined) {
+  return tenantId === undefined ? {} : { order: { tenantId: tenantId ?? "__no_tenant__" } };
+}
+
+function distributorTenantWhere(tenantId: string | null | undefined) {
+  return tenantId === undefined ? {} : { user: { tenantId: tenantId ?? "__no_tenant__" } };
+}
+
+async function ensureOrderAccess(orderId: string, tenantId: string | null | undefined) {
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, ...orderTenantWhere(tenantId) },
+    select: { id: true },
+  });
+  if (!order) throw new Error("Auftrag wurde nicht gefunden oder ist nicht berechtigt.");
+  return order;
+}
+
 type ReadyInventory = Prisma.WarehouseInventoryGetPayload<{
   include: {
     order: true;
@@ -169,15 +190,16 @@ async function distributorSnapshot(distributor: DistributorWithUser, inventory: 
   } satisfies DistributorRecommendation;
 }
 
-export async function getReadyInventoryForOrder(orderId: string) {
-  return prisma.warehouseInventory.findUnique({
-    where: { orderId },
+export async function getReadyInventoryForOrder(orderId: string, tenantId?: string | null) {
+  return prisma.warehouseInventory.findFirst({
+    where: { orderId, ...orderRelationTenantWhere(tenantId) },
     include: { order: true, warehouseLocation: { include: { warehouse: true } } },
   });
 }
 
-export async function getSuitableDistributors(orderId: string) {
-  const inventory = await getReadyInventoryForOrder(orderId);
+export async function getSuitableDistributors(orderId: string, tenantId?: string | null) {
+  await ensureOrderAccess(orderId, tenantId);
+  const inventory = await getReadyInventoryForOrder(orderId, tenantId);
   if (!inventory) {
     return [];
   }
@@ -186,7 +208,7 @@ export async function getSuitableDistributors(orderId: string) {
     where: {
       reviewStatus: "APPROVED",
       availableToday: true,
-      user: { status: "ACTIVE" },
+      user: { status: "ACTIVE", ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) },
     },
     include: { user: true },
   });
@@ -207,8 +229,9 @@ export async function getSuitableDistributors(orderId: string) {
     .sort((a, b) => Number(a.capacityWarning) - Number(b.capacityWarning) || b.score - a.score || a.distanceKm - b.distanceKm);
 }
 
-export async function createAutoDispatchRecommendations(input: { orderId: string; adminUserId: string }) {
-  const suitable = (await getSuitableDistributors(input.orderId)).slice(0, 5);
+export async function createAutoDispatchRecommendations(input: { orderId: string; adminUserId: string; tenantId?: string | null }) {
+  await ensureOrderAccess(input.orderId, input.tenantId);
+  const suitable = (await getSuitableDistributors(input.orderId, input.tenantId)).slice(0, 5);
   await prisma.autoDispatchRecommendation.updateMany({
     where: { orderId: input.orderId, status: AutoDispatchRecommendationStatus.SUGGESTED },
     data: { status: AutoDispatchRecommendationStatus.EXPIRED },
@@ -251,9 +274,14 @@ export async function createAutoDispatchRecommendations(input: { orderId: string
   return recommendations;
 }
 
-export async function dismissAutoDispatchRecommendation(input: { recommendationId: string; adminUserId: string }) {
+export async function dismissAutoDispatchRecommendation(input: { recommendationId: string; adminUserId: string; tenantId?: string | null }) {
+  const current = await prisma.autoDispatchRecommendation.findFirst({
+    where: { id: input.recommendationId, ...orderRelationTenantWhere(input.tenantId) },
+    select: { id: true },
+  });
+  if (!current) throw new Error("Empfehlung wurde nicht gefunden oder ist nicht berechtigt.");
   const updated = await prisma.autoDispatchRecommendation.update({
-    where: { id: input.recommendationId },
+    where: { id: current.id },
     data: { status: AutoDispatchRecommendationStatus.DISMISSED },
   });
   await createAuditLog({
@@ -265,7 +293,7 @@ export async function dismissAutoDispatchRecommendation(input: { recommendationI
   return updated;
 }
 
-export async function autoAssignRecommendedDistributor(input: { orderId: string; adminUserId: string }) {
+export async function autoAssignRecommendedDistributor(input: { orderId: string; adminUserId: string; tenantId?: string | null }) {
   const system = await getSystemSettings();
   const recommendations = await createAutoDispatchRecommendations(input);
   const best = recommendations[0];
@@ -289,6 +317,7 @@ export async function autoAssignRecommendedDistributor(input: { orderId: string;
     orderId: input.orderId,
     distributorId: best.distributorId,
     adminUserId: input.adminUserId,
+    tenantId: input.tenantId,
   });
   await prisma.autoDispatchRecommendation.update({
     where: { id: best.id },
@@ -328,8 +357,10 @@ export async function assignOrderToDistributor(input: {
   orderId: string;
   distributorId: string;
   adminUserId: string;
+  tenantId?: string | null;
 }) {
-  const inventory = await getReadyInventoryForOrder(input.orderId);
+  await ensureOrderAccess(input.orderId, input.tenantId);
+  const inventory = await getReadyInventoryForOrder(input.orderId, input.tenantId);
   if (!inventory) throw new Error("Auftrag hat keinen Lagerbestand.");
   if (inventory.status !== "READY_FOR_PICKUP") {
     throw new Error("Nur abholbereite Aufträge können disponiert werden.");
@@ -338,8 +369,8 @@ export async function assignOrderToDistributor(input: {
     throw new Error("Der Lagerbestand muss vorbereitet sein, bevor er disponiert wird.");
   }
 
-  const distributor = await prisma.distributorProfile.findUnique({
-    where: { id: input.distributorId },
+  const distributor = await prisma.distributorProfile.findFirst({
+    where: { id: input.distributorId, ...distributorTenantWhere(input.tenantId) },
     include: { user: true },
   });
   if (!distributor || distributor.reviewStatus !== "APPROVED" || distributor.user.status !== "ACTIVE") {
@@ -583,7 +614,7 @@ export async function getDispatchDashboard(filters: {
   status?: string;
   date?: string;
   warehouseId?: string;
-}) {
+}, tenantId?: string | null) {
   const start = filters.date ? new Date(`${filters.date}T00:00:00`) : new Date();
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);
@@ -593,13 +624,13 @@ export async function getDispatchDashboard(filters: {
     status: "READY_FOR_PICKUP",
     pickupStatus: { in: ["PREPARED", "RESERVED"] },
     ...(filters.warehouseId ? { warehouseLocation: { warehouseId: filters.warehouseId } } : {}),
-    ...(filters.city ? { order: { city: { contains: filters.city, mode: "insensitive" } } } : {}),
+    ...((filters.city || tenantId !== undefined) ? { order: { ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }), ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}) } } : {}),
   };
 
   const assignmentWhere: Prisma.DispatchAssignmentWhereInput = {
     ...(filters.distributorId ? { distributorId: filters.distributorId } : {}),
     ...(filters.status ? { status: filters.status as DispatchAssignmentStatus } : {}),
-    ...(filters.city ? { order: { city: { contains: filters.city, mode: "insensitive" } } } : {}),
+    ...((filters.city || tenantId !== undefined) ? { order: { ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }), ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}) } } : {}),
     ...(filters.warehouseId ? { inventory: { warehouseLocation: { warehouseId: filters.warehouseId } } } : {}),
   };
 
@@ -623,23 +654,23 @@ export async function getDispatchDashboard(filters: {
         orderBy: { updatedAt: "desc" },
       }),
       prisma.distributionTour.findMany({
-        where: { status: { in: ["STARTED", "PAUSED", "RESUMED"] } },
+        where: { status: { in: ["STARTED", "PAUSED", "RESUMED"] }, ...orderRelationTenantWhere(tenantId) },
         include: { order: true, distributor: true },
         orderBy: { updatedAt: "desc" },
       }),
       prisma.distributionTour.findMany({
-        where: { status: { in: [...COMPLETED_TOUR_STATUSES] } },
+        where: { status: { in: [...COMPLETED_TOUR_STATUSES] }, ...orderRelationTenantWhere(tenantId) },
         include: { order: true, distributor: true },
         orderBy: { updatedAt: "desc" },
         take: 25,
       }),
       prisma.warehouse.findMany({ orderBy: { name: "asc" } }),
-      prisma.distributorProfile.findMany({ where: { reviewStatus: "APPROVED" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
-      prisma.order.count({ where: { status: { in: ["APPROVED", "READY_FOR_FLYERS", "FLYERS_EXPECTED", "FLYERS_RECEIVED", "STORED", "READY_FOR_PICKUP"] } } }),
-      prisma.dispatchAssignment.count({ where: { status: "ACCEPTED" } }),
-      prisma.warehouseInventory.count({ where: { status: "READY_FOR_PICKUP" } }),
-      prisma.distributionTour.count({ where: { status: { in: ["ASSIGNED", "READY", "PICKED_UP", "STARTED", "PAUSED", "RESUMED"] }, createdAt: { gte: start, lt: end } } }),
-      prisma.distributionTour.count({ where: { status: { in: [...COMPLETED_TOUR_STATUSES] }, completedAt: { gte: start, lt: end } } }),
+      prisma.distributorProfile.findMany({ where: { ...distributorTenantWhere(tenantId), reviewStatus: "APPROVED" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
+      prisma.order.count({ where: { ...orderTenantWhere(tenantId), status: { in: ["APPROVED", "READY_FOR_FLYERS", "FLYERS_EXPECTED", "FLYERS_RECEIVED", "STORED", "READY_FOR_PICKUP"] } } }),
+      prisma.dispatchAssignment.count({ where: { status: "ACCEPTED", ...orderRelationTenantWhere(tenantId) } }),
+      prisma.warehouseInventory.count({ where: { status: "READY_FOR_PICKUP", ...orderRelationTenantWhere(tenantId) } }),
+      prisma.distributionTour.count({ where: { status: { in: ["ASSIGNED", "READY", "PICKED_UP", "STARTED", "PAUSED", "RESUMED"] }, createdAt: { gte: start, lt: end }, ...orderRelationTenantWhere(tenantId) } }),
+      prisma.distributionTour.count({ where: { status: { in: [...COMPLETED_TOUR_STATUSES] }, completedAt: { gte: start, lt: end }, ...orderRelationTenantWhere(tenantId) } }),
     ]);
 
   const unassignedInventories = inventories.filter(
@@ -653,7 +684,7 @@ export async function getDispatchDashboard(filters: {
     orderBy: [{ score: "desc" }, { createdAt: "desc" }],
   });
   for (const inventory of unassignedInventories) {
-    recommendationsByOrderId[inventory.orderId] = await getSuitableDistributors(inventory.orderId);
+    recommendationsByOrderId[inventory.orderId] = await getSuitableDistributors(inventory.orderId, tenantId);
   }
 
   return {

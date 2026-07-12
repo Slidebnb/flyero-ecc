@@ -23,6 +23,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       orderId: id,
       distributorId: parsed.data.distributorId,
       adminUserId: session.id,
+      tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId,
     });
 
     if (request.headers.get("accept")?.includes("text/html")) {

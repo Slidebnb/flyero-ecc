@@ -7,7 +7,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   try {
     const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const { id } = await context.params;
-    return successResponse(await dismissAutoDispatchRecommendation({ recommendationId: id, adminUserId: session.id }));
+    return successResponse(await dismissAutoDispatchRecommendation({ recommendationId: id, adminUserId: session.id, tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId }));
   } catch (error) {
     return routeErrorResponse(error);
   }

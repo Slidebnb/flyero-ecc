@@ -23,11 +23,11 @@ function warningText(value: boolean) {
 }
 
 export default async function AdminDispatchPage({ searchParams }: PageProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const filters = await searchParams;
   const [dashboard, combinations] = await Promise.all([
-    getDispatchDashboard(filters),
-    combineOrders({ city: filters.city, postalCode: undefined }),
+    getDispatchDashboard(filters, session.role === UserRole.ADMIN ? undefined : session.tenantId),
+    combineOrders({ city: filters.city, postalCode: undefined, tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId }),
   ]);
 
   return (
