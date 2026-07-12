@@ -6,7 +6,7 @@ Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `158a30898bc28734c5e4b0fa934df2c8bb7d48b6`
+Pruef-Commit: `3874c6def95b903d22ad4e948f1c07076efe6b47`
 
 ## 1. Auftrag und Pruefmethode
 
