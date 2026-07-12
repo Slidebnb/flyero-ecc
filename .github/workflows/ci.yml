@@ -1,0 +1,129 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ecc_ci?schema=public
+  SHADOW_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/ecc_ci_shadow?schema=public
+  AUTH_SECRET: ci-only-auth-secret-with-more-than-thirty-two-characters
+  APP_URL: http://127.0.0.1:3000
+  NEXT_PUBLIC_SITE_URL: http://127.0.0.1:3000
+  EMAIL_PROVIDER: mock
+  ENABLE_MOCK_PAYMENTS: "true"
+  INTERNAL_API_TOKEN: ci-only-internal-token
+
+jobs:
+  quality:
+    name: Prisma, lint, build and audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Validate CI configuration
+        run: npm run test:ci-config
+
+  critical-smoke:
+    name: Critical PostgreSQL smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ecc_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ecc_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Apply migrations
+        run: npx prisma migrate deploy
+
+      - name: Seed isolated CI database
+        run: npm run prisma:seed
+
+      - name: Authentication UX smoke
+        run: npm run test:auth-ux
+
+      - name: Launch hardening smoke
+        run: npm run test:module25
+
+      - name: Public landing smoke
+        run: npm run test:module16-landing
+
+      - name: Area data import smoke
+        run: npm run test:area-data-import
+
+      - name: Customer area calculation smoke
+        run: npm run test:customer-order-area
+
+      - name: Customer checkout smoke
+        run: npm run test:customer-order-checkout
+
+      - name: Distribution report smoke
+        run: npm run test:distribution-reports
+
+      - name: External evidence report smoke
+        run: npm run test:external-distribution-report
+
+      - name: Full beta flow
+        run: npm run test:beta

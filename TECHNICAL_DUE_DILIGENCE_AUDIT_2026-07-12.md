@@ -466,3 +466,27 @@ Die Reihenfolge minimiert zuerst Datenverlust und unkontrollierten Zugriff, dana
 ## 21. Naechster Gate
 
 Der naechste sinnvolle Umsetzungsschritt ist kein weiteres Fachmodul. Zuerst werden die P0-/P1-Grundlagen in getrennten, pruefbaren Paketen umgesetzt. Paket 1 sollte `Backup/Restore und Betriebsnachweis` sein; Paket 2 `DB-autorisierte Sessions und zentraler Auth-Abuse-Schutz`.
+
+## 22. Umsetzungsfortschritt nach dem Audit
+
+### P1 CI- und Security-Gates
+
+Nach der Bestandsaufnahme wurde das erste risikoarme P1-Paket umgesetzt:
+
+- `.github/workflows/ci.yml` prueft Pull Requests und Pushes auf `main` mit Node.js 22.
+- Der Quality-Job fuehrt Prisma-Validierung, Prisma-Generierung, Lint, Produktions-Build, High-Severity-Dependency-Audit und den CI-Konfigurations-Smoke aus.
+- Der Critical-Smoke-Job verwendet ein isoliertes PostgreSQL 16, spielt alle Migrationen und den Seed ein und prueft Auth, Launch-Haertung, Landingpage, Gebietsdaten, Checkout, interne Reports, externe GPS-Nachweise und den Beta-Hauptflow.
+- `.github/workflows/codeql.yml` analysiert JavaScript/TypeScript bei Pull Requests, Pushes und woechentlich.
+- `.github/dependabot.yml` ueberwacht npm- und GitHub-Actions-Abhaengigkeiten woechentlich.
+- `tests/ci-config-smoke.mjs` verhindert, dass die zentralen Gates unbemerkt aus den Workflows entfernt werden.
+
+Extern in GitHub noch zu aktivieren:
+
+- Branch-Regel fuer `main`
+- erfolgreiche CI- und CodeQL-Checks als Pflichtstatus
+- mindestens eine Freigabe fuer Pull Requests, sobald ein zweiter berechtigter Reviewer vorhanden ist
+- direkte Force-Pushes und Branch-Loeschung sperren
+
+Die README-Einleitung ist fachlich veraltet und enthaelt gemischte, teilweise ungueltige Zeichenkodierung. Ihre kontrollierte UTF-8-Bereinigung bleibt ein eigenes Dokumentationspaket, damit die umfangreiche Datei nicht durch eine ungezielte Konvertierung beschaedigt wird.
+
+Naechster P0-Schritt bleibt die automatisierte, verschluesselte Offsite-Backup- und Restore-Kette fuer PostgreSQL und private Storage-Dateien.
