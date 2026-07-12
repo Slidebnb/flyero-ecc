@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureDefaultPricingSettings, getSystemSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 
 const VAT_SETTING_KEY = PRICING_SETTING_KEYS.vatRate;
-const PREMIUM_PRICING_VERSION = "premium-distribution-v3";
+const PREMIUM_PRICING_VERSION = "premium-distribution-v4";
 const MINIMUM_ORDER_VALUE_NET = new Prisma.Decimal("599");
 const TIER_1_LIMIT = 5000;
 const TIER_2_LIMIT = 10000;

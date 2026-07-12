@@ -29,6 +29,7 @@ const priceFactors = [
 
 const priceDetails = [
   ["Mindestauftrag", "599 € netto inklusive Gebietsplanung, GPS-Nachweis, Foto-Dokumentation und PDF-Bericht."],
+  ["Marginale Staffel", "Bis 5.000 Flyer gelten 0,38 € je Flyer. Ab 5.001 bzw. 10.001 Flyern gilt der jeweilige Preis nur für die zusätzlichen Flyer."],
   ["Gebiet", "PLZ, Ort oder gezeichnete Fläche bestimmen Planung, Aufwand und Zustellbarkeit."],
   ["Zeitfenster", "Standardverteilung, enge Termine oder Expresswünsche verändern die operative Planung."],
   ["Nachweis", "GPS-Spur, Foto-Dokumentation, Admin-Prüfung und PDF-Bericht sind Teil des Qualitätsprozesses."],

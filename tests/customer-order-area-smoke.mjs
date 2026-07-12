@@ -138,7 +138,7 @@ try {
     "local-56170",
   ]);
   includes("src/lib/pricing.ts", [
-    "premium-distribution-v3",
+    "premium-distribution-v4",
     "calculatePremiumDistributionNetPrice",
     "minimumOrderValueNet",
     "tier1Rate",
@@ -185,7 +185,7 @@ try {
     assert(item.data.metrics.confidence, "Confidence fehlt.");
     assert(item.data.metrics.source, "Berechnungsquelle fehlt.");
     assert(item.data.metrics.householdCountSource, "Household-Quelle fehlt.");
-    assert(item.data.metrics.pricingVersion === "premium-distribution-v3", "Pricing-Version fehlt.");
+    assert(item.data.metrics.pricingVersion === "premium-distribution-v4", "Pricing-Version fehlt.");
     assert(item.data.metrics.areaReference, "Area-Referenz fehlt.");
     assert(item.data.metrics.calculatedAt, "Berechnungszeitpunkt fehlt.");
     assert(item.data.metrics.calculationVersion === "order-area-v1", "Calculation-Version fehlt.");
@@ -202,10 +202,14 @@ try {
   assert(large.data.metrics.routeDistanceMeters > small.data.metrics.routeDistanceMeters, "Manuelle Gebietsgroesse aendert Laufstrecke nicht.");
   assert(Number(large.data.metrics.grossPrice) > Number(small.data.metrics.grossPrice), "Manuelle Gebietsgroesse aendert Preis nicht.");
 
+  const pricingQuotes = new Map();
   for (const [flyerQuantity, expectedNet] of premiumPricingExamples) {
     const quote = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&coverageAreaSqm=${smallArea}&flyerQuantity=${flyerQuantity}`, { cookie: customerCookie });
     assert(quote.data.metrics.netPrice === expectedNet, `${flyerQuantity} Flyer: erwartet ${expectedNet} netto, bekam ${quote.data.metrics.netPrice}`);
+    pricingQuotes.set(flyerQuantity, quote.data.metrics.netPrice);
   }
+  assert(Number(pricingQuotes.get(5001)) > Number(pricingQuotes.get(5000)), "Preis darf an 5.000/5.001 nicht fallen.");
+  assert(Number(pricingQuotes.get(10001)) > Number(pricingQuotes.get(10000)), "Preis darf an 10.000/10.001 nicht fallen.");
 
   const page = await fetchWithTimeout(`${baseUrl}/customer/orders/new`, { headers: { cookie: customerCookie } });
   const html = await page.text();

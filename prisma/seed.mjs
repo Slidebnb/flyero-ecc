@@ -197,7 +197,7 @@ async function calculateSeedPrice(flyerQuantity) {
       minimumNetPrice: minimumNetPrice.toString(),
       vatRate: vatRate.toString(),
       ruleId: rule?.id ?? null,
-      pricingVersion: "premium-distribution-v3",
+      pricingVersion: "premium-distribution-v4",
       minimumOrderValueNet: "599",
       tier1Rate: "0.38",
       tier2Rate: "0.34",

@@ -56,7 +56,11 @@ function cookieHeaderFrom(response) {
 async function login(email) {
   const response = await fetchWithTimeout(`${baseUrl}/api/auth/login`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      // Use a TEST-NET address so repeated local smoke runs do not share the developer's auth bucket.
+      "x-forwarded-for": "198.51.100.24",
+    },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
   assert(response.status === 200, `Login fehlgeschlagen fuer ${email}: ${response.status} ${await response.text()}`);
@@ -113,7 +117,7 @@ function orderPayload(suffix, completionPath) {
       calculatedAt: new Date().toISOString(),
       calculationVersion: "order-area-v1",
       householdCountSource: "area-density-formula",
-      pricingVersion: "premium-distribution-v3",
+      pricingVersion: "premium-distribution-v4",
       areaReference: { targetAreaName: "Koblenz Smoke", postalCode: "56068", city: "Koblenz" },
     }),
     centerLat: 50.3569,
@@ -170,7 +174,7 @@ try {
   assert(directOrder?.priceRuleSnapshot?.areaCalculationSnapshot, "Area Calculation Snapshot fehlt bei Direktbuchung.");
   assert(directOrder?.priceRuleSnapshot?.completionPath === "direct_payment", "Abschlussweg direct_payment fehlt.");
   assert(directOrder?.priceRuleSnapshot?.printDataStatus === "UPLOAD_LATER", "Druckdatenstatus fehlt.");
-  assert(directOrder?.priceRuleSnapshot?.pricingVersion === "premium-distribution-v3", "Premium Pricing-Version fehlt im Snapshot.");
+  assert(directOrder?.priceRuleSnapshot?.pricingVersion === "premium-distribution-v4", "Premium Pricing-Version fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.minimumOrderValueNet === "599", "Mindestauftragswert fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.tier1Rate === "0.38", "Tier 1 Rate fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.tier2Rate === "0.34", "Tier 2 Rate fehlt im Snapshot.");

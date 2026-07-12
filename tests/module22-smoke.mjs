@@ -183,7 +183,7 @@ try {
       title: "Module 22 Smoke Druckdatei",
       originalFilename: "module22-smoke.pdf",
       mimeType: "application/pdf",
-      content: "PDF-Smoke-Datei",
+      content: Buffer.from("%PDF-1.4\nPDF-Smoke-Datei\n%%EOF").toString("base64"),
     },
   });
   assert(created.data.status === "UNDER_REVIEW", "Dokument wurde nicht in Pruefung angelegt.");
@@ -192,7 +192,7 @@ try {
     method: "POST",
     cookie: customerCookie,
     expected: [201],
-    body: { originalFilename: "module22-smoke-v2.pdf", mimeType: "application/pdf", content: "Version 2" },
+    body: { originalFilename: "module22-smoke-v2.pdf", mimeType: "application/pdf", content: Buffer.from("%PDF-1.4\nVersion 2\n%%EOF").toString("base64") },
   });
   assert(version.data.version === 2, "Versionierung hat nicht auf v2 erhoeht.");
 

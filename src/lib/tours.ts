@@ -55,13 +55,25 @@ function decodeImageDataUrl(imageDataUrl?: string) {
     mimeType === "image/jpeg" ? "jpg"
     : mimeType === "image/png" ? "png"
     : mimeType === "image/webp" ? "webp"
-    : mimeType === "image/svg+xml" ? "svg"
     : null;
-  if (!extension) throw new Error("Nur PNG, JPG, WEBP oder SVG Fotos werden unterstuetzt.");
+  if (!extension) throw new Error("Nur PNG, JPG oder WEBP Fotos werden unterstuetzt.");
+  const encoded = match[2];
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(encoded) || encoded.length % 4 === 1) {
+    throw new Error("Foto enthält keine gültigen Base64-Daten.");
+  }
+  const buffer = Buffer.from(encoded, "base64");
+  const signatureMatches =
+    (extension === "jpg" && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) ||
+    (extension === "png" && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) ||
+    (extension === "webp" && buffer.subarray(0, 4).toString("ascii") === "RIFF" && buffer.subarray(8, 12).toString("ascii") === "WEBP");
+  if (!signatureMatches) throw new Error("Foto-Dateityp und tatsächlicher Dateiinhalt stimmen nicht überein.");
+  if (buffer.byteLength > Number(process.env.TOUR_PHOTO_MAX_FILE_SIZE_BYTES || 10 * 1024 * 1024)) {
+    throw new Error("Das Foto ist zu groß. Maximal erlaubt sind 10 MB.");
+  }
   return {
     mimeType,
     extension,
-    buffer: Buffer.from(match[2], "base64"),
+    buffer,
   };
 }
 

@@ -249,10 +249,16 @@ export async function getDocument(actor: SessionUser, id: string) {
 
 function fileFromBody(data: z.infer<typeof documentCreateSchema>, file?: UploadableDocumentFile): UploadableDocumentFile {
   if (file) return file;
+  if (!data.content) throw new Error("Bitte eine echte Datei hochladen. Ersatzinhalt wird nicht akzeptiert.");
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(data.content) || data.content.length % 4 === 1) {
+    throw new Error("Dateiinhalt muss als gültiger Base64-Inhalt übertragen werden.");
+  }
+  const buffer = Buffer.from(data.content, "base64");
+  if (buffer.length === 0) throw new Error("Die Datei ist leer.");
   return {
     originalFilename: data.originalFilename,
-    mimeType: data.mimeType || "application/octet-stream",
-    buffer: Buffer.from(data.content || `FLYERO placeholder upload for ${data.originalFilename}`),
+    mimeType: data.mimeType || null,
+    buffer,
   };
 }
 
