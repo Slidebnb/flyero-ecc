@@ -7285,20 +7285,33 @@ body {
   top: auto;
   right: 32px;
   bottom: 32px;
-  width: min(390px, calc(100% - 64px));
-  padding: 18px;
+  width: min(480px, calc(100% - 64px));
+  padding: 16px;
   border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 26px 80px rgba(0, 0, 0, 0.32);
+  transition: box-shadow 160ms ease;
+  will-change: transform;
 }
 
 .overviewHead {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 10px;
 }
 
 .overviewHead h2 {
+  margin: 0;
   font-size: 1.08rem;
   line-height: 1.15;
+}
+
+.overviewHead p {
+  margin: 4px 0 0;
+  color: rgba(232, 242, 255, 0.62);
+  font-size: 0.78rem;
+  line-height: 1.3;
 }
 
 .overviewSyncState {
@@ -7308,14 +7321,41 @@ body {
   font-size: 0.74rem;
 }
 
+.overviewDragHandle,
+.overviewMetaRow button {
+  min-height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 850;
+  cursor: grab;
+  touch-action: none;
+}
+
+.overviewDragHandle:active {
+  cursor: grabbing;
+}
+
+.overviewMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .overviewDataBasis {
-  margin: 0 0 12px;
+  margin: 0;
   color: rgba(232, 242, 255, 0.72);
+  font-size: 0.82rem;
   line-height: 1.4;
 }
 
 .areaOverview dl {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -7331,7 +7371,7 @@ body {
 
 .areaOverview dl div:first-child,
 .areaOverview dl div:nth-child(4) {
-  grid-column: 1 / -1;
+  grid-column: auto;
 }
 
 .areaOverview dt {
@@ -7352,13 +7392,13 @@ body {
 .areaOverview dl div:first-child dd,
 .areaOverview dl div:nth-child(4) dd {
   color: #a7ff00;
-  font-size: 1.55rem;
-  letter-spacing: -0.02em;
+  font-size: 1rem;
+  letter-spacing: 0;
 }
 
 .areaOverview dd:nth-child(2n),
 .areaOverview div:nth-child(4) dd {
-  color: #ffffff;
+  color: #a7ff00;
 }
 
 .availabilityGood {

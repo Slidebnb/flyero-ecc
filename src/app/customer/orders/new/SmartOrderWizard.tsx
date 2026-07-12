@@ -2,7 +2,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect -- The order wizard intentionally restores a saved browser draft and keeps recommended flyer quantities aligned with the current area calculation. */
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { type PointerEvent, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   CircleHelp,
@@ -21,6 +21,7 @@ import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor
 
 type LatLng = { lat: number; lng: number };
 type PolygonSource = "postal_code" | "manual" | "saved_area" | "drawn";
+type OverviewDragState = { pointerId: number; startX: number; startY: number; baseX: number; baseY: number };
 
 type LocationResult = {
   city?: string | null;
@@ -358,12 +359,11 @@ function estimateTeamDurationMinutes(distanceMeters: number, households: number,
   return Math.max(30, Math.round((walkMinutes + deliveryMinutes) / teamSize));
 }
 
-function formatDuration(minutes: number) {
-  if (!Number.isFinite(minutes) || minutes <= 0) return "wird berechnet";
-  if (minutes < 60) return `${minutes} Min.`;
-  const hours = Math.floor(minutes / 60);
-  const restMinutes = minutes % 60;
-  return restMinutes ? `${hours} h ${restMinutes} Min.` : `${hours} h`;
+function clampOverviewOffset(x: number, y: number) {
+  return {
+    x: Math.max(-560, Math.min(80, x)),
+    y: Math.max(-360, Math.min(120, y)),
+  };
 }
 
 function deliverabilityLabel(score?: number | null) {
@@ -430,6 +430,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const mapRef = useRef<GoogleMap | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
   const drawingManagerRef = useRef<GoogleDrawingManager | null>(null);
+  const overviewDragRef = useRef<OverviewDragState | null>(null);
   const [isPending, startTransition] = useTransition();
   const [mapsReady, setMapsReady] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
@@ -471,6 +472,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const [draftStatus, setDraftStatus] = useState("Entwurf wird vorbereitet");
   const [finishStatus, setFinishStatus] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
+  const [overviewOffset, setOverviewOffset] = useState({ x: 0, y: 0 });
   const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
 
   const coverageAreaSqm = useMemo(() => polygonAreaSqm(polygon), [polygon]);
@@ -858,6 +860,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
       const path = target.getPath();
       maps.event.addListener(path, "set_at", syncPath);
       maps.event.addListener(path, "insert_at", syncPath);
+      maps.event.addListener(path, "remove_at", syncPath);
+      maps.event.addListener(target, "drag", syncPath);
       maps.event.addListener(target, "dragend", syncPath);
     };
     if (!mapRef.current) {
@@ -1123,6 +1127,36 @@ export function SmartOrderWizard({ areas, today }: Props) {
   ];
   const orderNavGroups = Array.from(new Set(orderNavItems.map((item) => item.group)));
 
+  function beginOverviewDrag(event: PointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    overviewDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      baseX: overviewOffset.x,
+      baseY: overviewOffset.y,
+    };
+  }
+
+  function moveOverviewDrag(event: PointerEvent<HTMLButtonElement>) {
+    const drag = overviewDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    setOverviewOffset(clampOverviewOffset(
+      drag.baseX + event.clientX - drag.startX,
+      drag.baseY + event.clientY - drag.startY,
+    ));
+  }
+
+  function endOverviewDrag(event: PointerEvent<HTMLButtonElement>) {
+    if (overviewDragRef.current?.pointerId !== event.pointerId) return;
+    overviewDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
   function renderStepContent(stepId: number) {
     if (stepId === 1) {
       return (
@@ -1231,7 +1265,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
           </div>
           <div className="flyerRecommendation">
             <span>Empfohlen</span>
-            <strong>{formatNumber(households)} Haushalte + 10 % Reserve = {formatNumber(recommendedFlyerQuantity)} Flyer</strong>
+            <strong>Für das markierte Gebiet + 10 % Reserve: {formatNumber(recommendedFlyerQuantity)} Flyer</strong>
             <button type="button" onClick={() => {
               setFlyerQuantityTouched(true);
               setFlyerQuantity(recommendedFlyerQuantity);
@@ -1474,23 +1508,41 @@ export function SmartOrderWizard({ areas, today }: Props) {
           <button type="button" onClick={() => mapRef.current?.setZoom(13)}>−</button>
           <button type="button" onClick={() => document.documentElement.requestFullscreen?.()}>⛶</button>
         </div>
-        <aside className="areaOverview">
+        <aside
+          className="areaOverview"
+          style={{ transform: `translate3d(${overviewOffset.x}px, ${overviewOffset.y}px, 0)` }}
+        >
           <div className="overviewHead">
-            <h2>Gebietsübersicht</h2>
+            <div>
+              <h2>Gebietsübersicht</h2>
+              <p>Live aktualisiert, sobald du das Gebiet änderst.</p>
+            </div>
             <span className={`overviewSyncState ${intelligenceStatus}`}>
               {syncStateLabel(intelligenceStatus, areaStats.confidence, isPending)}
             </span>
+            <button
+              type="button"
+              className="overviewDragHandle"
+              aria-label="Gebietsübersicht verschieben"
+              onPointerDown={beginOverviewDrag}
+              onPointerMove={moveOverviewDrag}
+              onPointerUp={endOverviewDrag}
+              onPointerCancel={endOverviewDrag}
+            >
+              Verschieben
+            </button>
           </div>
-          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
+          <div className="overviewMetaRow">
+            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
+            {overviewOffset.x !== 0 || overviewOffset.y !== 0 ? (
+              <button type="button" onClick={() => setOverviewOffset({ x: 0, y: 0 })}>Zurücksetzen</button>
+            ) : null}
+          </div>
           <dl>
-            <div><dt>Haushalte</dt><dd>{households > 0 ? formatNumber(households) : "werden geprüft"}</dd></div>
             <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
             <div><dt>Empfohlene Flyerzahl</dt><dd>{recommendedFlyerQuantity > 0 ? `${formatNumber(recommendedFlyerQuantity)} Stück` : "wird geprüft"}</dd></div>
             <div><dt>Geschätzter Preis</dt><dd>{Number(grossPrice) > 0 ? formatCurrency(grossPrice) : "wird berechnet"}</dd></div>
-            <div><dt>ca. Laufstrecke</dt><dd>{routeDistanceMeters > 0 ? `${(routeDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : "wird geprüft"}</dd></div>
-            <div><dt>Geplante Zustelldauer</dt><dd>{formatDuration(routeDurationMinutes)}</dd></div>
             <div><dt>Nächstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird geprüft"}</dd></div>
-            <div><dt>Benötigte Verteiler</dt><dd>{distributorNeed > 0 ? distributorNeed : "wird geprüft"}</dd></div>
           </dl>
           <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore)}</p>
         </aside>

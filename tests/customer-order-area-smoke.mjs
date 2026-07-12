@@ -97,10 +97,20 @@ try {
     "orderNavGroups",
     "customerSideNavSection",
     'className="orderSideNav customerSideNav"',
+    "overviewDragHandle",
+    "onPointerMove={moveOverviewDrag}",
+    "Live aktualisiert, sobald du das Gebiet",
   ]);
   assert(!wizard.includes("Math.random"), "Wizard darf keine Zufallswerte fuer Gebietsuebersicht nutzen.");
   for (const forbidden of ["8.414", "8414", "1.249,50", "1249.50", "FeatureCollection</", "GeoJSON</"]) {
     assert(!wizard.includes(forbidden), `Wizard enthaelt verbotenen Dummy-/Techniktext: ${forbidden}`);
+  }
+  const overviewStart = wizard.indexOf('className="areaOverview"');
+  const overviewEnd = wizard.indexOf("</aside>", overviewStart);
+  const overview = overviewStart >= 0 && overviewEnd > overviewStart ? wizard.slice(overviewStart, overviewEnd) : "";
+  assert(overview, "Gebietsuebersicht wurde im Wizard nicht gefunden.");
+  for (const removedLabel of ["Haushalte</dt>", "Laufstrecke</dt>", "Zustelldauer</dt>", "Benötigte Verteiler</dt>"]) {
+    assert(!overview.includes(removedLabel), `Gebietsuebersicht zeigt entfernte Kennzahl: ${removedLabel}`);
   }
 
   const smartMaps = includes("src/lib/smartMaps.ts", [
