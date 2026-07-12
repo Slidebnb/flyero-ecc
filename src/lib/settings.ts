@@ -209,17 +209,28 @@ export async function generateSettingsNumber(kind: NumberingKind) {
         nextField: "orderNextNumber",
         prefixField: "orderPrefix",
       },
-    }[kind] as {
+  }[kind] as {
       yearField: keyof typeof current;
       nextField: keyof typeof current;
       prefixField: keyof typeof current;
     };
 
-    const storedYear = Number(current[config.yearField]);
-    const nextNumber = storedYear === year ? Number(current[config.nextField]) : 1;
-    const prefix = String(current[config.prefixField]);
+    await tx.$queryRaw`SELECT "id" FROM "NumberingSettings" WHERE "id" = ${settings.id} FOR UPDATE`;
+    const locked = await tx.numberingSettings.findUnique({ where: { id: settings.id } });
+    if (!locked) throw new Error("Nummernkreis wurde nicht gefunden.");
+
+    const storedYear = Number(locked[config.yearField]);
+    let nextNumber = storedYear === year ? Number(locked[config.nextField]) : 1;
+    const prefix = String(locked[config.prefixField]);
+    const candidateExists = async (value: number) => {
+      const number = `${prefix}-${year}-${padNumber(value)}`;
+      if (kind === "order") return Boolean(await tx.order.findUnique({ where: { orderNumber: number }, select: { id: true } }));
+      if (kind === "invoice") return Boolean(await tx.invoice.findUnique({ where: { invoiceNumber: number }, select: { id: true } }));
+      return Boolean(await tx.report.findUnique({ where: { reportNumber: number }, select: { id: true } }));
+    };
+    while (await candidateExists(nextNumber)) nextNumber += 1;
     await tx.numberingSettings.update({
-      where: { id: current.id },
+      where: { id: locked.id },
       data: {
         [config.yearField]: year,
         [config.nextField]: nextNumber + 1,

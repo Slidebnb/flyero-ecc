@@ -13,6 +13,7 @@ import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
 import { sendVerificationEmail } from "@/lib/verificationEmail";
 import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
+import { createCustomerTenant } from "@/lib/tenant";
 
 function safeNext(value: unknown) {
   if (typeof value !== "string") return "";
@@ -36,14 +37,18 @@ export async function POST(request: NextRequest) {
   const verificationExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24);
 
   try {
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        passwordHash,
-        role: UserRole.CUSTOMER,
-        status: UserStatus.EMAIL_UNVERIFIED,
-        customerProfile: {
-          create: {
+    const user = await prisma.$transaction(async (tx) => {
+      const tenant = await createCustomerTenant(tx, data.companyName);
+      const createdUser = await tx.user.create({
+        data: {
+          email: data.email,
+          passwordHash,
+          role: UserRole.CUSTOMER,
+          status: UserStatus.EMAIL_UNVERIFIED,
+          tenantId: tenant.id,
+          customerProfile: {
+            create: {
+              tenantId: tenant.id,
             companyName: data.companyName,
             contactName: data.contactName,
             phone: data.phone,
@@ -65,15 +70,20 @@ export async function POST(request: NextRequest) {
                   country: "DE",
                 }
               : undefined,
+            },
+          },
+          emailVerificationTokens: {
+            create: {
+              tokenHash: hashVerificationToken(verificationToken),
+              expiresAt: verificationExpiresAt,
+            },
           },
         },
-        emailVerificationTokens: {
-          create: {
-            tokenHash: hashVerificationToken(verificationToken),
-            expiresAt: verificationExpiresAt,
-          },
-        },
-      },
+      });
+      await tx.tenantMembership.create({
+        data: { tenantId: tenant.id, userId: createdUser.id, role: "OWNER", status: "ACTIVE" },
+      });
+      return createdUser;
     });
 
     await createAuditLog({

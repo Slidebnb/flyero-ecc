@@ -1,6 +1,5 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { assignAreaToOrder, createDistributionArea } from "@/lib/areas";
 import { createOrderStatusEvent } from "@/lib/orders";
@@ -13,18 +12,18 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-async function getCustomerOrder(userId: string, orderId: string) {
+async function getCustomerOrder(userId: string, tenantId: string, orderId: string) {
   return prisma.order.findFirst({
-    where: { id: orderId, customer: { userId } },
+    where: { id: orderId, tenantId, customer: { userId, tenantId } },
     include: { statusEvents: { orderBy: { createdAt: "asc" } } },
   });
 }
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const { id } = await context.params;
-    const order = await getCustomerOrder(session.id, id);
+    const order = await getCustomerOrder(session.id, session.tenantId, id);
 
     if (!order) {
       return errorResponse("Auftrag wurde nicht gefunden.", 404);
@@ -38,9 +37,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const { id } = await context.params;
-    const order = await getCustomerOrder(session.id, id);
+    const order = await getCustomerOrder(session.id, session.tenantId, id);
 
     if (!order) {
       return errorResponse("Auftrag wurde nicht gefunden.", 404);
@@ -58,7 +57,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const data = parsed.data;
     let distributionAreaId = data.distributionAreaId ?? order.distributionAreaId ?? null;
     const customer = await prisma.customerProfile.findUnique({
-      where: { userId: session.id },
+      where: { userId: session.id, tenantId: session.tenantId },
       select: { id: true },
     });
 
@@ -146,6 +145,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       entityId: updated.id,
       oldValues: { status: order.status, flyerQuantity: order.flyerQuantity },
       newValues: { status: updated.status, flyerQuantity: updated.flyerQuantity },
+      tenantId: session.tenantId,
     });
     if (distributionAreaId) {
       await assignAreaToOrder({ orderId: updated.id, areaId: distributionAreaId, userId: session.id });
@@ -165,9 +165,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const { id } = await context.params;
-    const order = await getCustomerOrder(session.id, id);
+    const order = await getCustomerOrder(session.id, session.tenantId, id);
 
     if (!order) {
       return errorResponse("Auftrag wurde nicht gefunden.", 404);
@@ -185,6 +185,7 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       entityId: id,
       oldValues: { status: order.status },
       newValues: { deleted: true },
+      tenantId: session.tenantId,
     });
 
     return Response.json({ ok: true });

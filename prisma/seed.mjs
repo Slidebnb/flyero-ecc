@@ -247,40 +247,77 @@ const customerSeed = [
   },
 ];
 
-for (const customer of customerSeed) {
-  await prisma.user.upsert({
-    where: { email: customer.email },
-    update: {},
-    create: {
-      email: customer.email,
-      passwordHash,
-      role: "CUSTOMER",
-      status: "ACTIVE",
-      emailVerified: new Date(),
-      customerProfile: {
-        create: {
-          companyName: customer.companyName,
-          contactName: customer.contactName,
-          phone: customer.phone,
-          vatId: null,
-          billingAddress: {
-            street: "Musterstrasse",
-            houseNumber: "12",
-            postalCode: "56068",
-            city: customer.city,
-            country: "DE",
-          },
-          deliveryAddress: {
-            street: "Lagerweg",
-            houseNumber: "4",
-            postalCode: "56070",
-            city: "Koblenz",
-            country: "DE",
+async function ensureSeedCustomer(customer) {
+  await prisma.$transaction(async (tx) => {
+    let user = await tx.user.findUnique({
+      where: { email: customer.email },
+      select: { id: true, tenantId: true, customerProfile: { select: { id: true, tenantId: true } } },
+    });
+    let tenantId = user?.tenantId ?? user?.customerProfile?.tenantId ?? null;
+
+    if (!tenantId) {
+      const tenant = await tx.tenant.create({
+        data: {
+          name: customer.companyName,
+          slug: `seed-${customer.email.replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase()}`,
+          status: "ACTIVE",
+        },
+      });
+      tenantId = tenant.id;
+    }
+
+    if (!user) {
+      user = await tx.user.create({
+        data: {
+          email: customer.email,
+          passwordHash,
+          role: "CUSTOMER",
+          status: "ACTIVE",
+          emailVerified: new Date(),
+          tenantId,
+          customerProfile: {
+            create: {
+              tenantId,
+              companyName: customer.companyName,
+              contactName: customer.contactName,
+              phone: customer.phone,
+              vatId: null,
+              billingAddress: {
+                street: "Musterstrasse",
+                houseNumber: "12",
+                postalCode: "56068",
+                city: customer.city,
+                country: "DE",
+              },
+              deliveryAddress: {
+                street: "Lagerweg",
+                houseNumber: "4",
+                postalCode: "56070",
+                city: "Koblenz",
+                country: "DE",
+              },
+            },
           },
         },
-      },
-    },
+        select: { id: true },
+      });
+    } else {
+      await tx.user.update({ where: { id: user.id }, data: { tenantId } });
+      if (user.customerProfile) {
+        await tx.customerProfile.update({ where: { id: user.customerProfile.id }, data: { tenantId } });
+      }
+    }
+
+    await tx.tenantMembership.upsert({
+      where: { tenantId_userId: { tenantId, userId: user.id } },
+      update: { role: "OWNER", status: "ACTIVE" },
+      create: { tenantId, userId: user.id, role: "OWNER", status: "ACTIVE" },
+    });
   });
+}
+
+for (const customer of customerSeed) {
+  await ensureSeedCustomer(customer);
 }
 
 const distributorSeed = [
@@ -900,6 +937,7 @@ for (let index = 0; index < orderSeed.length; index += 1) {
     create: {
       orderNumber,
       customerId: customer.id,
+      tenantId: customer.tenantId,
       status,
       serviceType: "FLYER_DISTRIBUTION",
       city,
@@ -1008,6 +1046,7 @@ for (let index = 0; index < paymentOrders.length; index += 1) {
     create: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       providerId: stripeProvider.id,
       status: paymentStatus,
       amount,
@@ -1052,6 +1091,7 @@ for (let index = 0; index < paymentOrders.length; index += 1) {
           paymentId: payment.id,
           orderId: order.id,
           customerId: order.customerId,
+          tenantId: order.tenantId,
           type: refundType,
           status: "SUCCEEDED",
           amount: refundType === "PARTIAL" ? amount.div(2).toDecimalPlaces(2) : amount,
@@ -1154,6 +1194,7 @@ for (let index = 0; index < invoicePayments.length; index += 1) {
     create: {
       orderId: payment.orderId,
       customerId: payment.customerId,
+      tenantId: payment.tenantId,
       paymentId: payment.id,
       invoiceNumber,
       status: invoiceStatus,
@@ -1273,6 +1314,7 @@ for (let index = 0; index < warehouseOrderSeed.length; index += 1) {
     create: {
       orderNumber,
       customerId: customer.id,
+      tenantId: customer.tenantId,
       status: orderStatus,
       serviceType: "FLYER_DISTRIBUTION",
       city,
@@ -1664,6 +1706,7 @@ for (let index = 0; index < module6Inventory.length; index += 1) {
         orderId: inventory.orderId,
         tourId: tour.id,
         customerId: inventory.order.customerId,
+        tenantId: inventory.order.tenantId,
         reportNumber,
         status: route.reportStatus,
         reportType: "DISTRIBUTION_PROOF",
@@ -1751,6 +1794,7 @@ for (let index = 0; index < dispatchOrderSeed.length; index += 1) {
     create: {
       orderNumber,
       customerId: customer.id,
+      tenantId: customer.tenantId,
       status: "READY_FOR_PICKUP",
       serviceType: "FLYER_DISTRIBUTION",
       city,
@@ -2973,6 +3017,7 @@ for (let index = 0; index < module19RefundPayments.length; index += 1) {
       paymentId: payment.id,
       orderId: payment.orderId,
       customerId: payment.customerId,
+      tenantId: payment.tenantId,
       type: index === 0 ? "FULL" : "PARTIAL",
       status: "SUCCEEDED",
       amount: index === 0 ? payment.amount : Number(payment.amount) / 2,
@@ -3258,6 +3303,7 @@ for (let index = 0; index < 80; index += 1) {
     data: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       documentType,
       title: `Seed Modul 22 Dokument ${index + 1}`,
       originalFilename: `seed-module22-${index + 1}.${documentType === "ZIP" ? "zip" : documentType === "IMAGE" ? "png" : "pdf"}`,
@@ -3308,6 +3354,7 @@ for (let index = 0; index < 25; index += 1) {
     data: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       printerId: module22Partners[index % module22Partners.length].id,
       status: module22PrintStatuses[index % module22PrintStatuses.length],
       printFormat: ["DIN_A4", "DIN_A5", "DIN_LANG", "SQUARE", "CUSTOM"][index % 5],

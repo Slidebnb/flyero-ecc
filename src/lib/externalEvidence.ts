@@ -69,7 +69,7 @@ export async function uploadExternalEvidence(input: {
 }) {
   const data = externalEvidenceUploadSchema.parse(input.payload);
   assertEvidenceFileMatchesType(data.evidenceType, input.file);
-  const order = await prisma.order.findUnique({ where: { id: input.orderId }, select: { id: true, customerId: true, orderNumber: true } });
+  const order = await prisma.order.findUnique({ where: { id: input.orderId }, select: { id: true, customerId: true, tenantId: true, orderNumber: true } });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
 
   const stored = await storeDocumentFile(input.file);
@@ -77,6 +77,7 @@ export async function uploadExternalEvidence(input: {
     data: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       documentType: documentTypeForEvidence(data.evidenceType),
       title: data.title || (data.evidenceType === "GPS_PDF" ? "GPS-Nachweis des eingesetzten Trackingsystems" : input.file.originalFilename),
       originalFilename: input.file.originalFilename,
@@ -275,6 +276,7 @@ export async function prepareExternalReportForOrder(input: {
       orderId: order.id,
       tourId: tour.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       reportNumber: await generateReportNumber(),
       status: "READY_FOR_REVIEW",
       reportType: "DISTRIBUTION_PROOF",

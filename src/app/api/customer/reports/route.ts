@@ -1,13 +1,13 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const reports = await prisma.report.findMany({
       where: {
+        tenantId: session.tenantId,
         status: "PUBLISHED",
         order: { customer: { userId: session.id } },
         tour: { status: "APPROVED" },

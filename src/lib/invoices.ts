@@ -140,6 +140,7 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
           data: {
             orderId: order.id,
             customerId: order.customerId,
+            tenantId: order.tenantId,
             paymentId: payment.id,
             invoiceNumber,
             status: "PAID",

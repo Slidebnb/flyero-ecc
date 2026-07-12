@@ -149,28 +149,32 @@ function isAdmin(actor: SessionUser) {
 
 async function customerForActor(actor: SessionUser) {
   if (actor.role !== UserRole.CUSTOMER) return null;
-  const customer = await prisma.customerProfile.findUnique({ where: { userId: actor.id }, select: { id: true } });
+  if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
+  const customer = await prisma.customerProfile.findFirst({ where: { userId: actor.id, tenantId: actor.tenantId }, select: { id: true, tenantId: true } });
   if (!customer) throw new AuthError("Kundenprofil wurde nicht gefunden.", 404);
   return customer;
 }
 
 async function assertOrderAccess(actor: SessionUser, orderId: string) {
   if (isAdmin(actor)) {
-    const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, customerId: true } });
+    const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, customerId: true, tenantId: true } });
     if (!order) throw new AuthError("Auftrag wurde nicht gefunden.", 404);
     return order;
   }
 
   const customer = await customerForActor(actor);
   if (!customer) throw new AuthError("Keine Berechtigung für Kundendokumente.", 403);
-  const order = await prisma.order.findFirst({ where: { id: orderId, customerId: customer.id }, select: { id: true, customerId: true } });
+  const order = await prisma.order.findFirst({ where: { id: orderId, customerId: customer.id, tenantId: customer.tenantId }, select: { id: true, customerId: true, tenantId: true } });
   if (!order) throw new AuthError("Auftrag wurde nicht gefunden oder gehört nicht zu deinem Kundenkonto.", 404);
   return order;
 }
 
 function documentWhere(actor: SessionUser) {
   if (isAdmin(actor)) return {};
-  if (actor.role === UserRole.CUSTOMER) return { customer: { userId: actor.id } };
+  if (actor.role === UserRole.CUSTOMER) {
+    if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
+    return { customer: { userId: actor.id }, tenantId: actor.tenantId };
+  }
   throw new AuthError("Keine Berechtigung für Dokumente.", 403);
 }
 
@@ -272,6 +276,7 @@ export async function createDocument(actor: SessionUser, input: unknown, file?: 
     data: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       folderId: data.folderId || null,
       documentType: data.documentType,
       title: data.title,
@@ -409,7 +414,10 @@ export async function getDocumentDownload(actor: SessionUser, id: string, versio
 
 function printScope(actor: SessionUser) {
   if (isAdmin(actor)) return {};
-  if (actor.role === UserRole.CUSTOMER) return { customer: { userId: actor.id } };
+  if (actor.role === UserRole.CUSTOMER) {
+    if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
+    return { customer: { userId: actor.id }, tenantId: actor.tenantId };
+  }
   throw new AuthError("Keine Berechtigung für Druckaufträge.", 403);
 }
 
@@ -439,6 +447,7 @@ export async function createPrintOrder(actor: SessionUser, input: unknown) {
     data: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       printerId: data.printerId || null,
       assignedWarehouseId: assigned.warehouse?.id ?? null,
       printFormat: data.printFormat,

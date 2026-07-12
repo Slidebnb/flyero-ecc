@@ -8,6 +8,7 @@ export type AuditRequestContext = {
 
 type AuditInput = {
   userId?: string | null;
+  tenantId?: string | null;
   action: string;
   entityType: string;
   entityId: string;
@@ -22,6 +23,7 @@ export async function createAuditLog(input: AuditInput) {
   await prisma.auditLog.create({
     data: {
       userId: input.userId ?? null,
+      tenantId: input.tenantId ?? undefined,
       action: input.action,
       entityType: input.entityType,
       entityId: input.entityId,

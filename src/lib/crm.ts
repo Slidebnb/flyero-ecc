@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { createCustomerTenant } from "@/lib/tenant";
 
 const leadStatusValues = Object.values(LeadStatus) as [LeadStatus, ...LeadStatus[]];
 const leadPriorityValues = Object.values(LeadPriority) as [LeadPriority, ...LeadPriority[]];
@@ -342,29 +343,39 @@ export async function convertLeadToCustomer(id: string, actorId?: string) {
 
   if (!customerId) {
     const passwordHash = await bcrypt.hash(randomBytes(32).toString("base64url"), 12);
-    const customer = await prisma.customerProfile.create({
-      data: {
-        companyName: lead.companyName || lead.name,
-        contactName: lead.name,
-        phone: lead.phone || "offen",
-        billingAddress: {
-          street: "offen",
-          houseNumber: "",
-          postalCode: "",
-          city: lead.city || "",
-          country: "DE",
-        },
-        user: {
-          create: {
-            email: lead.email,
-            passwordHash,
-            role: UserRole.CUSTOMER,
-            status: UserStatus.EMAIL_UNVERIFIED,
+    const customer = await prisma.$transaction(async (tx) => {
+      const tenant = await createCustomerTenant(tx, lead.companyName || lead.name);
+      const user = await tx.user.create({
+        data: {
+          email: lead.email,
+          passwordHash,
+          role: UserRole.CUSTOMER,
+          status: UserStatus.EMAIL_UNVERIFIED,
+          tenantId: tenant.id,
+          customerProfile: {
+            create: {
+              tenantId: tenant.id,
+              companyName: lead.companyName || lead.name,
+              contactName: lead.name,
+              phone: lead.phone || "offen",
+              billingAddress: {
+                street: "offen",
+                houseNumber: "",
+                postalCode: "",
+                city: lead.city || "",
+                country: "DE",
+              },
+            },
           },
         },
-      },
+        include: { customerProfile: true },
+      });
+      await tx.tenantMembership.create({
+        data: { tenantId: tenant.id, userId: user.id, role: "OWNER", status: "ACTIVE" },
+      });
+      return user.customerProfile;
     });
-    customerId = customer.id;
+    customerId = customer?.id;
     created = true;
   }
 

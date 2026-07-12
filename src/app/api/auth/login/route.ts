@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       role: true,
       status: true,
       warehouseId: true,
+      tenantId: true,
     },
   });
 
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
   }
 
   await setSessionCookie(
-    { id: user.id, email: user.email, role: user.role, warehouseId: user.warehouseId },
+    { id: user.id, email: user.email, role: user.role, warehouseId: user.warehouseId, tenantId: user.tenantId },
     request,
   );
   await createAuditLog({
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
       status: user.status,
       warehouseId: user.warehouseId,
+      tenantId: user.tenantId,
       redirectTo: next || ROLE_HOME[user.role],
     },
   });

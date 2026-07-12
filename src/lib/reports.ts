@@ -451,6 +451,7 @@ export async function createReportForTour(input: {
           orderId: data.order.id,
           tourId: data.tour.id,
           customerId: data.customer.id,
+          tenantId: data.order.tenantId,
           reportNumber,
           status: "READY_FOR_REVIEW",
           reportType: "DISTRIBUTION_PROOF",

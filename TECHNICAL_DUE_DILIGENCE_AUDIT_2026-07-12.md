@@ -6,7 +6,7 @@ Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `1b5d04a022982ab0b67db2ce8933fafa9e8a8d07`
+Pruef-Commit: `158a30898bc28734c5e4b0fa934df2c8bb7d48b6`
 
 ## 1. Auftrag und Pruefmethode
 
@@ -30,18 +30,18 @@ Status:
 
 ## 2. Executive Summary
 
-FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 70 Prisma-Modellen, 55 Enums, 182 API-Routen, 90 Seiten, 31 Migrationen und 46 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
+FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 72 Prisma-Modellen, 58 Enums, 182 API-Routen, 90 Seiten, 32 Migrationen und 48 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
 
-Der aktuelle Stand ist dennoch noch kein belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Der wichtigste strukturelle Befund ist nicht ein einzelner Bug, sondern die fehlende Mandantenebene: Es gibt kein `Tenant`-, `Organization`- oder vergleichbares Modell und keine `tenantId`-Pflicht auf Geschaeftsdaten. Kundenkonten sind voneinander ueber Profil- und User-Beziehungen getrennt, aber das ist keine echte Unternehmens-/Mandantenarchitektur.
+Der aktuelle Stand ist dennoch noch kein vollstaendig belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Eine erste Mandantengrundlage ist jetzt vorhanden: `Tenant`, `TenantMembership` sowie verpflichtende `tenantId`-Felder auf den kundenbezogenen Kernmodellen. Kundenregistrierung, Lead-Konvertierung, Seed-Daten und zentrale Customer-APIs erzeugen bzw. pruefen aktive Kundenmandanten. Plattform-Admin und interne Rollen sind weiterhin global; zentrale Tenant-Permissions, Mitarbeiterverwaltung und vollstaendige Tenant-Policies sind noch offen.
 
 Die groessten aktuellen Risiken sind:
 
 1. `P0` Produktionsdaten und Uploads liegen operativ weiterhin ohne nachgewiesenen automatischen Offsite-Backup- und Restore-Nachweis.
-2. `P0` Die Plattform ist nicht mandantenfaehig, obwohl das Zielbild dies verbindlich fordert. Eine spaetere Nachruestung betrifft nahezu jedes Kernmodell und jede Abfrage.
+2. `P0` Die Plattform ist noch nicht vollstaendig mandantenfaehig: Die Kunden-Kernkette ist gescoped, aber interne Rollen, globale Admin-Pfade, Storage-Partitionierung und eine zentrale Policy-Schicht fehlen noch.
 3. `P1` Uploads sind signaturgeprueft und privat speicherbar, aber Malware-Scan, Quarantaene, Altbestandsmigration und ein produktiver S3-Nachweis fehlen.
 4. `P1` Stripe-Reconciliation, signierte Staging-Abnahmetests, Dispute-Prozess und getrennte Live-/Staging-Betriebsnachweise fehlen.
 5. `P1` Externes Monitoring, Alarmierung, zentrale Request-Korrelation und Uptime-/Backup-Ueberwachung fehlen weiterhin.
-6. `P1` AuditLogs haben jetzt Kontextfelder, aber noch keine Tenant-ID, keine vollstaendige Anbindung aller kritischen Aktionen und kein extern manipulationsgeschuetztes Archiv.
+6. `P1` AuditLogs haben jetzt Kontextfelder und eine optionale Tenant-ID, aber noch keine vollstaendige Anbindung aller kritischen Aktionen und kein extern manipulationsgeschuetztes Archiv.
 7. `P1` MFA, Passwort-Historie und kompromittierte-Passwort-Pruefung fehlen trotz vorhandenem Passwort-Reset-Basispaket.
 
 Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock-Zahlungen sind in Produktion standardmaessig deaktiviert, generierte PDFs werden inzwischen unter privatem Storage abgelegt, Kunden-Downloads sind rollen- und eigentumsgeprueft, externe GPS-Berichte koennen ohne erfundene Coverage veroeffentlicht werden, und die Domain ist per HTTPS erreichbar.
@@ -60,14 +60,14 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 | Storage | Lokaler privater Dateispeicher und Docker-Volumes | teilweise |
 | Reporting | Report-Snapshots, Freigabe, private Downloads, externe GPS-Belege | teilweise |
 | Deployment | Docker Compose, Caddy, HTTPS, Postgres | vorhanden fuer Einzelserver-MVP |
-| Tests | 46 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission- und Report-Smokes | teilweise |
+| Tests | 48 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission-, Tenant- und Report-Smokes | teilweise |
 | CI/CD | GitHub Actions fuer Prisma, Lint, Build, Security und kritische PostgreSQL-Smokes | vorhanden im Repo; Branch-Schutz/Staging extern offen |
 
 ### Architekturstaerken
 
 - Fachlogik liegt haeufig in `src/lib/*` und nicht nur in UI-Komponenten.
 - API-Routen verwenden ueberwiegend zentrale Auth- und Fehlerhelfer.
-- Prisma-Migrationen sind versioniert; aktuell liegen 26 Migrationsverzeichnisse vor.
+- Prisma-Migrationen sind versioniert; aktuell liegen 32 Migrationsverzeichnisse vor.
 - Zahlungs-, Report-, Dokument- und Statushistorien sind als eigene Modelle vorhanden.
 - Geschuetzte Kunden-Downloads pruefen Rolle, Eigentum und Freigabestatus serverseitig.
 
@@ -85,7 +85,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 ### Vorhanden
 
-- 67 Modelle und 55 Enums bilden Order, Payment, Invoice, Warehouse, Dispatch, Tour, GPS, Report, Dokumente, CRM, Notifications, Monitoring und Audit ab.
+- 72 Modelle und 58 Enums bilden Order, Payment, Invoice, Warehouse, Dispatch, Tour, GPS, Report, Dokumente, CRM, Notifications, Monitoring, Audit und Tenant-Grundlagen ab.
 - Fremdschluessel, Indizes, eindeutige Constraints und Zeitstempel sind an vielen Kernmodellen vorhanden.
 - Stripe-Event-IDs sind eindeutig, Reportnummern und Verifikationscodes sind eindeutig.
 - Migrationen sind versioniert und werden im Deployment mit `prisma migrate deploy` angewendet.
@@ -94,7 +94,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| DB-01 | Kein `Tenant`/`Organization`-Modell und keine durchgaengige `tenantId` | P0 | Mandantenmodell als eigene Architekturphase entwerfen; alle geschaeftlichen Modelle, Unique-Constraints, Indizes und Zugriffsregeln migrieren. |
+| DB-01 | Tenant-Grundmodell und Kunden-Kernscoping vorhanden, aber interne Rollen, globale Adminpfade und zentrale Policies noch nicht tenantfaehig | P0 | Tenant-Membership und Permission-Policies auf alle relevanten internen Pfade erweitern; Storage-Partitionierung und negative Tests vervollstaendigen. |
 | DB-02 | Viele fachliche Snapshots und Metadaten liegen als freies `Json` vor | P2 | JSON nur fuer unveraenderliche Snapshots behalten; haeufig abgefragte oder sicherheitsrelevante Felder typisieren. |
 | DB-03 | Soft Delete und Loesch-/Sperrkonzept sind nicht einheitlich | P2 | Datenklassen definieren und pro Modell `deletedAt`, Archivierung oder harte Loeschung verbindlich festlegen. |
 | DB-04 | Keine dokumentierte Datenaufbewahrung oder automatische Bereinigung | P1 | Retention-Jobs fuer GPS, Fotos, Logs, Tokens und temporaere Dateien mit Legal-Hold-Ausnahmen einfuehren. |
@@ -124,24 +124,23 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 ## 6. Mandantentrennungsanalyse
 
-Status: `fehlt als Architektur`, `teilweise als Kunden-Eigentumspruefung`.
+Status: `Kunden-Kernphase umgesetzt`, `interne/Enterprise-Mandantenphase offen`.
 
-Aktuell werden Kundenobjekte meist ueber `CustomerProfile.userId`, `customerId` oder verschachtelte Order-Beziehungen eingeschraenkt. Das verhindert in vielen gesichteten Kundenrouten den direkten Zugriff auf fremde Auftraege oder Reports. Es gibt jedoch keine Unternehmensmitgliedschaften, keine Mandantenrollen und keine zentrale Tenant-Policy.
+Es gibt jetzt `Tenant` und `TenantMembership`. Kundenregistrierung und Lead-Konvertierung erzeugen einen aktiven Kundenmandanten mit einer aktiven Owner-Mitgliedschaft. `Order`, `Report`, `Payment`, `Refund`, `Invoice`, `Document` und `PrintOrder` tragen eine verpflichtende Tenant-ID; zentrale Customer-Listen, Detail- und Downloadpfade pruefen den Tenant serverseitig. Ein negativer Smoke-Test prueft getrennte Kundenmandanten und konsistente Kernverknuepfungen.
 
 Konsequenzen:
 
-- Ein Unternehmen kann nicht sauber mehrere Mitarbeiter mit unterschiedlichen Rechten verwalten.
+- Ein Unternehmen kann noch nicht sauber mehrere Mitarbeiter mit unterschiedlichen Rechten verwalten.
 - Globale Unique-Constraints koennen spaeter mandantenspezifische Anforderungen blockieren.
 - Jede einzelne Query muss weiterhin individuell korrekt auf User/Customer gescoped werden.
 - Admin ist plattformweit und nicht zwischen Plattform-, Unternehmens- und Supportrechten getrennt.
-- Dateien und Storage-Keys enthalten keine Mandantenpartition.
+- Dateien und Storage-Keys enthalten noch keine explizite Mandantenpartition.
 
 Empfohlene Zielstruktur vor weiteren Enterprise-Funktionen:
 
-- `Tenant`
-- `TenantMembership`
+- `Tenant` und `TenantMembership` sind als Kernstruktur vorhanden.
 - zentrale Permission-Codes statt nur grober Rollen
-- `tenantId` auf allen mandantenbezogenen Kernmodellen
+- `tenantId` auf den kundenbezogenen Kernmodellen ist vorhanden; interne Modelle muessen noch bewertet und migriert werden.
 - zusammengesetzte Unique-Constraints mit `tenantId`
 - Policy-Helper, der Tenant und Permission aus DB-Mitgliedschaft ermittelt
 - negative Mandantentrennungstests fuer jede kritische Ressource
@@ -369,7 +368,7 @@ Prioritaet: `P1` fuer Betriebs- und Sicherheitsrunbooks, `P2` fuer vollstaendige
 
 1. Automatische verschluesselte Offsite-Backups fuer Postgres und beide Storage-Bereiche einrichten.
 2. Restore-Runbook erstellen und einen echten Restore in isolierter Umgebung nachweisen.
-3. Tenant-Zielarchitektur als eigenes Design festlegen, bevor weitere Unternehmens-/Enterprise-Funktionen entstehen.
+3. Tenant-Zielarchitektur fuer interne Rollen und Enterprise-Mitgliedschaften vervollstaendigen, bevor weitere Unternehmensfunktionen entstehen.
 4. Produktion pruefen: `ENABLE_MOCK_PAYMENTS=false`, echte E-Mail-/Stripe-Secrets getrennt, keine Demo-Seeds.
 
 ### Vor oeffentlichem Launch
@@ -393,7 +392,7 @@ Prioritaet: `P1` fuer Betriebs- und Sicherheitsrunbooks, `P2` fuer vollstaendige
 
 ### Vor Skalierung
 
-1. Tenant-Migration vollstaendig umsetzen.
+1. Kunden-Tenant-Grundlage auf interne Rollen, Storage-Partitionierung und zentrale Policies erweitern.
 2. Permission-basiertes RBAC statt grober Rollen.
 3. Privaten Objekt-Storage und Managed/HA-Datenbank evaluieren.
 4. Background-Worker und Scheduler von Webrequests trennen.
@@ -439,7 +438,7 @@ Die Reihenfolge minimiert zuerst Datenverlust und unkontrollierten Zugriff, dana
 5. Stripe-Staging-/Reconciliation-Haertung
 6. Externes Monitoring, Alarmierung und Request-IDs
 7. AuditLog-v2 und Permission-Matrix
-8. Tenant-Architekturdesign und schrittweise Migration
+8. Tenant-Policies, interne Rollen und schrittweise Migration
 9. Datenschutz-/Retention-Automation
 10. PDF-/Dokumentversionierungs-Haertung
 

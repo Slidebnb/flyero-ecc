@@ -12,6 +12,7 @@ export type SessionUser = {
   email: string;
   role: UserRole;
   warehouseId?: string | null;
+  tenantId?: string | null;
 };
 
 export type SessionPayload = SessionUser & {
@@ -117,6 +118,7 @@ export async function getSession(): Promise<SessionPayload | null> {
             email: true,
             role: true,
             warehouseId: true,
+            tenantId: true,
             status: true,
           },
         },
@@ -145,6 +147,7 @@ export async function getSession(): Promise<SessionPayload | null> {
       email: authSession.user.email,
       role: authSession.user.role,
       warehouseId: authSession.user.warehouseId,
+      tenantId: authSession.user.tenantId,
       sessionId: authSession.id,
       exp: typeof verified.payload.exp === "number" ? verified.payload.exp : Math.floor(authSession.expiresAt.getTime() / 1000),
     };

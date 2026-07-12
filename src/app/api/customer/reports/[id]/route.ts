@@ -1,5 +1,4 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { collectReportData, sanitizeReportForCustomer } from "@/lib/reports";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
@@ -9,13 +8,14 @@ type RouteProps = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: RouteProps) {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const { id } = await params;
     const report = await prisma.report.findFirst({
       where: {
         id,
+        tenantId: session.tenantId,
         status: "PUBLISHED",
-        order: { customer: { userId: session.id } },
+        order: { customer: { userId: session.id, tenantId: session.tenantId }, tenantId: session.tenantId },
         tour: { status: "APPROVED" },
       },
       include: {
@@ -29,6 +29,7 @@ export async function GET(_request: Request, { params }: RouteProps) {
       action: "report.viewed",
       entityType: "Report",
       entityId: report.id,
+      tenantId: session.tenantId,
     });
     const data = await collectReportData(report.tourId);
     return Response.json({ ok: true, data: { report, customerView: sanitizeReportForCustomer(data) } });

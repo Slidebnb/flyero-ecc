@@ -84,9 +84,13 @@ async function updatePaymentStatus(payment: Payment, status: PaymentStatus, reas
   return updated;
 }
 
-export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string }) {
+export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string; tenantId?: string }) {
   const order = await prisma.order.findFirst({
-    where: { id: input.orderId, customer: { userId: input.customerUserId } },
+    where: {
+      id: input.orderId,
+      ...(input.tenantId ? { tenantId: input.tenantId } : {}),
+      customer: { userId: input.customerUserId, ...(input.tenantId ? { tenantId: input.tenantId } : {}) },
+    },
     include: { customer: { include: { user: true } }, payments: { orderBy: { createdAt: "desc" } } },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
@@ -110,6 +114,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     data: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       providerId: provider.id,
       status: "CREATED",
       amount,
@@ -207,6 +212,7 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     data: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       providerId: provider.id,
       status: "CREATED",
       amount: fromCents(session.amount_total),
@@ -384,6 +390,7 @@ export async function refundPayment(input: {
       paymentId: payment.id,
       orderId: payment.orderId,
       customerId: payment.customerId,
+      tenantId: payment.tenantId,
       type: refundType,
       status: "PENDING",
       amount,

@@ -37,6 +37,7 @@ assert.match(ci, /npm run test:security-headers/, "CI muss die Security-Header-K
 for (const script of [
   "test:auth-ux",
   "test:auth-session",
+  "test:tenant-foundation",
   "test:auth-abuse",
   "test:password-reset",
   "test:password-reset-live",

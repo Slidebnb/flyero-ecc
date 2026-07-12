@@ -1,5 +1,4 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { readStoredDocument } from "@/lib/documentStorage";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
@@ -8,13 +7,14 @@ type RouteContext = { params: Promise<{ id: string; documentId: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const { id, documentId } = await context.params;
     const report = await prisma.report.findFirst({
       where: {
         id,
+        tenantId: session.tenantId,
         status: "PUBLISHED",
-        order: { customer: { userId: session.id } },
+        order: { customer: { userId: session.id, tenantId: session.tenantId }, tenantId: session.tenantId },
       },
       select: { orderId: true },
     });
@@ -23,6 +23,7 @@ export async function GET(_request: Request, context: RouteContext) {
       where: {
         id: documentId,
         orderId: report.orderId,
+        tenantId: session.tenantId,
         customerVisible: true,
         status: "APPROVED",
       },

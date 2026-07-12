@@ -1,6 +1,6 @@
-import { Prisma, UserRole } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { assignAreaToOrder, createDistributionArea } from "@/lib/areas";
 import { createNotification } from "@/lib/notifications";
@@ -13,7 +13,7 @@ import { orderCreateSchema } from "@/lib/validators";
 
 export async function GET() {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const customer = await prisma.customerProfile.findUnique({
       where: { userId: session.id },
       select: { id: true },
@@ -24,7 +24,7 @@ export async function GET() {
     }
 
     const orders = await prisma.order.findMany({
-      where: { customerId: customer.id },
+      where: { customerId: customer.id, tenantId: session.tenantId },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -48,7 +48,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const parsed = orderCreateSchema.safeParse(await readBody(request));
 
     if (!parsed.success) {
@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
           data: {
             orderNumber: await generateOrderNumber(),
             customerId: customer.id,
+            tenantId: session.tenantId,
             status,
             serviceType: data.serviceType,
             city: data.city,
@@ -180,6 +181,7 @@ export async function POST(request: NextRequest) {
     });
     await createAuditLog({
       userId: session.id,
+      tenantId: session.tenantId,
       action: "order.created",
       entityType: "Order",
       entityId: order.id,

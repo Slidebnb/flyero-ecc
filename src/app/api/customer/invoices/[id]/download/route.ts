@@ -1,5 +1,4 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
 import { markInvoiceDownloaded } from "@/lib/invoices";
 import { prisma } from "@/lib/prisma";
@@ -9,10 +8,10 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const { id } = await context.params;
     const invoice = await prisma.invoice.findFirst({
-      where: { id, customer: { userId: session.id }, pdfUrl: { not: null } },
+      where: { id, tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId }, pdfUrl: { not: null } },
     });
     if (!invoice?.pdfUrl) return errorResponse("PDF wurde nicht gefunden.", 404);
     const pdf = await readGeneratedAsset(invoice.pdfUrl);

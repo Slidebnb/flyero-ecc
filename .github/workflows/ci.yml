@@ -134,6 +134,9 @@ jobs:
       - name: Database-authorized session smoke
         run: npm run test:auth-session
 
+      - name: Tenant foundation smoke
+        run: npm run test:tenant-foundation
+
       - name: Authentication abuse protection smoke
         run: npm run test:auth-abuse
 

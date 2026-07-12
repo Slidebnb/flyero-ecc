@@ -556,6 +556,7 @@ export async function approveTour(input: {
           orderId: tour.orderId,
           tourId: tour.id,
           customerId: tour.order.customerId,
+          tenantId: tour.order.tenantId,
           reportNumber: await generateReportNumber(),
           status: "READY_FOR_REVIEW",
           reportType: "DISTRIBUTION_PROOF",
