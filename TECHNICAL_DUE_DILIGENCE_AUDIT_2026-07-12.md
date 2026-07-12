@@ -303,6 +303,14 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - `https://flyero.org` antwortete bei der Pruefung mit HTTP 200; `/api/health` lieferte `{"status":"OK"}`.
 - Interne ErrorLog-, SystemLog-, HealthCheck- und Queue-Modelle existieren.
 
+### Health-Truthfulness-Haertung (13.07.2026)
+
+- `GET /api/health` meldet ohne gespeicherten Check nicht mehr faelschlich `OK`, sondern konservativ `DEGRADED`.
+- Der oeffentliche Health-Endpunkt setzt `Cache-Control: no-store`, damit ein alter Status nicht als aktueller Betriebsnachweis weitergereicht wird.
+- `EMAIL_PROVIDER=mock` wird in Produktion nicht als echter Versand gewertet. SMTP und Resend werden nur bei den jeweils benoetigten Konfigurationswerten als `OK` bewertet.
+- Der neue Contract-Smoke `npm run test:health-fail-safe` ist in CI eingebunden.
+- Das ersetzt kein externes Uptime-/Error-Monitoring und keinen produktiven Alarmweg; OPS-05 und OPS-06 bleiben offen.
+
 ### Risiken
 
 | ID | Befund | Prioritaet | Massnahme |

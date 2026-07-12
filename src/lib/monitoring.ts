@@ -28,6 +28,52 @@ function statusFromChecks(checks: HealthStatus[]) {
   return HealthStatus.OK;
 }
 
+function emailHealthCheck() {
+  const provider = (process.env.EMAIL_PROVIDER || "mock").toLowerCase();
+  const senderConfigured = Boolean(process.env.EMAIL_FROM || process.env.SMTP_FROM);
+  const smtpConfigured = Boolean(process.env.SMTP_HOST && senderConfigured);
+  const resendConfigured = Boolean(process.env.RESEND_API_KEY && senderConfigured);
+  const isProduction = process.env.NODE_ENV === "production";
+
+  if (provider === "smtp") {
+    return {
+      provider,
+      status: smtpConfigured ? HealthStatus.OK : HealthStatus.DEGRADED,
+      configured: smtpConfigured,
+      smtpConfigured,
+      resendConfigured,
+    };
+  }
+
+  if (provider === "resend") {
+    return {
+      provider,
+      status: resendConfigured ? HealthStatus.OK : HealthStatus.DEGRADED,
+      configured: resendConfigured,
+      smtpConfigured,
+      resendConfigured,
+    };
+  }
+
+  if (provider === "mock" && !isProduction) {
+    return {
+      provider,
+      status: HealthStatus.OK,
+      configured: true,
+      smtpConfigured,
+      resendConfigured,
+    };
+  }
+
+  return {
+    provider,
+    status: HealthStatus.DEGRADED,
+    configured: false,
+    smtpConfigured,
+    resendConfigured,
+  };
+}
+
 function normalizeError(error: unknown, fallbackMessage: string) {
   if (error instanceof Error) {
     return {
@@ -224,7 +270,8 @@ export async function runHealthCheck(userId?: string) {
   const googleMapsBrowserConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
   const googleMapsServerConfigured = Boolean(process.env.GOOGLE_MAPS_SERVER_KEY);
   const googleMapsStatus = googleMapsBrowserConfigured && googleMapsServerConfigured ? HealthStatus.OK : HealthStatus.DEGRADED;
-  const emailStatus = process.env.SMTP_HOST || process.env.EMAIL_PROVIDER ? HealthStatus.OK : HealthStatus.DEGRADED;
+  const email = emailHealthCheck();
+  const emailStatus = email.status;
   const failedQueueCount = await prisma.notificationQueue.count({ where: { status: { in: ["FAILED", "RETRY"] } } }).catch(() => 0);
   const queueStatus = failedQueueCount > 20 ? HealthStatus.DEGRADED : HealthStatus.OK;
 
@@ -256,7 +303,10 @@ export async function runHealthCheck(userId?: string) {
         googleMapsConfigured: googleMapsBrowserConfigured && googleMapsServerConfigured,
         googleMapsBrowserConfigured,
         googleMapsServerConfigured,
-        emailConfigured: Boolean(process.env.SMTP_HOST || process.env.EMAIL_PROVIDER),
+        emailProvider: email.provider,
+        emailConfigured: email.configured,
+        smtpConfigured: email.smtpConfigured,
+        resendConfigured: email.resendConfigured,
       },
     },
   });

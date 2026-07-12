@@ -8,6 +8,10 @@ export async function GET() {
   });
 
   return Response.json({
-    status: latest?.status ?? HealthStatus.OK,
+    status: latest?.status ?? HealthStatus.DEGRADED,
+  }, {
+    headers: {
+      "Cache-Control": "no-store",
+    },
   });
 }
