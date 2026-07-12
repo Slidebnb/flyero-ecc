@@ -140,6 +140,9 @@ jobs:
       - name: Permission matrix smoke
         run: npm run test:permissions
 
+      - name: Retention policy smoke
+        run: npm run test:retention
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

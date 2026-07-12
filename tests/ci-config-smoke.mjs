@@ -39,6 +39,7 @@ for (const script of [
   "test:auth-session",
   "test:auth-abuse",
   "test:permissions",
+  "test:retention",
   "test:module25",
   "test:customer-order-area",
   "test:customer-order-checkout",
