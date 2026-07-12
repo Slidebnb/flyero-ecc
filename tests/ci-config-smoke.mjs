@@ -35,6 +35,7 @@ assert.match(ci, /name:\s*Start shared test server/, "CI muss genau einen gemein
 assert.match(ci, /flyero-dev\.log/, "CI muss die Testserver-Ausgabe fuer Fehlerdiagnosen sichern.");
 for (const script of [
   "test:auth-ux",
+  "test:auth-session",
   "test:module25",
   "test:customer-order-area",
   "test:customer-order-checkout",

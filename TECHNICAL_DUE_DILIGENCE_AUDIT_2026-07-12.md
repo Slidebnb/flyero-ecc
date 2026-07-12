@@ -489,4 +489,16 @@ Extern in GitHub noch zu aktivieren:
 
 Die README-Einleitung ist fachlich veraltet und enthaelt gemischte, teilweise ungueltige Zeichenkodierung. Ihre kontrollierte UTF-8-Bereinigung bleibt ein eigenes Dokumentationspaket, damit die umfangreiche Datei nicht durch eine ungezielte Konvertierung beschaedigt wird.
 
-Naechster P0-Schritt bleibt die automatisierte, verschluesselte Offsite-Backup- und Restore-Kette fuer PostgreSQL und private Storage-Dateien.
+Der Backup-/Restore-Pfad ist als Repository-Paket vorbereitet; die Einrichtung des externen Restic-Ziels und ein echter Staging-Restore bleiben operative Betreiberaufgaben.
+
+### P1 DB-autorisierte Sessions
+
+Das zweite Auth-Haertungspaket wurde umgesetzt:
+
+- `AuthSession` persistiert Ablauf, Widerruf und Login-Kontext mit Cascade-Beziehung zu `User`.
+- `getSession()` verifiziert neben der JWT-Signatur die Session in PostgreSQL und liest Status, Rolle und Warehouse-Zuordnung aktuell aus der Datenbank.
+- Logout widerruft die aktive Session.
+- `tests/auth-session-smoke.mjs` prueft Widerruf, Rollenwechsel und sofortige Sperrwirkung.
+- Die CI fuehrt den neuen Auth-Session-Smoke gegen eine frische PostgreSQL-Datenbank aus.
+
+Offen bleiben MFA, Geraeteverwaltung, „Logout aller Geraete“, zentrale Auth-Rate-Limits und eine automatische Bereinigung abgelaufener Sessions.

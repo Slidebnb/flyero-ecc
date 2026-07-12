@@ -58,7 +58,10 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await setSessionCookie({ id: user.id, email: user.email, role: user.role, warehouseId: user.warehouseId });
+  await setSessionCookie(
+    { id: user.id, email: user.email, role: user.role, warehouseId: user.warehouseId },
+    request,
+  );
   await createAuditLog({
     userId: user.id,
     action: "auth.login",

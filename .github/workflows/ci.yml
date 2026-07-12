@@ -128,6 +128,9 @@ jobs:
       - name: Authentication UX smoke
         run: npm run test:auth-ux
 
+      - name: Database-authorized session smoke
+        run: npm run test:auth-session
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

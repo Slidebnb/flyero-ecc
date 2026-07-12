@@ -482,6 +482,7 @@ model User {
   updatedAt     DateTime   @updatedAt
 
   customerProfile    CustomerProfile?
+  authSessions       AuthSession[]
   distributorProfile DistributorProfile?
   uploadedPhotos     PhotoProof[]        @relation("UploadedPhotos")
   approvedReports    Report[]            @relation("ApprovedReports")
@@ -533,6 +534,22 @@ model EmailVerificationToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+}
+
+model AuthSession {
+  id         String    @id @default(cuid())
+  userId     String
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  lastSeenAt DateTime?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([revokedAt, expiresAt])
 }
 
 model CustomerProfile {

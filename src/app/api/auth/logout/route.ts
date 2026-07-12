@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { clearSessionCookie, getSession } from "@/lib/auth";
+import { clearSessionCookie, getSession, revokeSession } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { publicUrl } from "@/lib/publicUrl";
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
+  if (session) await revokeSession(session.sessionId);
   await clearSessionCookie();
 
   if (session) {
