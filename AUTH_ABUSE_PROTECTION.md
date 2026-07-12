@@ -10,6 +10,7 @@ FLYERO schützt die öffentlichen Authentifizierungswege mit PostgreSQL-Buckets.
 | Kunden-/Verteilerregistrierung | 5 | 1 Stunde | IP |
 | Bestätigungslink erneut senden | 3 | 1 Stunde | IP und E-Mail |
 | E-Mail-Verifizierung | 10 | 15 Minuten | IP |
+| Passwort-Reset | 5 | 1 Stunde | IP |
 
 Alle Limits können über die `AUTH_*_RATE_LIMIT_*`-Variablen angepasst werden. Ein abgelehneter Versuch liefert `429` und `Retry-After`.
 

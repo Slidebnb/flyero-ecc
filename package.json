@@ -43,6 +43,8 @@
     "test:auth-ux": "node -r dotenv/config tests/auth-ux-smoke.mjs",
     "test:auth-session": "node -r dotenv/config tests/auth-session-smoke.mjs",
     "test:auth-abuse": "node -r dotenv/config tests/auth-abuse-smoke.mjs",
+    "test:password-reset": "node tests/password-reset-smoke.mjs",
+    "test:password-reset-live": "node -r dotenv/config tests/password-reset-live-smoke.mjs",
     "test:permissions": "node tests/permission-matrix-smoke.mjs",
     "test:audit-log-v2": "node tests/audit-log-v2-smoke.mjs",
     "retention:report": "node -r dotenv/config scripts/retention.mjs",

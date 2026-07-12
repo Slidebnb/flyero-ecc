@@ -56,3 +56,38 @@ export async function sendVerificationEmail({
   });
 }
 
+export async function sendPasswordResetEmail({
+  email,
+  token,
+  requestUrl,
+}: {
+  email: string;
+  token: string;
+  requestUrl: string;
+}) {
+  const resetUrl = publicUrl(`/reset-password?token=${encodeURIComponent(token)}`, requestUrl).toString();
+
+  return sendEmail({
+    to: email,
+    subject: "FLYERO Passwort zurücksetzen",
+    text: [
+      "Sie haben das Zurücksetzen Ihres FLYERO-Passworts angefordert.",
+      "",
+      "Öffnen Sie diesen Link, um ein neues Passwort festzulegen:",
+      resetUrl,
+      "",
+      "Der Link ist 30 Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.",
+    ].join("\n"),
+    html: `
+      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827">
+        <h1 style="margin:0 0 12px">Passwort zurücksetzen</h1>
+        <p>Sie haben das Zurücksetzen Ihres <strong>FLYERO</strong>-Passworts angefordert.</p>
+        <p style="margin:24px 0">
+          <a href="${resetUrl}" style="background:#b7ff00;color:#111827;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">Neues Passwort festlegen</a>
+        </p>
+        <p style="color:#4b5563">Der Link ist 30 Minuten gültig. Falls Sie die Anfrage nicht gestellt haben, müssen Sie nichts tun.</p>
+      </div>
+    `,
+    metadata: { type: "password_reset" },
+  });
+}

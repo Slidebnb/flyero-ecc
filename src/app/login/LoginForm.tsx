@@ -166,6 +166,9 @@ export function LoginForm({ next }: LoginFormProps) {
       <p className="muted">
         E-Mail noch nicht bestätigt? <Link href="/verify-email">Link erneut anfordern</Link>
       </p>
+      <p className="muted">
+        Passwort vergessen? <Link href="/password-reset">Passwort zurücksetzen</Link>
+      </p>
     </>
   );
 }

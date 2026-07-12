@@ -7,13 +7,22 @@ import {
   WORKING_TIMES,
 } from "@/lib/constants";
 
-const passwordSchema = z
+export const passwordSchema = z
   .string()
   .min(10, "Das Passwort muss mindestens 10 Zeichen lang sein.");
 
 export const loginSchema = z.object({
   email: z.string().email().transform((value) => value.toLowerCase()),
   password: z.string().min(1, "Passwort ist erforderlich."),
+});
+
+export const passwordResetRequestSchema = z.object({
+  email: z.string().email().transform((value) => value.toLowerCase()),
+});
+
+export const passwordResetSchema = z.object({
+  token: z.string().min(20),
+  password: passwordSchema,
 });
 
 export const addressSchema = z.object({

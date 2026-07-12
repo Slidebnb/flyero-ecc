@@ -5,7 +5,7 @@ export type AuthRateLimitDecision =
   | { allowed: true }
   | { allowed: false; retryAfterSeconds: number };
 
-type AuthRateLimitScope = "login" | "register" | "resend" | "verify";
+type AuthRateLimitScope = "login" | "register" | "resend" | "verify" | "password-reset";
 
 type BucketSettings = {
   suffix: string;
@@ -59,6 +59,7 @@ function settingsFor(scope: AuthRateLimitScope, request: Request, identity?: str
     register: ["AUTH_REGISTER_IP_RATE_LIMIT_MAX", "AUTH_REGISTER_IP_RATE_LIMIT_WINDOW_MS", 5, 60 * 60 * 1000],
     resend: ["AUTH_RESEND_IP_RATE_LIMIT_MAX", "AUTH_RESEND_IP_RATE_LIMIT_WINDOW_MS", 3, 60 * 60 * 1000],
     verify: ["AUTH_VERIFY_IP_RATE_LIMIT_MAX", "AUTH_VERIFY_IP_RATE_LIMIT_WINDOW_MS", 10, 15 * 60 * 1000],
+    "password-reset": ["AUTH_PASSWORD_RESET_IP_RATE_LIMIT_MAX", "AUTH_PASSWORD_RESET_IP_RATE_LIMIT_WINDOW_MS", 5, 60 * 60 * 1000],
   }[scope] as [string, string, number, number];
 
   return [{

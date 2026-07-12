@@ -487,6 +487,7 @@ model User {
   uploadedPhotos     PhotoProof[]        @relation("UploadedPhotos")
   approvedReports    Report[]            @relation("ApprovedReports")
   emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens PasswordResetToken[]
   orderStatusEvents  OrderStatusEvent[]
   warehouseHistories WarehouseHistory[]
   auditLogs          AuditLog[]
@@ -534,6 +535,20 @@ model EmailVerificationToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, expiresAt])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt, usedAt])
 }
 
 model AuthSession {

@@ -30,20 +30,19 @@ Status:
 
 ## 2. Executive Summary
 
-FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 67 Prisma-Modellen, 55 Enums, 180 API-Routen, 88 Seiten, 26 Migrationen und 34 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
+FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 70 Prisma-Modellen, 55 Enums, 182 API-Routen, 90 Seiten, 31 Migrationen und 46 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
 
 Der aktuelle Stand ist dennoch noch kein belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Der wichtigste strukturelle Befund ist nicht ein einzelner Bug, sondern die fehlende Mandantenebene: Es gibt kein `Tenant`-, `Organization`- oder vergleichbares Modell und keine `tenantId`-Pflicht auf Geschaeftsdaten. Kundenkonten sind voneinander ueber Profil- und User-Beziehungen getrennt, aber das ist keine echte Unternehmens-/Mandantenarchitektur.
 
 Die groessten aktuellen Risiken sind:
 
-1. `P0` Produktionsdaten und Uploads liegen nur in lokalen Docker-Volumes ohne nachgewiesene automatische Offsite-Backups oder Restore-Tests.
+1. `P0` Produktionsdaten und Uploads liegen operativ weiterhin ohne nachgewiesenen automatischen Offsite-Backup- und Restore-Nachweis.
 2. `P0` Die Plattform ist nicht mandantenfaehig, obwohl das Zielbild dies verbindlich fordert. Eine spaetere Nachruestung betrifft nahezu jedes Kernmodell und jede Abfrage.
-3. `P1` Rollen und Kontostatus werden im siebentaegigen JWT gespeichert und bei normalen Requests nicht erneut aus der Datenbank geladen. Rollenwechsel, Sperrung oder Rechteentzug wirken deshalb nicht sicher sofort auf bestehende Sessions.
-4. `P1` Login, Registrierung und Verifizierungs-Resend haben keinen zentralen, verteilten Abuse-/Brute-Force-Schutz. Der vorhandene Lead-Schutz ist nur ein In-Memory-Bucket pro Prozess.
-5. `P1` Datei- und MIME-Pruefung basiert ueberwiegend auf Endung und mitgeliefertem MIME-Typ; Malware-Scan, Content-Sniffing, Quarantaene und Objekt-Storage fehlen.
-6. `P1` CI/CD, Branch-Schutz, automatische Security-Scans, Staging und reproduzierbare Release-Gates sind im Repo nicht vorhanden.
-7. `P1` AuditLogs hatten im urspruenglichen Stand keine Request-ID, IP, User-Agent oder Ergebnisangabe. Diese Kontextfelder sind inzwischen technisch ergaenzt; Mandanten-ID, vollstaendige Anbindung aller kritischen Aktionen und extern manipulationsgeschuetzte Archivierung bleiben offen.
-8. `P1` Externes Monitoring, Alarmierung, zentrale Request-Korrelation und Uptime-/Backup-Ueberwachung fehlen.
+3. `P1` Uploads sind signaturgeprueft und privat speicherbar, aber Malware-Scan, Quarantaene, Altbestandsmigration und ein produktiver S3-Nachweis fehlen.
+4. `P1` Stripe-Reconciliation, signierte Staging-Abnahmetests, Dispute-Prozess und getrennte Live-/Staging-Betriebsnachweise fehlen.
+5. `P1` Externes Monitoring, Alarmierung, zentrale Request-Korrelation und Uptime-/Backup-Ueberwachung fehlen weiterhin.
+6. `P1` AuditLogs haben jetzt Kontextfelder, aber noch keine Tenant-ID, keine vollstaendige Anbindung aller kritischen Aktionen und kein extern manipulationsgeschuetztes Archiv.
+7. `P1` MFA, Passwort-Historie und kompromittierte-Passwort-Pruefung fehlen trotz vorhandenem Passwort-Reset-Basispaket.
 
 Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock-Zahlungen sind in Produktion standardmaessig deaktiviert, generierte PDFs werden inzwischen unter privatem Storage abgelegt, Kunden-Downloads sind rollen- und eigentumsgeprueft, externe GPS-Berichte koennen ohne erfundene Coverage veroeffentlicht werden, und die Domain ist per HTTPS erreichbar.
 
@@ -61,8 +60,8 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 | Storage | Lokaler privater Dateispeicher und Docker-Volumes | teilweise |
 | Reporting | Report-Snapshots, Freigabe, private Downloads, externe GPS-Belege | teilweise |
 | Deployment | Docker Compose, Caddy, HTTPS, Postgres | vorhanden fuer Einzelserver-MVP |
-| Tests | 34 Node-Smoke-Skripte, 618 Assertions/Assert-Aufrufe | teilweise |
-| CI/CD | Keine `.github/workflows` im Repo | fehlt |
+| Tests | 46 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission- und Report-Smokes | teilweise |
+| CI/CD | GitHub Actions fuer Prisma, Lint, Build, Security und kritische PostgreSQL-Smokes | vorhanden im Repo; Branch-Schutz/Staging extern offen |
 
 ### Architekturstaerken
 
@@ -120,7 +119,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 | AUTH-02 | Keine Session-Revoke-Liste, keine Geraete-/Sessionverwaltung | P1 | Session-IDs, Rotation, Logout aller Geraete und Admin-Revoke einfuehren. |
 | AUTH-03 | Kein zentraler Login-/Register-/Resend-Rate-Limiter | P1 | Redis- oder DB-gestuetzten Rate-Limiter mit IP-, Account- und Device-Buckets einsetzen. |
 | AUTH-04 | Keine MFA-Unterstuetzung | P2 | TOTP/WebAuthn fuer Admin, Support, Buchhaltung und spaetere Enterprise-Kunden vorbereiten. |
-| AUTH-05 | Kein dokumentierter Passwort-Reset-Flow | P1 | Sicheren, zeitlich begrenzten Reset-Prozess mit Session-Revoke und AuditLog implementieren. |
+| AUTH-05 | Passwort-Reset war im urspruenglichen Stand nicht vorhanden | P1 erledigt als Basispaket | Einmal-Token, 30-Minuten-Ablauf, DB-Rate-Limit, Session-Revoke, generische Antwort, E-Mail und AuditLog umgesetzt; MFA, Passwort-Historie und kompromittierte-Passwort-Pruefung bleiben offen. |
 | AUTH-06 | Kein ausdruecklicher CSRF-Token-/Origin-Pruefmechanismus | P2 | Fuer mutierende Cookie-Requests Origin/Referer pruefen oder CSRF-Token einfuehren. |
 
 ## 6. Mandantentrennungsanalyse
@@ -531,6 +530,18 @@ Das zweite Auth-Haertungspaket wurde umgesetzt:
 - Die CI fuehrt den neuen Auth-Session-Smoke gegen eine frische PostgreSQL-Datenbank aus.
 
 Offen bleiben MFA, Geraeteverwaltung, „Logout aller Geraete“, zentrale Auth-Rate-Limits und eine automatische Bereinigung abgelaufener Sessions.
+
+### P1 Passwort-Reset
+
+Der Passwort-Reset ist als Basispaket umgesetzt:
+
+- `PasswordResetToken` speichert nur einen SHA-256-Hash, Ablaufzeit und Verbrauchszeit.
+- Die Anfrage antwortet bei unbekannten und bekannten E-Mail-Adressen gleich und wird pro IP ueber PostgreSQL rate-limitiert.
+- Die erfolgreiche Aenderung setzt den Passwort-Hash in einer Transaktion, markiert den Token als verwendet und widerruft alle bestehenden Sessions.
+- E-Mail-Versand, Request-ID und Audit-Ergebnis sind an die bestehenden Abstraktionen angebunden.
+- `tests/password-reset-smoke.mjs` und `tests/password-reset-live-smoke.mjs` pruefen Struktur, generische Antworten, Hashspeicherung, Einmalverwendung, Session-Revoke und Audit-Kontext.
+
+Offen bleiben MFA, Passwort-Historie, kompromittierte-Passwort-Pruefung und eine zentrale Bounce-/Zustellüberwachung.
 
 ### P1 Auth-Abuse-Schutz
 

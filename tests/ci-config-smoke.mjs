@@ -38,6 +38,8 @@ for (const script of [
   "test:auth-ux",
   "test:auth-session",
   "test:auth-abuse",
+  "test:password-reset",
+  "test:password-reset-live",
   "test:permissions",
   "test:retention",
   "test:private-storage",

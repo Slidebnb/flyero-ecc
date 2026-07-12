@@ -137,6 +137,12 @@ jobs:
       - name: Authentication abuse protection smoke
         run: npm run test:auth-abuse
 
+      - name: Password reset smoke
+        run: npm run test:password-reset
+
+      - name: Password reset live smoke
+        run: npm run test:password-reset-live
+
       - name: Permission matrix smoke
         run: npm run test:permissions
 
