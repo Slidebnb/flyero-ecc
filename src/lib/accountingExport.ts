@@ -242,7 +242,7 @@ export async function createAccountingExport(input: {
           : generateGenericCsv(payload);
 
     const fileName = `flyero-accounting-export-${exportNumber}.csv`;
-    const stored = await writeGeneratedAsset({ kind: "accounting", fileName, buffer: Buffer.from(csvContent, "utf8") });
+    const stored = await writeGeneratedAsset({ kind: "accounting", fileName, buffer: Buffer.from(csvContent, "utf8"), contentType: "text/csv; charset=utf-8" });
     const checksum = calculateChecksum(csvContent);
     const itemRows = [
       ...invoices.map((invoice) => ({ exportId: created.id, entityType: "Invoice", entityId: invoice.id })),

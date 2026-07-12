@@ -17,6 +17,11 @@ trap cleanup EXIT HUP INT TERM
 : "${BACKUP_RESTIC_PASSWORD_FILE:?BACKUP_RESTIC_PASSWORD_FILE muss gesetzt sein}"
 : "${RESTIC_SNAPSHOT_ID:?RESTIC_SNAPSHOT_ID muss auf einen geprueften Snapshot zeigen}"
 
+if [[ -z "${FILE_STORAGE_PROVIDER:-}" && -f "$ENV_FILE" ]]; then
+  FILE_STORAGE_PROVIDER="$(grep '^FILE_STORAGE_PROVIDER=' "$ENV_FILE" | tail -n 1 | cut -d= -f2- | tr -d '"' | tr -d "'" || true)"
+fi
+FILE_STORAGE_PROVIDER="${FILE_STORAGE_PROVIDER:-local}"
+
 if [[ ! -r "$BACKUP_RESTIC_PASSWORD_FILE" ]]; then
   printf 'Restic-Passwortdatei ist nicht lesbar: %s\n' "$BACKUP_RESTIC_PASSWORD_FILE" >&2
   exit 1
@@ -51,13 +56,23 @@ if [[ "${RESTORE_DATABASE:-false}" == "true" ]]; then
 fi
 
 if [[ "${RESTORE_STORAGE:-false}" == "true" ]]; then
-  cat storage.tar | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" run --rm --no-deps -T app \
-    sh -c 'rm -rf /app/storage/* && tar -C /app/storage -xf -'
+  if [[ "${FILE_STORAGE_PROVIDER:-local}" == "s3" ]]; then
+    cat storage.tar | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" run --rm --no-deps -T app \
+      sh -c 'rm -rf /tmp/flyero-s3-documents && mkdir -p /tmp/flyero-s3-documents && tar -C /tmp/flyero-s3-documents -xf - && node scripts/import-private-s3.mjs /tmp/flyero-s3-documents documents'
+  else
+    cat storage.tar | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" run --rm --no-deps -T app \
+      sh -c 'rm -rf /app/storage/* && tar -C /app/storage -xf -'
+  fi
 fi
 
 if [[ "${RESTORE_GENERATED:-false}" == "true" ]]; then
-  cat generated.tar | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" run --rm --no-deps -T app \
-    sh -c 'rm -rf /app/public/generated/* && tar -C /app/public/generated -xf -'
+  if [[ "${FILE_STORAGE_PROVIDER:-local}" == "s3" ]]; then
+    cat generated.tar | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" run --rm --no-deps -T app \
+      sh -c 'rm -rf /tmp/flyero-s3-generated && mkdir -p /tmp/flyero-s3-generated && tar -C /tmp/flyero-s3-generated -xf - && node scripts/import-private-s3.mjs /tmp/flyero-s3-generated generated'
+  else
+    cat generated.tar | docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" run --rm --no-deps -T app \
+      sh -c 'rm -rf /app/storage/generated/* && tar -C /app/storage/generated -xf -'
+  fi
 fi
 
 printf 'Destruktiver Restore abgeschlossen. Anwendung und Downloads jetzt gezielt smoke-testen.\n'

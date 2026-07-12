@@ -7,7 +7,7 @@ Dieses Runbook beschreibt den technischen Backup-Pfad fuer die Einzelserver-Beta
 ## Zielbild und Betriebsgrenzen
 
 - Datenbank: PostgreSQL-Custom-Dump aus dem laufenden Compose-Postgres.
-- Nachweise: `/app/storage` mit privaten Dokumenten und `/app/public/generated` mit Rechnungen, Reports und Accounting-Exports.
+- Nachweise: `/app/storage` mit privaten Dokumenten und `/app/storage/generated` mit Rechnungen, Reports und Accounting-Exports. Bei `FILE_STORAGE_PROVIDER=s3` werden beide privaten Namespaces vor dem Restic-Backup aus dem Bucket exportiert.
 - Verschluesselung: Restic verschluesselt das Repository clientseitig.
 - Ziel: Hetzner Storage Box per SFTP oder ein kompatibles privates S3-Repository.
 - Kein Backupziel darf im oeffentlichen Webroot liegen.
@@ -97,6 +97,7 @@ Nie alle Flags blind auf Produktion setzen. Vor jedem produktiven Restore muss e
 ## Offene Betreiberaufgaben
 
 - Echten Hetzner-Storage-Box-Account und Restic-Repository einrichten.
+- Bei S3-Betrieb Bucket-Versionierung, Verschlüsselung, Lifecycle sowie den Export-/Import-Restore mit echten Testdaten nachweisen.
 - Cron/systemd-Timer mit Fehleralarm einrichten.
 - Verschluesseltes Backupziel und Zugriffskontrolle dokumentieren.
 - Ersten Staging-Restore nachweisen.

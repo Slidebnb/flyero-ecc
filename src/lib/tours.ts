@@ -391,6 +391,7 @@ export async function uploadTourPhoto(input: {
     kind: "proofs",
     fileName: `${photoId}.${decodedPhoto.extension}`,
     buffer: decodedPhoto.buffer,
+    contentType: decodedPhoto.mimeType,
   });
   const photo = await prisma.photoProof.create({
     data: {

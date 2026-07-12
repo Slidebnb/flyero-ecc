@@ -22,6 +22,8 @@ assert.match(backup, /restic backup/, "Backup muss ein verschluesseltes Restic-R
 assert.match(backup, /restic forget/, "Backup muss eine dokumentierte Retention anwenden.");
 assert.match(backup, /sha256sum/, "Backup muss Integritaetschecksummen schreiben.");
 assert.match(backup, /trap .*cleanup|trap cleanup/, "Backup muss temporaere Dateien sicher bereinigen.");
+assert.match(backup, /app\/storage\/generated/, "Backup muss den tatsaechlichen Generated-Storage sichern.");
+assert.match(backup, /export-private-s3\.mjs/, "Backup muss den S3-Provider beruecksichtigen.");
 
 assert.match(restore, /set -Eeuo pipefail/, "Restore muss bei Fehlern sofort abbrechen.");
 assert.match(restore, /ALLOW_DESTRUCTIVE_RESTORE/, "Restore muss eine explizite Destructive-Gate verlangen.");
@@ -29,6 +31,8 @@ assert.match(restore, /restic restore/, "Restore muss Snapshots aus Restic wiede
 assert.match(restore, /pg_restore/, "Restore muss PostgreSQL-Custom-Dumps wiederherstellen koennen.");
 assert.match(restore, /sha256sum -c/, "Restore muss das Manifest vor dem Einspielen pruefen.");
 assert.match(restore, /RESTIC_SNAPSHOT_ID/, "Restore muss einen expliziten Snapshot akzeptieren.");
+assert.match(restore, /app\/storage\/generated/, "Restore muss in den tatsaechlichen Generated-Storage schreiben.");
+assert.match(restore, /import-private-s3\.mjs/, "Restore muss den S3-Provider beruecksichtigen.");
 
 assert.match(runbook, /RPO/i, "Runbook muss RPO dokumentieren.");
 assert.match(runbook, /RTO/i, "Runbook muss RTO dokumentieren.");

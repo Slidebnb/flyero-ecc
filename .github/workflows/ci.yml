@@ -143,6 +143,9 @@ jobs:
       - name: Retention policy smoke
         run: npm run test:retention
 
+      - name: Private object storage smoke
+        run: npm run test:private-storage
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

@@ -1,4 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { readPrivateObject, writePrivateObject } from "@/lib/privateObjectStorage";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 const GENERATED_KINDS = ["accounting", "invoices", "reports", "proofs"] as const;
@@ -18,13 +19,20 @@ export async function writeGeneratedAsset(input: {
   kind: GeneratedKind;
   fileName: string;
   buffer: Buffer;
+  contentType?: string;
 }) {
-  const absolutePath = path.join(generatedRoot(), input.kind, input.fileName);
-  await mkdir(path.dirname(absolutePath), { recursive: true });
-  await writeFile(absolutePath, input.buffer);
+  const key = `${input.kind}/${input.fileName}`;
+  const stored = await writePrivateObject({
+    namespace: "generated",
+    key,
+    localRoot: generatedRoot(),
+    buffer: input.buffer,
+    contentType: input.contentType || "application/octet-stream",
+  });
   return {
-    absolutePath,
+    absolutePath: path.join(generatedRoot(), key),
     storagePath: `/private/generated/${input.kind}/${input.fileName}`,
+    size: stored.size,
   };
 }
 
@@ -42,10 +50,7 @@ export async function readGeneratedAsset(storagePath: string) {
   const [kind, ...rest] = normalized.split("/");
   const fileName = rest.join("/");
   if (!kind || !fileName) throw new Error("Generated Asset Pfad ist ungueltig.");
-  const absolutePath = path.join(generatedRoot(), normalizeKind(kind), fileName);
-  return {
-    absolutePath,
-    buffer: await readFile(absolutePath),
-    fileName: path.basename(fileName),
-  };
+  const key = `${normalizeKind(kind)}/${fileName}`;
+  const stored = await readPrivateObject({ namespace: "generated", key, localRoot: generatedRoot() });
+  return { absolutePath: path.join(generatedRoot(), key), buffer: stored.buffer, fileName: path.basename(fileName) };
 }

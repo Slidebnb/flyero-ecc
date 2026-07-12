@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { readPrivateObject, writePrivateObject } from "@/lib/privateObjectStorage";
 
 export const ALLOWED_DOCUMENT_EXTENSIONS = [
   "pdf",
@@ -115,10 +115,14 @@ export async function storeDocumentFile(input: UploadableDocumentFile): Promise<
   const extension = validateDocumentFile(input);
   const checksum = createHash("sha256").update(input.buffer).digest("hex");
   const storageKey = `${new Date().getFullYear()}/${new Date().getMonth() + 1}/${randomUUID()}.${extension}`;
-  const absolutePath = path.join(storageRoot(), storageKey);
-
-  await mkdir(path.dirname(absolutePath), { recursive: true });
-  await writeFile(absolutePath, input.buffer);
+  await writePrivateObject({
+    namespace: "documents",
+    key: storageKey,
+    localRoot: storageRoot(),
+    buffer: input.buffer,
+    contentType: detectDocumentMimeType(extension, input.buffer),
+    checksum,
+  });
 
   return {
     storageKey,
@@ -130,9 +134,7 @@ export async function storeDocumentFile(input: UploadableDocumentFile): Promise<
 }
 
 export async function readStoredDocument(storageKey: string) {
-  const absolutePath = path.join(storageRoot(), storageKey);
-  const [buffer, metadata] = await Promise.all([readFile(absolutePath), stat(absolutePath)]);
-  return { buffer, size: metadata.size };
+  return readPrivateObject({ namespace: "documents", key: storageKey, localRoot: storageRoot() });
 }
 
 export function protectedDocumentUrl(documentId: string, version?: number) {

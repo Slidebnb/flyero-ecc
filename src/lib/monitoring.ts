@@ -9,6 +9,7 @@ import {
   SystemLogLevel,
 } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
+import { privateStorageConfiguration } from "@/lib/privateObjectStorage";
 import { prisma } from "@/lib/prisma";
 
 type JsonMetadata = Prisma.InputJsonValue | undefined;
@@ -202,8 +203,18 @@ export async function runHealthCheck(userId?: string) {
 
   let storageStatus: HealthStatus = HealthStatus.OK;
   let storageError: string | null = null;
+  let storageProvider = "local";
+  let storageConfigured = true;
   try {
-    await access(path.join(process.cwd(), "public"));
+    const configuration = privateStorageConfiguration();
+    storageProvider = configuration.provider;
+    storageConfigured = configuration.configured;
+    if (!configuration.configured) {
+      storageStatus = HealthStatus.DOWN;
+      storageError = "Privater Object-Storage ist unvollständig konfiguriert.";
+    } else if (configuration.provider === "local") {
+      await access(path.join(process.cwd(), "public"));
+    }
   } catch (error) {
     storageStatus = HealthStatus.DOWN;
     storageError = normalizeError(error, "Storage-Pfad nicht erreichbar.").message;
@@ -238,6 +249,8 @@ export async function runHealthCheck(userId?: string) {
       metadata: {
         databaseError,
         storageError,
+        storageProvider,
+        storageConfigured,
         failedQueueCount,
         stripeConfigured: Boolean(process.env.STRIPE_SECRET_KEY),
         googleMapsConfigured: googleMapsBrowserConfigured && googleMapsServerConfigured,

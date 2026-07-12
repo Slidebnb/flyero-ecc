@@ -91,5 +91,5 @@ docker compose -f docker-compose.production.yml logs --tail=100 caddy
 
 - Postgres ist nur im Docker-Netz erreichbar.
 - Caddy verwaltet HTTPS-Zertifikate automatisch.
-- `storage` und `public/generated` liegen in Docker-Volumes.
+- Lokal liegen `storage` und `public/generated` in Docker-Volumes. Für den öffentlichen Betrieb soll `FILE_STORAGE_PROVIDER=s3` auf einen privaten S3-kompatiblen Bucket zeigen; Einrichtung und Migration sind in `PRIVATE_OBJECT_STORAGE.md` beschrieben.
 - Keine Demo-Seeds in echter Produktion ausführen, außer bewusst für eine geschlossene Beta.
