@@ -329,6 +329,14 @@ async function main() {
       cookie: adminCookie,
     });
     const reportId = reportResponse.data.id;
+    await jsonRequest(`/api/admin/reports/${reportId}/approve`, {
+      method: "POST",
+      cookie: adminCookie,
+    });
+    await jsonRequest(`/api/admin/reports/${reportId}/publish`, {
+      method: "POST",
+      cookie: adminCookie,
+    });
     await pageOk("/customer/reports", customerCookie, "Customer Reports nach Bericht");
     await pageOk("/customer/invoices", customerCookie, "Customer Invoices nach Rechnung");
 
