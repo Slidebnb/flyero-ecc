@@ -124,7 +124,7 @@ function runCheck(command, args) {
   assert(result.status === 0, `${command} ${args.join(" ")} fehlgeschlagen:\n${result.stdout}\n${result.stderr}`);
 }
 
-await includes("prisma/schema.prisma", ["model Document", "model DocumentVersion", "model PrintOrder", "model PrintPartner", "enum PrintStatus"]);
+await includes("prisma/schema.prisma", ["model Document", "model DocumentVersion", "storageKey", "model PrintOrder", "model PrintPartner", "enum PrintStatus"]);
 await includes("src/lib/documentStorage.ts", ["ALLOWED_DOCUMENT_EXTENSIONS", "DOCUMENT_MAX_FILE_SIZE_BYTES", "storeDocumentFile"]);
 await includes("src/lib/documents.ts", ["createDocument", "addDocumentVersion", "approveDocument", "createPrintOrder", "updatePrintOrder", "getDocumentAnalytics"]);
 await includes("src/lib/analytics.ts", ["getDocumentAnalytics", "printOrders"]);
@@ -196,6 +196,13 @@ try {
   });
   assert(version.data.version === 2, "Versionierung hat nicht auf v2 erhoeht.");
 
+  const currentDocument = await prisma.document.findUnique({
+    where: { id: created.data.id },
+    include: { versions: { orderBy: { version: "asc" } } },
+  });
+  assert(currentDocument?.versions.length === 2, "Dokumentversionen wurden nicht vollstaendig gespeichert.");
+  assert(currentDocument.versions.every((item) => item.storageKey), "Jede neue Dokumentversion braucht einen eigenen Storage-Key.");
+
   const approved = await jsonRequest(`/api/admin/documents/${created.data.id}/approve`, {
     method: "POST",
     cookie: adminCookie,
@@ -206,6 +213,10 @@ try {
   const download = await fetchLocal(`/api/customer/documents/${created.data.id}/download`, { headers: { cookie: customerCookie } });
   assert(download.status === 200, `Download lieferte ${download.status}`);
   assert((await download.text()).includes("Version 2"), "Download liefert nicht die aktuelle Version.");
+
+  const firstVersionDownload = await fetchLocal(`/api/customer/documents/${created.data.id}/download?version=1`, { headers: { cookie: customerCookie } });
+  assert(firstVersionDownload.status === 200, `Download von Version 1 lieferte ${firstVersionDownload.status}`);
+  assert((await firstVersionDownload.text()).includes("PDF-Smoke-Datei"), "Versionsdownload liefert nicht die unveraenderte Version 1.");
 
   const partner = await jsonRequest("/api/admin/print-partners", {
     method: "POST",

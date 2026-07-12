@@ -3282,6 +3282,7 @@ for (let index = 0; index < 80; index += 1) {
       data: {
         documentId: document.id,
         version,
+        storageKey: `${document.storedFilename}-v${version}`,
         fileUrl: `/api/customer/documents/${document.id}/download?version=${version}`,
         checksum: createHash("sha256").update(`seed-module22-${index}-v${version}`).digest("hex"),
         uploadedById: order.customer.userId,

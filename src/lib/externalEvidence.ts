@@ -95,6 +95,7 @@ export async function uploadExternalEvidence(input: {
       versions: {
         create: {
           version: 1,
+          storageKey: stored.storageKey,
           fileUrl: "pending",
           checksum: stored.checksum,
           uploadedById: input.actor.id,

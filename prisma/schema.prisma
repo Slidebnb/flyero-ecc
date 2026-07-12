@@ -1798,6 +1798,7 @@ model DocumentVersion {
   id           String   @id @default(cuid())
   documentId   String
   version      Int
+  storageKey   String?
   fileUrl      String
   checksum     String
   uploadedById String?

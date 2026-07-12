@@ -469,6 +469,21 @@ Der naechste sinnvolle Umsetzungsschritt ist kein weiteres Fachmodul. Zuerst wer
 
 ## 22. Umsetzungsfortschritt nach dem Audit
 
+### Aktueller Abgleich nach den Folgepaketen
+
+Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgende Befunde sind inzwischen nachweisbar verändert:
+
+- **DB-autorisierte Sessions: vorhanden.** `AuthSession` prüft Ablauf, Widerruf und den aktuellen Benutzerstatus sowie die aktuelle Rolle aus PostgreSQL.
+- **Auth-Abuse-Schutz: vorhanden als DB-gestützter Basisschutz.** Login, Registrierung, Verifizierungs-Resend und E-Mail-Verifizierung verwenden gehashte IP-/Account-Buckets. CAPTCHA, WAF, IP-Reputation und automatische Bucket-Bereinigung bleiben offen.
+- **Security-Header: vorhanden.** Caddy setzt HSTS, CSP, Permissions-Policy, `nosniff`, `X-Frame-Options` und `Referrer-Policy`; Next.js deaktiviert `X-Powered-By`.
+- **CI/Security-Gates: vorhanden im Repository, extern noch zu aktivieren.** GitHub Actions prüfen Prisma, Lint, Build, kritische Smokes, CodeQL und Dependabot. Branch-Schutz und verpflichtende Checks sind GitHub-Repository-Einstellungen und nicht allein aus dem Code ableitbar.
+- **Upload-Prüfung: teilweise vorhanden.** Bekannte PDF-, Bild-, Archiv- und XML-Typen werden zusätzlich zur Endung über Signaturen bzw. XML-Anfang geprüft; JSON-Uploads benötigen echte Base64-Dateiinhalte; Tour-Fotos akzeptieren nur PNG/JPG/WEBP. Malware-Scan, Quarantäne und privater Objekt-Storage fehlen weiterhin.
+- **Placeholder-Uploads: behoben.** Der Dokumentservice lehnt fehlende oder leere Inhalte ab und erzeugt keinen synthetischen Ersatzinhalt mehr.
+- **Dokumentversionen: verbessert.** `DocumentVersion.storageKey` speichert für neu erzeugte Dateien den unveränderlichen privaten Storage-Key. Versionsdownloads lesen exakt diese Version; historische Versionen ohne nachweisbaren Key bleiben bewusst nicht abrufbar.
+- **Premium-Preislogik: vorhanden.** Die marginale Staffel und der Mindestauftrag von 599 EUR netto sind als `premium-distribution-v4` versioniert und werden über Gebiet-/Checkout-Smokes mit Schwellenfallprüfungen verifiziert.
+
+Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `FILE-08` nicht mehr als unverändert fehlend zu bewerten. `SEC-04` und `FILE-04` sind teilweise beziehungsweise durch die Folgeänderung für neu erzeugte Versionen behoben; Quarantäne, Malware-Scan und Altbestandsmigration bleiben offen.
+
 ### P1 CI- und Security-Gates
 
 Nach der Bestandsaufnahme wurde das erste risikoarme P1-Paket umgesetzt:

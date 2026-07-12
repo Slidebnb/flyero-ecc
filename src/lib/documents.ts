@@ -286,6 +286,7 @@ export async function createDocument(actor: SessionUser, input: unknown, file?: 
       versions: {
         create: {
           version: 1,
+          storageKey: stored.storageKey,
           fileUrl: "pending",
           checksum: stored.checksum,
           uploadedById: actor.id,
@@ -336,7 +337,15 @@ export async function addDocumentVersion(actor: SessionUser, id: string, input: 
       approvedById: null,
       approvedAt: null,
       rejectedReason: null,
-      versions: { create: { version: nextVersion, fileUrl: protectedDocumentUrl(document.id, nextVersion), checksum: stored.checksum, uploadedById: actor.id } },
+      versions: {
+        create: {
+          version: nextVersion,
+          storageKey: stored.storageKey,
+          fileUrl: protectedDocumentUrl(document.id, nextVersion),
+          checksum: stored.checksum,
+          uploadedById: actor.id,
+        },
+      },
     },
     include: documentInclude(false),
   });
@@ -390,7 +399,9 @@ export async function addDocumentComment(actor: SessionUser, id: string, input: 
 export async function getDocumentDownload(actor: SessionUser, id: string, version?: number) {
   const document = await getDocument(actor, id);
   const selected = version ? document.versions.find((item) => item.version === version) : null;
-  const storageKey = selected ? document.storedFilename : document.storedFilename;
+  if (version && !selected) throw new AuthError("Diese Dokumentversion wurde nicht gefunden.", 404);
+  const storageKey = selected?.storageKey ?? document.storedFilename;
+  if (selected && !storageKey) throw new AuthError("Diese Dokumentversion ist nicht mehr verfügbar.", 404);
   const stored = await readStoredDocument(storageKey);
   await createAuditLog({ userId: actor.id, action: "document.downloaded", entityType: "Document", entityId: document.id, metadata: { version: version ?? document.version } });
   return { ...stored, filename: document.originalFilename, mimeType: document.mimeType };
