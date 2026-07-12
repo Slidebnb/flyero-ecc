@@ -18,6 +18,7 @@ assert.match(ci, /permissions:\s*\n\s*contents:\s*read/, "CI muss mit minimalen 
 assert.match(ci, /actions\/checkout@v5/, "CI muss die aktuelle Checkout-Major-Version verwenden.");
 assert.match(ci, /actions\/setup-node@v5/, "CI muss die aktuelle Setup-Node-Major-Version verwenden.");
 assert.match(ci, /node-version:\s*["']22["']/, "CI muss die produktive Node-22-Linie verwenden.");
+assert.match(ci, /npm install -g npm@11\.6\.2/, "CI muss dieselbe npm-Version wie das Produktions-Image verwenden.");
 assert.match(ci, /npm ci/, "CI muss reproduzierbar aus package-lock installieren.");
 assert.match(ci, /npx prisma validate/, "CI muss das Prisma-Schema validieren.");
 assert.match(ci, /npm run prisma:generate/, "CI muss den Prisma Client erzeugen.");
@@ -47,5 +48,6 @@ assert.match(codeql, /schedule:/, "CodeQL muss auch planmaessig laufen.");
 assert.match(dependabot, /package-ecosystem:\s*["']npm["']/, "Dependabot muss npm-Abhaengigkeiten beobachten.");
 assert.match(dependabot, /package-ecosystem:\s*["']github-actions["']/, "Dependabot muss Actions beobachten.");
 assert.equal(packageJson.scripts["test:ci-config"], "node tests/ci-config-smoke.mjs", "package.json braucht test:ci-config.");
+assert.equal(packageJson.packageManager, "npm@11.6.2", "package.json muss die Lockfile-npm-Version festschreiben.");
 
 console.log("ci-config smoke ok");
