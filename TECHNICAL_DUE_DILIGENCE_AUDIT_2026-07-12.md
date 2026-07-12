@@ -30,7 +30,7 @@ Status:
 
 ## 2. Executive Summary
 
-FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 75 Prisma-Modellen, 60 Enums, 183 API-Routen, 90 Seiten, 35 Migrationen und 50 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
+FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 76 Prisma-Modellen, 61 Enums, 185 API-Routen, 90 Seiten, 36 Migrationen und 50 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
 
 Der aktuelle Stand ist dennoch noch kein vollstaendig belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Eine erste Mandantengrundlage ist jetzt vorhanden: `Tenant`, `TenantMembership` sowie verpflichtende `tenantId`-Felder auf den kundenbezogenen Kernmodellen. Kundenregistrierung, Lead-Konvertierung, Seed-Daten und zentrale Customer-APIs erzeugen bzw. pruefen aktive Kundenmandanten. Plattform-Admin und interne Rollen sind weiterhin global; zentrale Tenant-Permissions, Mitarbeiterverwaltung und vollstaendige Tenant-Policies sind noch offen.
 
@@ -39,7 +39,7 @@ Die groessten aktuellen Risiken sind:
 1. `P0` Produktionsdaten und Uploads liegen operativ weiterhin ohne nachgewiesenen automatischen Offsite-Backup- und Restore-Nachweis.
 2. `P0` Die Plattform ist noch nicht vollstaendig mandantenfaehig: Die Kunden-Kernkette ist gescoped, aber interne Rollen, globale Admin-Pfade, Storage-Partitionierung und eine zentrale Policy-Schicht fehlen noch.
 3. `P1` Uploads sind signaturgeprueft und privat speicherbar, aber Malware-Scan, Quarantaene, Altbestandsmigration und ein produktiver S3-Nachweis fehlen.
-4. `P1` Stripe-Reconciliation, signierte Staging-Abnahmetests, Dispute-Prozess und getrennte Live-/Staging-Betriebsnachweise fehlen.
+4. `P1` Stripe-Reconciliation und ein serverseitiger Dispute-Prozess sind im Repo vorhanden; signierte Staging-Abnahmetests, Scheduler-/Live-Betriebsnachweise und operative Dispute-Verantwortung fehlen.
 5. `P1` Externes Monitoring, Alarmierung, zentrale Request-Korrelation und Uptime-/Backup-Ueberwachung fehlen weiterhin.
 6. `P1` AuditLogs haben jetzt Kontextfelder und eine optionale Tenant-ID, aber noch keine vollstaendige Anbindung aller kritischen Aktionen und kein extern manipulationsgeschuetztes Archiv.
 7. `P1` MFA, Passwort-Historie und kompromittierte-Passwort-Pruefung fehlen trotz vorhandenem Passwort-Reset-Basispaket.
@@ -220,7 +220,7 @@ Betroffene personenbezogene Daten umfassen Kontaktdaten, Rechnungsadressen, Vert
 | PAY-01 | Kein nachgewiesener Live-Mode-Abnahmetest mit echten Stripe-Testevents | P1 | Signierte Webhooks, Retry, Out-of-order Events, Abbruch und Refund in Staging testen. |
 | PAY-02 | Read-only Stripe-Reconciliation mit persistierten Runs und Issues ist vorhanden; Scheduler-/Live-Stripe-Nachweis bleibt operativ offen | P1 | Job serverseitig regelmaessig ausfuehren, Fehler alarmieren und signierte Staging-/Live-Testevents nachweisen. |
 | PAY-03 | Mock-Mechanismus bleibt im produktiven Code | P2 | Explizite Build-/Runtime-Grenze und Deployment-Check fuer `ENABLE_MOCK_PAYMENTS=false`. |
-| PAY-04 | Kein dokumentierter Chargeback-/Dispute-Prozess | P1 | Dispute-Events, Sperrlogik, Audit und operative Verantwortlichkeit ergaenzen. |
+| PAY-04 | Stripe-Dispute-Akte, signierte Eventverarbeitung, Audit und Refund-Sperre sind vorhanden; Antwortprozess und externe Fristalarme fehlen | P1 | `PAYMENT_DISPUTES.md` als Betriebsprozess verwenden, Verantwortlichkeit festlegen und `dueBy` extern alarmieren. |
 | PAY-05 | Kein getrenntes Staging-/Live-Secrets-Konzept im Repo dokumentiert | P1 | Environments, Key-Rotation und Secret-Verantwortung dokumentieren. |
 
 ## 11. GPS-, Foto-, Upload- und Speicheranalyse

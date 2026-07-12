@@ -11,6 +11,7 @@ export const Permission = {
   INTERNAL_USERS_MANAGE: "internal-users.manage",
   PAYMENT_REFUND: "payment.refund",
   PAYMENT_RECONCILE: "payment.reconcile",
+  PAYMENT_DISPUTE_MANAGE: "payment.dispute.manage",
   PRICING_MANAGE: "pricing.manage",
   REPORT_REVIEW: "report.review",
   REPORT_PUBLISH: "report.publish",

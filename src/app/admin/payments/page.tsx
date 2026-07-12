@@ -33,8 +33,15 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
       order: { include: { customer: true } },
       refunds: { orderBy: { createdAt: "desc" } },
       events: { orderBy: { createdAt: "desc" }, take: 5 },
+      disputes: { orderBy: { updatedAt: "desc" } },
     },
-    orderBy: { updatedAt: "desc" },
+      orderBy: { updatedAt: "desc" },
+  });
+  const disputes = await prisma.paymentDispute.findMany({
+    where: { status: "OPEN" },
+    include: { payment: true, order: true, customer: true },
+    orderBy: [{ dueBy: "asc" }, { updatedAt: "desc" }],
+    take: 100,
   });
 
   return (
@@ -53,6 +60,28 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
           </label>
           <button type="submit">Filtern</button>
         </form>
+      </DataSection>
+
+      <DataSection title="Offene Stripe-Zahlungsstreitfälle" description="Offene Disputes blockieren Erstattungen, bis sie geprüft und dokumentiert sind.">
+        {disputes.length ? (
+          <div className="tableWrap">
+            <table>
+              <thead><tr><th>Dispute</th><th>Auftrag</th><th>Kunde</th><th>Betrag</th><th>Grund</th><th>Frist</th></tr></thead>
+              <tbody>
+                {disputes.map((dispute) => (
+                  <tr key={dispute.id}>
+                    <td>{dispute.stripeDisputeId}</td>
+                    <td>{dispute.order ? <Link className="textLink" href={`/admin/orders/${dispute.order.id}`}>{dispute.order.orderNumber}</Link> : "Nicht zugeordnet"}</td>
+                    <td>{dispute.customer?.companyName ?? "Nicht zugeordnet"}</td>
+                    <td>{dispute.amount ? formatCurrency(dispute.amount) : "-"}</td>
+                    <td>{dispute.reason ?? "-"}</td>
+                    <td>{dispute.dueBy ? formatDateTime(dispute.dueBy) : "-"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : <EmptyState title="Keine offenen Zahlungsstreitfälle." description="Neue Stripe-Disputes erscheinen hier nach Eingang des Webhooks." />}
       </DataSection>
 
       <DataSection title="Zahlungsliste">

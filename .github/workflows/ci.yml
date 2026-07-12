@@ -146,6 +146,9 @@ jobs:
       - name: Payment reconciliation contract smoke
         run: npm run test:payment-reconciliation
 
+      - name: Payment dispute contract smoke
+        run: npm run test:payment-dispute
+
       - name: Password reset smoke
         run: npm run test:password-reset
 

@@ -1,9 +1,10 @@
 import { ErrorSeverity, Prisma, type Payment, type PaymentStatus } from "@prisma/client";
 import Stripe from "stripe";
-import { createAuditLog } from "@/lib/audit";
+import { createAuditLog, type AuditRequestContext } from "@/lib/audit";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
+import { classifyStripeDisputeEvent, isRefundBlockedByDispute } from "@/lib/paymentDisputeLogic";
 import { prisma } from "@/lib/prisma";
 
 const PROVIDER_CODE = "stripe";
@@ -82,6 +83,74 @@ async function updatePaymentStatus(payment: Payment, status: PaymentStatus, reas
   });
   await addPaymentHistory({ paymentId: payment.id, fromStatus: payment.status, toStatus: status, reason });
   return updated;
+}
+
+function stripeEventDate(timestamp?: number | null) {
+  if (typeof timestamp !== "number" || !Number.isFinite(timestamp)) return new Date();
+  return new Date(timestamp * 1000);
+}
+
+async function syncStripeDisputeEvent(event: Stripe.Event, requestContext?: AuditRequestContext) {
+  const dispute = event.data.object as Stripe.Dispute;
+  const paymentIntentId = typeof dispute.payment_intent === "string" ? dispute.payment_intent : null;
+  const chargeId = typeof dispute.charge === "string" ? dispute.charge : null;
+  const payment = paymentIntentId
+    ? await prisma.payment.findUnique({ where: { stripePaymentIntentId: paymentIntentId } })
+    : null;
+  const classification = classifyStripeDisputeEvent({ type: event.type, status: dispute.status });
+  const eventAt = stripeEventDate(event.created);
+  const resolvedAt = classification.status === "OPEN" ? null : eventAt;
+  const record = await prisma.paymentDispute.upsert({
+    where: { stripeDisputeId: dispute.id },
+    update: {
+      ...(payment ? { paymentId: payment.id, orderId: payment.orderId, customerId: payment.customerId, tenantId: payment.tenantId } : {}),
+      stripeChargeId: chargeId,
+      stripePaymentIntentId: paymentIntentId,
+      status: classification.status,
+      reason: dispute.reason ?? null,
+      amount: typeof dispute.amount === "number" ? fromCents(dispute.amount) : null,
+      currency: (dispute.currency ?? "eur").toUpperCase(),
+      dueBy: dispute.evidence_details?.due_by ? stripeEventDate(dispute.evidence_details.due_by) : null,
+      lastEventType: event.type,
+      lastEventAt: eventAt,
+      resolvedAt,
+    },
+    create: {
+      paymentId: payment?.id ?? null,
+      orderId: payment?.orderId ?? null,
+      customerId: payment?.customerId ?? null,
+      tenantId: payment?.tenantId ?? null,
+      stripeDisputeId: dispute.id,
+      stripeChargeId: chargeId,
+      stripePaymentIntentId: paymentIntentId,
+      status: classification.status,
+      reason: dispute.reason ?? null,
+      amount: typeof dispute.amount === "number" ? fromCents(dispute.amount) : null,
+      currency: (dispute.currency ?? "eur").toUpperCase(),
+      dueBy: dispute.evidence_details?.due_by ? stripeEventDate(dispute.evidence_details.due_by) : null,
+      lastEventType: event.type,
+      lastEventAt: eventAt,
+      resolvedAt,
+    },
+  });
+
+  await createAuditLog({
+    tenantId: payment?.tenantId,
+    action: `payment.dispute.${classification.status.toLowerCase()}`,
+    entityType: "PaymentDispute",
+    entityId: record.id,
+    newValues: { stripeDisputeId: dispute.id, paymentId: payment?.id ?? null, eventType: event.type, status: classification.status },
+    requestContext,
+  });
+  if (classification.status === "OPEN") {
+    await notifyAdmins({
+      type: "PAYMENT_DISPUTE_OPENED",
+      title: "Stripe-Zahlungsstreitfall offen",
+      message: `${payment?.orderId ? `Auftrag ${payment.orderId}: ` : "Unbekannter Auftrag: "}Stripe prüft eine Zahlung. Dispute ${dispute.id}.`,
+      data: { disputeId: record.id, stripeDisputeId: dispute.id, paymentId: payment?.id ?? null },
+    });
+  }
+  return payment;
 }
 
 export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string; tenantId?: string }) {
@@ -306,7 +375,7 @@ export async function markPaymentFailed(input: { orderId?: string; sessionId?: s
   return failed;
 }
 
-export async function handleStripeWebhook(input: { rawBody: string; signature: string | null }) {
+export async function handleStripeWebhook(input: { rawBody: string; signature: string | null; requestContext?: AuditRequestContext }) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) throw new Error("STRIPE_WEBHOOK_SECRET ist nicht gesetzt.");
   if (!input.signature) throw new Error("Stripe-Signatur fehlt.");
@@ -331,6 +400,7 @@ export async function handleStripeWebhook(input: { rawBody: string; signature: s
     entityType: "PaymentEvent",
     entityId: paymentEvent.id,
     newValues: { type: event.type, stripeEventId: event.id },
+    requestContext: input.requestContext,
   });
 
   try {
@@ -343,6 +413,8 @@ export async function handleStripeWebhook(input: { rawBody: string; signature: s
     } else if (event.type === "payment_intent.payment_failed") {
       const intent = event.data.object as Stripe.PaymentIntent;
       payment = await markPaymentFailed({ orderId: intent.metadata?.orderId, paymentIntentId: intent.id, reason: "payment_intent.payment_failed" });
+    } else if (["charge.dispute.created", "charge.dispute.updated", "charge.dispute.closed"].includes(event.type)) {
+      payment = await syncStripeDisputeEvent(event, input.requestContext);
     }
     await prisma.paymentEvent.update({
       where: { id: paymentEvent.id },
@@ -382,6 +454,10 @@ export async function refundPayment(input: {
   if (!payment) throw new Error("Zahlung wurde nicht gefunden.");
   if (!["PAID", "PARTIALLY_REFUNDED"].includes(payment.status)) {
     throw new Error("Nur bezahlte Zahlungen können erstattet werden.");
+  }
+  const openDispute = await prisma.paymentDispute.findFirst({ where: { paymentId: payment.id, status: "OPEN" } });
+  if (openDispute && isRefundBlockedByDispute(openDispute.status)) {
+    throw new Error("Für diese Zahlung ist ein offener Stripe-Zahlungsstreitfall vorhanden. Bitte zuerst den Streitfall prüfen.");
   }
   const amount = input.amount ? new Prisma.Decimal(input.amount) : payment.amount;
   const refundType = amount.lessThan(payment.amount) ? "PARTIAL" : "FULL";

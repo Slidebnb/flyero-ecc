@@ -272,6 +272,13 @@ enum PaymentReconciliationResult {
   ERROR
 }
 
+enum PaymentDisputeStatus {
+  OPEN
+  WON
+  LOST
+  CLOSED
+}
+
 enum RefundType {
   FULL
   PARTIAL
@@ -521,6 +528,7 @@ model Tenant {
   orders                Order[]
   reports               Report[]
   payments              Payment[]
+  paymentDisputes       PaymentDispute[]
   refunds               Refund[]
   invoices              Invoice[]
   documents             Document[]
@@ -695,6 +703,7 @@ model CustomerProfile {
   distributionAreas     DistributionArea[]
   reports               Report[]
   payments              Payment[]
+  paymentDisputes       PaymentDispute[]
   invoices              Invoice[]
   supportTickets        SupportTicket[]
   documents             Document[]
@@ -805,6 +814,7 @@ model Order {
   reports                     Report[]
   deviations                  DistributionDeviation[]
   payments                    Payment[]
+  paymentDisputes             PaymentDispute[]
   invoice                     Invoice?
   supportTickets              SupportTicket[]
   documents                   Document[]
@@ -1644,6 +1654,7 @@ model Payment {
   histories PaymentStatusHistory[]
   invoices  Invoice[]
   reconciliationIssues PaymentReconciliationIssue[]
+  disputes  PaymentDispute[]
 
   @@index([orderId, status])
   @@index([customerId, status])
@@ -1688,6 +1699,40 @@ model PaymentReconciliationIssue {
 
   @@index([runId, result])
   @@index([paymentId, createdAt])
+}
+
+model PaymentDispute {
+  id                    String              @id @default(cuid())
+  paymentId             String?
+  orderId               String?
+  customerId            String?
+  tenantId              String?
+  stripeDisputeId       String              @unique
+  stripeChargeId        String?
+  stripePaymentIntentId String?
+  status                PaymentDisputeStatus @default(OPEN)
+  reason                String?
+  amount                Decimal?            @db.Decimal(12, 2)
+  currency              String              @default("EUR")
+  dueBy                 DateTime?
+  evidenceSubmittedAt   DateTime?
+  lastEventType         String
+  lastEventAt           DateTime
+  adminNote             String?
+  resolutionNote        String?
+  resolvedAt            DateTime?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  payment  Payment?         @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  order    Order?            @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customer CustomerProfile? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tenant   Tenant?           @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([paymentId, status])
+  @@index([tenantId, status, updatedAt])
+  @@index([orderId, status])
+  @@index([status, dueBy])
 }
 
 model PaymentEvent {
