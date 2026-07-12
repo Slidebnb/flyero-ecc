@@ -8,6 +8,7 @@ export const Permission = {
   ANALYTICS_VIEW: "analytics.view",
   ANALYTICS_EXPORT: "analytics.export",
   DOCUMENT_REVIEW: "document.review",
+  DOCUMENT_SCAN: "document.scan",
   INTERNAL_USERS_MANAGE: "internal-users.manage",
   PAYMENT_REFUND: "payment.refund",
   PAYMENT_RECONCILE: "payment.reconcile",

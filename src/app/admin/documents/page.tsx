@@ -2,7 +2,8 @@ import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
-import { addDocumentComment, approveDocument, DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, getDocumentAnalytics, listDocuments, rejectDocument } from "@/lib/documents";
+import { addDocumentComment, approveDocument, DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, getDocumentAnalytics, listDocuments, rejectDocument, rescanDocument } from "@/lib/documents";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
@@ -27,6 +28,13 @@ async function commentAction(formData: FormData) {
     message: String(formData.get("message") || ""),
     visibility: String(formData.get("visibility") || "INTERNAL"),
   });
+  revalidatePath("/admin/documents");
+}
+
+async function scanAction(formData: FormData) {
+  "use server";
+  const session = await requirePermission(Permission.DOCUMENT_SCAN);
+  await rescanDocument(session, String(formData.get("documentId")));
   revalidatePath("/admin/documents");
 }
 
@@ -77,13 +85,14 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
       </DataSection>
 
       <DataSection title="Dokumente">
-        <div className="tableWrap"><table><thead><tr><th>Dokument</th><th>Kunde</th><th>Auftrag</th><th>Typ</th><th>Status</th><th>Größe</th><th>Datum</th><th>Freigabe</th><th>Aktion</th></tr></thead><tbody>
+        <div className="tableWrap"><table><thead><tr><th>Dokument</th><th>Kunde</th><th>Auftrag</th><th>Typ</th><th>Status</th><th>Dateiprüfung</th><th>Größe</th><th>Datum</th><th>Freigabe</th><th>Aktion</th></tr></thead><tbody>
           {documents.map((document) => <tr key={document.id}>
             <td>{document.title}<br /><small>{document.originalFilename} / v{document.version} / {document.versions.length} Versionen</small></td>
             <td>{document.customer.companyName}</td>
             <td>{document.order.orderNumber}</td>
             <td>{DOCUMENT_TYPE_LABELS[document.documentType]}</td>
             <td><StatusBadge>{DOCUMENT_STATUS_LABELS[document.status]}</StatusBadge></td>
+            <td><StatusBadge>{document.scanStatus}</StatusBadge><form action={scanAction} style={{ marginTop: 8 }}><input type="hidden" name="documentId" value={document.id} /><button type="submit">Erneut prüfen</button></form></td>
             <td>{formatFileSize(document.fileSize)}</td>
             <td>{formatDate(document.uploadedAt)}</td>
             <td>{document.approvedAt ? formatDate(document.approvedAt) : "Offen"}</td>
@@ -106,7 +115,7 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
               </form>
             </td>
           </tr>)}
-          {documents.length === 0 ? <tr><td colSpan={9}><EmptyState title="Keine Dokumente im Filter." /></td></tr> : null}
+          {documents.length === 0 ? <tr><td colSpan={10}><EmptyState title="Keine Dokumente im Filter." /></td></tr> : null}
         </tbody></table></div>
       </DataSection>
     </PortalShell>

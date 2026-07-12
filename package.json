@@ -53,6 +53,7 @@
     "payments:reconcile": "node -r dotenv/config scripts/reconcile-stripe.mjs",
     "test:payment-reconciliation": "node --experimental-strip-types tests/payment-reconciliation-smoke.mjs",
     "test:payment-dispute": "node --experimental-strip-types tests/payment-dispute-smoke.mjs",
+    "test:file-scan": "node --experimental-strip-types tests/file-scan-smoke.mjs",
     "test:retention": "node -r dotenv/config tests/retention-smoke.mjs",
     "test:private-storage": "node tests/private-storage-smoke.mjs",
     "test:security-headers": "node tests/security-headers-smoke.mjs",

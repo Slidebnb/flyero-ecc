@@ -42,6 +42,7 @@ for (const script of [
   "test:public-abuse",
   "test:payment-reconciliation",
   "test:payment-dispute",
+  "test:file-scan",
   "test:password-reset",
   "test:password-reset-live",
   "test:permissions",

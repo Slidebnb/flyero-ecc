@@ -1,5 +1,5 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export type PrivateStorageProvider = "local" | "s3";
@@ -110,4 +110,30 @@ export async function readPrivateObject(input: PrivateObjectReadInput) {
   const absolutePath = localPath(input.localRoot, input.key);
   const [buffer, metadata] = await Promise.all([readFile(absolutePath), stat(absolutePath)]);
   return { buffer, size: metadata.size };
+}
+
+export async function movePrivateObject(input: {
+  namespace: string;
+  sourceKey: string;
+  targetKey: string;
+  localRoot: string;
+  contentType?: string;
+  checksum?: string;
+}) {
+  if (input.sourceKey === input.targetKey) return;
+  const source = await readPrivateObject({ namespace: input.namespace, key: input.sourceKey, localRoot: input.localRoot });
+  await writePrivateObject({
+    namespace: input.namespace,
+    key: input.targetKey,
+    localRoot: input.localRoot,
+    buffer: source.buffer,
+    contentType: input.contentType,
+    checksum: input.checksum,
+  });
+
+  if (privateStorageProvider() === "s3") {
+    await s3Client().send(new DeleteObjectCommand({ Bucket: bucket(), Key: objectKey(input.namespace, input.sourceKey) }));
+    return;
+  }
+  await unlink(localPath(input.localRoot, input.sourceKey));
 }

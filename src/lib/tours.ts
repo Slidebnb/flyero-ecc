@@ -4,6 +4,7 @@ import { createAuditLog } from "@/lib/audit";
 import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { approvalRequiresCleanScan, scanFileBuffer } from "@/lib/fileScanning";
 import { generateOnlineReportUrl, generateReportNumber, gpsQualityScore } from "@/lib/reports";
 import { analyzeRoute, normalizeRoutePoint } from "@/lib/routeAnalysis";
 import { logWarehouseHistory } from "@/lib/warehouse";
@@ -387,9 +388,14 @@ export async function uploadTourPhoto(input: {
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
   const decodedPhoto = decodeImageDataUrl(input.imageDataUrl);
   const photoId = randomUUID();
+  const scan = await scanFileBuffer({ buffer: decodedPhoto.buffer, originalFilename: `${photoId}.${decodedPhoto.extension}` });
+  if (approvalRequiresCleanScan({ mode: scan.mode, status: scan.status })) {
+    throw new Error(`Foto konnte nicht freigegeben werden: ${scan.message || "Malware-Scan nicht erfolgreich."}`);
+  }
+  const quarantined = scan.status !== "CLEAN" && scan.mode !== "disabled";
   const stored = await writeGeneratedAsset({
-    kind: "proofs",
-    fileName: `${photoId}.${decodedPhoto.extension}`,
+    kind: quarantined ? "quarantine" : "proofs",
+    fileName: quarantined ? `proofs/${photoId}.${decodedPhoto.extension}` : `${photoId}.${decodedPhoto.extension}`,
     buffer: decodedPhoto.buffer,
     contentType: decodedPhoto.mimeType,
   });
@@ -407,6 +413,10 @@ export async function uploadTourPhoto(input: {
       category: "DISTRIBUTION_AREA",
       customerVisible: false,
       reviewStatus: "PENDING",
+      scanStatus: scan.status,
+      scanProvider: scan.provider,
+      scanMessage: scan.message,
+      scannedAt: scan.status === "CLEAN" ? new Date() : null,
       takenAt: input.takenAt ?? new Date(),
       deviceTimestamp: input.takenAt ?? null,
       metadata: {

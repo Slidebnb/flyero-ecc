@@ -192,6 +192,14 @@ enum ReviewStatus {
   NEEDS_REVIEW
 }
 
+enum FileScanStatus {
+  PENDING
+  CLEAN
+  INFECTED
+  ERROR
+  NOT_CONFIGURED
+}
+
 enum ReportStatus {
   DRAFT
   DATA_INCOMPLETE
@@ -1502,6 +1510,10 @@ model PhotoProof {
   internalNote    String?
   customerVisible Boolean      @default(false)
   reviewStatus    ReviewStatus @default(PENDING)
+  scanStatus      FileScanStatus @default(NOT_CONFIGURED)
+  scanProvider    String?
+  scanMessage     String?
+  scannedAt       DateTime?
   reviewedById    String?
   reviewedAt      DateTime?
   metadata        Json?
@@ -1970,6 +1982,10 @@ model Document {
   reportDate              DateTime?
   customerVisible         Boolean        @default(false)
   reviewStatus            ReviewStatus   @default(PENDING)
+  scanStatus              FileScanStatus @default(NOT_CONFIGURED)
+  scanProvider            String?
+  scanMessage             String?
+  scannedAt               DateTime?
   uploadedById            String?
   uploadedAt              DateTime       @default(now())
   approvedById            String?

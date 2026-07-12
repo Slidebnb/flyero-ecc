@@ -92,6 +92,10 @@ export async function uploadExternalEvidence(input: {
       reportDate: data.reportDate ?? null,
       customerVisible: false,
       reviewStatus: "PENDING",
+      scanStatus: stored.scanStatus,
+      scanProvider: stored.scanProvider,
+      scanMessage: stored.scanMessage,
+      scannedAt: stored.scanStatus === "CLEAN" ? new Date() : null,
       uploadedById: input.actor.id,
       versions: {
         create: {

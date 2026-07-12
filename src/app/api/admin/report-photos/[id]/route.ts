@@ -2,6 +2,7 @@ import { ReviewStatus, UserRole } from "@prisma/client";
 import { z } from "zod";
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { approvalRequiresCleanScan } from "@/lib/fileScanning";
 import { routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 
@@ -19,6 +20,11 @@ export async function PATCH(request: Request, context: RouteContext) {
     const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const { id } = await context.params;
     const parsed = payloadSchema.parse(await request.json());
+    const current = await prisma.photoProof.findUnique({ where: { id }, select: { scanStatus: true } });
+    if (!current) return Response.json({ ok: false, error: "Nachweisfoto wurde nicht gefunden." }, { status: 404 });
+    if ((parsed.customerVisible === true || parsed.reviewStatus === "APPROVED") && approvalRequiresCleanScan({ status: current.scanStatus })) {
+      return Response.json({ ok: false, error: "Das Foto darf erst nach erfolgreicher Dateiprüfung freigegeben werden." }, { status: 409 });
+    }
     const photo = await prisma.photoProof.update({
       where: { id },
       data: {

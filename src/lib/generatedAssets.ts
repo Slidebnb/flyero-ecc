@@ -2,7 +2,7 @@ import { readPrivateObject, writePrivateObject } from "@/lib/privateObjectStorag
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-const GENERATED_KINDS = ["accounting", "invoices", "reports", "proofs"] as const;
+const GENERATED_KINDS = ["accounting", "invoices", "reports", "proofs", "quarantine"] as const;
 
 type GeneratedKind = (typeof GENERATED_KINDS)[number];
 

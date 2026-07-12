@@ -30,7 +30,7 @@ Status:
 
 ## 2. Executive Summary
 
-FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 76 Prisma-Modellen, 61 Enums, 185 API-Routen, 90 Seiten, 36 Migrationen und 50 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
+FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 76 Prisma-Modellen, 62 Enums, 187 API-Routen, 90 Seiten, 37 Migrationen und 51 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
 
 Der aktuelle Stand ist dennoch noch kein vollstaendig belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Eine erste Mandantengrundlage ist jetzt vorhanden: `Tenant`, `TenantMembership` sowie verpflichtende `tenantId`-Felder auf den kundenbezogenen Kernmodellen. Kundenregistrierung, Lead-Konvertierung, Seed-Daten und zentrale Customer-APIs erzeugen bzw. pruefen aktive Kundenmandanten. Plattform-Admin und interne Rollen sind weiterhin global; zentrale Tenant-Permissions, Mitarbeiterverwaltung und vollstaendige Tenant-Policies sind noch offen.
 
@@ -38,7 +38,7 @@ Die groessten aktuellen Risiken sind:
 
 1. `P0` Produktionsdaten und Uploads liegen operativ weiterhin ohne nachgewiesenen automatischen Offsite-Backup- und Restore-Nachweis.
 2. `P0` Die Plattform ist noch nicht vollstaendig mandantenfaehig: Die Kunden-Kernkette ist gescoped, aber interne Rollen, globale Admin-Pfade, Storage-Partitionierung und eine zentrale Policy-Schicht fehlen noch.
-3. `P1` Uploads sind signaturgeprueft und privat speicherbar, aber Malware-Scan, Quarantaene, Altbestandsmigration und ein produktiver S3-Nachweis fehlen.
+3. `P1` Uploads haben jetzt einen ClamAV-Adapter, Quarantaene-Status und fail-closed Freigabepfad; produktive Scanner-/S3-Konfiguration, Altbestandsmigration und Restore-Nachweis fehlen.
 4. `P1` Stripe-Reconciliation und ein serverseitiger Dispute-Prozess sind im Repo vorhanden; signierte Staging-Abnahmetests, Scheduler-/Live-Betriebsnachweise und operative Dispute-Verantwortung fehlen.
 5. `P1` Externes Monitoring, Alarmierung, zentrale Request-Korrelation und Uptime-/Backup-Ueberwachung fehlen weiterhin.
 6. `P1` AuditLogs haben jetzt Kontextfelder und eine optionale Tenant-ID, aber noch keine vollstaendige Anbindung aller kritischen Aktionen und kein extern manipulationsgeschuetztes Archiv.
@@ -182,7 +182,7 @@ Empfohlene Zielstruktur vor weiteren Enterprise-Funktionen:
 | SEC-01 | DB-gestuetzter Auth- und Public-Abuse-Basisschutz fuer Login, Lead und Report-Verifikation ist vorhanden; weitere oeffentliche APIs und Alarmierung fehlen | P1 | Schutz auf weitere oeffentliche Endpunkte ausweiten und bei Schwellwerten alarmieren. |
 | SEC-02 | Lead-Rate-Limit ist persistent in PostgreSQL; ein allgemeiner verteilter Public-Limiter fuer weitere Endpunkte fehlt | P2 | Weitere sensible oeffentliche Endpunkte an den persistenten Limiter anbinden. |
 | SEC-03 | Security-Header sind im Caddy-/Next-Pfad vorhanden; CSP muss gegen alle produktiven Drittanbieterpfade weiter verifiziert werden | P2 | Staging-CSP-Report-Only und anschliessende harte Abnahme etablieren. |
-| SEC-04 | Uploads haben Magic-Byte-/Strukturpruefung; Quarantaene und Malware-Scan fehlen | P1 | Quarantaene-/Scanstatus und einen produktiven Scanner vor Freigabe einfuehren. |
+| SEC-04 | Magic-Byte-/Strukturpruefung, Quarantaene und Scanstatus sind vorhanden; produktiver ClamAV-Betrieb bleibt Deploymentnachweis | P1 | `FILE_SCAN_MODE=required` mit ClamAV betreiben und Scanalarme nachweisen. |
 | SEC-05 | `svg`, Office-, ZIP- und Adobe-Dateien sind erlaubt | P1 | Aktive Inhalte nie inline ausliefern; Scan- und Download-Policy je Dateiklasse definieren. |
 | SEC-06 | Fuenf moderate Dependency-Advisories | P2 | Prisma/Next-Updates kontrolliert testen; kein blindes `npm audit fix --force`. |
 | SEC-07 | CodeQL und Dependabot sind im Repository vorhanden; GitHub-Branch-Schutz und Secret-Scanning-Einstellungen sind extern zu aktivieren | P1 | Repository-Regeln, Pflichtchecks und Secret-Scanning verbindlich aktivieren. |
@@ -243,7 +243,7 @@ Der primaere MVP-Nachweisweg ist ein externer GPS-Anbieter. Admins laden PDF und
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
 | FILE-01 | Privater lokaler Storage ist Standard; S3-kompatibler Adapter und Backup-Scheduler sind vorhanden, produktive externe Konfiguration und Restore-Nachweis fehlen | P0 | Hetzner-S3/Storage-Box mit Versionierung, Verschluesselung, Lifecycle und Restore-Test aktiv betreiben. |
-| FILE-02 | Magic-Byte-/Strukturpruefung ist vorhanden; Malware-Scan und Quarantaene fehlen | P1 | Quarantaene-Pipeline und Scanstatus vor Freigabe einfuehren. |
+| FILE-02 | Dokument- und Foto-Uploads werden signaturgeprueft, bei fehlendem optionalem Scanner quarantainiert und vor erforderlicher Freigabe blockiert | P1 | ClamAV im Produktionscontainer/Host aktivieren, Quarantaene-Rescans betreiben und Altbestand bewerten. |
 | FILE-03 | Keine ablaufenden Download-Tokens | P2 | Autorisierte Proxy-Downloads beibehalten oder kurzlebige signierte URLs verwenden. |
 | FILE-04 | Neue `DocumentVersion`-Eintraege speichern unveraenderliche Storage-Keys; Altbestand ohne Key bleibt nicht abrufbar | P2 | Altbestand kontrolliert migrieren oder archivieren und Nachweis dafuer fuehren. |
 | FILE-05 | Generierte Reports/Rechnungen liegen privat, aber Legacy-Read fuer `public/generated` bleibt | P2 | Legacy-Artefakte migrieren und Legacy-Pfad nach erfolgreicher Migration entfernen. |
@@ -484,6 +484,10 @@ Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgen
 - **Privater Object-Storage-Pfad: technisch vorbereitet, operativ noch offen.** `src/lib/privateObjectStorage.ts` bündelt lokale und S3-kompatible private Ablage für Dokumente sowie generierte Dateien. Lokal bleibt der Entwicklungsfallback aktiv; Produktion muss Bucket, Verschlüsselung, Versionierung, Lifecycle, initiale Migration und Restore-Test noch nachweisen.
 
 Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `FILE-08` nicht mehr als unverändert fehlend zu bewerten. `SEC-04` und `FILE-04` sind teilweise beziehungsweise durch die Folgeänderung für neu erzeugte Versionen behoben; Quarantäne, Malware-Scan und Altbestandsmigration bleiben offen.
+
+### Aktueller Upload-Scan-Stand
+
+Dokument- und Tour-Foto-Uploads besitzen jetzt einen Scanstatus, werden bei fehlendem optionalem Scanner in einem privaten Quarantänepfad abgelegt und können über Admin-Rescans erneut geprüft werden. In Produktion muss `FILE_SCAN_MODE=required` mit ClamAV gesetzt sein; produktiver Scannerbetrieb, Altbestandsmigration und Restore-Nachweis bleiben offen.
 
 ### Tenant-Nebenressourcen
 

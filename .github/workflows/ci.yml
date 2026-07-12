@@ -149,6 +149,9 @@ jobs:
       - name: Payment dispute contract smoke
         run: npm run test:payment-dispute
 
+      - name: File scan contract smoke
+        run: npm run test:file-scan
+
       - name: Password reset smoke
         run: npm run test:password-reset
 

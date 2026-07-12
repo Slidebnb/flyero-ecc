@@ -6,7 +6,8 @@ import type { DocumentStatus, DocumentType, PrintStatus } from "@prisma/client";
 import { z } from "zod";
 import { AuthError, type SessionUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
-import { storeDocumentFile, protectedDocumentUrl, type UploadableDocumentFile, readStoredDocument } from "@/lib/documentStorage";
+import { approvalRequiresCleanScan, scanFileBuffer } from "@/lib/fileScanning";
+import { storeDocumentFile, promoteQuarantinedDocument, protectedDocumentUrl, type UploadableDocumentFile, readStoredDocument } from "@/lib/documentStorage";
 import { assignWarehouseForOrder, createLogisticsShipment, updateLogisticsShipment, warehouseAddressJson } from "@/lib/logistics";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
@@ -287,6 +288,10 @@ export async function createDocument(actor: SessionUser, input: unknown, file?: 
       fileSize: stored.fileSize,
       checksum: stored.checksum,
       status: "UNDER_REVIEW",
+      scanStatus: stored.scanStatus,
+      scanProvider: stored.scanProvider,
+      scanMessage: stored.scanMessage,
+      scannedAt: stored.scanStatus === "CLEAN" ? new Date() : null,
       uploadedById: actor.id,
       versions: {
         create: {
@@ -342,6 +347,10 @@ export async function addDocumentVersion(actor: SessionUser, id: string, input: 
       approvedById: null,
       approvedAt: null,
       rejectedReason: null,
+      scanStatus: stored.scanStatus,
+      scanProvider: stored.scanProvider,
+      scanMessage: stored.scanMessage,
+      scannedAt: stored.scanStatus === "CLEAN" ? new Date() : null,
       versions: {
         create: {
           version: nextVersion,
@@ -363,6 +372,11 @@ export async function addDocumentVersion(actor: SessionUser, id: string, input: 
 export async function updateDocument(actor: SessionUser, id: string, input: unknown) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dokumente bearbeiten.", 403);
   const data = documentUpdateSchema.parse(input);
+  const current = await prisma.document.findUnique({ where: { id }, select: { scanStatus: true } });
+  if (!current) throw new AuthError("Dokument wurde nicht gefunden.", 404);
+  if (data.status === "APPROVED" && approvalRequiresCleanScan({ status: current.scanStatus })) {
+    throw new AuthError("Dokumente dürfen erst nach erfolgreicher Dateiprüfung freigegeben werden.", 409);
+  }
   const updated = await prisma.document.update({ where: { id }, data, include: documentInclude(false) });
   await createAuditLog({ userId: actor.id, action: "document.updated", entityType: "Document", entityId: id, newValues: data });
   return updated;
@@ -370,15 +384,47 @@ export async function updateDocument(actor: SessionUser, id: string, input: unkn
 
 export async function approveDocument(actor: SessionUser, id: string, message?: string) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dokumente freigeben.", 403);
+  const current = await prisma.document.findUnique({ where: { id }, select: { scanStatus: true } });
+  if (!current) throw new AuthError("Dokument wurde nicht gefunden.", 404);
+  if (approvalRequiresCleanScan({ status: current.scanStatus })) {
+    throw new AuthError("Dokumente dürfen erst nach erfolgreicher Dateiprüfung freigegeben werden.", 409);
+  }
   const document = await prisma.document.update({
     where: { id },
-    data: { status: "APPROVED", approvedById: actor.id, approvedAt: new Date(), rejectedReason: null },
+    data: { status: "APPROVED", customerVisible: true, reviewStatus: "APPROVED", approvedById: actor.id, approvedAt: new Date(), rejectedReason: null },
     include: documentInclude(false),
   });
   if (message) await addDocumentComment(actor, id, { message, visibility: "PUBLIC" });
   await createAuditLog({ userId: actor.id, action: "document.approved", entityType: "Document", entityId: id, newValues: { status: document.status } });
   await createNotification({ userId: document.customer.userId, type: "DOCUMENT_APPROVED", title: "Dokument freigegeben", message: `${document.title} wurde freigegeben.`, data: { documentId: id } });
   return document;
+}
+
+export async function rescanDocument(actor: SessionUser, id: string) {
+  if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dateien prüfen.", 403);
+  const document = await prisma.document.findUnique({ where: { id }, include: { versions: { orderBy: { version: "desc" }, take: 1 } } });
+  if (!document) throw new AuthError("Dokument wurde nicht gefunden.", 404);
+  const stored = await readStoredDocument(document.storedFilename);
+  const scan = await scanFileBuffer({ buffer: stored.buffer, originalFilename: document.originalFilename });
+  let storageKey = document.storedFilename;
+  if (scan.status === "CLEAN") {
+    storageKey = await promoteQuarantinedDocument({ storageKey, contentType: document.mimeType, checksum: document.checksum });
+  }
+  const updated = await prisma.document.update({
+    where: { id: document.id },
+    data: {
+      storedFilename: storageKey,
+      scanStatus: scan.status,
+      scanProvider: scan.provider,
+      scanMessage: scan.message,
+      scannedAt: new Date(),
+      ...(scan.status === "CLEAN" ? { status: document.status === "REJECTED" ? "UNDER_REVIEW" : document.status } : { status: "UNDER_REVIEW", customerVisible: false, reviewStatus: "PENDING", approvedById: null, approvedAt: null }),
+      versions: document.versions[0] ? { update: { where: { id: document.versions[0].id }, data: { storageKey } } } : undefined,
+    },
+    include: documentInclude(false),
+  });
+  await createAuditLog({ userId: actor.id, action: "document.scan_completed", entityType: "Document", entityId: document.id, newValues: { status: scan.status, provider: scan.provider, quarantined: storageKey.startsWith("quarantine/") } });
+  return updated;
 }
 
 export async function rejectDocument(actor: SessionUser, id: string, rejectedReason: string) {

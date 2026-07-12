@@ -12,6 +12,7 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `analytics.view` | Ja | Ja | Nein | Nein | Nein |
 | `analytics.export` | Ja | Nein | Nein | Nein | Nein |
 | `document.review` | Ja | Ja | Nein | Nein | Nein |
+| `document.scan` | Ja | Nein | Nein | Nein | Nein |
 | `internal-users.manage` | Ja | Nein | Nein | Nein | Nein |
 | `payment.refund` | Ja | Nein | Nein | Nein | Nein |
 | `payment.reconcile` | Ja | Nein | Nein | Nein | Nein |

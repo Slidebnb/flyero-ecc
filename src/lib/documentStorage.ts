@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
-import { readPrivateObject, writePrivateObject } from "@/lib/privateObjectStorage";
+import { readPrivateObject, writePrivateObject, movePrivateObject } from "@/lib/privateObjectStorage";
+import { approvalRequiresCleanScan, scanFileBuffer, type FileScanStatus } from "@/lib/fileScanning";
 
 export const ALLOWED_DOCUMENT_EXTENSIONS = [
   "pdf",
@@ -26,6 +27,10 @@ export type StoredDocumentFile = {
   fileSize: number;
   extension: string;
   mimeType: string;
+  scanStatus: FileScanStatus;
+  scanProvider: string;
+  scanMessage: string | null;
+  quarantined: boolean;
 };
 
 export type UploadableDocumentFile = {
@@ -114,7 +119,13 @@ export function validateDocumentFile(input: UploadableDocumentFile) {
 export async function storeDocumentFile(input: UploadableDocumentFile): Promise<StoredDocumentFile> {
   const extension = validateDocumentFile(input);
   const checksum = createHash("sha256").update(input.buffer).digest("hex");
-  const storageKey = `${new Date().getFullYear()}/${new Date().getMonth() + 1}/${randomUUID()}.${extension}`;
+  const scan = await scanFileBuffer(input);
+  if (approvalRequiresCleanScan({ mode: scan.mode, status: scan.status })) {
+    throw new Error(`Datei konnte nicht freigegeben werden: ${scan.message || "Malware-Scan nicht erfolgreich."}`);
+  }
+  const quarantined = scan.status !== "CLEAN" && scan.mode !== "disabled";
+  const prefix = quarantined ? "quarantine/" : "";
+  const storageKey = `${prefix}${new Date().getFullYear()}/${new Date().getMonth() + 1}/${randomUUID()}.${extension}`;
   await writePrivateObject({
     namespace: "documents",
     key: storageKey,
@@ -130,7 +141,25 @@ export async function storeDocumentFile(input: UploadableDocumentFile): Promise<
     fileSize: input.buffer.byteLength,
     extension,
     mimeType: detectDocumentMimeType(extension, input.buffer),
+    scanStatus: scan.status,
+    scanProvider: scan.provider,
+    scanMessage: scan.message,
+    quarantined,
   };
+}
+
+export async function promoteQuarantinedDocument(input: { storageKey: string; contentType: string; checksum: string }) {
+  if (!input.storageKey.startsWith("quarantine/")) return input.storageKey;
+  const targetKey = input.storageKey.slice("quarantine/".length);
+  await movePrivateObject({
+    namespace: "documents",
+    sourceKey: input.storageKey,
+    targetKey,
+    localRoot: storageRoot(),
+    contentType: input.contentType,
+    checksum: input.checksum,
+  });
+  return targetKey;
 }
 
 export async function readStoredDocument(storageKey: string) {
