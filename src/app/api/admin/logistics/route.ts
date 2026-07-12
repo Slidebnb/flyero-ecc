@@ -6,23 +6,24 @@ import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
     const [analytics, openShipments, transfers, stockDifferences] = await Promise.all([
-      getLogisticsAnalytics(),
+      getLogisticsAnalytics(tenantId),
       prisma.logisticsShipment.findMany({
-        where: { status: { in: ["CREATED", "IN_TRANSIT", "DELIVERED"] } },
+        where: { order: tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }, status: { in: ["CREATED", "IN_TRANSIT", "DELIVERED"] } },
         include: { order: true, warehouse: true },
         orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }],
         take: 20,
       }),
       prisma.warehouseTransfer.findMany({
-        where: { status: { in: ["REQUESTED", "APPROVED", "IN_TRANSIT"] } },
+        where: { inventory: { order: tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" } }, status: { in: ["REQUESTED", "APPROVED", "IN_TRANSIT"] } },
         include: { fromWarehouse: true, toWarehouse: true, inventory: { include: { order: true } } },
         orderBy: { createdAt: "desc" },
         take: 20,
       }),
       prisma.warehouseStockCount.findMany({
-        where: { difference: { not: 0 } },
+        where: { inventory: { order: tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" } }, difference: { not: 0 } },
         include: { warehouse: true, inventory: { include: { order: true } } },
         orderBy: { countedAt: "desc" },
         take: 20,

@@ -512,6 +512,14 @@ Abfragen durch. Plattform-Admins bleiben global; fehlende Tenant-Zuordnung bei
 Nicht-Admins fuehrt zu einem leeren, nicht zu einem globalen Scope. Die weitere
 Migration von Logistik-, CRM-, Monitoring- und Nebenressourcen bleibt offen.
 
+### Logistik-Tenant-Scope
+
+Sendungen, Umlagerungen, Inventurdifferenzen und Logistik-KPIs werden fuer
+Nicht-Admins jetzt ueber den verknuepften Auftrag tenantbezogen gelesen und
+geschrieben. Erstellen, Statusaenderungen und Bestandszaehlungen validieren den
+Tenant vor der Mutation. Lagerstammdaten bleiben gemeinsame Plattformressourcen;
+die vollstaendige A/B-IDOR-Pruefung der restlichen internen Bereiche bleibt offen.
+
 ### P0 Backup-Scheduler
 
 Der automatische Betriebsweg ist als Repository-Paket vorbereitet:

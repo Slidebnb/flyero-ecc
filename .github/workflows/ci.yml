@@ -185,6 +185,9 @@ jobs:
       - name: Dispatch tenant scope smoke
         run: npm run test:dispatch-tenant-scope
 
+      - name: Logistics tenant scope smoke
+        run: npm run test:logistics-tenant-scope
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

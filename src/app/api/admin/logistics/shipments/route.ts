@@ -8,13 +8,14 @@ import { logisticsShipmentCreateSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const params = request.nextUrl.searchParams;
     const status = params.get("status") as ShipmentStatus | null;
     const shipmentType = params.get("type") as ShipmentType | null;
     const warehouseId = params.get("warehouseId") || undefined;
     const shipments = await prisma.logisticsShipment.findMany({
       where: {
+        ... (session.role === UserRole.ADMIN ? {} : { order: { tenantId: session.tenantId ?? "__no_tenant__" } }),
         ...(status ? { status } : {}),
         ...(shipmentType ? { shipmentType } : {}),
         ...(warehouseId ? { warehouseId } : {}),
@@ -38,6 +39,7 @@ export async function POST(request: NextRequest) {
     const shipment = await createLogisticsShipment({
       ...data,
       actorId: session.id,
+      tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId,
       senderAddress: data.senderAddress as Prisma.InputJsonValue | undefined,
       recipientAddress: data.recipientAddress as Prisma.InputJsonValue | undefined,
     });

@@ -220,13 +220,15 @@ export function warehouseScopeForUser(actor: SessionUser): Prisma.WarehouseWhere
 }
 
 export function shipmentScopeForUser(actor: SessionUser): Prisma.LogisticsShipmentWhereInput {
-  if (actor.role === UserRole.ADMIN || actor.role === UserRole.SUPPORT_DISPATCHER) return {};
+  if (actor.role === UserRole.ADMIN) return {};
+  if (actor.role === UserRole.SUPPORT_DISPATCHER) return { order: { tenantId: actor.tenantId ?? "__no_tenant__" } };
   if (actor.role === UserRole.WAREHOUSE_STAFF) return actor.warehouseId ? { warehouseId: actor.warehouseId } : { warehouseId: "__none__" };
   return { warehouseId: "__forbidden__" };
 }
 
 export function transferScopeForUser(actor: SessionUser): Prisma.WarehouseTransferWhereInput {
-  if (actor.role === UserRole.ADMIN || actor.role === UserRole.SUPPORT_DISPATCHER) return {};
+  if (actor.role === UserRole.ADMIN) return {};
+  if (actor.role === UserRole.SUPPORT_DISPATCHER) return { inventory: { order: { tenantId: actor.tenantId ?? "__no_tenant__" } } };
   if (actor.role === UserRole.WAREHOUSE_STAFF && actor.warehouseId) {
     return { OR: [{ fromWarehouseId: actor.warehouseId }, { toWarehouseId: actor.warehouseId }] };
   }
@@ -234,7 +236,8 @@ export function transferScopeForUser(actor: SessionUser): Prisma.WarehouseTransf
 }
 
 export function inventoryScopeForUser(actor: SessionUser): Prisma.WarehouseInventoryWhereInput {
-  if (actor.role === UserRole.ADMIN || actor.role === UserRole.SUPPORT_DISPATCHER) return {};
+  if (actor.role === UserRole.ADMIN) return {};
+  if (actor.role === UserRole.SUPPORT_DISPATCHER) return { order: { tenantId: actor.tenantId ?? "__no_tenant__" } };
   if (actor.role === UserRole.WAREHOUSE_STAFF) return actor.warehouseId ? { warehouseId: actor.warehouseId } : { id: "__none__" };
   return { id: "__forbidden__" };
 }
@@ -244,6 +247,7 @@ export async function createLogisticsShipment(input: {
   warehouseId: string;
   shipmentType: ShipmentType;
   actorId?: string | null;
+  tenantId?: string | null;
   printOrderId?: string | null;
   status?: ShipmentStatus;
   carrier?: string | null;
@@ -255,6 +259,11 @@ export async function createLogisticsShipment(input: {
   expectedDeliveryDate?: Date | null;
   notes?: string | null;
 }) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.orderId, ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }) },
+    select: { id: true },
+  });
+  if (!order) throw new Error("Auftrag wurde nicht gefunden oder ist nicht berechtigt.");
   const shipment = await prisma.logisticsShipment.create({
     data: {
       orderId: input.orderId,
@@ -358,8 +367,14 @@ export async function createWarehouseTransfer(input: {
   inventoryId: string;
   quantity: number;
   actorId?: string | null;
+  tenantId?: string | null;
   notes?: string | null;
 }) {
+  const inventory = await prisma.warehouseInventory.findFirst({
+    where: { id: input.inventoryId, ...(input.tenantId === undefined ? {} : { order: { tenantId: input.tenantId ?? "__no_tenant__" } }) },
+    select: { id: true },
+  });
+  if (!inventory) throw new Error("Bestand wurde nicht gefunden oder ist nicht berechtigt.");
   const transfer = await prisma.warehouseTransfer.create({
     data: {
       fromWarehouseId: input.fromWarehouseId,
@@ -431,8 +446,14 @@ export async function createWarehouseStockCount(input: {
   expectedQuantity: number;
   countedQuantity: number;
   countedById?: string | null;
+  tenantId?: string | null;
   notes?: string | null;
 }) {
+  const inventory = await prisma.warehouseInventory.findFirst({
+    where: { id: input.inventoryId, ...(input.tenantId === undefined ? {} : { order: { tenantId: input.tenantId ?? "__no_tenant__" } }) },
+    select: { id: true },
+  });
+  if (!inventory) throw new Error("Bestand wurde nicht gefunden oder ist nicht berechtigt.");
   const count = await prisma.warehouseStockCount.create({
     data: {
       warehouseId: input.warehouseId,
@@ -454,17 +475,19 @@ export async function createWarehouseStockCount(input: {
   return count;
 }
 
-export async function getLogisticsAnalytics() {
+export async function getLogisticsAnalytics(tenantId?: string | null) {
   const now = new Date();
+  const shipmentScope = tenantId === undefined ? {} : { order: { tenantId: tenantId ?? "__no_tenant__" } };
+  const inventoryScope = tenantId === undefined ? {} : { inventory: { order: { tenantId: tenantId ?? "__no_tenant__" } } };
   const [warehouses, openShipments, lateShipments, damagedShipments, stockDifferences, byStatus, byType, receivedShipments] = await Promise.all([
     prisma.warehouse.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.logisticsShipment.count({ where: { status: { in: ["CREATED", "IN_TRANSIT", "DELIVERED"] } } }),
-    prisma.logisticsShipment.count({ where: { status: { in: ["CREATED", "IN_TRANSIT"] }, expectedDeliveryDate: { lt: now } } }),
-    prisma.logisticsShipment.count({ where: { status: "DAMAGED" } }),
-    prisma.warehouseStockCount.count({ where: { difference: { not: 0 } } }),
-    prisma.logisticsShipment.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.logisticsShipment.groupBy({ by: ["shipmentType"], _count: { _all: true } }),
-    prisma.logisticsShipment.findMany({ where: { status: "RECEIVED", deliveredAt: { not: null } }, select: { createdAt: true, deliveredAt: true } }),
+    prisma.logisticsShipment.count({ where: { ...shipmentScope, status: { in: ["CREATED", "IN_TRANSIT", "DELIVERED"] } } }),
+    prisma.logisticsShipment.count({ where: { ...shipmentScope, status: { in: ["CREATED", "IN_TRANSIT"] }, expectedDeliveryDate: { lt: now } } }),
+    prisma.logisticsShipment.count({ where: { ...shipmentScope, status: "DAMAGED" } }),
+    prisma.warehouseStockCount.count({ where: { ...inventoryScope, difference: { not: 0 } } }),
+    prisma.logisticsShipment.groupBy({ by: ["status"], where: shipmentScope, _count: { _all: true } }),
+    prisma.logisticsShipment.groupBy({ by: ["shipmentType"], where: shipmentScope, _count: { _all: true } }),
+    prisma.logisticsShipment.findMany({ where: { ...shipmentScope, status: "RECEIVED", deliveredAt: { not: null } }, select: { createdAt: true, deliveredAt: true } }),
   ]);
   const avgHours = receivedShipments.length
     ? receivedShipments.reduce((sum, shipment) => sum + ((shipment.deliveredAt?.getTime() ?? shipment.createdAt.getTime()) - shipment.createdAt.getTime()) / 3_600_000, 0) / receivedShipments.length

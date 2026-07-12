@@ -8,13 +8,14 @@ import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 
 export default async function AdminLogisticsPage() {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
   const [analytics, warehouses, shipments, transfers, stockCounts] = await Promise.all([
-    getLogisticsAnalytics(),
+    getLogisticsAnalytics(tenantId),
     prisma.warehouse.findMany({ include: { regions: true }, orderBy: [{ isDefault: "desc" }, { name: "asc" }] }),
-    prisma.logisticsShipment.findMany({ include: { order: true, warehouse: true }, orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }], take: 12 }),
-    prisma.warehouseTransfer.findMany({ include: { fromWarehouse: true, toWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 10 }),
-    prisma.warehouseStockCount.findMany({ where: { difference: { not: 0 } }, include: { warehouse: true, inventory: { include: { order: true } } }, orderBy: { countedAt: "desc" }, take: 10 }),
+    prisma.logisticsShipment.findMany({ where: tenantId === undefined ? {} : { order: { tenantId: tenantId ?? "__no_tenant__" } }, include: { order: true, warehouse: true }, orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }], take: 12 }),
+    prisma.warehouseTransfer.findMany({ where: tenantId === undefined ? {} : { inventory: { order: { tenantId: tenantId ?? "__no_tenant__" } } }, include: { fromWarehouse: true, toWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 10 }),
+    prisma.warehouseStockCount.findMany({ where: { ...(tenantId === undefined ? {} : { inventory: { order: { tenantId: tenantId ?? "__no_tenant__" } } }), difference: { not: 0 } }, include: { warehouse: true, inventory: { include: { order: true } } }, orderBy: { countedAt: "desc" }, take: 10 }),
   ]);
 
   return (

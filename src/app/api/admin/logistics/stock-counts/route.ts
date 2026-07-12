@@ -8,8 +8,9 @@ import { warehouseStockCountCreateSchema } from "@/lib/validators";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const counts = await prisma.warehouseStockCount.findMany({
+      where: session.role === UserRole.ADMIN ? {} : { inventory: { order: { tenantId: session.tenantId ?? "__no_tenant__" } } },
       include: { warehouse: true, inventory: { include: { order: true } }, countedBy: true },
       orderBy: { countedAt: "desc" },
       take: 200,
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
     const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const parsed = warehouseStockCountCreateSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
-    return successResponse(await createWarehouseStockCount({ ...parsed.data, countedById: session.id }), 201);
+    return successResponse(await createWarehouseStockCount({ ...parsed.data, countedById: session.id, tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId }), 201);
   } catch (error) {
     return routeErrorResponse(error);
   }

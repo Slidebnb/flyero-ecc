@@ -8,10 +8,10 @@ import { warehouseTransferCreateSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const status = request.nextUrl.searchParams.get("status") as TransferStatus | null;
     const transfers = await prisma.warehouseTransfer.findMany({
-      where: { ...(status ? { status } : {}) },
+      where: { ...(session.role === UserRole.ADMIN ? {} : { inventory: { order: { tenantId: session.tenantId ?? "__no_tenant__" } } }), ...(status ? { status } : {}) },
       include: { fromWarehouse: true, toWarehouse: true, inventory: { include: { order: true } }, requestedBy: true, approvedBy: true },
       orderBy: { createdAt: "desc" },
       take: 200,
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const parsed = warehouseTransferCreateSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
-    return successResponse(await createWarehouseTransfer({ ...parsed.data, actorId: session.id }), 201);
+    return successResponse(await createWarehouseTransfer({ ...parsed.data, actorId: session.id, tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId }), 201);
   } catch (error) {
     return routeErrorResponse(error);
   }
