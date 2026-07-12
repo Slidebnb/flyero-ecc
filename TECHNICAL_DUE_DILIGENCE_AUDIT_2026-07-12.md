@@ -479,7 +479,7 @@ Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgen
 - **Placeholder-Uploads: behoben.** Der Dokumentservice lehnt fehlende oder leere Inhalte ab und erzeugt keinen synthetischen Ersatzinhalt mehr.
 - **Dokumentversionen: verbessert.** `DocumentVersion.storageKey` speichert für neu erzeugte Dateien den unveränderlichen privaten Storage-Key. Versionsdownloads lesen exakt diese Version; historische Versionen ohne nachweisbaren Key bleiben bewusst nicht abrufbar.
 - **Premium-Preislogik: vorhanden.** Die marginale Staffel und der Mindestauftrag von 599 EUR netto sind als `premium-distribution-v4` versioniert und werden über Gebiet-/Checkout-Smokes mit Schwellenfallprüfungen verifiziert.
-- **Zentrale Permission-Matrix: teilweise vorhanden.** `src/lib/permissions.ts` definiert die ersten maschinenlesbaren Berechtigungen. Finanz-, Preis-, Nutzer- und Veröffentlichungsaktionen sind serverseitig auf `ADMIN` begrenzt; operative Reportprüfung und Analytics-Lesen sind für Support/Disposition getrennt freigegeben. Der Tenant-Scope und die vollständige Migration aller APIs bleiben offen.
+- **Zentrale Permission-Matrix: teilweise vorhanden.** `src/lib/permissions.ts` definiert die ersten maschinenlesbaren Berechtigungen. Finanz-, Preis-, Nutzer- und Veröffentlichungsaktionen sind serverseitig auf `ADMIN` begrenzt; operative Reportprüfung und Analytics-Lesen sind für Support/Disposition getrennt freigegeben. Analytics-, Support-KPI- und Dokument-KPI-Aggregationen erhalten jetzt den aktuellen Tenant-Scope; die vollständige Migration aller internen APIs und die A/B-IDOR-Matrix bleiben offen.
 - **Ephemerer Retention-Prozess: als kontrollierter Dry-Run vorhanden.** `scripts/retention.mjs` berechnet und bereinigt nach ausdrücklicher Aktivierung abgelaufene Verifizierungstoken, alte Sessions sowie inaktive Auth- und Public-Rate-Limit-Buckets. GPS-, Foto-, Dokument-, Audit- und Rechnungsdaten werden bewusst nicht generisch gelöscht, solange Zweckbindung, gesetzliche Fristen und Legal Hold nicht fachlich freigegeben sind.
 - **Privater Object-Storage-Pfad: technisch vorbereitet, operativ noch offen.** `src/lib/privateObjectStorage.ts` bündelt lokale und S3-kompatible private Ablage für Dokumente sowie generierte Dateien. Lokal bleibt der Entwicklungsfallback aktiv; Produktion muss Bucket, Verschlüsselung, Versionierung, Lifecycle, initiale Migration und Restore-Test noch nachweisen.
 
@@ -492,6 +492,16 @@ Dokument- und Tour-Foto-Uploads besitzen jetzt einen Scanstatus, werden bei fehl
 ### Tenant-Nebenressourcen
 
 `DistributionArea`, `SupportTicket` und `OrderExperienceEvent` speichern bei Kundenbezug jetzt die Tenant-ID. Customer-Seiten, Kartenintelligenz, Support, gespeicherte Gebiete und UX-Ereignisse akzeptieren nur den eigenen Tenant oder explizit globale Plattformgebiete. Eine vollstaendige A/B-IDOR-Matrix fuer alle Ressourcen bleibt offen.
+
+### Analytics-Tenant-Scope
+
+Nicht-admin interne Sitzungen werden in den Analytics-/Exportpfaden jetzt bis in die
+Aggregate durchgereicht. Orders, Zahlungen, Refunds, Kunden, Verteiler, Touren, Lager,
+Reports, Support-KPIs und Dokument-KPIs werden mit der aktiven Tenant-ID abgefragt.
+Plattform-Admins bleiben bewusst global. Unverknuepfte oeffentliche Leads werden fuer
+tenant-scoped Support-Auswertungen nicht als fremde Daten sichtbar gemacht. Der neue
+`tests/analytics-tenant-scope-smoke.mjs` prueft den Vertrag; ein vollstaendiger A/B-
+Integrationstest fuer jede interne Ressource steht weiterhin aus.
 
 ### P0 Backup-Scheduler
 

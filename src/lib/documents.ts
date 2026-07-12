@@ -674,17 +674,18 @@ export async function updatePrintPartner(actor: SessionUser, id: string, input: 
   return partner;
 }
 
-export async function getDocumentAnalytics() {
+export async function getDocumentAnalytics(scope: { tenantId?: string | null } = {}) {
+  const tenantWhere = scope.tenantId ? { tenantId: scope.tenantId } : {};
   const [documents, versions, printOrders, byType, byStatus, printStatus, approvedDocs, completedPrintOrders] = await Promise.all([
-    prisma.document.count(),
-    prisma.documentVersion.count(),
-    prisma.printOrder.count(),
-    prisma.document.groupBy({ by: ["documentType"], _count: { _all: true } }),
-    prisma.document.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.printOrder.groupBy({ by: ["status"], _count: { _all: true } }),
-    prisma.document.findMany({ where: { approvedAt: { not: null } }, select: { uploadedAt: true, approvedAt: true }, take: 300 }),
+    prisma.document.count({ where: tenantWhere }),
+    prisma.documentVersion.count({ where: scope.tenantId ? { document: { tenantId: scope.tenantId } } : {} }),
+    prisma.printOrder.count({ where: tenantWhere }),
+    prisma.document.groupBy({ by: ["documentType"], where: tenantWhere, _count: { _all: true } }),
+    prisma.document.groupBy({ by: ["status"], where: tenantWhere, _count: { _all: true } }),
+    prisma.printOrder.groupBy({ by: ["status"], where: tenantWhere, _count: { _all: true } }),
+    prisma.document.findMany({ where: { ...tenantWhere, approvedAt: { not: null } }, select: { uploadedAt: true, approvedAt: true }, take: 300 }),
     prisma.printOrder.findMany({
-      where: { status: { in: ["SHIPPED", "DELIVERED", "RECEIVED_IN_WAREHOUSE", "READY_FOR_DISTRIBUTION"] } },
+      where: { ...tenantWhere, status: { in: ["SHIPPED", "DELIVERED", "RECEIVED_IN_WAREHOUSE", "READY_FOR_DISTRIBUTION"] } },
       select: { createdAt: true, updatedAt: true },
       take: 300,
     }),

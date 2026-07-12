@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       distributorId: url.searchParams.get("distributorId"),
       status: url.searchParams.get("status"),
     });
-    const rows = await getAnalyticsExportRows(filters);
+    const rows = await getAnalyticsExportRows(filters, { tenantId: session.tenantId });
     await createAuditLog({
       userId: session.id,
       action: "analytics.exported",

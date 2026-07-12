@@ -52,7 +52,7 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
   const params = await searchParams;
   const [documents, analytics, customers, orders] = await Promise.all([
     listDocuments(session, params),
-    getDocumentAnalytics(),
+    getDocumentAnalytics({ tenantId: session.tenantId }),
     prisma.customerProfile.findMany({ where: tenantWhereForSession(session), select: { id: true, companyName: true }, orderBy: { companyName: "asc" }, take: 200 }),
     prisma.order.findMany({ where: tenantWhereForSession(session), select: { id: true, orderNumber: true, targetAreaName: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
   ]);

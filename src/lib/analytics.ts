@@ -22,6 +22,10 @@ export type AnalyticsFilters = {
   status?: string;
 };
 
+export type AnalyticsScope = {
+  tenantId?: string | null;
+};
+
 export type AnalyticsFilterInput = {
   from?: string | Date | null;
   to?: string | Date | null;
@@ -115,9 +119,22 @@ function dateRange(field: string, filters: AnalyticsFilters) {
   return { [field]: { gte: filters.from, lte: filters.to } };
 }
 
-function orderWhere(filters: AnalyticsFilters, dateField = "createdAt") {
+function directTenantWhere(scope: AnalyticsScope) {
+  return scope.tenantId ? { tenantId: scope.tenantId } : {};
+}
+
+function distributorTenantWhere(scope: AnalyticsScope) {
+  return scope.tenantId ? { user: { tenantId: scope.tenantId } } : {};
+}
+
+function leadTenantWhere(scope: AnalyticsScope) {
+  return scope.tenantId ? { wonCustomer: { tenantId: scope.tenantId } } : {};
+}
+
+function orderWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: AnalyticsScope = {}) {
   return {
     ...dateRange(dateField, filters),
+    ...directTenantWhere(scope),
     ...(filters.city ? { city: filters.city } : {}),
     ...(filters.customerId ? { customerId: filters.customerId } : {}),
     ...(filters.distributorId ? { assignedDistributorId: filters.distributorId } : {}),
@@ -127,32 +144,43 @@ function orderWhere(filters: AnalyticsFilters, dateField = "createdAt") {
   };
 }
 
-function paymentWhere(filters: AnalyticsFilters, dateField = "createdAt") {
+function paymentWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: AnalyticsScope = {}) {
+  const order = {
+    ...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
+    ...(filters.city ? { city: filters.city } : {}),
+    ...(filters.distributorId ? { assignedDistributorId: filters.distributorId } : {}),
+  };
   return {
     ...dateRange(dateField, filters),
+    ...directTenantWhere(scope),
     ...(filters.customerId ? { customerId: filters.customerId } : {}),
-    ...(filters.city ? { order: { city: filters.city } } : {}),
-    ...(filters.distributorId ? { order: { assignedDistributorId: filters.distributorId } } : {}),
+    ...(Object.keys(order).length ? { order } : {}),
     ...(filters.status && Object.values(PaymentStatus).includes(filters.status as PaymentStatus)
       ? { status: filters.status as PaymentStatus }
       : {}),
   };
 }
 
-function tourWhere(filters: AnalyticsFilters, dateField = "createdAt") {
+function tourWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: AnalyticsScope = {}) {
+  const order = {
+    ...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
+    ...(filters.city ? { city: filters.city } : {}),
+    ...(filters.customerId ? { customerId: filters.customerId } : {}),
+  };
   return {
     ...dateRange(dateField, filters),
     ...(filters.distributorId ? { distributorId: filters.distributorId } : {}),
-    ...((filters.city || filters.customerId) ? { order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } : {}),
+    ...(Object.keys(order).length ? { order } : {}),
     ...(filters.status && Object.values(TourStatus).includes(filters.status as TourStatus)
       ? { status: filters.status as TourStatus }
       : {}),
   };
 }
 
-function leadWhere(filters: AnalyticsFilters) {
+function leadWhere(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   return {
     ...dateRange("createdAt", filters),
+    ...leadTenantWhere(scope),
     ...(filters.city ? { city: filters.city } : {}),
     ...(filters.status && Object.values(LeadStatus).includes(filters.status as LeadStatus)
       ? { status: filters.status as LeadStatus }
@@ -259,12 +287,13 @@ function statusSeries<T extends string>(values: readonly T[], counts: Array<{ st
   }));
 }
 
-export async function getRevenueMetrics(filters: AnalyticsFilters) {
+export async function getRevenueMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [allPaid, periodPaid, currentMonthPaid, refunds] = await Promise.all([
-    prisma.payment.findMany({ where: { status: { in: PAID_PAYMENT_STATUSES } }, select: { amount: true, paidAt: true, createdAt: true } }),
-    prisma.payment.findMany({ where: { ...paymentWhere(filters, "createdAt"), status: { in: PAID_PAYMENT_STATUSES } }, select: { amount: true, paidAt: true, createdAt: true } }),
+    prisma.payment.findMany({ where: { ...directTenantWhere(scope), status: { in: PAID_PAYMENT_STATUSES } }, select: { amount: true, paidAt: true, createdAt: true } }),
+    prisma.payment.findMany({ where: { ...paymentWhere(filters, "createdAt", scope), status: { in: PAID_PAYMENT_STATUSES } }, select: { amount: true, paidAt: true, createdAt: true } }),
     prisma.payment.findMany({
       where: {
+        ...directTenantWhere(scope),
         status: { in: PAID_PAYMENT_STATUSES },
         createdAt: { gte: startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), lte: endOfDay(new Date()) },
       },
@@ -273,6 +302,7 @@ export async function getRevenueMetrics(filters: AnalyticsFilters) {
     prisma.refund.findMany({
       where: {
         createdAt: { gte: filters.from, lte: filters.to },
+        ...directTenantWhere(scope),
         ...((filters.customerId || filters.city || filters.distributorId)
           ? { payment: { ...(filters.customerId ? { customerId: filters.customerId } : {}), ...((filters.city || filters.distributorId) ? { order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.distributorId ? { assignedDistributorId: filters.distributorId } : {}) } } : {}) } }
           : {}),
@@ -291,12 +321,12 @@ export async function getRevenueMetrics(filters: AnalyticsFilters) {
   };
 }
 
-export async function getOrderMetrics(filters: AnalyticsFilters) {
+export async function getOrderMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [paidOrders, openOrders, orders, statusCounts] = await Promise.all([
-    prisma.order.count({ where: { ...orderWhere(filters), payments: { some: { status: { in: PAID_PAYMENT_STATUSES } } } } }),
-    prisma.order.count({ where: { ...orderWhere(filters), status: { in: OPEN_ORDER_STATUSES } } }),
-    prisma.order.findMany({ where: orderWhere(filters), select: { createdAt: true } }),
-    prisma.order.groupBy({ by: ["status"], where: orderWhere(filters), _count: { status: true } }),
+    prisma.order.count({ where: { ...orderWhere(filters, "createdAt", scope), payments: { some: { status: { in: PAID_PAYMENT_STATUSES } } } } }),
+    prisma.order.count({ where: { ...orderWhere(filters, "createdAt", scope), status: { in: OPEN_ORDER_STATUSES } } }),
+    prisma.order.findMany({ where: orderWhere(filters, "createdAt", scope), select: { createdAt: true } }),
+    prisma.order.groupBy({ by: ["status"], where: orderWhere(filters, "createdAt", scope), _count: { status: true } }),
   ]);
 
   return {
@@ -308,10 +338,11 @@ export async function getOrderMetrics(filters: AnalyticsFilters) {
   };
 }
 
-export async function getCustomerMetrics(filters: AnalyticsFilters) {
+export async function getCustomerMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [activeCustomers, customers] = await Promise.all([
-    prisma.user.count({ where: { role: "CUSTOMER", status: UserStatus.ACTIVE } }),
+    prisma.user.count({ where: { ...directTenantWhere(scope), role: "CUSTOMER", status: UserStatus.ACTIVE } }),
     prisma.customerProfile.findMany({
+      where: directTenantWhere(scope),
       include: {
         orders: { include: { payments: true } },
         user: { select: { status: true } },
@@ -350,19 +381,20 @@ export async function getCustomerMetrics(filters: AnalyticsFilters) {
   };
 }
 
-export async function getDistributorMetrics(filters: AnalyticsFilters) {
+export async function getDistributorMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [activeDistributors, distributors, tourStatusCounts] = await Promise.all([
-    prisma.distributorProfile.count({ where: { reviewStatus: DistributorReviewStatus.APPROVED } }),
+    prisma.distributorProfile.count({ where: { ...distributorTenantWhere(scope), reviewStatus: DistributorReviewStatus.APPROVED } }),
     prisma.distributorProfile.findMany({
+      where: distributorTenantWhere(scope),
       include: {
         dispatchAssignments: { where: { assignedAt: { gte: filters.from, lte: filters.to } } },
         tours: {
-          where: tourWhere(filters),
+          where: tourWhere(filters, "createdAt", scope),
           include: { gpsPoints: { select: { accuracy: true } } },
         },
       },
     }),
-    prisma.distributionTour.groupBy({ by: ["status"], where: tourWhere(filters), _count: { status: true } }),
+    prisma.distributionTour.groupBy({ by: ["status"], where: tourWhere(filters, "createdAt", scope), _count: { status: true } }),
   ]);
 
   const distributorPerformance = distributors
@@ -391,11 +423,11 @@ export async function getDistributorMetrics(filters: AnalyticsFilters) {
   };
 }
 
-export async function getWarehouseMetrics(filters: AnalyticsFilters) {
+export async function getWarehouseMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const inventories = await prisma.warehouseInventory.findMany({
     where: {
       createdAt: { lte: filters.to },
-      order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
+      order: { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
       ...(filters.distributorId ? { reservedDistributorId: filters.distributorId } : {}),
     },
     select: { status: true, receivedAt: true, pickedUpAt: true, preparedAt: true, createdAt: true },
@@ -410,10 +442,10 @@ export async function getWarehouseMetrics(filters: AnalyticsFilters) {
   };
 }
 
-export async function getPaymentMetrics(filters: AnalyticsFilters) {
+export async function getPaymentMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [openPayments, statusCounts] = await Promise.all([
-    prisma.payment.count({ where: { ...paymentWhere(filters), status: { in: [PaymentStatus.CREATED, PaymentStatus.CHECKOUT_CREATED, PaymentStatus.PENDING, PaymentStatus.FAILED] } } }),
-    prisma.payment.groupBy({ by: ["status"], where: paymentWhere(filters), _count: { status: true } }),
+    prisma.payment.count({ where: { ...paymentWhere(filters, "createdAt", scope), status: { in: [PaymentStatus.CREATED, PaymentStatus.CHECKOUT_CREATED, PaymentStatus.PENDING, PaymentStatus.FAILED] } } }),
+    prisma.payment.groupBy({ by: ["status"], where: paymentWhere(filters, "createdAt", scope), _count: { status: true } }),
   ]);
 
   return {
@@ -422,10 +454,11 @@ export async function getPaymentMetrics(filters: AnalyticsFilters) {
   };
 }
 
-export async function getReportMetrics(filters: AnalyticsFilters) {
+export async function getReportMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [publishedReports, reports] = await Promise.all([
     prisma.report.count({
       where: {
+        ...directTenantWhere(scope),
         status: { in: [ReportStatus.PUBLISHED, ReportStatus.RELEASED_TO_CUSTOMER, ReportStatus.APPROVED] },
         createdAt: { gte: filters.from, lte: filters.to },
         order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
@@ -434,6 +467,7 @@ export async function getReportMetrics(filters: AnalyticsFilters) {
     }),
     prisma.report.findMany({
       where: {
+        ...directTenantWhere(scope),
         createdAt: { gte: filters.from, lte: filters.to },
         order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
         ...(filters.distributorId ? { tour: { distributorId: filters.distributorId } } : {}),
@@ -448,15 +482,16 @@ export async function getReportMetrics(filters: AnalyticsFilters) {
   };
 }
 
-export async function getLeadMetrics(filters: AnalyticsFilters) {
+export async function getLeadMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [leads, statusCounts, openFollowUps] = await Promise.all([
     prisma.lead.findMany({
-      where: leadWhere(filters),
+      where: leadWhere(filters, scope),
       select: { createdAt: true, status: true },
     }),
-    prisma.lead.groupBy({ by: ["status"], where: leadWhere(filters), _count: { status: true } }),
+    prisma.lead.groupBy({ by: ["status"], where: leadWhere(filters, scope), _count: { status: true } }),
     prisma.lead.count({
       where: {
+        ...leadTenantWhere(scope),
         archivedAt: null,
         status: { notIn: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.ARCHIVED] },
         nextFollowUpAt: { not: null },
@@ -480,13 +515,13 @@ export async function getLeadMetrics(filters: AnalyticsFilters) {
   };
 }
 
-export async function getOperationalKpis(filters: AnalyticsFilters) {
+export async function getOperationalKpis(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [tours, payments, inventories, dispatchAssignments, reports] = await Promise.all([
-    prisma.distributionTour.findMany({ where: tourWhere(filters), include: { gpsPoints: { select: { accuracy: true } } } }),
-    prisma.payment.findMany({ where: paymentWhere(filters), include: { order: true } }),
-    prisma.warehouseInventory.findMany({ where: { order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } }),
-    prisma.dispatchAssignment.findMany({ where: { assignedAt: { gte: filters.from, lte: filters.to }, ...(filters.distributorId ? { distributorId: filters.distributorId } : {}), order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } }),
-    prisma.report.findMany({ where: { createdAt: { gte: filters.from, lte: filters.to } }, include: { tour: true } }),
+    prisma.distributionTour.findMany({ where: tourWhere(filters, "createdAt", scope), include: { gpsPoints: { select: { accuracy: true } } } }),
+    prisma.payment.findMany({ where: paymentWhere(filters, "createdAt", scope), include: { order: true } }),
+    prisma.warehouseInventory.findMany({ where: { order: { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } }),
+    prisma.dispatchAssignment.findMany({ where: { assignedAt: { gte: filters.from, lte: filters.to }, ...(filters.distributorId ? { distributorId: filters.distributorId } : {}), order: { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } }),
+    prisma.report.findMany({ where: { ...directTenantWhere(scope), createdAt: { gte: filters.from, lte: filters.to } }, include: { tour: true } }),
   ]);
 
   return {
@@ -501,7 +536,7 @@ export async function getOperationalKpis(filters: AnalyticsFilters) {
   };
 }
 
-export async function getBusinessOverview(filters: AnalyticsFilters) {
+export async function getBusinessOverview(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [
     revenue,
     orders,
@@ -515,17 +550,17 @@ export async function getBusinessOverview(filters: AnalyticsFilters) {
     documents,
     operational,
   ] = await Promise.all([
-    getRevenueMetrics(filters),
-    getOrderMetrics(filters),
-    getCustomerMetrics(filters),
-    getDistributorMetrics(filters),
-    getWarehouseMetrics(filters),
-    getPaymentMetrics(filters),
-    getReportMetrics(filters),
-    getLeadMetrics(filters),
-    getSupportAnalytics(),
-    getDocumentAnalytics(),
-    getOperationalKpis(filters),
+    getRevenueMetrics(filters, scope),
+    getOrderMetrics(filters, scope),
+    getCustomerMetrics(filters, scope),
+    getDistributorMetrics(filters, scope),
+    getWarehouseMetrics(filters, scope),
+    getPaymentMetrics(filters, scope),
+    getReportMetrics(filters, scope),
+    getLeadMetrics(filters, scope),
+    getSupportAnalytics(scope),
+    getDocumentAnalytics(scope),
+    getOperationalKpis(filters, scope),
   ]);
 
   return {
@@ -565,11 +600,11 @@ export async function getBusinessOverview(filters: AnalyticsFilters) {
   };
 }
 
-export async function getAnalyticsFilterOptions() {
+export async function getAnalyticsFilterOptions(scope: AnalyticsScope = {}) {
   const [cities, customers, distributors] = await Promise.all([
-    prisma.order.findMany({ select: { city: true }, distinct: ["city"], orderBy: { city: "asc" } }),
-    prisma.customerProfile.findMany({ select: { id: true, companyName: true }, orderBy: { companyName: "asc" } }),
-    prisma.distributorProfile.findMany({ select: { id: true, firstName: true, lastName: true }, orderBy: { lastName: "asc" } }),
+    prisma.order.findMany({ where: directTenantWhere(scope), select: { city: true }, distinct: ["city"], orderBy: { city: "asc" } }),
+    prisma.customerProfile.findMany({ where: directTenantWhere(scope), select: { id: true, companyName: true }, orderBy: { companyName: "asc" } }),
+    prisma.distributorProfile.findMany({ where: distributorTenantWhere(scope), select: { id: true, firstName: true, lastName: true }, orderBy: { lastName: "asc" } }),
   ]);
 
   return {
@@ -580,9 +615,9 @@ export async function getAnalyticsFilterOptions() {
   };
 }
 
-export async function getAnalyticsExportRows(filters: AnalyticsFilters) {
+export async function getAnalyticsExportRows(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const orders = await prisma.order.findMany({
-    where: orderWhere(filters),
+    where: orderWhere(filters, "createdAt", scope),
     include: {
       customer: { select: { companyName: true } },
       payments: { select: { status: true, amount: true, paidAt: true } },

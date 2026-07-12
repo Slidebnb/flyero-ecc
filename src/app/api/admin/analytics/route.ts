@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   try {
     const session = await requirePermission(Permission.ANALYTICS_VIEW);
     const filters = filtersFromUrl(request);
-    const data = await getBusinessOverview(filters);
+    const data = await getBusinessOverview(filters, { tenantId: session.tenantId });
     await createAuditLog({
       userId: session.id,
       action: "analytics.viewed",

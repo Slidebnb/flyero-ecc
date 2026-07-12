@@ -79,8 +79,8 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const filters = parseAnalyticsFilters(params);
   const [analytics, options, orderExperience, heatmap] = await Promise.all([
-    getBusinessOverview(filters),
-    getAnalyticsFilterOptions(),
+    getBusinessOverview(filters, { tenantId: session.tenantId }),
+    getAnalyticsFilterOptions({ tenantId: session.tenantId }),
     getOrderExperienceAnalytics(),
     getHeatmapData(),
   ]);

@@ -179,6 +179,9 @@ jobs:
       - name: Backup verification contract smoke
         run: node tests/backup-verification-smoke.mjs
 
+      - name: Analytics tenant scope smoke
+        run: npm run test:analytics-tenant-scope
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

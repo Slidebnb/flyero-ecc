@@ -397,19 +397,20 @@ export async function closeTicket(actor: SessionUser, id: string, resolution?: s
   return updateTicket(actor, id, { status: SupportTicketStatus.CLOSED, resolution: resolution ?? null });
 }
 
-export async function getSupportAnalytics() {
+export async function getSupportAnalytics(scope: { tenantId?: string | null } = {}) {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
+  const tenantWhere = scope.tenantId ? { tenantId: scope.tenantId } : {};
 
   const [openTickets, urgentTickets, complaintsThisMonth, byType, byStatus, resolvedTickets] = await Promise.all([
-    prisma.supportTicket.count({ where: { status: { notIn: [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] } } }),
-    prisma.supportTicket.count({ where: { priority: TicketPriority.URGENT, status: { notIn: [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] } } }),
-    prisma.supportTicket.count({ where: { type: TicketType.COMPLAINT, createdAt: { gte: startOfMonth } } }),
-    prisma.supportTicket.groupBy({ by: ["type"], _count: { _all: true } }),
-    prisma.supportTicket.groupBy({ by: ["status"], _count: { _all: true } }),
+    prisma.supportTicket.count({ where: { ...tenantWhere, status: { notIn: [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] } } }),
+    prisma.supportTicket.count({ where: { ...tenantWhere, priority: TicketPriority.URGENT, status: { notIn: [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] } } }),
+    prisma.supportTicket.count({ where: { ...tenantWhere, type: TicketType.COMPLAINT, createdAt: { gte: startOfMonth } } }),
+    prisma.supportTicket.groupBy({ by: ["type"], where: tenantWhere, _count: { _all: true } }),
+    prisma.supportTicket.groupBy({ by: ["status"], where: tenantWhere, _count: { _all: true } }),
     prisma.supportTicket.findMany({
-      where: { closedAt: { not: null } },
+      where: { ...tenantWhere, closedAt: { not: null } },
       select: { createdAt: true, closedAt: true },
       take: 200,
       orderBy: { closedAt: "desc" },

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
       status: url.searchParams.get("status"),
     });
     await createAuditLog({ userId: session.id, action: "analytics.viewed", entityType: "Analytics", entityId: "orders", newValues: { filters } });
-    return successResponse(await getOrderMetrics(filters));
+    return successResponse(await getOrderMetrics(filters, { tenantId: session.tenantId }));
   } catch (error) {
     return routeErrorResponse(error);
   }

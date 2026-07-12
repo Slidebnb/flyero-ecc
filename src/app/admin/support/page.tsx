@@ -23,7 +23,7 @@ export default async function AdminSupportPage({ searchParams }: { searchParams:
   const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const params = await searchParams;
   const filters = parseTicketFilters(params);
-  const [tickets, analytics] = await Promise.all([listTickets(session, filters), getSupportAnalytics()]);
+  const [tickets, analytics] = await Promise.all([listTickets(session, filters), getSupportAnalytics({ tenantId: session.tenantId })]);
 
   return (
     <PortalShell
