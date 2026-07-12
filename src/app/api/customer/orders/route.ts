@@ -14,8 +14,8 @@ import { orderCreateSchema } from "@/lib/validators";
 export async function GET() {
   try {
     const session = await requireTenantSession();
-    const customer = await prisma.customerProfile.findUnique({
-      where: { userId: session.id },
+    const customer = await prisma.customerProfile.findFirst({
+      where: { userId: session.id, tenantId: session.tenantId },
       select: { id: true },
     });
 
@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
       return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     }
 
-    const customer = await prisma.customerProfile.findUnique({
-      where: { userId: session.id },
+    const customer = await prisma.customerProfile.findFirst({
+      where: { userId: session.id, tenantId: session.tenantId },
       select: { id: true },
     });
 
@@ -71,6 +71,7 @@ export async function POST(request: NextRequest) {
       const area = await createDistributionArea({
         userId: session.id,
         customerId: customer.id,
+        tenantId: session.tenantId,
         name: data.targetAreaName,
         type: data.areaType ?? (data.targetAreaGeoJson ? "POLYGON" : "POSTAL_CODE"),
         city: data.city,
@@ -216,6 +217,7 @@ export async function POST(request: NextRequest) {
       data: {
         orderId: order.id,
         customerId: customer.id,
+        tenantId: session.tenantId,
         userId: session.id,
         eventType: "ORDER_CREATED",
         city: order.city,

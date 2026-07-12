@@ -1,5 +1,6 @@
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 
@@ -9,12 +10,13 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER, UserRole.CUSTOMER]);
+    const baseSession = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER, UserRole.CUSTOMER]);
+    const session = baseSession.role === UserRole.CUSTOMER ? await requireTenantSession() : baseSession;
     const { id } = await context.params;
     const order = await prisma.order.findFirst({
       where: {
         id,
-        ...(session.role === "CUSTOMER" ? { customer: { userId: session.id } } : {}),
+        ...(session.role === "CUSTOMER" ? { tenantId: session.tenantId!, customer: { userId: session.id, tenantId: session.tenantId! } } : {}),
       },
       include: {
         distributionArea: {

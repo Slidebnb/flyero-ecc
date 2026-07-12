@@ -1,15 +1,14 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_REPORT_STATUS_LABELS, customerAreaName, customerOrderName, customerReportName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
 export default async function CustomerReportsPage() {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const reports = await prisma.report.findMany({
-    where: { status: "PUBLISHED", order: { customer: { userId: session.id } }, tour: { status: "APPROVED" } },
+    where: { tenantId: session.tenantId, status: "PUBLISHED", order: { tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } }, tour: { status: "APPROVED" } },
     include: { order: true, tour: true },
     orderBy: { updatedAt: "desc" },
   });

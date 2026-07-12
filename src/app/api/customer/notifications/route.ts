@@ -1,11 +1,10 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET() {
   try {
-    const session = await requireRole([UserRole.CUSTOMER]);
+    const session = await requireTenantSession();
     const [messages, preferences] = await Promise.all([
       prisma.notificationMessage.findMany({
         where: { userId: session.id },

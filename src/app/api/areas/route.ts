@@ -1,6 +1,7 @@
 import { DistributionAreaType, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { createDistributionArea, listAreas } from "@/lib/areas";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
@@ -8,7 +9,7 @@ import { areaSchema } from "@/lib/validators";
 
 export async function GET(request: Request) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER, UserRole.CUSTOMER]);
+    const session = await requireAreaSession();
     const url = new URL(request.url);
     const type = url.searchParams.get("type") as DistributionAreaType | null;
     const areas = await listAreas({
@@ -16,6 +17,7 @@ export async function GET(request: Request) {
       city: url.searchParams.get("city") || undefined,
       type: type || undefined,
       includeDeleted: url.searchParams.get("includeDeleted") === "true",
+      tenantId: session.role === UserRole.CUSTOMER ? session.tenantId : undefined,
     });
 
     return Response.json({ ok: true, data: areas });
@@ -26,7 +28,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER, UserRole.CUSTOMER]);
+    const session = await requireAreaSession();
     const parsed = areaSchema.safeParse(await readBody(request));
 
     if (!parsed.success) {
@@ -40,6 +42,7 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       userId: session.id,
       customerId: customer?.id ?? null,
+      tenantId: session.role === UserRole.CUSTOMER ? session.tenantId : null,
       reusable: session.role === "CUSTOMER" ? false : parsed.data.reusable ?? true,
     });
 
@@ -55,4 +58,9 @@ export async function POST(request: NextRequest) {
       return errorResponse(error instanceof Error ? error.message : "Gebiet konnte nicht gespeichert werden.", 400);
     }
   }
+}
+
+async function requireAreaSession() {
+  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER, UserRole.CUSTOMER]);
+  return session.role === UserRole.CUSTOMER ? requireTenantSession() : session;
 }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import {
   CUSTOMER_ORDER_STATUS_LABELS,
@@ -10,14 +9,14 @@ import {
   customerOrderTone,
 } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 export default async function CustomerOrdersPage() {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const orders = await prisma.order.findMany({
-    where: { customer: { userId: session.id } },
+    where: { tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
     orderBy: { createdAt: "desc" },
   });
   const openPayment = orders.filter((order) => ["PAYMENT_PENDING", "PAYMENT_FAILED"].includes(order.status)).length;

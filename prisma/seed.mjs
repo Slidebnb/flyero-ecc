@@ -3190,6 +3190,7 @@ for (let index = 0; index < 30; index += 1) {
       status,
       priority,
       customerId: customer?.id ?? null,
+      tenantId: customer?.tenantId ?? order?.tenantId ?? tour?.order?.tenantId ?? null,
       distributorId: type === "TOUR_ISSUE" ? distributor?.id ?? null : null,
       orderId: order?.id ?? tour?.orderId ?? null,
       tourId: tour?.id ?? null,
@@ -3531,6 +3532,7 @@ for (let index = 0; index < module24Orders.length; index += 1) {
     data: {
       orderId: order.id,
       customerId: order.customerId,
+      tenantId: order.tenantId,
       userId: order.customer.userId,
       eventType: index % 5 === 0 ? "WIZARD_STARTED" : "ORDER_CREATED",
       source: "seed.module24",

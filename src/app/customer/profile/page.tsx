@@ -1,14 +1,13 @@
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { DataSection, EmptyState } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { asObject } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 export default async function CustomerProfilePage() {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const profile = await prisma.customerProfile.findUnique({
-    where: { userId: session.id },
+    where: { userId: session.id, tenantId: session.tenantId },
     include: { user: true },
   });
 

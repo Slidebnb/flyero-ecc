@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName, customerReportName, customerSafeText, customerTicketName } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/format";
 import { addTicketMessage, getTicket, SUPPORT_STATUS_LABELS, SUPPORT_TYPE_LABELS } from "@/lib/support";
 
@@ -13,7 +12,7 @@ type PageProps = { params: Promise<{ id: string }> };
 
 async function reply(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const ticketId = String(formData.get("ticketId"));
   await addTicketMessage(session, ticketId, { message: String(formData.get("message") || "") });
   revalidatePath(`/customer/support/tickets/${ticketId}`);
@@ -26,7 +25,7 @@ function ticketTone(status: string) {
 }
 
 export default async function CustomerTicketDetailPage({ params }: PageProps) {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const { id } = await params;
   const ticket = await getTicket(session, id).catch(() => null);
   if (!ticket) notFound();

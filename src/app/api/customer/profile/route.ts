@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma, UserRole } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
@@ -10,7 +10,7 @@ import { customerProfileUpdateSchema } from "@/lib/validators";
 
 export async function POST(request: NextRequest) {
   try {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const parsed = customerProfileUpdateSchema.safeParse(await readBody(request));
 
   if (!parsed.success) {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     include: { customerProfile: true },
   });
 
-  if (!user?.customerProfile) {
+  if (!user?.customerProfile || user.customerProfile.tenantId !== session.tenantId) {
     return errorResponse("Kundenprofil wurde nicht gefunden.", 404);
   }
 
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
   };
 
   await prisma.$transaction(async (tx) => {
-    await tx.customerProfile.update({
-      where: { userId: session.id },
+    await tx.customerProfile.updateMany({
+      where: { userId: session.id, tenantId: session.tenantId },
       data: newValues,
     });
 
@@ -98,6 +98,7 @@ export async function POST(request: NextRequest) {
     oldValues,
     newValues,
     metadata: { passwordChanged: Boolean(data.newPassword) },
+    tenantId: session.tenantId,
   });
   await createNotification({
     userId: session.id,

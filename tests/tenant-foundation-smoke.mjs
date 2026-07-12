@@ -16,6 +16,8 @@ const customerPayments = await readFile("src/app/api/customer/payments/route.ts"
 const customerOrderDetail = await readFile("src/app/api/customer/orders/[id]/route.ts", "utf8");
 const customerReportDownload = await readFile("src/app/api/customer/reports/[id]/download/route.ts", "utf8");
 const customerDocumentDownload = await readFile("src/app/api/customer/documents/[id]/download/route.ts", "utf8");
+const customerAreas = await readFile("src/app/api/areas/route.ts", "utf8");
+const customerSupport = await readFile("src/lib/support.ts", "utf8");
 
 assert.match(schema, /model Tenant\s*\{/);
 assert.match(schema, /model TenantMembership\s*\{/);
@@ -31,6 +33,8 @@ for (const route of [customerOrderDetail, customerReportDownload, customerDocume
 assert.match(customerOrderDetail, /tenantId/);
 assert.match(customerReportDownload, /tenantId/);
 assert.match(customerDocumentDownload, /getDocumentDownload\(session/);
+assert.match(customerAreas, /tenantId/);
+assert.match(customerSupport, /tenantId/);
 
 try {
   const customers = await prisma.customerProfile.findMany({
@@ -54,6 +58,17 @@ try {
     take: 20,
   });
   for (const order of orders) assert.equal(order.tenantId, order.customer.tenantId, "Order darf nicht tenant-fremd verknüpft sein.");
+
+  const customerIds = customers.map((customer) => customer.id);
+  const [areas, tickets, experienceEvents] = await Promise.all([
+    prisma.distributionArea.findMany({ where: { customerId: { in: customerIds } }, select: { tenantId: true, customer: { select: { tenantId: true } } } }),
+    prisma.supportTicket.findMany({ where: { customerId: { in: customerIds } }, select: { tenantId: true, customer: { select: { tenantId: true } } } }),
+    prisma.orderExperienceEvent.findMany({ where: { customerId: { in: customerIds } }, select: { tenantId: true, customer: { select: { tenantId: true } } } }),
+  ]);
+  for (const record of [...areas, ...tickets, ...experienceEvents]) {
+    assert.ok(record.tenantId, "Kundenbezogene Nebenressource darf keinen fehlenden Tenant besitzen.");
+    assert.equal(record.tenantId, record.customer?.tenantId, "Kundenbezogene Nebenressource darf nicht tenant-fremd verknüpft sein.");
+  }
 } finally {
   await prisma.$disconnect();
 }

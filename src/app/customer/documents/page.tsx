@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_DOCUMENT_STATUS_LABELS, CUSTOMER_PRINT_STATUS_LABELS, customerAreaName, customerOrderName, customerSafeFilename, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { createDocument, createPrintOrder, DOCUMENT_TYPE_LABELS, listDocuments, listPrintOrders } from "@/lib/documents";
 import { prisma } from "@/lib/prisma";
 
 async function uploadDocument(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     throw new Error("Bitte eine Flyerdatei auswählen.");
@@ -32,7 +31,7 @@ async function uploadDocument(formData: FormData) {
 
 async function requestPrint(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   await createPrintOrder(session, {
     orderId: String(formData.get("orderId") || ""),
     printFormat: String(formData.get("printFormat") || "DIN_A5"),
@@ -49,13 +48,13 @@ async function requestPrint(formData: FormData) {
 }
 
 export default async function CustomerDocumentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const params = await searchParams;
   const [documents, printOrders, orders] = await Promise.all([
     listDocuments(session, params),
     listPrintOrders(session),
     prisma.order.findMany({
-      where: { customer: { userId: session.id } },
+      where: { tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
       select: { id: true, orderNumber: true, targetAreaName: true },
       orderBy: { updatedAt: "desc" },
       take: 30,

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { TicketPriority, TicketType, UserRole } from "@prisma/client";
+import { TicketPriority, TicketType } from "@prisma/client";
 import { RouteMap } from "@/app/components/RouteMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerAreaName, customerOrderName, customerReportName } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { formatDateTime } from "@/lib/format";
 import { collectReportData, sanitizeReportForCustomer } from "@/lib/reports";
@@ -28,10 +28,10 @@ function reportSnapshotValue(snapshot: unknown, key: string) {
 
 async function createComplaintTicket(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const reportId = String(formData.get("reportId"));
   const current = await prisma.report.findFirst({
-    where: { id: reportId, status: "PUBLISHED", customer: { userId: session.id } },
+    where: { id: reportId, tenantId: session.tenantId, status: "PUBLISHED", customer: { userId: session.id, tenantId: session.tenantId } },
     select: { reportNumber: true, orderId: true, tourId: true },
   });
   if (!current) notFound();
@@ -48,13 +48,14 @@ async function createComplaintTicket(formData: FormData) {
 }
 
 export default async function CustomerReportDetailPage({ params }: PageProps) {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const { id } = await params;
   const report = await prisma.report.findFirst({
     where: {
       id,
       status: "PUBLISHED",
-      order: { customer: { userId: session.id } },
+      tenantId: session.tenantId,
+      order: { tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
       tour: { status: "APPROVED" },
     },
     include: {

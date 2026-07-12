@@ -65,6 +65,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       const area = await createDistributionArea({
         userId: session.id,
         customerId: customer.id,
+        tenantId: session.tenantId,
         name: data.targetAreaName,
         type: data.areaType ?? (data.targetAreaGeoJson ? "POLYGON" : "POSTAL_CODE"),
         city: data.city,

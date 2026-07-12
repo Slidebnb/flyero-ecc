@@ -131,7 +131,8 @@ async function nextTicketNumber(tx: Prisma.TransactionClient) {
 
 async function resolveCustomerId(actor: SessionUser, requestedCustomerId?: string | null) {
   if (actor.role === UserRole.CUSTOMER) {
-    const profile = await prisma.customerProfile.findUnique({ where: { userId: actor.id }, select: { id: true } });
+    if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
+    const profile = await prisma.customerProfile.findFirst({ where: { userId: actor.id, tenantId: actor.tenantId }, select: { id: true } });
     if (!profile) throw new AuthError("Kundenprofil wurde nicht gefunden.", 404);
     return profile.id;
   }
@@ -149,17 +150,17 @@ async function resolveDistributorId(actor: SessionUser, requestedDistributorId?:
   return requestedDistributorId ?? null;
 }
 
-async function assertCustomerLinks(customerId: string | null, data: z.infer<typeof ticketCreateSchema>) {
+async function assertCustomerLinks(customerId: string | null, tenantId: string | null, data: z.infer<typeof ticketCreateSchema>) {
   if (!customerId) return;
 
   if (data.orderId) {
-    const order = await prisma.order.findFirst({ where: { id: data.orderId, customerId }, select: { id: true } });
+    const order = await prisma.order.findFirst({ where: { id: data.orderId, customerId, tenantId: tenantId ?? undefined }, select: { id: true } });
     if (!order) throw new AuthError("Dieser Auftrag gehört nicht zu deinem Kundenkonto.", 403);
   }
 
   if (data.reportId) {
     const report = await prisma.report.findFirst({
-      where: { id: data.reportId, customerId },
+      where: { id: data.reportId, customerId, tenantId: tenantId ?? undefined },
       select: { id: true, orderId: true, tourId: true },
     });
     if (!report) throw new AuthError("Dieser Bericht gehört nicht zu deinem Kundenkonto.", 403);
@@ -177,7 +178,10 @@ async function assertDistributorLinks(distributorId: string | null, data: z.infe
 
 function scopeWhere(actor: SessionUser): Prisma.SupportTicketWhereInput {
   if (isSupportAdmin(actor)) return {};
-  if (actor.role === UserRole.CUSTOMER) return { customer: { userId: actor.id } };
+  if (actor.role === UserRole.CUSTOMER) {
+    if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
+    return { tenantId: actor.tenantId, customer: { userId: actor.id, tenantId: actor.tenantId } };
+  }
   if (actor.role === UserRole.DISTRIBUTOR) return { distributor: { userId: actor.id } };
   throw new AuthError("Keine Berechtigung für Support-Tickets.", 403);
 }
@@ -227,11 +231,19 @@ export async function createTicket(actor: SessionUser, input: unknown) {
   const customerId = await resolveCustomerId(actor, data.customerId);
   const distributorId = await resolveDistributorId(actor, data.distributorId);
 
-  if (actor.role === UserRole.CUSTOMER) await assertCustomerLinks(customerId, data);
+  if (actor.role === UserRole.CUSTOMER) await assertCustomerLinks(customerId, actor.tenantId ?? null, data);
   if (actor.role === UserRole.DISTRIBUTOR) await assertDistributorLinks(distributorId, data);
   if (!customerId && !distributorId && !isSupportAdmin(actor)) {
     throw new AuthError("Für dieses Ticket fehlt ein erlaubter Bezug.", 403);
   }
+
+  const customerTenant = customerId
+    ? await prisma.customerProfile.findUnique({ where: { id: customerId }, select: { tenantId: true } })
+    : null;
+  const linkedOrder = data.orderId
+    ? await prisma.order.findUnique({ where: { id: data.orderId }, select: { tenantId: true } })
+    : null;
+  const tenantId = actor.role === UserRole.CUSTOMER ? actor.tenantId : customerTenant?.tenantId ?? linkedOrder?.tenantId ?? null;
 
   const ticket = await prisma.$transaction(async (tx) => {
     const ticketNumber = await nextTicketNumber(tx);
@@ -241,6 +253,7 @@ export async function createTicket(actor: SessionUser, input: unknown) {
         type: data.type,
         priority: data.priority,
         customerId,
+        tenantId,
         distributorId,
         orderId: data.orderId ?? null,
         tourId: data.tourId ?? null,

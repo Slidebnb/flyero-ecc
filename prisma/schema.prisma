@@ -502,29 +502,32 @@ model Tenant {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  users           User[]              @relation("TenantUsers")
-  memberships     TenantMembership[]
-  customerProfiles CustomerProfile[]
-  orders          Order[]
-  reports         Report[]
-  payments        Payment[]
-  refunds         Refund[]
-  invoices        Invoice[]
-  documents       Document[]
-  printOrders     PrintOrder[]
-  auditLogs       AuditLog[]
+  users                 User[]                 @relation("TenantUsers")
+  memberships           TenantMembership[]
+  customerProfiles      CustomerProfile[]
+  orders                Order[]
+  reports               Report[]
+  payments              Payment[]
+  refunds               Refund[]
+  invoices              Invoice[]
+  documents             Document[]
+  printOrders           PrintOrder[]
+  auditLogs             AuditLog[]
+  orderExperienceEvents OrderExperienceEvent[]
+  distributionAreas     DistributionArea[]
+  supportTickets        SupportTicket[]
 
   @@index([status, createdAt])
 }
 
 model TenantMembership {
-  id        String                  @id @default(cuid())
+  id        String                 @id @default(cuid())
   tenantId  String
   userId    String
   role      TenantRole
-  status    TenantMembershipStatus  @default(INVITED)
-  createdAt DateTime                @default(now())
-  updatedAt DateTime                @updatedAt
+  status    TenantMembershipStatus @default(INVITED)
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -546,46 +549,46 @@ model User {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 
-  customerProfile    CustomerProfile?
-  tenant             Tenant?              @relation("TenantUsers", fields: [tenantId], references: [id], onDelete: SetNull)
-  tenantMemberships  TenantMembership[]
-  authSessions       AuthSession[]
-  distributorProfile DistributorProfile?
-  uploadedPhotos     PhotoProof[]        @relation("UploadedPhotos")
-  approvedReports    Report[]            @relation("ApprovedReports")
+  customerProfile         CustomerProfile?
+  tenant                  Tenant?                  @relation("TenantUsers", fields: [tenantId], references: [id], onDelete: SetNull)
+  tenantMemberships       TenantMembership[]
+  authSessions            AuthSession[]
+  distributorProfile      DistributorProfile?
+  uploadedPhotos          PhotoProof[]             @relation("UploadedPhotos")
+  approvedReports         Report[]                 @relation("ApprovedReports")
   emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens PasswordResetToken[]
-  orderStatusEvents  OrderStatusEvent[]
-  warehouseHistories WarehouseHistory[]
-  auditLogs          AuditLog[]
-  notifications      Notification[]
-  accountingExports  AccountingExport[]
-  assignedDispatches DispatchAssignment[] @relation("DispatchAssignedBy")
-  createdAreas       DistributionArea[]   @relation("AreaCreatedBy")
-  areaEstimates      AreaHouseholdEstimate[] @relation("AreaEstimateCreatedBy")
-  areaHistories      AreaHistory[]        @relation("AreaHistoryUser")
-  notificationMessages NotificationMessage[]
-  notificationQueues NotificationQueue[]
+  passwordResetTokens     PasswordResetToken[]
+  orderStatusEvents       OrderStatusEvent[]
+  warehouseHistories      WarehouseHistory[]
+  auditLogs               AuditLog[]
+  notifications           Notification[]
+  accountingExports       AccountingExport[]
+  assignedDispatches      DispatchAssignment[]     @relation("DispatchAssignedBy")
+  createdAreas            DistributionArea[]       @relation("AreaCreatedBy")
+  areaEstimates           AreaHouseholdEstimate[]  @relation("AreaEstimateCreatedBy")
+  areaHistories           AreaHistory[]            @relation("AreaHistoryUser")
+  notificationMessages    NotificationMessage[]
+  notificationQueues      NotificationQueue[]
   notificationPreferences NotificationPreference[]
-  notificationLogs   NotificationLog[]
-  resolvedErrorLogs  ErrorLog[]          @relation("ResolvedErrorLogs")
-  assignedLeads      Lead[]              @relation("AssignedLeads")
-  leadNotes          LeadNote[]
-  leadActivities     LeadActivity[]
-  assignedTickets    SupportTicket[]     @relation("AssignedTickets")
-  createdTickets     SupportTicket[]     @relation("CreatedTickets")
-  ticketMessages     TicketMessage[]
-  ticketAttachments  TicketAttachment[]
-  uploadedDocuments  Document[]          @relation("UploadedDocuments")
-  approvedDocuments  Document[]          @relation("ApprovedDocuments")
-  documentVersions   DocumentVersion[]
-  documentComments   DocumentComment[]
-  warehouse          Warehouse? @relation("WarehouseStaff", fields: [warehouseId], references: [id], onDelete: SetNull)
-  receivedShipments  LogisticsShipment[] @relation("ShipmentReceivedBy")
-  requestedTransfers WarehouseTransfer[] @relation("TransferRequestedBy")
-  approvedTransfers  WarehouseTransfer[] @relation("TransferApprovedBy")
-  stockCounts        WarehouseStockCount[] @relation("StockCountedBy")
-  orderExperienceEvents OrderExperienceEvent[]
+  notificationLogs        NotificationLog[]
+  resolvedErrorLogs       ErrorLog[]               @relation("ResolvedErrorLogs")
+  assignedLeads           Lead[]                   @relation("AssignedLeads")
+  leadNotes               LeadNote[]
+  leadActivities          LeadActivity[]
+  assignedTickets         SupportTicket[]          @relation("AssignedTickets")
+  createdTickets          SupportTicket[]          @relation("CreatedTickets")
+  ticketMessages          TicketMessage[]
+  ticketAttachments       TicketAttachment[]
+  uploadedDocuments       Document[]               @relation("UploadedDocuments")
+  approvedDocuments       Document[]               @relation("ApprovedDocuments")
+  documentVersions        DocumentVersion[]
+  documentComments        DocumentComment[]
+  warehouse               Warehouse?               @relation("WarehouseStaff", fields: [warehouseId], references: [id], onDelete: SetNull)
+  receivedShipments       LogisticsShipment[]      @relation("ShipmentReceivedBy")
+  requestedTransfers      WarehouseTransfer[]      @relation("TransferRequestedBy")
+  approvedTransfers       WarehouseTransfer[]      @relation("TransferApprovedBy")
+  stockCounts             WarehouseStockCount[]    @relation("StockCountedBy")
+  orderExperienceEvents   OrderExperienceEvent[]
 
   @@index([role, status])
   @@index([warehouseId])
@@ -647,76 +650,76 @@ model AuthRateLimitBucket {
 }
 
 model CustomerProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  tenantId       String
-  companyName    String
-  contactName    String
-  phone          String
-  billingAddress Json
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  tenantId        String
+  companyName     String
+  contactName     String
+  phone           String
+  billingAddress  Json
   deliveryAddress Json?
-  vatId          String?
-  logoUrl        String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  vatId           String?
+  logoUrl         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant         Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  orders         Order[]
-  distributionAreas DistributionArea[]
-  reports        Report[]
-  payments       Payment[]
-  invoices       Invoice[]
-  supportTickets SupportTicket[]
-  documents      Document[]
-  printOrders    PrintOrder[]
-  wonLeads       Lead[] @relation("WonLeads")
+  user                  User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant                Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  orders                Order[]
+  distributionAreas     DistributionArea[]
+  reports               Report[]
+  payments              Payment[]
+  invoices              Invoice[]
+  supportTickets        SupportTicket[]
+  documents             Document[]
+  printOrders           PrintOrder[]
+  wonLeads              Lead[]                 @relation("WonLeads")
   orderExperienceEvents OrderExperienceEvent[]
 
   @@index([companyName])
 }
 
 model DistributorProfile {
-  id             String                  @id @default(cuid())
-  userId         String                  @unique
-  firstName      String
-  lastName       String
-  birthDate      DateTime
-  address        Json
-  federalState   String
-  phone          String
-  mobilityType   MobilityType?
-  mobilityTypes  MobilityType[]
-  preferredAreas String[]
-  availability   Json
-  workingTimes   String[]
-  serviceRadiusKm Int
-  maxToursPerDay Int                     @default(3)
-  maxFlyersPerDay Int                    @default(8000)
-  currentAssignedFlyers Int              @default(0)
-  currentAssignedTours Int               @default(0)
-  availableToday Boolean                 @default(true)
-  rating        Decimal                  @default(4.50) @db.Decimal(3, 2)
-  completedToursCount Int                @default(0)
-  idDocumentStatus DistributorDocumentStatus @default(NOT_SUBMITTED)
-  driverLicenseStatus DistributorDocumentStatus @default(NOT_SUBMITTED)
+  id                     String                    @id @default(cuid())
+  userId                 String                    @unique
+  firstName              String
+  lastName               String
+  birthDate              DateTime
+  address                Json
+  federalState           String
+  phone                  String
+  mobilityType           MobilityType?
+  mobilityTypes          MobilityType[]
+  preferredAreas         String[]
+  availability           Json
+  workingTimes           String[]
+  serviceRadiusKm        Int
+  maxToursPerDay         Int                       @default(3)
+  maxFlyersPerDay        Int                       @default(8000)
+  currentAssignedFlyers  Int                       @default(0)
+  currentAssignedTours   Int                       @default(0)
+  availableToday         Boolean                   @default(true)
+  rating                 Decimal                   @default(4.50) @db.Decimal(3, 2)
+  completedToursCount    Int                       @default(0)
+  idDocumentStatus       DistributorDocumentStatus @default(NOT_SUBMITTED)
+  driverLicenseStatus    DistributorDocumentStatus @default(NOT_SUBMITTED)
   businessDocumentStatus DistributorDocumentStatus @default(NOT_SUBMITTED)
-  taxNumber      String?
-  bankAccount    Json?
-  reviewStatus   DistributorReviewStatus @default(PENDING_REVIEW)
-  adminNotes     String?
-  approvedAt     DateTime?
-  rejectedAt     DateTime?
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
+  taxNumber              String?
+  bankAccount            Json?
+  reviewStatus           DistributorReviewStatus   @default(PENDING_REVIEW)
+  adminNotes             String?
+  approvedAt             DateTime?
+  rejectedAt             DateTime?
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
 
-  user          User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assignedOrders Order[]           @relation("AssignedDistributor")
-  tours         DistributionTour[]
-  reservedInventories WarehouseInventory[]
-  dispatchAssignments DispatchAssignment[]
+  user                        User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedOrders              Order[]                      @relation("AssignedDistributor")
+  tours                       DistributionTour[]
+  reservedInventories         WarehouseInventory[]
+  dispatchAssignments         DispatchAssignment[]
   autoDispatchRecommendations AutoDispatchRecommendation[]
-  supportTickets SupportTicket[]
+  supportTickets              SupportTicket[]
 
   @@index([reviewStatus])
   @@index([mobilityType])
@@ -724,69 +727,69 @@ model DistributorProfile {
 }
 
 model Order {
-  id                   String      @id @default(cuid())
-  orderNumber          String      @unique
-  customerId           String
-  tenantId             String
-  status               OrderStatus @default(SUBMITTED)
-  serviceType          ServiceType @default(FLYER_DISTRIBUTION)
-  city                 String
-  postalCode           String
-  targetAddress        Json
-  targetLat            Decimal?    @db.Decimal(10, 7)
-  targetLng            Decimal?    @db.Decimal(10, 7)
-  targetAreaName       String
-  targetAreaGeoJson    Json?
-  estimatedHouseholds  Int?
-  estimatedFlyers      Int?
-  estimatedDistanceMeters Int?
-  coverageAreaSqm      Decimal?    @db.Decimal(14, 2)
-  distributionAreaId   String?
-  flyerQuantity        Int
-  customerOwnFlyers    Boolean     @default(true)
-  needsPrintService    Boolean     @default(false)
-  preferredStartDate   DateTime
-  preferredEndDate     DateTime
-  flexibleScheduling   Boolean     @default(false)
-  contactPerson        String?
-  contactPhone         String?
-  notes                String?
-  adminInternalNotes   String?
-  adminCustomerMessage String?
-  calculatedNetPrice   Decimal     @db.Decimal(12, 2)
-  calculatedVat        Decimal     @db.Decimal(12, 2)
-  calculatedGrossPrice Decimal     @db.Decimal(12, 2)
-  manualPriceOverride  Decimal?    @db.Decimal(12, 2)
-  priceRuleSnapshot    Json
-  assignedDistributorId String?
-  assignedWarehouseId   String?
-  warehouseAssignedAt   DateTime?
+  id                        String      @id @default(cuid())
+  orderNumber               String      @unique
+  customerId                String
+  tenantId                  String
+  status                    OrderStatus @default(SUBMITTED)
+  serviceType               ServiceType @default(FLYER_DISTRIBUTION)
+  city                      String
+  postalCode                String
+  targetAddress             Json
+  targetLat                 Decimal?    @db.Decimal(10, 7)
+  targetLng                 Decimal?    @db.Decimal(10, 7)
+  targetAreaName            String
+  targetAreaGeoJson         Json?
+  estimatedHouseholds       Int?
+  estimatedFlyers           Int?
+  estimatedDistanceMeters   Int?
+  coverageAreaSqm           Decimal?    @db.Decimal(14, 2)
+  distributionAreaId        String?
+  flyerQuantity             Int
+  customerOwnFlyers         Boolean     @default(true)
+  needsPrintService         Boolean     @default(false)
+  preferredStartDate        DateTime
+  preferredEndDate          DateTime
+  flexibleScheduling        Boolean     @default(false)
+  contactPerson             String?
+  contactPhone              String?
+  notes                     String?
+  adminInternalNotes        String?
+  adminCustomerMessage      String?
+  calculatedNetPrice        Decimal     @db.Decimal(12, 2)
+  calculatedVat             Decimal     @db.Decimal(12, 2)
+  calculatedGrossPrice      Decimal     @db.Decimal(12, 2)
+  manualPriceOverride       Decimal?    @db.Decimal(12, 2)
+  priceRuleSnapshot         Json
+  assignedDistributorId     String?
+  assignedWarehouseId       String?
+  warehouseAssignedAt       DateTime?
   warehouseAssignmentReason String?
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
+  createdAt                 DateTime    @default(now())
+  updatedAt                 DateTime    @updatedAt
 
-  customer            CustomerProfile     @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  tenant              Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  distributionArea    DistributionArea?   @relation(fields: [distributionAreaId], references: [id], onDelete: SetNull)
-  assignedDistributor DistributorProfile? @relation("AssignedDistributor", fields: [assignedDistributorId], references: [id], onDelete: SetNull)
-  assignedWarehouse   Warehouse?          @relation("AssignedWarehouseOrders", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
-  warehouseItem       WarehouseItem?
-  tours               DistributionTour[]
-  photoProofs         PhotoProof[]
-  reports             Report[]
-  deviations          DistributionDeviation[]
-  payments            Payment[]
-  invoice             Invoice?
-  supportTickets      SupportTicket[]
-  documents           Document[]
-  documentFolders     DocumentFolder[]
-  printOrders         PrintOrder[]
-  statusEvents        OrderStatusEvent[]
-  warehouseInventory  WarehouseInventory?
-  dispatchAssignments DispatchAssignment[]
+  customer                    CustomerProfile              @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  tenant                      Tenant                       @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  distributionArea            DistributionArea?            @relation(fields: [distributionAreaId], references: [id], onDelete: SetNull)
+  assignedDistributor         DistributorProfile?          @relation("AssignedDistributor", fields: [assignedDistributorId], references: [id], onDelete: SetNull)
+  assignedWarehouse           Warehouse?                   @relation("AssignedWarehouseOrders", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
+  warehouseItem               WarehouseItem?
+  tours                       DistributionTour[]
+  photoProofs                 PhotoProof[]
+  reports                     Report[]
+  deviations                  DistributionDeviation[]
+  payments                    Payment[]
+  invoice                     Invoice?
+  supportTickets              SupportTicket[]
+  documents                   Document[]
+  documentFolders             DocumentFolder[]
+  printOrders                 PrintOrder[]
+  statusEvents                OrderStatusEvent[]
+  warehouseInventory          WarehouseInventory?
+  dispatchAssignments         DispatchAssignment[]
   autoDispatchRecommendations AutoDispatchRecommendation[]
-  logisticsShipments LogisticsShipment[]
-  experienceEvents   OrderExperienceEvent[]
+  logisticsShipments          LogisticsShipment[]
+  experienceEvents            OrderExperienceEvent[]
 
   @@index([customerId, status])
   @@index([tenantId, status, createdAt])
@@ -799,78 +802,83 @@ model Order {
 }
 
 model OrderExperienceEvent {
-  id             String   @id @default(cuid())
-  orderId        String?
-  customerId     String?
-  userId         String?
-  eventType      String
-  source         String   @default("order-wizard")
-  city           String?
-  postalCode     String?
-  areaName       String?
-  areaType       DistributionAreaType?
-  durationMs     Int?
-  clickCount     Int?
-  fieldCount     Int?
-  usedAutocomplete Boolean @default(false)
-  usedSavedArea  Boolean  @default(false)
-  polygonPoints  Int?
-  households     Int?
-  flyerQuantity  Int?
-  coverageAreaSqm Decimal? @db.Decimal(14, 2)
-  routeDistanceMeters Int?
+  id                   String                @id @default(cuid())
+  orderId              String?
+  customerId           String?
+  tenantId             String?
+  userId               String?
+  eventType            String
+  source               String                @default("order-wizard")
+  city                 String?
+  postalCode           String?
+  areaName             String?
+  areaType             DistributionAreaType?
+  durationMs           Int?
+  clickCount           Int?
+  fieldCount           Int?
+  usedAutocomplete     Boolean               @default(false)
+  usedSavedArea        Boolean               @default(false)
+  polygonPoints        Int?
+  households           Int?
+  flyerQuantity        Int?
+  coverageAreaSqm      Decimal?              @db.Decimal(14, 2)
+  routeDistanceMeters  Int?
   routeDurationMinutes Int?
-  metadata       Json?
-  createdAt      DateTime @default(now())
+  metadata             Json?
+  createdAt            DateTime              @default(now())
 
   order    Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
   customer CustomerProfile? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tenant   Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   user     User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([eventType, createdAt])
   @@index([customerId, createdAt])
+  @@index([tenantId, createdAt])
   @@index([city, createdAt])
   @@index([postalCode, createdAt])
   @@index([orderId])
 }
 
 model DistributionArea {
-  id                       String                 @id @default(cuid())
-  name                     String
-  slug                     String                 @unique
-  type                     DistributionAreaType
-  status                   DistributionAreaStatus @default(ACTIVE)
-  reusable                 Boolean                @default(true)
-  city                     String?
-  postalCode               String?
-  district                 String?
-  state                    String?
-  country                  String                 @default("DE")
-  centerLat                Decimal?               @db.Decimal(10, 7)
-  centerLng                Decimal?               @db.Decimal(10, 7)
-  radiusMeters             Int?
-  geoJson                  Json?
-  geometryGeoJson          Json?
-  coverageAreaSqm          Decimal?               @db.Decimal(14, 2)
-  areaKm2                  Decimal?               @db.Decimal(12, 6)
-  estimatedHouseholds      Int?
-  estimatedFlyers          Int?
-  estimatedDistanceMeters  Int?
-  googlePlaceId            String?
-  googleFeatureType        String?
-  dataSourceName           String?
-  dataSourceType           AreaDataSourceType      @default(SEED)
-  dataSourceUrl            String?
-  licenseNote              String?
-  dataUpdatedAt            DateTime?
-  confidence               Decimal?               @db.Decimal(4, 3)
-  createdById              String?
-  customerId               String?
-  createdAt                DateTime               @default(now())
-  updatedAt                DateTime               @updatedAt
+  id                      String                 @id @default(cuid())
+  name                    String
+  slug                    String                 @unique
+  type                    DistributionAreaType
+  status                  DistributionAreaStatus @default(ACTIVE)
+  reusable                Boolean                @default(true)
+  city                    String?
+  postalCode              String?
+  district                String?
+  state                   String?
+  country                 String                 @default("DE")
+  centerLat               Decimal?               @db.Decimal(10, 7)
+  centerLng               Decimal?               @db.Decimal(10, 7)
+  radiusMeters            Int?
+  geoJson                 Json?
+  geometryGeoJson         Json?
+  coverageAreaSqm         Decimal?               @db.Decimal(14, 2)
+  areaKm2                 Decimal?               @db.Decimal(12, 6)
+  estimatedHouseholds     Int?
+  estimatedFlyers         Int?
+  estimatedDistanceMeters Int?
+  googlePlaceId           String?
+  googleFeatureType       String?
+  dataSourceName          String?
+  dataSourceType          AreaDataSourceType     @default(SEED)
+  dataSourceUrl           String?
+  licenseNote             String?
+  dataUpdatedAt           DateTime?
+  confidence              Decimal?               @db.Decimal(4, 3)
+  createdById             String?
+  customerId              String?
+  tenantId                String?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
 
-  createdBy User? @relation("AreaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  customer  CustomerProfile? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  createdBy User?                   @relation("AreaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  customer  CustomerProfile?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tenant    Tenant?                 @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   polygons  AreaPolygon[]
   estimates AreaHouseholdEstimate[]
   history   AreaHistory[]
@@ -882,17 +890,18 @@ model DistributionArea {
   @@index([dataSourceType, dataUpdatedAt])
   @@index([googlePlaceId])
   @@index([customerId, status])
+  @@index([tenantId, status])
   @@index([createdById])
 }
 
 model AreaPolygon {
-  id              String   @id @default(cuid())
-  areaId          String
-  sortOrder       Int      @default(0)
-  geometry        Json
-  areaSqm         Decimal? @db.Decimal(14, 2)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id        String   @id @default(cuid())
+  areaId    String
+  sortOrder Int      @default(0)
+  geometry  Json
+  areaSqm   Decimal? @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   area DistributionArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
 
@@ -900,26 +909,26 @@ model AreaPolygon {
 }
 
 model AreaHouseholdEstimate {
-  id             String                  @id @default(cuid())
-  areaId         String
-  households     Int
-  estimatedHouseholds Int?
-  estimatedResidents Int?
-  estimatedDwellings Int?
+  id                   String                  @id @default(cuid())
+  areaId               String
+  households           Int
+  estimatedHouseholds  Int?
+  estimatedResidents   Int?
+  estimatedDwellings   Int?
   residentialBuildings Int?
-  estimatedFlyers Int?
-  distanceMeters Int?
-  coverageAreaSqm Decimal?              @db.Decimal(14, 2)
-  method         HouseholdEstimateMethod @default(MANUAL)
-  source         String?
-  sourceUrl      String?
-  sourceYear     Int?
-  confidence     Decimal?                @db.Decimal(4, 3)
-  notes          String?
-  validFrom      DateTime?
-  validTo        DateTime?
-  createdById    String?
-  createdAt      DateTime                @default(now())
+  estimatedFlyers      Int?
+  distanceMeters       Int?
+  coverageAreaSqm      Decimal?                @db.Decimal(14, 2)
+  method               HouseholdEstimateMethod @default(MANUAL)
+  source               String?
+  sourceUrl            String?
+  sourceYear           Int?
+  confidence           Decimal?                @db.Decimal(4, 3)
+  notes                String?
+  validFrom            DateTime?
+  validTo              DateTime?
+  createdById          String?
+  createdAt            DateTime                @default(now())
 
   area      DistributionArea @relation(fields: [areaId], references: [id], onDelete: Cascade)
   createdBy User?            @relation("AreaEstimateCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -947,13 +956,13 @@ model AreaHistory {
 }
 
 model OrderStatusEvent {
-  id         String      @id @default(cuid())
+  id         String       @id @default(cuid())
   orderId    String
   fromStatus OrderStatus?
   toStatus   OrderStatus
   changedBy  String?
   note       String?
-  createdAt  DateTime    @default(now())
+  createdAt  DateTime     @default(now())
 
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   user  User? @relation(fields: [changedBy], references: [id], onDelete: SetNull)
@@ -972,16 +981,16 @@ model PricingSetting {
 }
 
 model PricingRule {
-  id            String      @id @default(cuid())
-  serviceType   ServiceType @default(FLYER_DISTRIBUTION)
-  minQuantity   Int
-  maxQuantity   Int?
-  pricePerUnit  Decimal     @db.Decimal(12, 4)
-  basePrice     Decimal     @db.Decimal(12, 2)
-  minimumNetPrice Decimal   @db.Decimal(12, 2)
-  isActive      Boolean     @default(true)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  id              String      @id @default(cuid())
+  serviceType     ServiceType @default(FLYER_DISTRIBUTION)
+  minQuantity     Int
+  maxQuantity     Int?
+  pricePerUnit    Decimal     @db.Decimal(12, 4)
+  basePrice       Decimal     @db.Decimal(12, 2)
+  minimumNetPrice Decimal     @db.Decimal(12, 2)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   @@index([serviceType, isActive])
   @@index([minQuantity, maxQuantity])
@@ -1010,16 +1019,16 @@ model Warehouse {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  locations          WarehouseLocation[]
-  regions            WarehouseRegion[]
-  staff              User[] @relation("WarehouseStaff")
-  assignedOrders     Order[] @relation("AssignedWarehouseOrders")
-  inventories        WarehouseInventory[]
-  printOrders        PrintOrder[] @relation("PrintOrderAssignedWarehouse")
-  shipments          LogisticsShipment[]
-  transfersFrom      WarehouseTransfer[] @relation("TransferFromWarehouse")
-  transfersTo        WarehouseTransfer[] @relation("TransferToWarehouse")
-  stockCounts        WarehouseStockCount[]
+  locations      WarehouseLocation[]
+  regions        WarehouseRegion[]
+  staff          User[]                @relation("WarehouseStaff")
+  assignedOrders Order[]               @relation("AssignedWarehouseOrders")
+  inventories    WarehouseInventory[]
+  printOrders    PrintOrder[]          @relation("PrintOrderAssignedWarehouse")
+  shipments      LogisticsShipment[]
+  transfersFrom  WarehouseTransfer[]   @relation("TransferFromWarehouse")
+  transfersTo    WarehouseTransfer[]   @relation("TransferToWarehouse")
+  stockCounts    WarehouseStockCount[]
 
   @@index([city])
   @@index([city, postalCode])
@@ -1099,17 +1108,17 @@ model NumberingSettings {
 }
 
 model SystemSettings {
-  id                            String   @id @default(cuid())
-  defaultVatRate                Decimal  @default(0.19) @db.Decimal(5, 4)
-  defaultCurrency               String   @default("EUR")
-  paymentDueDays                Int      @default(14)
-  allowManualInvoiceCreation    Boolean  @default(true)
-  requirePaymentBeforeReview    Boolean  @default(true)
-  requireAdminReviewAfterPayment Boolean @default(true)
-  autoDispatchEnabled           Boolean  @default(false)
-  autoDispatchMinScore          Int      @default(85)
-  createdAt                     DateTime @default(now())
-  updatedAt                     DateTime @updatedAt
+  id                             String   @id @default(cuid())
+  defaultVatRate                 Decimal  @default(0.19) @db.Decimal(5, 4)
+  defaultCurrency                String   @default("EUR")
+  paymentDueDays                 Int      @default(14)
+  allowManualInvoiceCreation     Boolean  @default(true)
+  requirePaymentBeforeReview     Boolean  @default(true)
+  requireAdminReviewAfterPayment Boolean  @default(true)
+  autoDispatchEnabled            Boolean  @default(false)
+  autoDispatchMinScore           Int      @default(85)
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
 }
 
 model WarehouseLocation {
@@ -1122,7 +1131,7 @@ model WarehouseLocation {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  warehouse   Warehouse            @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
   inventories WarehouseInventory[]
 
   @@unique([warehouseId, fullLabel])
@@ -1130,35 +1139,35 @@ model WarehouseLocation {
 }
 
 model WarehouseInventory {
-  id                  String                   @id @default(cuid())
-  orderId             String                   @unique
-  warehouseId         String?
-  warehouseLocationId String?
-  status              WarehouseInventoryStatus @default(FLYERS_EXPECTED)
-  remainingStockStatus RemainingStockStatus    @default(NOT_RELEVANT)
-  qrCode              String                   @unique
-  qrCodePngDataUrl    String?
-  cartonCount         Int?
-  expectedFlyers      Int
-  receivedFlyers      Int?
-  remainingFlyers     Int?
-  damagedFlyers       Int?
-  weightOptional      Decimal?                 @db.Decimal(10, 2)
-  notes               String?
-  pickupToken         String                   @unique
-  pickupStatus        PickupStatus             @default(NOT_PREPARED)
+  id                    String                   @id @default(cuid())
+  orderId               String                   @unique
+  warehouseId           String?
+  warehouseLocationId   String?
+  status                WarehouseInventoryStatus @default(FLYERS_EXPECTED)
+  remainingStockStatus  RemainingStockStatus     @default(NOT_RELEVANT)
+  qrCode                String                   @unique
+  qrCodePngDataUrl      String?
+  cartonCount           Int?
+  expectedFlyers        Int
+  receivedFlyers        Int?
+  remainingFlyers       Int?
+  damagedFlyers         Int?
+  weightOptional        Decimal?                 @db.Decimal(10, 2)
+  notes                 String?
+  pickupToken           String                   @unique
+  pickupStatus          PickupStatus             @default(NOT_PREPARED)
   reservedDistributorId String?
-  preparedAt          DateTime?
-  receivedAt          DateTime?
-  pickedUpAt          DateTime?
-  returnedAt          DateTime?
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
+  preparedAt            DateTime?
+  receivedAt            DateTime?
+  pickedUpAt            DateTime?
+  returnedAt            DateTime?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
 
-  order               Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  warehouse           Warehouse?         @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
-  warehouseLocation   WarehouseLocation? @relation(fields: [warehouseLocationId], references: [id], onDelete: SetNull)
-  reservedDistributor DistributorProfile? @relation(fields: [reservedDistributorId], references: [id], onDelete: SetNull)
+  order               Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  warehouse           Warehouse?            @relation(fields: [warehouseId], references: [id], onDelete: SetNull)
+  warehouseLocation   WarehouseLocation?    @relation(fields: [warehouseLocationId], references: [id], onDelete: SetNull)
+  reservedDistributor DistributorProfile?   @relation(fields: [reservedDistributorId], references: [id], onDelete: SetNull)
   history             WarehouseHistory[]
   tours               DistributionTour[]
   dispatchAssignments DispatchAssignment[]
@@ -1183,8 +1192,8 @@ model DocumentFolder {
   order     Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
   documents Document[]
 
-  @@index([orderId])
   @@unique([orderId, name])
+  @@index([orderId])
 }
 
 model WarehouseHistory {
@@ -1306,61 +1315,61 @@ model WarehouseStockCount {
 }
 
 model DistributionTour {
-  id                String       @id @default(cuid())
-  orderId           String
-  inventoryId       String?
-  distributorId     String
-  status            TourStatus   @default(ASSIGNED)
-  pickupTime        DateTime?
-  startTime         DateTime?
-  endTime           DateTime?
-  pauseTime         DateTime?
-  totalPauseSeconds Int          @default(0)
-  totalDistanceMeters Int?
-  totalDurationSeconds Int?
-  startedAt         DateTime?
-  pausedAt          DateTime?
-  completedAt       DateTime?
-  startLat          Decimal?     @db.Decimal(10, 7)
-  startLng          Decimal?     @db.Decimal(10, 7)
-  endLat            Decimal?     @db.Decimal(10, 7)
-  endLng            Decimal?     @db.Decimal(10, 7)
-  distanceMeters    Int?
-  durationSeconds   Int?
-  remainingFlyers   Int?
-  distributorNotes  String?
-  adminInternalNote String?
-  adminCustomerMessage String?
-  reviewedAt        DateTime?
-  reviewedBy        String?
-  adminReviewStatus ReviewStatus @default(PENDING)
-  fraudFlags        Json?
-  plannedAreaGeometry Json?
-  actualRouteGeometry Json?
-  actualAreaGeometry Json?
-  plannedFlyerQuantity Int?
-  assignedFlyerQuantity Int?
-  deliveredFlyerQuantity Int?
-  returnedFlyerQuantity Int?
-  damagedFlyerQuantity Int?
+  id                         String       @id @default(cuid())
+  orderId                    String
+  inventoryId                String?
+  distributorId              String
+  status                     TourStatus   @default(ASSIGNED)
+  pickupTime                 DateTime?
+  startTime                  DateTime?
+  endTime                    DateTime?
+  pauseTime                  DateTime?
+  totalPauseSeconds          Int          @default(0)
+  totalDistanceMeters        Int?
+  totalDurationSeconds       Int?
+  startedAt                  DateTime?
+  pausedAt                   DateTime?
+  completedAt                DateTime?
+  startLat                   Decimal?     @db.Decimal(10, 7)
+  startLng                   Decimal?     @db.Decimal(10, 7)
+  endLat                     Decimal?     @db.Decimal(10, 7)
+  endLng                     Decimal?     @db.Decimal(10, 7)
+  distanceMeters             Int?
+  durationSeconds            Int?
+  remainingFlyers            Int?
+  distributorNotes           String?
+  adminInternalNote          String?
+  adminCustomerMessage       String?
+  reviewedAt                 DateTime?
+  reviewedBy                 String?
+  adminReviewStatus          ReviewStatus @default(PENDING)
+  fraudFlags                 Json?
+  plannedAreaGeometry        Json?
+  actualRouteGeometry        Json?
+  actualAreaGeometry         Json?
+  plannedFlyerQuantity       Int?
+  assignedFlyerQuantity      Int?
+  deliveredFlyerQuantity     Int?
+  returnedFlyerQuantity      Int?
+  damagedFlyerQuantity       Int?
   unexplainedFlyerDifference Int?
-  plannedDistanceKm Decimal?     @db.Decimal(10, 2)
-  actualDistanceKm  Decimal?     @db.Decimal(10, 2)
-  plannedDurationMinutes Int?
-  actualDurationMinutes Int?
-  gpsPointCount     Int          @default(0)
-  gpsQualityScore   Int?
-  lastLocationAt    DateTime?
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
+  plannedDistanceKm          Decimal?     @db.Decimal(10, 2)
+  actualDistanceKm           Decimal?     @db.Decimal(10, 2)
+  plannedDurationMinutes     Int?
+  actualDurationMinutes      Int?
+  gpsPointCount              Int          @default(0)
+  gpsQualityScore            Int?
+  lastLocationAt             DateTime?
+  createdAt                  DateTime     @default(now())
+  updatedAt                  DateTime     @updatedAt
 
-  order       Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  inventory   WarehouseInventory? @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
-  distributor DistributorProfile @relation(fields: [distributorId], references: [id], onDelete: Restrict)
-  gpsPoints   GpsPoint[]
-  photoProofs PhotoProof[]
-  reports     Report[]
-  deviations   DistributionDeviation[]
+  order          Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventory      WarehouseInventory?     @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
+  distributor    DistributorProfile      @relation(fields: [distributorId], references: [id], onDelete: Restrict)
+  gpsPoints      GpsPoint[]
+  photoProofs    PhotoProof[]
+  reports        Report[]
+  deviations     DistributionDeviation[]
   supportTickets SupportTicket[]
 
   @@index([orderId, status])
@@ -1387,10 +1396,10 @@ model DispatchAssignment {
   createdAt           DateTime                 @default(now())
   updatedAt           DateTime                 @updatedAt
 
-  order       Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  inventory   WarehouseInventory? @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
-  distributor DistributorProfile  @relation(fields: [distributorId], references: [id], onDelete: Restrict)
-  assignedByUser User?            @relation("DispatchAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
+  order          Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  inventory      WarehouseInventory? @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
+  distributor    DistributorProfile  @relation(fields: [distributorId], references: [id], onDelete: Restrict)
+  assignedByUser User?               @relation("DispatchAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
 
   @@index([orderId, status])
   @@index([inventoryId, status])
@@ -1443,27 +1452,27 @@ model GpsPoint {
 }
 
 model PhotoProof {
-  id         String    @id @default(cuid())
-  tourId     String
-  orderId    String
-  uploadedBy String
-  url        String
-  lat        Decimal?  @db.Decimal(10, 7)
-  lng        Decimal?  @db.Decimal(10, 7)
-  accuracy   Decimal?  @db.Decimal(8, 2)
-  source     String    @default("camera")
-  category   String    @default("DISTRIBUTION_AREA")
-  caption    String?
-  internalNote String?
-  customerVisible Boolean @default(false)
-  reviewStatus ReviewStatus @default(PENDING)
-  reviewedById String?
-  reviewedAt  DateTime?
-  metadata   Json?
-  takenAt    DateTime?
+  id              String       @id @default(cuid())
+  tourId          String
+  orderId         String
+  uploadedBy      String
+  url             String
+  lat             Decimal?     @db.Decimal(10, 7)
+  lng             Decimal?     @db.Decimal(10, 7)
+  accuracy        Decimal?     @db.Decimal(8, 2)
+  source          String       @default("camera")
+  category        String       @default("DISTRIBUTION_AREA")
+  caption         String?
+  internalNote    String?
+  customerVisible Boolean      @default(false)
+  reviewStatus    ReviewStatus @default(PENDING)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  metadata        Json?
+  takenAt         DateTime?
   deviceTimestamp DateTime?
-  uploadedAt DateTime  @default(now())
-  createdAt  DateTime  @default(now())
+  uploadedAt      DateTime     @default(now())
+  createdAt       DateTime     @default(now())
 
   tour     DistributionTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
   order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -1474,64 +1483,64 @@ model PhotoProof {
 }
 
 model Report {
-  id           String         @id @default(cuid())
-  orderId      String
-  tourId       String         @unique
-  customerId   String
-  tenantId     String
-  reportNumber String         @unique
-  status       ReportStatus   @default(DRAFT)
-  reportType   ReportType     @default(DISTRIBUTION_PROOF)
-  template     ReportTemplate @default(STANDARD)
-  reportSource ReportSource   @default(INTERNAL_TRACKING)
-  onlineUrl    String?
-  pdfUrl       String?
-  generatedAt  DateTime?
-  approvedAt   DateTime?
-  approvedById String?
-  reviewedById String?
-  reviewedAt   DateTime?
-  publishedAt  DateTime?
-  downloadedAt DateTime?
-  version      Int            @default(1)
-  reportVersion Int           @default(1)
-  internalReviewStatus InternalReviewStatus @default(NOT_REVIEWED)
-  plannedAreaGeometry Json?
-  actualAreaGeometry Json?
-  actualRouteGeometry Json?
-  coverageMode String?
-  plannedHouseholdCount Int?
+  id                         String               @id @default(cuid())
+  orderId                    String
+  tourId                     String               @unique
+  customerId                 String
+  tenantId                   String
+  reportNumber               String               @unique
+  status                     ReportStatus         @default(DRAFT)
+  reportType                 ReportType           @default(DISTRIBUTION_PROOF)
+  template                   ReportTemplate       @default(STANDARD)
+  reportSource               ReportSource         @default(INTERNAL_TRACKING)
+  onlineUrl                  String?
+  pdfUrl                     String?
+  generatedAt                DateTime?
+  approvedAt                 DateTime?
+  approvedById               String?
+  reviewedById               String?
+  reviewedAt                 DateTime?
+  publishedAt                DateTime?
+  downloadedAt               DateTime?
+  version                    Int                  @default(1)
+  reportVersion              Int                  @default(1)
+  internalReviewStatus       InternalReviewStatus @default(NOT_REVIEWED)
+  plannedAreaGeometry        Json?
+  actualAreaGeometry         Json?
+  actualRouteGeometry        Json?
+  coverageMode               String?
+  plannedHouseholdCount      Int?
   estimatedReachedHouseholds Int?
-  plannedFlyerQuantity Int?
-  deliveredFlyerQuantity Int?
-  remainingFlyerQuantity Int?
-  plannedCoveragePercent Decimal? @db.Decimal(5, 2)
-  actualCoveragePercent Decimal? @db.Decimal(5, 2)
-  flyerCoveragePercent Decimal? @db.Decimal(5, 2)
-  areaCoveragePercent Decimal? @db.Decimal(5, 2)
-  householdCoverageEstimate Decimal? @db.Decimal(5, 2)
-  plannedDistanceKm Decimal? @db.Decimal(10, 2)
-  actualDistanceKm Decimal? @db.Decimal(10, 2)
-  plannedDurationMinutes Int?
-  actualDurationMinutes Int?
-  distributorCount Int?
-  plannedStartDate DateTime?
-  actualStartedAt DateTime?
-  actualCompletedAt DateTime?
-  summary String?
-  deviationSummary String?
-  calculationVersion String?
-  reportSnapshot Json?
-  checksum     String?
-  verificationCode String     @unique
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  plannedFlyerQuantity       Int?
+  deliveredFlyerQuantity     Int?
+  remainingFlyerQuantity     Int?
+  plannedCoveragePercent     Decimal?             @db.Decimal(5, 2)
+  actualCoveragePercent      Decimal?             @db.Decimal(5, 2)
+  flyerCoveragePercent       Decimal?             @db.Decimal(5, 2)
+  areaCoveragePercent        Decimal?             @db.Decimal(5, 2)
+  householdCoverageEstimate  Decimal?             @db.Decimal(5, 2)
+  plannedDistanceKm          Decimal?             @db.Decimal(10, 2)
+  actualDistanceKm           Decimal?             @db.Decimal(10, 2)
+  plannedDurationMinutes     Int?
+  actualDurationMinutes      Int?
+  distributorCount           Int?
+  plannedStartDate           DateTime?
+  actualStartedAt            DateTime?
+  actualCompletedAt          DateTime?
+  summary                    String?
+  deviationSummary           String?
+  calculationVersion         String?
+  reportSnapshot             Json?
+  checksum                   String?
+  verificationCode           String               @unique
+  createdAt                  DateTime             @default(now())
+  updatedAt                  DateTime             @updatedAt
 
-  order    Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  tour     DistributionTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
-  customer CustomerProfile  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tenant Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  approver User?            @relation("ApprovedReports", fields: [approvedById], references: [id], onDelete: SetNull)
+  order          Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  tour           DistributionTour @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  customer       CustomerProfile  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant         Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  approver       User?            @relation("ApprovedReports", fields: [approvedById], references: [id], onDelete: SetNull)
   supportTickets SupportTicket[]
 
   @@index([orderId, status])
@@ -1542,22 +1551,22 @@ model Report {
 }
 
 model DistributionDeviation {
-  id                    String   @id @default(cuid())
+  id                    String    @id @default(cuid())
   orderId               String
   tourId                String?
   type                  String
-  severity              String   @default("INFO")
+  severity              String    @default("INFO")
   description           String
   affectedAreaGeometry  Json?
   affectedFlyerQuantity Int?
-  customerVisible       Boolean  @default(false)
+  customerVisible       Boolean   @default(false)
   resolution            String?
   createdById           String?
   reviewedById          String?
-  createdAt             DateTime @default(now())
+  createdAt             DateTime  @default(now())
   resolvedAt            DateTime?
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
   tour  DistributionTour? @relation(fields: [tourId], references: [id], onDelete: SetNull)
 
   @@index([orderId, customerVisible])
@@ -1600,10 +1609,10 @@ model Payment {
   createdAt               DateTime      @default(now())
   updatedAt               DateTime      @updatedAt
 
-  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  customer  CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  provider  PaymentProvider @relation(fields: [providerId], references: [id], onDelete: Restrict)
+  order     Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer  CustomerProfile        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant    Tenant                 @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  provider  PaymentProvider        @relation(fields: [providerId], references: [id], onDelete: Restrict)
   events    PaymentEvent[]
   refunds   Refund[]
   histories PaymentStatusHistory[]
@@ -1617,15 +1626,15 @@ model Payment {
 }
 
 model PaymentEvent {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   paymentId       String?
   providerId      String?
-  stripeEventId   String?  @unique
+  stripeEventId   String?   @unique
   type            String
   payload         Json
   processedAt     DateTime?
   processingError String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime  @default(now())
 
   payment Payment? @relation(fields: [paymentId], references: [id], onDelete: SetNull)
 
@@ -1698,11 +1707,11 @@ model Invoice {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  order    Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
-  customer CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  tenant   Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  payment  Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
-  items    InvoiceItem[]
+  order       Order           @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  customer    CustomerProfile @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  payment     Payment?        @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+  items       InvoiceItem[]
   creditNotes CreditNote[]
 
   @@index([customerId, status])
@@ -1745,21 +1754,21 @@ model CreditNote {
 }
 
 model AccountingExport {
-  id          String                 @id @default(cuid())
-  exportNumber String               @unique
-  type        AccountingExportType
-  status      AccountingExportStatus @default(DRAFT)
-  format      AccountingExportFormat
-  periodStart DateTime
-  periodEnd   DateTime
-  createdById String?
-  fileUrl     String?
-  rowCount    Int                    @default(0)
-  checksum    String?
-  createdAt   DateTime               @default(now())
-  completedAt DateTime?
+  id           String                 @id @default(cuid())
+  exportNumber String                 @unique
+  type         AccountingExportType
+  status       AccountingExportStatus @default(DRAFT)
+  format       AccountingExportFormat
+  periodStart  DateTime
+  periodEnd    DateTime
+  createdById  String?
+  fileUrl      String?
+  rowCount     Int                    @default(0)
+  checksum     String?
+  createdAt    DateTime               @default(now())
+  completedAt  DateTime?
 
-  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdBy User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
   items     AccountingExportItem[]
 
   @@index([type, status])
@@ -1790,6 +1799,7 @@ model SupportTicket {
   status               SupportTicketStatus @default(OPEN)
   priority             TicketPriority      @default(NORMAL)
   customerId           String?
+  tenantId             String?
   distributorId        String?
   orderId              String?
   tourId               String?
@@ -1806,6 +1816,7 @@ model SupportTicket {
   closedAt             DateTime?
 
   customer           CustomerProfile?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  tenant             Tenant?             @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   distributor        DistributorProfile? @relation(fields: [distributorId], references: [id], onDelete: SetNull)
   order              Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
   tour               DistributionTour?   @relation(fields: [tourId], references: [id], onDelete: SetNull)
@@ -1817,6 +1828,7 @@ model SupportTicket {
   attachments        TicketAttachment[]
 
   @@index([customerId, status])
+  @@index([tenantId, status])
   @@index([distributorId, status])
   @@index([orderId])
   @@index([tourId])
@@ -1828,42 +1840,42 @@ model SupportTicket {
 }
 
 model Document {
-  id               String         @id @default(cuid())
-  orderId          String
-  customerId       String
-  tenantId         String
-  folderId         String?
-  documentType     DocumentType
-  title            String
-  originalFilename String
-  storedFilename   String
-  mimeType         String
-  extension        String
-  fileSize         Int
-  checksum         String
-  version          Int            @default(1)
-  status           DocumentStatus @default(UPLOADED)
-  providerName     String?
+  id                      String         @id @default(cuid())
+  orderId                 String
+  customerId              String
+  tenantId                String
+  folderId                String?
+  documentType            DocumentType
+  title                   String
+  originalFilename        String
+  storedFilename          String
+  mimeType                String
+  extension               String
+  fileSize                Int
+  checksum                String
+  version                 Int            @default(1)
+  status                  DocumentStatus @default(UPLOADED)
+  providerName            String?
   externalReportReference String?
-  reportDate       DateTime?
-  customerVisible  Boolean        @default(false)
-  reviewStatus     ReviewStatus   @default(PENDING)
-  uploadedById     String?
-  uploadedAt       DateTime       @default(now())
-  approvedById     String?
-  approvedAt       DateTime?
-  rejectedReason   String?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  reportDate              DateTime?
+  customerVisible         Boolean        @default(false)
+  reviewStatus            ReviewStatus   @default(PENDING)
+  uploadedById            String?
+  uploadedAt              DateTime       @default(now())
+  approvedById            String?
+  approvedAt              DateTime?
+  rejectedReason          String?
+  createdAt               DateTime       @default(now())
+  updatedAt               DateTime       @updatedAt
 
-  order       Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  customer    CustomerProfile   @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tenant      Tenant             @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  folder      DocumentFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  uploadedBy  User?             @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: SetNull)
-  approvedBy  User?             @relation("ApprovedDocuments", fields: [approvedById], references: [id], onDelete: SetNull)
-  versions    DocumentVersion[]
-  comments    DocumentComment[]
+  order      Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer   CustomerProfile   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant     Tenant            @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  folder     DocumentFolder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadedBy User?             @relation("UploadedDocuments", fields: [uploadedById], references: [id], onDelete: SetNull)
+  approvedBy User?             @relation("ApprovedDocuments", fields: [approvedById], references: [id], onDelete: SetNull)
+  versions   DocumentVersion[]
+  comments   DocumentComment[]
 
   @@index([customerId, status])
   @@index([tenantId, status])
@@ -1879,18 +1891,18 @@ model Document {
 }
 
 model ManualDistributor {
-  id                    String   @id @default(cuid())
-  name                  String
-  phone                 String?
-  email                 String?
-  region                String?
-  vehicle               String?
-  isActive              Boolean  @default(true)
-  notes                 String?
-  compensationType      String?
-  reliabilityNote       String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id               String   @id @default(cuid())
+  name             String
+  phone            String?
+  email            String?
+  region           String?
+  vehicle          String?
+  isActive         Boolean  @default(true)
+  notes            String?
+  compensationType String?
+  reliabilityNote  String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([isActive, region])
   @@index([name])
@@ -1950,37 +1962,37 @@ model PrintPartner {
 }
 
 model PrintOrder {
-  id                String      @id @default(cuid())
-  orderId           String
-  customerId        String
-  tenantId          String
-  printerId         String?
+  id                   String      @id @default(cuid())
+  orderId              String
+  customerId           String
+  tenantId             String
+  printerId            String?
   warehouseInventoryId String?
-  assignedWarehouseId String?
-  status            PrintStatus @default(REQUESTED)
-  printFormat       String
-  paperType         String
-  paperWeight       Int
-  colorMode         String
-  doubleSided       Boolean     @default(true)
-  folded            String?
-  finishing         String?
-  quantity          Int
-  notes             String?
-  estimatedDelivery DateTime?
-  trackingNumber    String?
-  estimatedNetPrice Decimal?    @db.Decimal(12, 2)
-  estimatedGrossPrice Decimal?  @db.Decimal(12, 2)
-  priceSnapshot     Json?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  assignedWarehouseId  String?
+  status               PrintStatus @default(REQUESTED)
+  printFormat          String
+  paperType            String
+  paperWeight          Int
+  colorMode            String
+  doubleSided          Boolean     @default(true)
+  folded               String?
+  finishing            String?
+  quantity             Int
+  notes                String?
+  estimatedDelivery    DateTime?
+  trackingNumber       String?
+  estimatedNetPrice    Decimal?    @db.Decimal(12, 2)
+  estimatedGrossPrice  Decimal?    @db.Decimal(12, 2)
+  priceSnapshot        Json?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
 
-  order     Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  customer  CustomerProfile  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Restrict)
-  printer   PrintPartner?    @relation(fields: [printerId], references: [id], onDelete: SetNull)
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customer           CustomerProfile     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  printer            PrintPartner?       @relation(fields: [printerId], references: [id], onDelete: SetNull)
   warehouseInventory WarehouseInventory? @relation(fields: [warehouseInventoryId], references: [id], onDelete: SetNull)
-  assignedWarehouse Warehouse? @relation("PrintOrderAssignedWarehouse", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
+  assignedWarehouse  Warehouse?          @relation("PrintOrderAssignedWarehouse", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
   logisticsShipments LogisticsShipment[]
 
   @@index([orderId, status])
@@ -2055,7 +2067,7 @@ model Lead {
   createdAt             DateTime     @default(now())
   updatedAt             DateTime     @updatedAt
 
-  assignedTo User?            @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedTo  User?            @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
   wonCustomer CustomerProfile? @relation("WonLeads", fields: [wonCustomerId], references: [id], onDelete: SetNull)
   leadNotes   LeadNote[]
   activities  LeadActivity[]
@@ -2119,7 +2131,7 @@ model AuditLog {
   result     String   @default("SUCCESS")
   createdAt  DateTime @default(now())
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
 
   @@index([entityType, entityId])
@@ -2206,9 +2218,9 @@ model NotificationQueue {
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 
-  message  NotificationMessage  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message  NotificationMessage   @relation(fields: [messageId], references: [id], onDelete: Cascade)
   template NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   logs     NotificationLog[]
 
   @@index([status, scheduledAt])

@@ -185,6 +185,7 @@ function densityFromArea(area?: {
 }
 
 export async function getOrderIntelligence(input: {
+  tenantId?: string | null;
   city?: string | null;
   postalCode?: string | null;
   street?: string | null;
@@ -205,9 +206,12 @@ export async function getOrderIntelligence(input: {
   const [matchingAreas, warehouseMatch, combinations] = await Promise.all([
     prisma.distributionArea.findMany({
       where: {
+        AND: [
+          ...(input.tenantId ? [{ OR: [{ tenantId: null }, { tenantId: input.tenantId }] }] : []),
+          ...(areaFilters.length ? [{ OR: areaFilters }] : []),
+        ],
         status: "ACTIVE",
         reusable: true,
-        ...(areaFilters.length ? { OR: areaFilters } : {}),
       },
       orderBy: [{ city: "asc" }, { name: "asc" }],
       include: { estimates: { orderBy: { createdAt: "desc" }, take: 1 } },

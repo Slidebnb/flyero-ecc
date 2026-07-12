@@ -30,7 +30,7 @@ Status:
 
 ## 2. Executive Summary
 
-FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 72 Prisma-Modellen, 58 Enums, 182 API-Routen, 90 Seiten, 32 Migrationen und 48 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
+FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 72 Prisma-Modellen, 58 Enums, 182 API-Routen, 90 Seiten, 33 Migrationen und 48 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
 
 Der aktuelle Stand ist dennoch noch kein vollstaendig belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Eine erste Mandantengrundlage ist jetzt vorhanden: `Tenant`, `TenantMembership` sowie verpflichtende `tenantId`-Felder auf den kundenbezogenen Kernmodellen. Kundenregistrierung, Lead-Konvertierung, Seed-Daten und zentrale Customer-APIs erzeugen bzw. pruefen aktive Kundenmandanten. Plattform-Admin und interne Rollen sind weiterhin global; zentrale Tenant-Permissions, Mitarbeiterverwaltung und vollstaendige Tenant-Policies sind noch offen.
 
@@ -97,7 +97,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 | DB-01 | Tenant-Grundmodell und Kunden-Kernscoping vorhanden, aber interne Rollen, globale Adminpfade und zentrale Policies noch nicht tenantfaehig | P0 | Tenant-Membership und Permission-Policies auf alle relevanten internen Pfade erweitern; Storage-Partitionierung und negative Tests vervollstaendigen. |
 | DB-02 | Viele fachliche Snapshots und Metadaten liegen als freies `Json` vor | P2 | JSON nur fuer unveraenderliche Snapshots behalten; haeufig abgefragte oder sicherheitsrelevante Felder typisieren. |
 | DB-03 | Soft Delete und Loesch-/Sperrkonzept sind nicht einheitlich | P2 | Datenklassen definieren und pro Modell `deletedAt`, Archivierung oder harte Loeschung verbindlich festlegen. |
-| DB-04 | Keine dokumentierte Datenaufbewahrung oder automatische Bereinigung | P1 | Retention-Jobs fuer GPS, Fotos, Logs, Tokens und temporaere Dateien mit Legal-Hold-Ausnahmen einfuehren. |
+| DB-04 | Retention-Dry-Run und Bereinigung fuer Tokens/Sessions/Buckets vorhanden; fachliche Fristen fuer GPS, Fotos und Reports noch offen | P1 | Datenklassen, Fristen und Legal-Hold-Ausnahmen fachlich freigeben und danach in automatisierte Jobs ueberfuehren. |
 | DB-05 | Datenbankzugriff erfolgt mit einer allgemeinen App-Verbindung | P2 | Least-Privilege-DB-Rolle, getrennte Migrationsrolle und optional Read-only-Rolle definieren. |
 
 ## 5. Authentifizierungsanalyse
@@ -115,9 +115,9 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| AUTH-01 | JWT enthaelt Rolle und Warehouse-ID bis zu sieben Tage; `requireRole()` prueft nicht erneut die DB | P1 | Serverseitige Session-Tabelle oder DB-autorisierte Session-Rekonstruktion einfuehren; Sperrung/Rollenwechsel sofort wirksam machen. |
-| AUTH-02 | Keine Session-Revoke-Liste, keine Geraete-/Sessionverwaltung | P1 | Session-IDs, Rotation, Logout aller Geraete und Admin-Revoke einfuehren. |
-| AUTH-03 | Kein zentraler Login-/Register-/Resend-Rate-Limiter | P1 | Redis- oder DB-gestuetzten Rate-Limiter mit IP-, Account- und Device-Buckets einsetzen. |
+| AUTH-01 | DB-autorisierte `AuthSession` ist vorhanden; JWT bleibt Identitaetstraeger und Device-/MFA-Funktionen fehlen | P2 | Sessionverwaltung, Logout aller Geraete und MFA ergaenzen. |
+| AUTH-02 | Session-Widerruf ist vorhanden, aber keine Geraeteverwaltung und kein zentraler Logout aller Geraete | P1 | Sessionliste, Device-Revoke und Rotation als kontrollierten Workflow ergaenzen. |
+| AUTH-03 | DB-Rate-Limit fuer Login/Register/Verifizierung ist vorhanden; CAPTCHA/WAF und Monitoring fehlen | P1 | CAPTCHA/WAF fuer oeffentliche Angriffsflächen sowie Alarmierung und Retention ergaenzen. |
 | AUTH-04 | Keine MFA-Unterstuetzung | P2 | TOTP/WebAuthn fuer Admin, Support, Buchhaltung und spaetere Enterprise-Kunden vorbereiten. |
 | AUTH-05 | Passwort-Reset war im urspruenglichen Stand nicht vorhanden | P1 erledigt als Basispaket | Einmal-Token, 30-Minuten-Ablauf, DB-Rate-Limit, Session-Revoke, generische Antwort, E-Mail und AuditLog umgesetzt; MFA, Passwort-Historie und kompromittierte-Passwort-Pruefung bleiben offen. |
 | AUTH-06 | Kein ausdruecklicher CSRF-Token-/Origin-Pruefmechanismus | P2 | Fuer mutierende Cookie-Requests Origin/Referer pruefen oder CSRF-Token einfuehren. |
@@ -179,13 +179,13 @@ Empfohlene Zielstruktur vor weiteren Enterprise-Funktionen:
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| SEC-01 | Kein verteilter Abuse-Schutz fuer Auth und oeffentliche APIs | P1 | Zentralen Rate-Limiter und Account-Lockout/Backoff einfuehren. |
+| SEC-01 | Auth-Abuse-Schutz ist DB-gestuetzt vorhanden; oeffentliche Lead-/Verify-/API-Abuse-Abdeckung und Alarmierung sind nicht vollstaendig | P1 | Rate-Limits zentral auf oeffentliche Endpunkte ausweiten und bei Schwellwerten alarmieren. |
 | SEC-02 | Lead-Rate-Limit lebt nur in einer Prozess-Map | P2 | Bei Neustart oder mehreren Instanzen wirkungslos; Redis/DB verwenden. |
-| SEC-03 | Security-Header unvollstaendig | P1 | HSTS, CSP, Permissions-Policy und eine klare Cross-Origin-Policy ergaenzen. |
-| SEC-04 | Uploadvalidierung verlaesst sich auf Endung/MIME-Angabe | P1 | Magic-Byte-Pruefung, Quarantaene, Malware-Scan und Content-Disposition-Haertung einfuehren. |
+| SEC-03 | Security-Header sind im Caddy-/Next-Pfad vorhanden; CSP muss gegen alle produktiven Drittanbieterpfade weiter verifiziert werden | P2 | Staging-CSP-Report-Only und anschliessende harte Abnahme etablieren. |
+| SEC-04 | Uploads haben Magic-Byte-/Strukturpruefung; Quarantaene und Malware-Scan fehlen | P1 | Quarantaene-/Scanstatus und einen produktiven Scanner vor Freigabe einfuehren. |
 | SEC-05 | `svg`, Office-, ZIP- und Adobe-Dateien sind erlaubt | P1 | Aktive Inhalte nie inline ausliefern; Scan- und Download-Policy je Dateiklasse definieren. |
 | SEC-06 | Fuenf moderate Dependency-Advisories | P2 | Prisma/Next-Updates kontrolliert testen; kein blindes `npm audit fix --force`. |
-| SEC-07 | Keine automatischen SAST-, Secret- oder Dependency-Scans | P1 | GitHub Actions mit CodeQL, Dependency Review und Secret Scanning einrichten. |
+| SEC-07 | CodeQL und Dependabot sind im Repository vorhanden; GitHub-Branch-Schutz und Secret-Scanning-Einstellungen sind extern zu aktivieren | P1 | Repository-Regeln, Pflichtchecks und Secret-Scanning verbindlich aktivieren. |
 | SEC-08 | Keine externe Penetrationspruefung | P1 vor Launch | Scope und Abnahme fuer Auth, Upload, Payments, IDOR und Adminpfade beauftragen. |
 
 ## 9. Datenschutzanalyse
@@ -194,7 +194,7 @@ Betroffene personenbezogene Daten umfassen Kontaktdaten, Rechnungsadressen, Vert
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| DSGVO-01 | Keine technische Retention-/Loeschautomatik | P1 | Verzeichnis der Verarbeitungstaetigkeiten in technische Retention-Regeln ueberfuehren. |
+| DSGVO-01 | Technischer Retention-Dry-Run fuer Tokens/Sessions/Buckets vorhanden; sensible Nachweisdaten bleiben bis zur fachlichen Fristfreigabe erhalten | P1 | GPS-/Foto-/Dokumentenfristen, Legal Hold und Loeschpfade fachlich freigeben. |
 | DSGVO-02 | Kein Self-Service fuer Auskunft, Export, Berichtigung und Loeschanfrage | P2 | Betroffenenrechte als kontrollierten Workflow implementieren. |
 | DSGVO-03 | GPS-/Foto-Einwilligung und Rechtsgrundlage nicht im Produkt erzwungen | P1 | Einwilligungs-/Informationsprozess, Zweckbindung und Aufbewahrung mit Rechtsberatung definieren. |
 | DSGVO-04 | Lokaler Storage ohne dokumentierte Verschluesselung auf Dateiebene | P1 | Verschluesselung at rest, Schluesselmanagement und Backup-Verschluesselung nachweisen. |
@@ -242,14 +242,14 @@ Der primaere MVP-Nachweisweg ist ein externer GPS-Anbieter. Admins laden PDF und
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| FILE-01 | Storage liegt lokal in Docker-Volumes | P0 | S3-kompatiblen privaten Objekt-Storage mit Versionierung, Lifecycle und Offsite-Backup einfuehren. |
-| FILE-02 | Keine Magic-Byte-/Malware-Pruefung | P1 | Quarantaene-Pipeline und Scanstatus vor Freigabe einfuehren. |
+| FILE-01 | Privater lokaler Storage ist Standard; S3-kompatibler Adapter und Backup-Scheduler sind vorhanden, produktive externe Konfiguration und Restore-Nachweis fehlen | P0 | Hetzner-S3/Storage-Box mit Versionierung, Verschluesselung, Lifecycle und Restore-Test aktiv betreiben. |
+| FILE-02 | Magic-Byte-/Strukturpruefung ist vorhanden; Malware-Scan und Quarantaene fehlen | P1 | Quarantaene-Pipeline und Scanstatus vor Freigabe einfuehren. |
 | FILE-03 | Keine ablaufenden Download-Tokens | P2 | Autorisierte Proxy-Downloads beibehalten oder kurzlebige signierte URLs verwenden. |
-| FILE-04 | `DocumentVersion` verweist auf aktuelle geschuetzte Route, aber alte Binaerdateien werden nicht separat adressiert | P1 | Jede Version braucht einen unveraenderlichen Storage-Key; Versionsdownload muss exakt diese Datei liefern. |
+| FILE-04 | Neue `DocumentVersion`-Eintraege speichern unveraenderliche Storage-Keys; Altbestand ohne Key bleibt nicht abrufbar | P2 | Altbestand kontrolliert migrieren oder archivieren und Nachweis dafuer fuehren. |
 | FILE-05 | Generierte Reports/Rechnungen liegen privat, aber Legacy-Read fuer `public/generated` bleibt | P2 | Legacy-Artefakte migrieren und Legacy-Pfad nach erfolgreicher Migration entfernen. |
 | FILE-06 | Eigene Browser-GPS-Funktion existiert weiter, garantiert aber kein Background-Tracking | P2 | Produktcopy und Betrieb strikt beim externen GPS-MVP halten; Eigen-Tracking nur als nicht garantiertes Zusatzsystem. |
 | FILE-07 | Keine dokumentierte GPS-/Foto-Loeschfrist | P1 | Zweckgebundene Retention und automatische Loeschung definieren. |
-| FILE-08 | Der generische Dokumentservice erzeugt ohne Datei oder Inhalt einen synthetischen `FLYERO placeholder upload` | P1 | Leere Uploads strikt ablehnen; produktive Dokumente duerfen nie aus Ersatzinhalt erzeugt werden. |
+| FILE-08 | Synthetische Placeholder-Uploads sind entfernt; leere Uploads werden abgelehnt | erledigt | Regression durch Upload-Smoke und Dokumentservice beibehalten. |
 
 ## 12. Report- und PDF-Analyse
 
@@ -274,8 +274,8 @@ Der primaere MVP-Nachweisweg ist ein externer GPS-Anbieter. Admins laden PDF und
 
 ### Ist-Stand
 
-- 34 `.mjs`-Testdateien.
-- Rund 618 Assert-Aufrufe in den vorhandenen Tests.
+- 48 `.mjs`-Testdateien.
+- Rund 842 Assert-Aufrufe in den vorhandenen Tests.
 - Modulspezifische Smoke-Tests fuer Auth, Orders, Payments, Reports, Lager, Maps und UI-Quelltextregeln.
 - Build und Lint sind als lokale Gates vorhanden.
 
@@ -285,9 +285,9 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| TEST-01 | Keine CI-Ausfuehrung | P1 | Kritische Tests, Prisma-Validierung, Lint und Build bei jedem PR ausfuehren. |
+| TEST-01 | CI-Ausfuehrung ist im Repository vorhanden; externe Pflichtstatus und Branch-Schutz sind noch nicht nachgewiesen | P1 | GitHub-Branch-Schutz und Pflichtchecks aktivieren und dokumentieren. |
 | TEST-02 | Keine Coverage-Messung | P2 | Unit-/Integrationstest-Runner und Coverage-Grenzen fuer kritische Services einfuehren. |
-| TEST-03 | Keine vollstaendige Tenant-Negativmatrix | P0 mit Tenant-Einfuehrung | Ressourcentypen zwischen Tenant A/B automatisiert gegeneinander testen. |
+| TEST-03 | Tenant-Smoke prueft Kunden, Kernobjekte und kundenbezogene Nebenressourcen; vollstaendige A/B-IDOR-Matrix fuer alle Ressourcen fehlt | P1 | Jede kritische Customer-Ressource mit Tenant-A/B-Negativtests erweitern. |
 | TEST-04 | Kein echter Stripe-Staging-E2E | P1 | Stripe CLI/Testevents und Webhook-Retry in isolierter Umgebung pruefen. |
 | TEST-05 | Keine Upload-Sicherheitsfixtures | P1 | Polyglot-, falsche MIME-, Oversize-, ZIP- und SVG-Testfaelle ergaenzen. |
 | TEST-06 | Keine Last-/Performance-Baseline | P2 | API-, DB- und Upload-Baselines vor Skalierung festlegen. |
@@ -307,10 +307,10 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| OPS-01 | Keine automatischen, verschluesselten Offsite-Backups | P0 | Taegliche DB- und Storage-Backups ausserhalb des Servers, Aufbewahrung und Alarmierung einrichten. |
-| OPS-02 | Kein dokumentierter und geuebter Restore | P0 | Restore-Runbook und regelmaessigen Restore-Test mit Nachweis einfuehren. |
+| OPS-01 | Backup-Units, Installer und Restic-Skript sind im Repository; produktive Offsite-Ausfuehrung und Alarmnachweis fehlen | P0 | Hetzner-Ziel aktivieren, ersten Snapshot pruefen und Fehleralarm nachweisen. |
+| OPS-02 | Restore-Runbook und Restore-Skript sind vorhanden; ein echter isolierter Restore ist noch nicht nachgewiesen | P0 | Staging-Restore regelmaessig ausfuehren und Ergebnis versioniert dokumentieren. |
 | OPS-03 | Single-Server-/Single-Postgres-Betrieb | P2 | Vor Skalierung Managed DB oder replizierte Zielarchitektur, Wartungsfenster und RTO/RPO definieren. |
-| OPS-04 | Keine GitHub Actions, Staging- oder Preview-Umgebung | P1 | PR-Gates, Staging-Deployment und getrennte Secrets einrichten. |
+| OPS-04 | GitHub Actions/CodeQL sind vorhanden; Staging-/Preview-Umgebung und externe Branch-Regeln fehlen | P1 | Getrennte Staging-Secrets und verpflichtende PR-Gates aktivieren. |
 | OPS-05 | Kein externes Error-/Uptime-/Performance-Monitoring | P1 | Uptime-Check, Error Tracking, Metriken und Alarmwege einrichten. |
 | OPS-06 | Keine Request-ID in allen Logs | P1 | Request-ID am Edge erzeugen und durch API, Audit, ErrorLog und Jobs propagieren. |
 | OPS-07 | Caddy-Header unvollstaendig und `X-Powered-By` sichtbar | P2 | Header-Haertung und Next.js-Powered-By deaktivieren. |
@@ -328,9 +328,9 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 
 ### Luecken und Drift
 
-- `BETA_RELEASE_CHECKLIST.md` und `KNOWN_ISSUES.md` enthalten veraltete Aussagen, etwa dass NotificationQueue keine echten E-Mails verschickt oder generierte Artefakte noch oeffentlich liegen.
+- `BETA_RELEASE_CHECKLIST.md` und `KNOWN_ISSUES.md` sollten nach jedem Sicherheits-/Betriebspaket gegen den aktuellen Stand gespiegelt werden; einzelne historische Aussagen koennen noch veraltet sein.
 - Mehrere Dokumente und UI-Strings zeigen Encoding-Fehler wie `fÃ¼r` statt `fuer`/`für`.
-- Es fehlen eine aktuelle Systemarchitektur, API-Spezifikation, Permission-Matrix, Incident-Response, Backup-/Restore-Runbook, Release-Prozess, Vendor-Matrix und Datenklassifikation.
+- Systemarchitektur, Permission-Matrix und Backup-/Restore-Runbook sind vorhanden; API-Spezifikation, Incident-Response, Release-Prozess, Vendor-Matrix und Datenklassifikation fehlen weiterhin.
 - Dokumentation nennt ISO 27001/SOC 2 als Ziel, aber es gibt noch kein Control-Mapping oder Evidenzregister.
 
 Prioritaet: `P1` fuer Betriebs- und Sicherheitsrunbooks, `P2` fuer vollstaendige Due-Diligence-Dokumentation.
@@ -459,11 +459,11 @@ Die Reihenfolge minimiert zuerst Datenverlust und unkontrollierten Zugriff, dana
 - `https://flyero.org` antwortete am 12.07.2026 mit HTTP 200 ueber Caddy/HTTPS.
 - `https://flyero.org/api/health` antwortete mit `{"status":"OK"}`.
 - `npm audit --omit=dev --audit-level=high` meldete fuenf moderate, aber keine hohen oder kritischen Advisories. Die vorgeschlagenen Force-Fixes waeren breaking und wurden nicht automatisch angewendet.
-- Es wurden in dieser Auditphase keine produktiven Code-, Schema-, Datenbank- oder Port-Aenderungen vorgenommen.
+- In den Folgepaketen wurden produktive Code-, Schema- und Migrationsaenderungen umgesetzt; der PostgreSQL-Port blieb unveraendert auf `127.0.0.1:5432`.
 
 ## 21. Naechster Gate
 
-Der naechste sinnvolle Umsetzungsschritt ist kein weiteres Fachmodul. Zuerst werden die P0-/P1-Grundlagen in getrennten, pruefbaren Paketen umgesetzt. Paket 1 sollte `Backup/Restore und Betriebsnachweis` sein; Paket 2 `DB-autorisierte Sessions und zentraler Auth-Abuse-Schutz`.
+Der naechste sinnvolle Umsetzungsschritt ist kein weiteres Fachmodul. Die Repository-Pakete fuer Backup/Restore, DB-autorisierte Sessions, Auth-Abuse-Schutz, Security-Header und die Kunden-Kern-Tenanttrennung sind umgesetzt. Als naechstes bleiben produktive Betriebsnachweise, externe Kontrollen und die vollstaendige A/B-IDOR-Matrix fuer alle Rollen und Nebenressourcen.
 
 ## 22. Umsetzungsfortschritt nach dem Audit
 
@@ -484,6 +484,10 @@ Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgen
 - **Privater Object-Storage-Pfad: technisch vorbereitet, operativ noch offen.** `src/lib/privateObjectStorage.ts` bündelt lokale und S3-kompatible private Ablage für Dokumente sowie generierte Dateien. Lokal bleibt der Entwicklungsfallback aktiv; Produktion muss Bucket, Verschlüsselung, Versionierung, Lifecycle, initiale Migration und Restore-Test noch nachweisen.
 
 Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `FILE-08` nicht mehr als unverändert fehlend zu bewerten. `SEC-04` und `FILE-04` sind teilweise beziehungsweise durch die Folgeänderung für neu erzeugte Versionen behoben; Quarantäne, Malware-Scan und Altbestandsmigration bleiben offen.
+
+### Tenant-Nebenressourcen
+
+`DistributionArea`, `SupportTicket` und `OrderExperienceEvent` speichern bei Kundenbezug jetzt die Tenant-ID. Customer-Seiten, Kartenintelligenz, Support, gespeicherte Gebiete und UX-Ereignisse akzeptieren nur den eigenen Tenant oder explizit globale Plattformgebiete. Eine vollstaendige A/B-IDOR-Matrix fuer alle Ressourcen bleibt offen.
 
 ### P0 Backup-Scheduler
 
@@ -506,7 +510,7 @@ Der AuditLog-Kontext wurde als begrenzte, rueckwaertskompatible Erweiterung umge
 - Login und Logout schreiben den Request-Kontext mit. Bestehende Service-Aufrufe bleiben ohne kuenstliche Nachruestung kompatibel.
 - `tests/audit-log-v2-smoke.mjs` und der CI-Critical-Smoke pruefen Schema, Migration, Sanitization und die beiden Auth-Routen.
 
-Noch offen sind Tenant-ID, die Anbindung von Zahlungs-/Webhook-/Dokument-/Report-Aktionen sowie ein externes, manipulationsgeschuetztes Logziel mit verbindlicher Aufbewahrung.
+Die AuditLog-Anbindung hat bereits eine optionale Tenant-ID. Offen bleiben die konsequente Kontextanreicherung aller kritischen Zahlungs-, Webhook-, Dokument- und Report-Aktionen sowie ein externes, manipulationsgeschuetztes Logziel mit verbindlicher Aufbewahrung.
 
 ### P1 CI- und Security-Gates
 

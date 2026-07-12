@@ -51,6 +51,7 @@ type AreaInput = {
   householdNotes?: string | null;
   reusable?: boolean;
   customerId?: string | null;
+  tenantId?: string | null;
 };
 
 export function slugifyAreaName(value: string) {
@@ -275,6 +276,7 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
       confidence: confidenceDecimal(input.confidence),
       reusable: input.reusable ?? true,
       customerId: input.customerId ?? null,
+      tenantId: input.tenantId ?? null,
       createdById: input.userId ?? null,
       estimates: input.estimatedHouseholds
         ? {
@@ -460,6 +462,7 @@ export async function copyDistributionArea(input: { id: string; userId?: string 
     confidence: existing.confidence ? Number(existing.confidence) : null,
     reusable: existing.reusable,
     customerId: existing.customerId,
+    tenantId: existing.tenantId,
   });
 }
 
@@ -468,12 +471,21 @@ export async function assignAreaToOrder(input: {
   areaId: string;
   userId?: string | null;
 }) {
+  const order = await prisma.order.findUnique({
+    where: { id: input.orderId },
+    select: { id: true, tenantId: true },
+  });
+  if (!order) throw new Error("Auftrag wurde nicht gefunden.");
   const area = await prisma.distributionArea.findFirst({
-    where: { id: input.areaId, status: { not: "DELETED" } },
+    where: {
+      id: input.areaId,
+      status: { not: "DELETED" },
+      OR: [{ tenantId: null }, { tenantId: order.tenantId }],
+    },
   });
   if (!area) throw new Error("Gebiet wurde nicht gefunden.");
 
-  const order = await prisma.order.update({
+  const updatedOrder = await prisma.order.update({
     where: { id: input.orderId },
     data: {
       distributionAreaId: area.id,
@@ -492,17 +504,17 @@ export async function assignAreaToOrder(input: {
     areaId: area.id,
     userId: input.userId,
     action: "area.assigned",
-    newValue: { orderId: order.id, orderNumber: order.orderNumber },
+    newValue: { orderId: updatedOrder.id, orderNumber: updatedOrder.orderNumber },
   });
   await createAuditLog({
     userId: input.userId,
     action: "area.assigned",
     entityType: "Order",
-    entityId: order.id,
+    entityId: updatedOrder.id,
     newValues: { areaId: area.id, areaName: area.name },
   });
 
-  return { order, area };
+  return { order: updatedOrder, area };
 }
 
 export async function listAreas(filters: {
@@ -510,21 +522,25 @@ export async function listAreas(filters: {
   type?: DistributionAreaType;
   city?: string;
   includeDeleted?: boolean;
+  tenantId?: string | null;
 }) {
   return prisma.distributionArea.findMany({
     where: {
+      AND: [
+        ...(filters.tenantId ? [{ OR: [{ tenantId: null }, { tenantId: filters.tenantId }] }] : []),
+        ...(filters.search
+          ? [{
+              OR: [
+                { name: { contains: filters.search, mode: "insensitive" as const } },
+                { postalCode: { contains: filters.search, mode: "insensitive" as const } },
+                { district: { contains: filters.search, mode: "insensitive" as const } },
+              ],
+            }]
+          : []),
+      ],
       ...(filters.includeDeleted ? {} : { status: { not: "DELETED" } }),
       ...(filters.type ? { type: filters.type } : {}),
       ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}),
-      ...(filters.search
-        ? {
-            OR: [
-              { name: { contains: filters.search, mode: "insensitive" } },
-              { postalCode: { contains: filters.search, mode: "insensitive" } },
-              { district: { contains: filters.search, mode: "insensitive" } },
-            ],
-          }
-        : {}),
     },
     include: {
       polygons: { orderBy: { sortOrder: "asc" } },

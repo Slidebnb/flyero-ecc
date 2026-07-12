@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -26,9 +25,9 @@ function tone(status: string): "neutral" | "success" | "warning" | "danger" {
 }
 
 export default async function CustomerPaymentsPage() {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const payments = await prisma.payment.findMany({
-    where: { customer: { userId: session.id } },
+    where: { tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
     include: { order: true, refunds: true },
     orderBy: { updatedAt: "desc" },
   });

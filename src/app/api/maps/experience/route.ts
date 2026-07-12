@@ -14,12 +14,22 @@ export async function POST(request: NextRequest) {
     const session = await requireRole([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const body = await readBody(request) as Record<string, unknown>;
     const customer = session.role === UserRole.CUSTOMER
-      ? await prisma.customerProfile.findUnique({ where: { userId: session.id }, select: { id: true } })
+      ? await prisma.customerProfile.findFirst({ where: { userId: session.id, tenantId: session.tenantId ?? undefined }, select: { id: true, tenantId: true } })
+      : null;
+    const requestedOrderId = typeof body.orderId === "string" && body.orderId ? body.orderId : null;
+    const linkedOrder = requestedOrderId
+      ? await prisma.order.findFirst({
+          where: customer
+            ? { id: requestedOrderId, customer: { userId: session.id, tenantId: customer.tenantId } }
+            : { id: requestedOrderId },
+          select: { id: true, tenantId: true },
+        })
       : null;
     const event = await prisma.orderExperienceEvent.create({
       data: {
-        orderId: typeof body.orderId === "string" && body.orderId ? body.orderId : null,
+        orderId: linkedOrder?.id ?? null,
         customerId: customer?.id ?? (typeof body.customerId === "string" ? body.customerId : null),
+        tenantId: customer?.tenantId ?? linkedOrder?.tenantId ?? null,
         userId: session.id,
         eventType: typeof body.eventType === "string" ? body.eventType : "WIZARD_INTERACTION",
         source: typeof body.source === "string" ? body.source : "order-wizard",

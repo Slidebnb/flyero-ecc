@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { ArrowRight, Camera, FileText, MapPinned, Navigation, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
-import { OrderStatus, type ReportStatus, UserRole } from "@prisma/client";
+import { OrderStatus, type ReportStatus } from "@prisma/client";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_ORDER_STATUS_LABELS, customerAreaName, customerOrderName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
 import { EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
 function formatNumber(value: number) {
@@ -150,9 +150,9 @@ function CampaignEvidencePreview({ order, report, compact = false }: { order: Da
 }
 
 export default async function CustomerDashboardPage() {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const profile = await prisma.customerProfile.findUnique({
-    where: { userId: session.id },
+    where: { userId: session.id, tenantId: session.tenantId },
     select: { id: true, companyName: true, contactName: true },
   });
 
@@ -173,18 +173,18 @@ export default async function CustomerDashboardPage() {
     latestInvoice,
   ] = await Promise.all([
     prisma.order.count({
-      where: { customerId: profile.id, status: { in: ["REPORT_READY_PREVIEW", "DISTRIBUTION_APPROVED"] } },
+      where: { customerId: profile.id, tenantId: session.tenantId, status: { in: ["REPORT_READY_PREVIEW", "DISTRIBUTION_APPROVED"] } },
     }),
     prisma.invoice.findMany({
-      where: { customerId: profile.id },
+      where: { customerId: profile.id, tenantId: session.tenantId },
       select: { id: true, totalGross: true, status: true, invoiceDate: true, invoiceNumber: true, pdfUrl: true },
       orderBy: { createdAt: "desc" },
     }),
     prisma.supportTicket.count({
-      where: { customerId: profile.id, status: { notIn: ["RESOLVED", "CLOSED"] } },
+      where: { customerId: profile.id, tenantId: session.tenantId, status: { notIn: ["RESOLVED", "CLOSED"] } },
     }),
     prisma.order.findFirst({
-      where: { customerId: profile.id },
+      where: { customerId: profile.id, tenantId: session.tenantId },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -201,7 +201,7 @@ export default async function CustomerDashboardPage() {
       },
     }),
     prisma.report.findFirst({
-      where: { status: "PUBLISHED", order: { customerId: profile.id }, tour: { status: "APPROVED" } },
+      where: { tenantId: session.tenantId, status: "PUBLISHED", order: { customerId: profile.id, tenantId: session.tenantId }, tour: { status: "APPROVED" } },
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
@@ -232,7 +232,7 @@ export default async function CustomerDashboardPage() {
       },
     }),
     prisma.invoice.findFirst({
-      where: { customerId: profile.id },
+      where: { customerId: profile.id, tenantId: session.tenantId },
       orderBy: { createdAt: "desc" },
       select: { id: true, invoiceNumber: true, status: true, totalGross: true, invoiceDate: true, pdfUrl: true },
     }),

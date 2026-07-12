@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { TicketPriority, TicketType, UserRole } from "@prisma/client";
+import { TicketPriority, TicketType } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerAreaName, customerOrderName, customerReportName, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import {
   createTicket,
@@ -20,18 +20,18 @@ const customerTicketTypes = [
   TicketType.OTHER,
 ];
 
-async function customerOrderOptions(sessionId: string) {
+async function customerOrderOptions(sessionId: string, tenantId: string) {
   return prisma.order.findMany({
-    where: { customer: { userId: sessionId } },
+    where: { tenantId, customer: { userId: sessionId, tenantId } },
     select: { id: true, orderNumber: true, targetAreaName: true },
     orderBy: { updatedAt: "desc" },
     take: 25,
   });
 }
 
-async function customerReportOptions(sessionId: string) {
+async function customerReportOptions(sessionId: string, tenantId: string) {
   return prisma.report.findMany({
-    where: { customer: { userId: sessionId } },
+    where: { tenantId, customer: { userId: sessionId, tenantId } },
     include: { order: { select: { orderNumber: true, targetAreaName: true } } },
     orderBy: { updatedAt: "desc" },
     take: 25,
@@ -40,17 +40,17 @@ async function customerReportOptions(sessionId: string) {
 
 async function createCustomerTicket(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const [orders, reports] = await Promise.all([
-    customerOrderOptions(session.id),
-    customerReportOptions(session.id),
+    customerOrderOptions(session.id, session.tenantId),
+    customerReportOptions(session.id, session.tenantId),
   ]);
   const type = customerTicketTypes[Number(formData.get("typeKey") || 0)] ?? TicketType.CUSTOMER_SUPPORT;
   const selectedReport = reports[Number(formData.get("reportKey") || -1)] ?? null;
   const selectedOrder = orders[Number(formData.get("orderKey") || -1)] ?? null;
   const report = selectedReport
     ? await prisma.report.findFirst({
-        where: { id: selectedReport.id, customer: { userId: session.id } },
+        where: { id: selectedReport.id, tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
         select: { id: true, orderId: true, tourId: true },
       })
     : null;
@@ -74,12 +74,12 @@ function tone(status: string) {
 }
 
 export default async function CustomerSupportPage({ searchParams }: { searchParams: Promise<{ reportId?: string }> }) {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const { reportId } = await searchParams;
   const [tickets, orders, reports] = await Promise.all([
     listTickets(session),
-    customerOrderOptions(session.id),
-    customerReportOptions(session.id),
+    customerOrderOptions(session.id, session.tenantId),
+    customerReportOptions(session.id, session.tenantId),
   ]);
 
   const selectedReportIndex = reportId ? reports.findIndex((report) => report.id === reportId) : -1;

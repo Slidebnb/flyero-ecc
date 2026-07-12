@@ -9,7 +9,7 @@ export async function GET() {
       where: {
         tenantId: session.tenantId,
         status: "PUBLISHED",
-        order: { customer: { userId: session.id } },
+        order: { tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
         tour: { status: "APPROVED" },
       },
       include: {

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { UserRole } from "@prisma/client";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import {
@@ -12,7 +11,7 @@ import {
   customerOrderTone,
 } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import {
   REMAINING_STOCK_STATUS_LABELS,
   WAREHOUSE_INVENTORY_STATUS_LABELS,
@@ -34,11 +33,11 @@ function paymentLabel(status?: string | null) {
 }
 
 export default async function CustomerOrderDetailPage({ params, searchParams }: PageProps) {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const { id } = await params;
   const query = searchParams ? await searchParams : {};
   const order = await prisma.order.findFirst({
-    where: { id, customer: { userId: session.id } },
+    where: { id, tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
     include: {
       statusEvents: { orderBy: { createdAt: "desc" }, take: 4 },
       distributionArea: true,

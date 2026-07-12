@@ -1,19 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_DOCUMENT_STATUS_LABELS, customerAreaName, customerOrderName, customerSafeFilename, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { DOCUMENT_TYPE_LABELS, listDocuments } from "@/lib/documents";
 import { prisma } from "@/lib/prisma";
 
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function CustomerOrderDocumentsPage({ params }: PageProps) {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const { id } = await params;
-  const order = await prisma.order.findFirst({ where: { id, customer: { userId: session.id } }, select: { id: true, orderNumber: true, targetAreaName: true } });
+  const order = await prisma.order.findFirst({ where: { id, tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } }, select: { id: true, orderNumber: true, targetAreaName: true } });
   if (!order) notFound();
   const documents = await listDocuments(session, { orderId: id });
 

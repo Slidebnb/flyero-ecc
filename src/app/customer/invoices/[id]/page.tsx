@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -26,10 +25,10 @@ function statusTone(status: string) {
 }
 
 export default async function CustomerInvoiceDetailPage({ params }: PageProps) {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const { id } = await params;
   const invoice = await prisma.invoice.findFirst({
-    where: { id, customer: { userId: session.id } },
+    where: { id, tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
     include: { customer: true, order: true, payment: true, items: true },
   });
   if (!invoice) notFound();

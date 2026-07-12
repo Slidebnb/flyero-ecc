@@ -1,13 +1,16 @@
-import { UserRole } from "@prisma/client";
 import { SmartOrderWizard } from "@/app/customer/orders/new/SmartOrderWizard";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
 export default async function NewCustomerOrderPage() {
-  await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const today = new Date().toISOString().slice(0, 10);
   const areas = await prisma.distributionArea.findMany({
-    where: { reusable: true, status: "ACTIVE" },
+    where: {
+      reusable: true,
+      status: "ACTIVE",
+      OR: [{ tenantId: null }, { tenantId: session.tenantId }],
+    },
     orderBy: [{ city: "asc" }, { name: "asc" }],
     select: {
       id: true,

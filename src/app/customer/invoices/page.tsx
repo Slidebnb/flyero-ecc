@@ -1,9 +1,8 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { customerOrderName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { requireTenantSession } from "@/lib/tenant";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
@@ -16,9 +15,9 @@ const INVOICE_STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function CustomerInvoicesPage() {
-  const session = await requireRole([UserRole.CUSTOMER]);
+  const session = await requireTenantSession();
   const invoices = await prisma.invoice.findMany({
-    where: { customer: { userId: session.id } },
+    where: { tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
     include: { order: true, payment: true },
     orderBy: { invoiceDate: "desc" },
   });
