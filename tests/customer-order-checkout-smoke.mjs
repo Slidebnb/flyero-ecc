@@ -113,7 +113,7 @@ function orderPayload(suffix, completionPath) {
       calculatedAt: new Date().toISOString(),
       calculationVersion: "order-area-v1",
       householdCountSource: "area-density-formula",
-      pricingVersion: "premium-distribution-v2",
+      pricingVersion: "premium-distribution-v3",
       areaReference: { targetAreaName: "Koblenz Smoke", postalCode: "56068", city: "Koblenz" },
     }),
     centerLat: 50.3569,
@@ -170,7 +170,7 @@ try {
   assert(directOrder?.priceRuleSnapshot?.areaCalculationSnapshot, "Area Calculation Snapshot fehlt bei Direktbuchung.");
   assert(directOrder?.priceRuleSnapshot?.completionPath === "direct_payment", "Abschlussweg direct_payment fehlt.");
   assert(directOrder?.priceRuleSnapshot?.printDataStatus === "UPLOAD_LATER", "Druckdatenstatus fehlt.");
-  assert(directOrder?.priceRuleSnapshot?.pricingVersion === "premium-distribution-v2", "Premium Pricing-Version fehlt im Snapshot.");
+  assert(directOrder?.priceRuleSnapshot?.pricingVersion === "premium-distribution-v3", "Premium Pricing-Version fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.minimumOrderValueNet === "599", "Mindestauftragswert fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.tier1Rate === "0.38", "Tier 1 Rate fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.tier2Rate === "0.34", "Tier 2 Rate fehlt im Snapshot.");

@@ -1526,6 +1526,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
           </div>
           <dl>
             <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
+            <div><dt>Empfohlene Flyerzahl</dt><dd>{formatNumber(recommendedFlyerQuantity)} Flyer</dd></div>
             <div><dt>Preis netto zzgl. MwSt.</dt><dd>{Number(netPrice) > 0 ? formatCurrency(netPrice) : "wird berechnet"}</dd></div>
             <div><dt>Nächstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird geprüft"}</dd></div>
           </dl>

@@ -125,7 +125,7 @@ try {
   const overviewEnd = wizard.indexOf("</aside>", overviewStart);
   const overview = overviewStart >= 0 && overviewEnd > overviewStart ? wizard.slice(overviewStart, overviewEnd) : "";
   assert(overview, "Gebietsuebersicht wurde im Wizard nicht gefunden.");
-  assert(!overview.includes("Empfohlene Flyerzahl</dt>"), "Gebietsuebersicht zeigt entfernte Kennzahl: Empfohlene Flyerzahl");
+  assert(overview.includes("Empfohlene Flyerzahl</dt>"), "Gebietsuebersicht zeigt die Flyerempfehlung nicht.");
   for (const removedLabel of ["Haushalte</dt>", "Laufstrecke</dt>", "Zustelldauer</dt>", "Benötigte Verteiler</dt>"]) {
     assert(!overview.includes(removedLabel), `Gebietsuebersicht zeigt entfernte Kennzahl: ${removedLabel}`);
   }
@@ -138,7 +138,7 @@ try {
     "local-56170",
   ]);
   includes("src/lib/pricing.ts", [
-    "premium-distribution-v2",
+    "premium-distribution-v3",
     "calculatePremiumDistributionNetPrice",
     "minimumOrderValueNet",
     "tier1Rate",
@@ -185,7 +185,7 @@ try {
     assert(item.data.metrics.confidence, "Confidence fehlt.");
     assert(item.data.metrics.source, "Berechnungsquelle fehlt.");
     assert(item.data.metrics.householdCountSource, "Household-Quelle fehlt.");
-    assert(item.data.metrics.pricingVersion === "premium-distribution-v2", "Pricing-Version fehlt.");
+    assert(item.data.metrics.pricingVersion === "premium-distribution-v3", "Pricing-Version fehlt.");
     assert(item.data.metrics.areaReference, "Area-Referenz fehlt.");
     assert(item.data.metrics.calculatedAt, "Berechnungszeitpunkt fehlt.");
     assert(item.data.metrics.calculationVersion === "order-area-v1", "Calculation-Version fehlt.");

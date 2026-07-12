@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureDefaultPricingSettings, getSystemSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 
 const VAT_SETTING_KEY = PRICING_SETTING_KEYS.vatRate;
-const PREMIUM_PRICING_VERSION = "premium-distribution-v2";
+const PREMIUM_PRICING_VERSION = "premium-distribution-v3";
 const MINIMUM_ORDER_VALUE_NET = new Prisma.Decimal("599");
 const TIER_1_LIMIT = 5000;
 const TIER_2_LIMIT = 10000;
@@ -53,7 +53,7 @@ export type PriceCalculation = {
   };
 };
 
-export function calculatePremiumDistributionNetPrice(flyerQuantity: number) {
+export function calculatePremiumDistributionTierNetPrice(flyerQuantity: number) {
   const safeQuantity = Math.max(0, Math.floor(flyerQuantity));
   if (safeQuantity <= TIER_1_LIMIT) {
     return TIER_1_RATE.mul(safeQuantity).toDecimalPlaces(2);
@@ -69,6 +69,13 @@ export function calculatePremiumDistributionNetPrice(flyerQuantity: number) {
     .plus(TIER_2_RATE.mul(TIER_2_LIMIT - TIER_1_LIMIT))
     .plus(TIER_3_RATE.mul(safeQuantity - TIER_2_LIMIT))
     .toDecimalPlaces(2);
+}
+
+export function calculatePremiumDistributionNetPrice(flyerQuantity: number) {
+  return Prisma.Decimal.max(
+    calculatePremiumDistributionTierNetPrice(flyerQuantity),
+    MINIMUM_ORDER_VALUE_NET,
+  ).toDecimalPlaces(2);
 }
 
 export async function getActivePricingRule(
@@ -108,7 +115,7 @@ export async function calculateOrderPrice(input: {
   const basePrice = rule?.basePrice ?? new Prisma.Decimal("0");
   const pricePerUnit = rule?.pricePerUnit ?? TIER_1_RATE;
   const minimumNetPrice = rule?.minimumNetPrice ?? MINIMUM_ORDER_VALUE_NET;
-  const baseDistributionNet = calculatePremiumDistributionNetPrice(input.flyerQuantity);
+  const baseDistributionNet = calculatePremiumDistributionTierNetPrice(input.flyerQuantity);
   const areaDifficulty = "NORMAL" as const;
   const areaDifficultyFactor = AREA_DIFFICULTY_FACTORS[areaDifficulty];
   const calculatedNet = baseDistributionNet.mul(areaDifficultyFactor).toDecimalPlaces(2);

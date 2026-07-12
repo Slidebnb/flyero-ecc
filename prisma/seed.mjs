@@ -145,7 +145,7 @@ async function ensurePricing() {
   }
 }
 
-function calculatePremiumDistributionNetPrice(flyerQuantity) {
+function calculatePremiumDistributionTierNetPrice(flyerQuantity) {
   const safeQuantity = Math.max(0, Math.floor(flyerQuantity));
   if (safeQuantity <= 5000) return new Prisma.Decimal("0.38").mul(safeQuantity).toDecimalPlaces(2);
   if (safeQuantity <= 10000) {
@@ -156,6 +156,13 @@ function calculatePremiumDistributionNetPrice(flyerQuantity) {
   return new Prisma.Decimal("3600")
     .plus(new Prisma.Decimal("0.31").mul(safeQuantity - 10000))
     .toDecimalPlaces(2);
+}
+
+function calculatePremiumDistributionNetPrice(flyerQuantity) {
+  return Prisma.Decimal.max(
+    calculatePremiumDistributionTierNetPrice(flyerQuantity),
+    new Prisma.Decimal("599"),
+  ).toDecimalPlaces(2);
 }
 
 async function calculateSeedPrice(flyerQuantity) {
@@ -174,8 +181,8 @@ async function calculateSeedPrice(flyerQuantity) {
   const basePrice = rule?.basePrice ?? new Prisma.Decimal("0");
   const pricePerUnit = rule?.pricePerUnit ?? new Prisma.Decimal("0.38");
   const minimumNetPrice = rule?.minimumNetPrice ?? new Prisma.Decimal("599");
-  const baseDistributionNet = calculatePremiumDistributionNetPrice(flyerQuantity);
-  const net = Prisma.Decimal.max(baseDistributionNet, new Prisma.Decimal("599")).toDecimalPlaces(2);
+  const baseDistributionNet = calculatePremiumDistributionTierNetPrice(flyerQuantity);
+  const net = calculatePremiumDistributionNetPrice(flyerQuantity);
   const vat = net.mul(vatRate).toDecimalPlaces(2);
 
   return {
@@ -190,7 +197,7 @@ async function calculateSeedPrice(flyerQuantity) {
       minimumNetPrice: minimumNetPrice.toString(),
       vatRate: vatRate.toString(),
       ruleId: rule?.id ?? null,
-      pricingVersion: "premium-distribution-v2",
+      pricingVersion: "premium-distribution-v3",
       minimumOrderValueNet: "599",
       tier1Rate: "0.38",
       tier2Rate: "0.34",
