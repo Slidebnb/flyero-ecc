@@ -10,12 +10,25 @@ function firstForwardedValue(value: string | null) {
   return candidate.length > 0 && candidate.length <= 128 ? candidate : null;
 }
 
-export function auditRequestContext(request: Request): AuditRequestContext {
-  const suppliedRequestId = request.headers.get("x-request-id")?.trim() ?? "";
+function contextFromHeaders(headers: Pick<Headers, "get">): AuditRequestContext {
+  const suppliedRequestId = headers.get("x-request-id")?.trim() ?? "";
   const requestId = REQUEST_ID_PATTERN.test(suppliedRequestId) ? suppliedRequestId : randomUUID();
-  const ipAddress = firstForwardedValue(request.headers.get("x-forwarded-for"))
-    ?? firstForwardedValue(request.headers.get("x-real-ip"));
-  const userAgent = request.headers.get("user-agent")?.slice(0, MAX_USER_AGENT_LENGTH) || null;
+  const ipAddress = firstForwardedValue(headers.get("x-forwarded-for"))
+    ?? firstForwardedValue(headers.get("x-real-ip"));
+  const userAgent = headers.get("user-agent")?.slice(0, MAX_USER_AGENT_LENGTH) || null;
 
   return { requestId, ipAddress, userAgent };
+}
+
+export function auditRequestContext(request: Request): AuditRequestContext {
+  return contextFromHeaders(request.headers);
+}
+
+export async function currentAuditRequestContext(): Promise<AuditRequestContext | null> {
+  try {
+    const { headers } = await import("next/headers");
+    return contextFromHeaders(await headers());
+  } catch {
+    return null;
+  }
 }

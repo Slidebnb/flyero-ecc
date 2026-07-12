@@ -66,6 +66,7 @@
     "test:dispatch-tenant-scope": "node tests/dispatch-tenant-scope-smoke.mjs",
     "test:logistics-tenant-scope": "node tests/logistics-tenant-scope-smoke.mjs",
     "test:health-fail-safe": "node tests/health-fail-safe-smoke.mjs",
+    "test:request-id-propagation": "node tests/request-id-propagation-smoke.mjs",
     "test:backup-scheduler": "node tests/backup-scheduler-smoke.mjs",
     "test:tenant-foundation": "node tests/tenant-foundation-smoke.mjs",
     "test:public-url": "node --experimental-strip-types tests/public-url-smoke.mjs",

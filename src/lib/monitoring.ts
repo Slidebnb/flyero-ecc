@@ -9,6 +9,7 @@ import {
   SystemLogLevel,
 } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
+import { currentAuditRequestContext } from "@/lib/auditRequestContext";
 import { privateStorageConfiguration } from "@/lib/privateObjectStorage";
 import { prisma } from "@/lib/prisma";
 
@@ -21,6 +22,16 @@ type ErrorLogInput = {
   stack?: string | null;
   metadata?: JsonMetadata;
 };
+
+function attachRequestId(metadata: JsonMetadata, requestId?: string | null): JsonMetadata {
+  if (!requestId) return metadata;
+
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    return { ...(metadata as Prisma.InputJsonObject), requestId } as Prisma.InputJsonValue;
+  }
+
+  return { value: metadata ?? null, requestId } as Prisma.InputJsonValue;
+}
 
 function statusFromChecks(checks: HealthStatus[]) {
   if (checks.includes(HealthStatus.DOWN)) return HealthStatus.DOWN;
@@ -103,24 +114,27 @@ export async function createSystemLog(input: {
   message: string;
   metadata?: JsonMetadata;
 }) {
+  const requestContext = await currentAuditRequestContext();
+
   return prisma.systemLog.create({
     data: {
       level: input.level ?? SystemLogLevel.INFO,
       source: input.source,
       message: input.message,
-      metadata: input.metadata,
+      metadata: attachRequestId(input.metadata, requestContext?.requestId),
     },
   });
 }
 
 export async function createErrorLog(input: ErrorLogInput) {
+  const requestContext = await currentAuditRequestContext();
   const error = await prisma.errorLog.create({
     data: {
       severity: input.severity ?? ErrorSeverity.MEDIUM,
       source: input.source,
       message: input.message,
       stack: input.stack,
-      metadata: input.metadata,
+      metadata: attachRequestId(input.metadata, requestContext?.requestId),
     },
   });
 
@@ -382,17 +396,20 @@ export async function getMonitoringDashboard() {
 }
 
 export async function logBackgroundJobStart(jobType: string, metadata?: JsonMetadata) {
+  const requestContext = await currentAuditRequestContext();
+
   return prisma.backgroundJobLog.create({
     data: {
       jobType,
       status: BackgroundJobStatus.STARTED,
-      metadata,
+      metadata: attachRequestId(metadata, requestContext?.requestId),
     },
   });
 }
 
 export async function logBackgroundJobSuccess(id: string, metadata?: JsonMetadata) {
   const existing = await prisma.backgroundJobLog.findUnique({ where: { id } });
+  const requestContext = await currentAuditRequestContext();
   const finishedAt = new Date();
   return prisma.backgroundJobLog.update({
     where: { id },
@@ -400,13 +417,14 @@ export async function logBackgroundJobSuccess(id: string, metadata?: JsonMetadat
       status: BackgroundJobStatus.SUCCESS,
       finishedAt,
       durationMs: existing ? finishedAt.getTime() - existing.startedAt.getTime() : null,
-      metadata: metadata ?? existing?.metadata ?? undefined,
+      metadata: attachRequestId(metadata ?? existing?.metadata ?? undefined, requestContext?.requestId),
     },
   });
 }
 
 export async function logBackgroundJobFailure(id: string, error: unknown, metadata?: JsonMetadata) {
   const existing = await prisma.backgroundJobLog.findUnique({ where: { id } });
+  const requestContext = await currentAuditRequestContext();
   const finishedAt = new Date();
   const normalized = normalizeError(error, "Background Job fehlgeschlagen.");
   const job = await prisma.backgroundJobLog.update({
@@ -416,7 +434,7 @@ export async function logBackgroundJobFailure(id: string, error: unknown, metada
       finishedAt,
       durationMs: existing ? finishedAt.getTime() - existing.startedAt.getTime() : null,
       errorMessage: normalized.message,
-      metadata: metadata ?? existing?.metadata ?? undefined,
+      metadata: attachRequestId(metadata ?? existing?.metadata ?? undefined, requestContext?.requestId),
     },
   });
 

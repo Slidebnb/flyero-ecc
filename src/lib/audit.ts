@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { currentAuditRequestContext } from "@/lib/auditRequestContext";
 
 export type AuditRequestContext = {
   requestId?: string | null;
@@ -20,6 +21,8 @@ type AuditInput = {
 };
 
 export async function createAuditLog(input: AuditInput) {
+  const requestContext = input.requestContext ?? await currentAuditRequestContext();
+
   await prisma.auditLog.create({
     data: {
       userId: input.userId ?? null,
@@ -30,9 +33,9 @@ export async function createAuditLog(input: AuditInput) {
       oldValues: input.oldValues ?? undefined,
       newValues: input.newValues ?? undefined,
       metadata: input.metadata ?? undefined,
-      requestId: input.requestContext?.requestId ?? undefined,
-      ipAddress: input.requestContext?.ipAddress ?? undefined,
-      userAgent: input.requestContext?.userAgent ?? undefined,
+      requestId: requestContext?.requestId ?? undefined,
+      ipAddress: requestContext?.ipAddress ?? undefined,
+      userAgent: requestContext?.userAgent ?? undefined,
       result: input.result ?? "SUCCESS",
     },
   });

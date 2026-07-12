@@ -191,6 +191,9 @@ jobs:
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe
 
+      - name: Request-ID propagation contract smoke
+        run: npm run test:request-id-propagation
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

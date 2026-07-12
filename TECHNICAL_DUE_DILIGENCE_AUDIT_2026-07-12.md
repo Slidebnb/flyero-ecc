@@ -311,6 +311,13 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - Der neue Contract-Smoke `npm run test:health-fail-safe` ist in CI eingebunden.
 - Das ersetzt kein externes Uptime-/Error-Monitoring und keinen produktiven Alarmweg; OPS-05 und OPS-06 bleiben offen.
 
+### Request-ID-Korrelation (13.07.2026)
+
+- Der Proxy erzeugt oder validiert eine begrenzte `x-request-id` fuer API- und geschuetzte Portal-Aufrufe, reicht sie an die Route weiter und gibt sie in der Response zurueck.
+- `createAuditLog` liest den aktuellen Request-Kontext automatisch, wenn eine Route keinen expliziten Kontext uebergibt.
+- System-, Error- und Background-Job-Logs uebernehmen die Request-ID zusaetzlich in ihren Metadaten; sensible Headerwerte werden weiterhin begrenzt.
+- Der Contract-Smoke `npm run test:request-id-propagation` ist in CI eingebunden. Das behebt die Repository-seitige Basiskorrelation, ersetzt aber kein externes Error-/Performance-Monitoring und keine vollständige Korrelation von bereits bestehenden historischen Logs.
+
 ### Risiken
 
 | ID | Befund | Prioritaet | Massnahme |
@@ -320,7 +327,7 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 | OPS-03 | Single-Server-/Single-Postgres-Betrieb | P2 | Vor Skalierung Managed DB oder replizierte Zielarchitektur, Wartungsfenster und RTO/RPO definieren. |
 | OPS-04 | GitHub Actions/CodeQL sind vorhanden; Staging-/Preview-Umgebung und externe Branch-Regeln fehlen | P1 | Getrennte Staging-Secrets und verpflichtende PR-Gates aktivieren. |
 | OPS-05 | Kein externes Error-/Uptime-/Performance-Monitoring | P1 | Uptime-Check, Error Tracking, Metriken und Alarmwege einrichten. |
-| OPS-06 | Keine Request-ID in allen Logs | P1 | Request-ID am Edge erzeugen und durch API, Audit, ErrorLog und Jobs propagieren. |
+| OPS-06 | Request-ID-Basiskorrelation fuer neue API-/Portal-Requests ist vorhanden; historische Logs und externe Korrelation bleiben offen | P1 | Request-ID im externen Monitoring/Deployment nachweisen und bestehende Hintergrundprozesse sowie historische Daten migrieren, wo fachlich erforderlich. |
 | OPS-07 | Caddy-Header unvollstaendig und `X-Powered-By` sichtbar | P2 | Header-Haertung und Next.js-Powered-By deaktivieren. |
 | OPS-08 | Docker-Images sind nicht auf Digest gepinnt | P2 | Reproduzierbare Images und kontrollierte Update-Policy einfuehren. |
 | OPS-09 | Kein Deploy-Rollback- oder Zero-Downtime-Verfahren | P2 | Release-Artefakte, Rollback und Migration-Kompatibilitaet dokumentieren. |
