@@ -2,6 +2,8 @@
 
 Stand: 2026-07-03
 
+> Historischer Auditstand. Der aktuelle, vollstaendige CTO-, Sicherheits- und Due-Diligence-Abgleich vom 12.07.2026 steht in `TECHNICAL_DUE_DILIGENCE_AUDIT_2026-07-12.md`. Aussagen in diesem Dokument koennen durch spaetere Haertungen ueberholt sein.
+
 Ziel dieses Dokuments ist ein CTO-orientierter Vollabgleich der schonungslosen Audit-Analyse gegen den tatsaechlichen Repo-Stand in `C:\Users\Administrator\ecc`. Das Ergebnis kombiniert:
 
 1. eine Befundmatrix pro Audit-These
