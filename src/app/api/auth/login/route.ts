@@ -7,6 +7,7 @@ import { loginSchema } from "@/lib/validators";
 import { createAuditLog } from "@/lib/audit";
 import { ROLE_HOME } from "@/lib/constants";
 import { publicUrl } from "@/lib/publicUrl";
+import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
 
 function safeNext(value: unknown) {
   if (typeof value !== "string") return "";
@@ -15,6 +16,11 @@ function safeNext(value: unknown) {
 
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
+  const loginEmail = body && typeof body === "object" && !Array.isArray(body) && typeof (body as Record<string, unknown>).email === "string"
+    ? String((body as Record<string, unknown>).email)
+    : "";
+  const abuseDecision = await enforceAuthRateLimit(request, "login", loginEmail);
+  if (!abuseDecision.allowed) return authRateLimitResponse(abuseDecision);
   const parsed = loginSchema.safeParse(body);
   const next = safeNext((body as Record<string, unknown>).next || request.nextUrl.searchParams.get("next"));
 

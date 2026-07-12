@@ -36,6 +36,7 @@ assert.match(ci, /flyero-dev\.log/, "CI muss die Testserver-Ausgabe fuer Fehlerd
 for (const script of [
   "test:auth-ux",
   "test:auth-session",
+  "test:auth-abuse",
   "test:module25",
   "test:customer-order-area",
   "test:customer-order-checkout",

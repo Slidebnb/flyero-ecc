@@ -12,6 +12,7 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
 import { sendVerificationEmail } from "@/lib/verificationEmail";
+import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
 
 function safeNext(value: unknown) {
   if (typeof value !== "string") return "";
@@ -20,6 +21,8 @@ function safeNext(value: unknown) {
 
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
+  const abuseDecision = await enforceAuthRateLimit(request, "register");
+  if (!abuseDecision.allowed) return authRateLimitResponse(abuseDecision);
   const parsed = customerRegisterSchema.safeParse(body);
   const next = safeNext((body as Record<string, unknown>).next || request.nextUrl.searchParams.get("next"));
 

@@ -3,6 +3,7 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { readBody, errorResponse } from "@/lib/request";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/verificationEmail";
+import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
 
 function emailFromBody(body: unknown) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return "";
@@ -13,6 +14,9 @@ function emailFromBody(body: unknown) {
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
   const email = emailFromBody(body);
+
+  const abuseDecision = await enforceAuthRateLimit(request, "resend", email);
+  if (!abuseDecision.allowed) return authRateLimitResponse(abuseDecision);
 
   if (!email || !email.includes("@")) {
     return errorResponse("Bitte gib eine gültige E-Mail-Adresse ein.");

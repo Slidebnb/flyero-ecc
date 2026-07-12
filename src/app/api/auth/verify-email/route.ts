@@ -6,9 +6,12 @@ import { readBody, errorResponse } from "@/lib/request";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
+import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
 
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
+  const abuseDecision = await enforceAuthRateLimit(request, "verify");
+  if (!abuseDecision.allowed) return authRateLimitResponse(abuseDecision);
   const token = typeof body.token === "string" ? body.token : "";
 
   if (!token) {

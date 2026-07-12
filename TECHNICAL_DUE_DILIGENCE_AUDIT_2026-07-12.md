@@ -502,3 +502,14 @@ Das zweite Auth-Haertungspaket wurde umgesetzt:
 - Die CI fuehrt den neuen Auth-Session-Smoke gegen eine frische PostgreSQL-Datenbank aus.
 
 Offen bleiben MFA, Geraeteverwaltung, „Logout aller Geraete“, zentrale Auth-Rate-Limits und eine automatische Bereinigung abgelaufener Sessions.
+
+### P1 Auth-Abuse-Schutz
+
+Das zentrale Auth-Abuse-Paket wurde anschließend ergänzt:
+
+- `AuthRateLimitBucket` speichert gehashte IP-/Account-Buckets in PostgreSQL und wirkt damit prozessübergreifend.
+- Login, Kunden- und Verteilerregistrierung, Verifizierungs-Resend und E-Mail-Verifizierung verwenden `enforceAuthRateLimit()`.
+- Überschreitungen liefern `429` mit `Retry-After`; die Limits sind über dokumentierte ENV-Variablen konfigurierbar.
+- `tests/auth-abuse-smoke.mjs` und der CI-Critical-Smoke prüfen den Schutz live und statisch.
+
+Offen bleiben CAPTCHA/WAF, externe IP-Reputation, alarmiertes Rate-Limit-Monitoring und ein Retention-Job für alte Buckets.

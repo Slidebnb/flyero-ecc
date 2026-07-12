@@ -42,6 +42,7 @@
     "test:customer-portal-ux": "node -r dotenv/config tests/customer-portal-ux-smoke.mjs",
     "test:auth-ux": "node -r dotenv/config tests/auth-ux-smoke.mjs",
     "test:auth-session": "node -r dotenv/config tests/auth-session-smoke.mjs",
+    "test:auth-abuse": "node -r dotenv/config tests/auth-abuse-smoke.mjs",
     "test:ci-config": "node tests/ci-config-smoke.mjs",
     "backup:config": "node tests/backup-config-smoke.mjs",
     "test:public-url": "node --experimental-strip-types tests/public-url-smoke.mjs",

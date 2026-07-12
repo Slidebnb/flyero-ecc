@@ -12,9 +12,13 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
 import { sendVerificationEmail } from "@/lib/verificationEmail";
+import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
 
 export async function POST(request: NextRequest) {
-  const parsed = distributorRegisterSchema.safeParse(await readBody(request));
+  const body = await readBody(request);
+  const abuseDecision = await enforceAuthRateLimit(request, "register");
+  if (!abuseDecision.allowed) return authRateLimitResponse(abuseDecision);
+  const parsed = distributorRegisterSchema.safeParse(body);
 
   if (!parsed.success) {
     return errorResponse(parsed.error.issues[0]?.message || "Ungültige Eingabe.");
