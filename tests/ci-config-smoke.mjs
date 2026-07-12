@@ -39,6 +39,7 @@ for (const script of [
   "test:auth-session",
   "test:tenant-foundation",
   "test:auth-abuse",
+  "test:public-abuse",
   "test:password-reset",
   "test:password-reset-live",
   "test:permissions",

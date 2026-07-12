@@ -13,6 +13,7 @@ Die Bereinigung läuft standardmäßig nur als Dry-Run. Ein echter Purge muss au
 | Nicht mehr gültige oder alte verwendete E-Mail-Verifizierungstoken | 7 Tage | `EmailVerificationToken` |
 | Abgelaufene Sessions und alte widerrufene Sessions | 30 Tage | `AuthSession` |
 | Inaktive Auth-Rate-Limit-Buckets | 7 Tage | `AuthRateLimitBucket` |
+| Inaktive öffentliche Rate-Limit-Buckets | 7 Tage | `PublicRateLimitBucket` |
 
 Die Fristen sind über `RETENTION_VERIFICATION_TOKEN_DAYS`, `RETENTION_SESSION_DAYS` und `RETENTION_RATE_LIMIT_BUCKET_DAYS` konfigurierbar.
 

@@ -82,7 +82,7 @@ assert(
   "Lead-Route prueft noch keinen Abuse-/Rate-Limit-Schutz.",
 );
 assert(
-  leadRoute.includes("429"),
+  leadRoute.includes("429") || leadRoute.includes("publicRateLimitResponse"),
   "Lead-Route liefert keinen expliziten 429-Status fuer zu viele Anfragen.",
 );
 
@@ -93,10 +93,14 @@ assert(
 );
 
 const abuseLibExists = existsSync("src/lib/abuseProtection.ts");
-assert(abuseLibExists, "Zentrale Abuse-Protection fuer oeffentliche Formulare fehlt.");
-if (abuseLibExists) {
-  const abuseLib = await readUtf8("src/lib/abuseProtection.ts");
-  assert(abuseLib.includes("LEAD_RATE_LIMIT"), "Lead-Rate-Limit ist nicht konfigurierbar.");
+const publicAbuseLibExists = existsSync("src/lib/publicAbuseProtection.ts");
+assert(abuseLibExists && publicAbuseLibExists, "Zentrale Abuse-Protection fuer oeffentliche Formulare fehlt.");
+if (abuseLibExists && publicAbuseLibExists) {
+  const [abuseLib, publicAbuseLib] = await Promise.all([
+    readUtf8("src/lib/abuseProtection.ts"),
+    readUtf8("src/lib/publicAbuseProtection.ts"),
+  ]);
+  assert(publicAbuseLib.includes("PUBLIC_LEAD") && publicAbuseLib.includes("RATE_LIMIT_MAX"), "Lead-Rate-Limit ist nicht konfigurierbar.");
   assert(abuseLib.includes("honeypot"), "Honeypot-Pruefung fehlt in Abuse-Protection.");
 }
 

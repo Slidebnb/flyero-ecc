@@ -4,20 +4,18 @@ import { ZodError } from "zod";
 import { assertLeadSubmissionAllowed } from "@/lib/abuseProtection";
 import { createLead } from "@/lib/leads";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
+import { publicRateLimitResponse } from "@/lib/publicAbuseProtection";
 import { errorResponse, readBody, successResponse } from "@/lib/request";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await readBody(request);
-    const abuseDecision = assertLeadSubmissionAllowed(request, body);
+    const abuseDecision = await assertLeadSubmissionAllowed(request, body);
     if (!abuseDecision.allowed) {
       if (abuseDecision.reason === "honeypot") {
         return successResponse({ id: null, status: "IGNORED", message: "Danke, wir haben deine Anfrage erhalten." }, 202);
       }
-      return Response.json(
-        { ok: false, error: "Zu viele Anfragen. Bitte versuche es spaeter erneut." },
-        { status: 429, headers: { "retry-after": String(abuseDecision.retryAfterSeconds) } },
-      );
+      return publicRateLimitResponse(abuseDecision);
     }
 
     const lead = await createLead(body);

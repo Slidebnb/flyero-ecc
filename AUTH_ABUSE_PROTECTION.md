@@ -11,8 +11,12 @@ FLYERO schützt die öffentlichen Authentifizierungswege mit PostgreSQL-Buckets.
 | Bestätigungslink erneut senden | 3 | 1 Stunde | IP und E-Mail |
 | E-Mail-Verifizierung | 10 | 15 Minuten | IP |
 | Passwort-Reset | 5 | 1 Stunde | IP |
+| Oeffentliches Lead-Formular | 5 | 10 Minuten | IP |
+| Oeffentliche Report-Verifizierung | 30 | 15 Minuten | IP |
 
 Alle Limits können über die `AUTH_*_RATE_LIMIT_*`-Variablen angepasst werden. Ein abgelehneter Versuch liefert `429` und `Retry-After`.
+
+Die Auth-Limits koennen ueber die `AUTH_*_RATE_LIMIT_*`-Variablen angepasst werden. Oeffentliche Limits koennen ueber `PUBLIC_LEAD_RATE_LIMIT_*` und `PUBLIC_REPORT_VERIFY_RATE_LIMIT_*` angepasst werden. Ein abgelehnter Versuch liefert `429` und `Retry-After`.
 
 ## Datenmodell und Datenschutz
 
@@ -20,9 +24,13 @@ Alle Limits können über die `AUTH_*_RATE_LIMIT_*`-Variablen angepasst werden. 
 
 Die Buckets müssen über einen geplanten Retention-Job bereinigt werden. Bis dahin bleiben alte Buckets eine begrenzte technische Schuld und dürfen nicht als dauerhafte Benutzerhistorie verwendet werden.
 
+`PublicRateLimitBucket.id` ist ebenfalls ein SHA-256-Hash. Die oeffentlichen Endpunkte speichern weder IP-Adressen noch vollstaendige Report-Pruefcodes im Bucket oder im AuditLog.
+
 ## Grenzen
 
 Die DB-Lösung ist für die aktuelle Einzelserver-/kleine Beta-Phase geeignet und prozessübergreifend. Vor hoher Last sollte ein zentraler Redis-/Managed-Rate-Limiter mit atomaren Increment-Operationen und Monitoring evaluiert werden. CAPTCHA, WAF-Regeln und IP-Reputation bleiben zusätzliche Schutzschichten für einen öffentlichen Launch.
+
+`npm run test:public-abuse` prueft die persistente Lead-Begrenzung, den Report-Verify-Schutz, den `429`-Fall und die Bucket-Speicherung.
 
 ## Verifikation
 

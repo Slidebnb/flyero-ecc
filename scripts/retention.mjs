@@ -37,10 +37,11 @@ const sessionWhere = {
 const rateLimitWhere = { updatedAt: { lt: rateLimitCutoff } };
 
 try {
-  const [verificationTokens, sessions, rateLimitBuckets] = await Promise.all([
+  const [verificationTokens, sessions, rateLimitBuckets, publicRateLimitBuckets] = await Promise.all([
     prisma.emailVerificationToken.count({ where: verificationWhere }),
     prisma.authSession.count({ where: sessionWhere }),
     prisma.authRateLimitBucket.count({ where: rateLimitWhere }),
+    prisma.publicRateLimitBucket.count({ where: rateLimitWhere }),
   ]);
 
   const result = {
@@ -51,8 +52,8 @@ try {
       sessionDays,
       rateLimitBucketDays,
     },
-    candidates: { verificationTokens, sessions, rateLimitBuckets },
-    deleted: { verificationTokens: 0, sessions: 0, rateLimitBuckets: 0 },
+    candidates: { verificationTokens, sessions, rateLimitBuckets, publicRateLimitBuckets },
+    deleted: { verificationTokens: 0, sessions: 0, rateLimitBuckets: 0, publicRateLimitBuckets: 0 },
     skipped: ["GpsPoint", "PhotoProof", "Document", "AuditLog", "Invoice"],
   };
 
@@ -65,11 +66,13 @@ try {
       prisma.emailVerificationToken.deleteMany({ where: verificationWhere }),
       prisma.authSession.deleteMany({ where: sessionWhere }),
       prisma.authRateLimitBucket.deleteMany({ where: rateLimitWhere }),
+      prisma.publicRateLimitBucket.deleteMany({ where: rateLimitWhere }),
     ]);
     result.deleted = {
       verificationTokens: deleted[0].count,
       sessions: deleted[1].count,
       rateLimitBuckets: deleted[2].count,
+      publicRateLimitBuckets: deleted[3].count,
     };
   }
 

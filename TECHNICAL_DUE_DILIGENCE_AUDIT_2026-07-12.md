@@ -30,7 +30,7 @@ Status:
 
 ## 2. Executive Summary
 
-FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 72 Prisma-Modellen, 58 Enums, 182 API-Routen, 90 Seiten, 33 Migrationen und 48 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
+FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 73 Prisma-Modellen, 58 Enums, 182 API-Routen, 90 Seiten, 34 Migrationen und 49 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
 
 Der aktuelle Stand ist dennoch noch kein vollstaendig belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Eine erste Mandantengrundlage ist jetzt vorhanden: `Tenant`, `TenantMembership` sowie verpflichtende `tenantId`-Felder auf den kundenbezogenen Kernmodellen. Kundenregistrierung, Lead-Konvertierung, Seed-Daten und zentrale Customer-APIs erzeugen bzw. pruefen aktive Kundenmandanten. Plattform-Admin und interne Rollen sind weiterhin global; zentrale Tenant-Permissions, Mitarbeiterverwaltung und vollstaendige Tenant-Policies sind noch offen.
 
@@ -179,8 +179,8 @@ Empfohlene Zielstruktur vor weiteren Enterprise-Funktionen:
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| SEC-01 | Auth-Abuse-Schutz ist DB-gestuetzt vorhanden; oeffentliche Lead-/Verify-/API-Abuse-Abdeckung und Alarmierung sind nicht vollstaendig | P1 | Rate-Limits zentral auf oeffentliche Endpunkte ausweiten und bei Schwellwerten alarmieren. |
-| SEC-02 | Lead-Rate-Limit lebt nur in einer Prozess-Map | P2 | Bei Neustart oder mehreren Instanzen wirkungslos; Redis/DB verwenden. |
+| SEC-01 | DB-gestuetzter Auth- und Public-Abuse-Basisschutz fuer Login, Lead und Report-Verifikation ist vorhanden; weitere oeffentliche APIs und Alarmierung fehlen | P1 | Schutz auf weitere oeffentliche Endpunkte ausweiten und bei Schwellwerten alarmieren. |
+| SEC-02 | Lead-Rate-Limit ist persistent in PostgreSQL; ein allgemeiner verteilter Public-Limiter fuer weitere Endpunkte fehlt | P2 | Weitere sensible oeffentliche Endpunkte an den persistenten Limiter anbinden. |
 | SEC-03 | Security-Header sind im Caddy-/Next-Pfad vorhanden; CSP muss gegen alle produktiven Drittanbieterpfade weiter verifiziert werden | P2 | Staging-CSP-Report-Only und anschliessende harte Abnahme etablieren. |
 | SEC-04 | Uploads haben Magic-Byte-/Strukturpruefung; Quarantaene und Malware-Scan fehlen | P1 | Quarantaene-/Scanstatus und einen produktiven Scanner vor Freigabe einfuehren. |
 | SEC-05 | `svg`, Office-, ZIP- und Adobe-Dateien sind erlaubt | P1 | Aktive Inhalte nie inline ausliefern; Scan- und Download-Policy je Dateiklasse definieren. |
@@ -268,13 +268,13 @@ Der primaere MVP-Nachweisweg ist ein externer GPS-Anbieter. Admins laden PDF und
 | REP-01 | PDF-Generator ist ein einfacher Eigenbau und kein vollstaendiger Premium-/Rechtsreport | P1 | Reproduzierbaren Renderer mit Layouttests, Seitenumbruechen, eingebetteten Karten/Fotos und Versionierung einfuehren. |
 | REP-02 | Report-Erzeugung sendet teils bereits vor finaler Veroeffentlichung eine Verfuegbarkeitsnachricht | P1 | Benachrichtigungen ausschliesslich an kundenrelevante Statusuebergaenge koppeln. |
 | REP-03 | Snapshot-Versionierung ist vorhanden, aber Korrektur-/Altversionsansicht nicht vollstaendig operationalisiert | P2 | Unveraenderliche Versionen, aktuelle Version und interne Historie getrennt ausliefern. |
-| REP-04 | Oeffentlicher Verify-Endpunkt gibt Reportmetadaten nach Code preis | P2 | Rate-Limit, minimale Felder und keine Protokollierung des vollen Codes in frei lesbaren Metadaten sicherstellen. |
+| REP-04 | Oeffentlicher Verify-Endpunkt gibt nach erfolgreichem Code weiterhin minimale Reportmetadaten aus; Rate-Limit und Audit-Minimierung sind vorhanden | P2 | Antwortfelder, Code-Entropie und Missbrauchsmonitoring vor Launch fachlich abnehmen. |
 
 ## 13. Testanalyse
 
 ### Ist-Stand
 
-- 48 `.mjs`-Testdateien.
+- 49 `.mjs`-Testdateien.
 - Rund 842 Assert-Aufrufe in den vorhandenen Tests.
 - Modulspezifische Smoke-Tests fuer Auth, Orders, Payments, Reports, Lager, Maps und UI-Quelltextregeln.
 - Build und Lint sind als lokale Gates vorhanden.
@@ -374,7 +374,7 @@ Prioritaet: `P1` fuer Betriebs- und Sicherheitsrunbooks, `P2` fuer vollstaendige
 ### Vor oeffentlichem Launch
 
 1. DB-autorisierte Sessions mit sofortiger Sperr-/Rollenwirkung.
-2. Zentraler Rate-Limiter fuer Login, Registrierung, Verifizierung, Leads und Verify-Endpunkte.
+2. Zentraler Rate-Limiter fuer Login, Registrierung, Verifizierung, Leads und Verify-Endpunkte; weitere oeffentliche APIs danach ergaenzen.
 3. Upload-Quarantaene, Magic-Byte-Pruefung und Malware-Scan.
 4. GitHub-PR-Gates mit Lint, Build, Prisma Validate, Tests, Dependency- und Secret-Scans.
 5. Externes Error-/Uptime-Monitoring und Alarmierung.
@@ -472,7 +472,7 @@ Der naechste sinnvolle Umsetzungsschritt ist kein weiteres Fachmodul. Die Reposi
 Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgende Befunde sind inzwischen nachweisbar verändert:
 
 - **DB-autorisierte Sessions: vorhanden.** `AuthSession` prüft Ablauf, Widerruf und den aktuellen Benutzerstatus sowie die aktuelle Rolle aus PostgreSQL.
-- **Auth-Abuse-Schutz: vorhanden als DB-gestützter Basisschutz.** Login, Registrierung, Verifizierungs-Resend und E-Mail-Verifizierung verwenden gehashte IP-/Account-Buckets. CAPTCHA, WAF, IP-Reputation und automatische Bucket-Bereinigung bleiben offen.
+- **Auth-Abuse-Schutz: vorhanden als DB-gestützter Basisschutz.** Login, Registrierung, Verifizierungs-Resend und E-Mail-Verifizierung verwenden gehashte IP-/Account-Buckets. Öffentliche Lead- und Report-Verifikation verwenden zusätzlich persistente Public-Rate-Limit-Buckets. CAPTCHA, WAF, IP-Reputation und alarmiertes Monitoring bleiben offen.
 - **Security-Header: vorhanden.** Caddy setzt HSTS, CSP, Permissions-Policy, `nosniff`, `X-Frame-Options` und `Referrer-Policy`; Next.js deaktiviert `X-Powered-By`.
 - **CI/Security-Gates: vorhanden im Repository, extern noch zu aktivieren.** GitHub Actions prüfen Prisma, Lint, Build, kritische Smokes, CodeQL und Dependabot. Branch-Schutz und verpflichtende Checks sind GitHub-Repository-Einstellungen und nicht allein aus dem Code ableitbar.
 - **Upload-Prüfung: teilweise vorhanden.** Bekannte PDF-, Bild-, Archiv- und XML-Typen werden zusätzlich zur Endung über Signaturen bzw. XML-Anfang geprüft; JSON-Uploads benötigen echte Base64-Dateiinhalte; Tour-Fotos akzeptieren nur PNG/JPG/WEBP. Malware-Scan, Quarantäne und privater Objekt-Storage fehlen weiterhin.
@@ -480,7 +480,7 @@ Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgen
 - **Dokumentversionen: verbessert.** `DocumentVersion.storageKey` speichert für neu erzeugte Dateien den unveränderlichen privaten Storage-Key. Versionsdownloads lesen exakt diese Version; historische Versionen ohne nachweisbaren Key bleiben bewusst nicht abrufbar.
 - **Premium-Preislogik: vorhanden.** Die marginale Staffel und der Mindestauftrag von 599 EUR netto sind als `premium-distribution-v4` versioniert und werden über Gebiet-/Checkout-Smokes mit Schwellenfallprüfungen verifiziert.
 - **Zentrale Permission-Matrix: teilweise vorhanden.** `src/lib/permissions.ts` definiert die ersten maschinenlesbaren Berechtigungen. Finanz-, Preis-, Nutzer- und Veröffentlichungsaktionen sind serverseitig auf `ADMIN` begrenzt; operative Reportprüfung und Analytics-Lesen sind für Support/Disposition getrennt freigegeben. Der Tenant-Scope und die vollständige Migration aller APIs bleiben offen.
-- **Ephemerer Retention-Prozess: als kontrollierter Dry-Run vorhanden.** `scripts/retention.mjs` berechnet und bereinigt nach ausdrücklicher Aktivierung abgelaufene Verifizierungstoken, alte Sessions und inaktive Rate-Limit-Buckets. GPS-, Foto-, Dokument-, Audit- und Rechnungsdaten werden bewusst nicht generisch gelöscht, solange Zweckbindung, gesetzliche Fristen und Legal Hold nicht fachlich freigegeben sind.
+- **Ephemerer Retention-Prozess: als kontrollierter Dry-Run vorhanden.** `scripts/retention.mjs` berechnet und bereinigt nach ausdrücklicher Aktivierung abgelaufene Verifizierungstoken, alte Sessions sowie inaktive Auth- und Public-Rate-Limit-Buckets. GPS-, Foto-, Dokument-, Audit- und Rechnungsdaten werden bewusst nicht generisch gelöscht, solange Zweckbindung, gesetzliche Fristen und Legal Hold nicht fachlich freigegeben sind.
 - **Privater Object-Storage-Pfad: technisch vorbereitet, operativ noch offen.** `src/lib/privateObjectStorage.ts` bündelt lokale und S3-kompatible private Ablage für Dokumente sowie generierte Dateien. Lokal bleibt der Entwicklungsfallback aktiv; Produktion muss Bucket, Verschlüsselung, Versionierung, Lifecycle, initiale Migration und Restore-Test noch nachweisen.
 
 Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `FILE-08` nicht mehr als unverändert fehlend zu bewerten. `SEC-04` und `FILE-04` sind teilweise beziehungsweise durch die Folgeänderung für neu erzeugte Versionen behoben; Quarantäne, Malware-Scan und Altbestandsmigration bleiben offen.
@@ -567,4 +567,8 @@ Das zentrale Auth-Abuse-Paket wurde anschließend ergänzt:
 - Überschreitungen liefern `429` mit `Retry-After`; die Limits sind über dokumentierte ENV-Variablen konfigurierbar.
 - `tests/auth-abuse-smoke.mjs` und der CI-Critical-Smoke prüfen den Schutz live und statisch.
 
-Offen bleiben CAPTCHA/WAF, externe IP-Reputation, alarmiertes Rate-Limit-Monitoring und ein Retention-Job für alte Buckets.
+Offen bleiben CAPTCHA/WAF, externe IP-Reputation und alarmiertes Rate-Limit-Monitoring.
+
+### P1 Öffentliche Abuse-Schutzschicht
+
+Lead-Formular und öffentlicher Report-Verifikationscode verwenden jetzt persistente, gehashte IP-Buckets in `PublicRateLimitBucket`. Damit bleibt der Schutz über Prozessneustarts und mehrere App-Instanzen hinweg wirksam. Die konfigurierbaren Grenzwerte stehen in `.env.example` und `.env.production.example`; die Retention berücksichtigt beide Bucket-Typen.

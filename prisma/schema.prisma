@@ -649,6 +649,19 @@ model AuthRateLimitBucket {
   @@index([updatedAt])
 }
 
+model PublicRateLimitBucket {
+  id              String   @id
+  scope           String
+  windowStartedAt DateTime
+  attempts        Int      @default(0)
+  blockedUntil    DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([scope, updatedAt])
+  @@index([blockedUntil])
+}
+
 model CustomerProfile {
   id              String   @id @default(cuid())
   userId          String   @unique

@@ -140,6 +140,9 @@ jobs:
       - name: Authentication abuse protection smoke
         run: npm run test:auth-abuse
 
+      - name: Public abuse protection smoke
+        run: npm run test:public-abuse
+
       - name: Password reset smoke
         run: npm run test:password-reset
 
