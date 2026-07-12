@@ -143,7 +143,7 @@ export default async function CustomerReportDetailPage({ params }: PageProps) {
         <DataSection title="Nachweise" description="Nur geprüfte und freigegebene Nachweise sind hier sichtbar.">
           <div className="customerProofBullets">
             <p><strong>GPS-Nachweis</strong><span>{isExternalGpsReport ? "GPS-Nachweis des eingesetzten Trackingsystems." : customerView.gpsQuality.customerStatus}</span></p>
-            <p><strong>GPS-Qualität</strong><span>{isExternalGpsReport ? "Externer Nachweis, von FLYERO geprüft." : customerView.gpsQuality.customerStatus}</span></p>
+            <p><strong>GPS-Nachweisstatus</strong><span>{isExternalGpsReport ? "Externer Nachweis, von FLYERO geprüft." : customerView.gpsQuality.customerStatus}</span></p>
             <p><strong>Foto-Dokumentation</strong><span>{customerView.photos.length} freigegebene Fotos.</span></p>
             <p><strong>PDF-Bericht</strong><span>{report.pdfUrl ? "Download bereit." : "Wird nach Freigabe erstellt."}</span></p>
             <p><strong>Ausführung</strong><span>{manualDistributorName ? `${manualDistributorName}, personenbezogene Daten geschützt.` : "FLYERO Verteilerteam, personenbezogene Daten geschützt."}</span></p>

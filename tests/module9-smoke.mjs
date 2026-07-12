@@ -54,7 +54,7 @@ await includes("src/lib/reports.ts", [
   "report.generated",
   "report.published",
   "report.downloaded",
-  "REPORT_AVAILABLE",
+  "REPORT_PUBLISHED",
 ]);
 
 for (const filePath of [
@@ -78,8 +78,8 @@ for (const filePath of [
 
 const customerReportPage = await includes("src/app/customer/reports/[id]/page.tsx", ["Standort anonymisiert", "Verteiler"]);
 includesAny(customerReportPage, ["Flyero Verteilnachweis", "FLYERO Verteilnachweis"], "src/app/customer/reports/[id]/page.tsx");
-includesAny(customerReportPage, ["GPS-Qualitaet", "GPS-Qualität", "GPS-QualitÃ¤t"], "src/app/customer/reports/[id]/page.tsx");
-includesAny(customerReportPage, ["Pruefcode", "Pr�fcode", "Prüfcode"], "src/app/customer/reports/[id]/page.tsx");
+includesAny(customerReportPage, ["GPS-Qualitaet", "GPS-Qualität", "GPS-Nachweisstatus"], "src/app/customer/reports/[id]/page.tsx");
+includesAny(customerReportPage, ["Pruefcode", "Prüfcode"], "src/app/customer/reports/[id]/page.tsx");
 for (const forbidden of ["distributor.user.email", "distributor.phone", "birthDate", "adminInternalNote", "fraudFlags"]) {
   assert(!customerReportPage.includes(forbidden), `Kundenseite enthaelt private Daten: ${forbidden}`);
 }
@@ -89,7 +89,7 @@ const adminTourPage = await includes("src/app/admin/tours/[id]/page.tsx", [
   "Neu generieren",
   "Archivieren",
 ]);
-includesAny(adminTourPage, ["Veroeffentlichen", "Veröffentlichen", "VerÃ¶ffentlichen"], "src/app/admin/tours/[id]/page.tsx");
+includesAny(adminTourPage, ["Veroeffentlichen", "Veröffentlichen"], "src/app/admin/tours/[id]/page.tsx");
 await includes("src/lib/mapSnapshot.ts", ["GOOGLE_MAPS_SERVER_KEY", "Static-Maps-URL", "stabilen Karten-Fallback"]);
 await includes("README.md", ["Modul 9", "Verteilberichte", "PDF"]);
 await includes("ARCHITECTURE_DECISIONS.md", ["ReportStatus", "DISTRIBUTION_PROOF", "Kundendatenschutz"]);

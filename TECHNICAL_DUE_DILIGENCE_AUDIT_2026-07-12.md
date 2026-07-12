@@ -60,7 +60,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 | Storage | Lokaler privater Dateispeicher und Docker-Volumes | teilweise |
 | Reporting | Report-Snapshots, Freigabe, private Downloads, externe GPS-Belege | teilweise |
 | Deployment | Docker Compose, Caddy, HTTPS, Postgres | vorhanden fuer Einzelserver-MVP |
-| Tests | 48 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission-, Tenant- und Report-Smokes | teilweise |
+| Tests | 49 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission-, Tenant- und Report-Smokes | teilweise |
 | CI/CD | GitHub Actions fuer Prisma, Lint, Build, Security und kritische PostgreSQL-Smokes | vorhanden im Repo; Branch-Schutz/Staging extern offen |
 
 ### Architekturstaerken
@@ -85,7 +85,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 ### Vorhanden
 
-- 72 Modelle und 58 Enums bilden Order, Payment, Invoice, Warehouse, Dispatch, Tour, GPS, Report, Dokumente, CRM, Notifications, Monitoring, Audit und Tenant-Grundlagen ab.
+- 73 Modelle und 58 Enums bilden Order, Payment, Invoice, Warehouse, Dispatch, Tour, GPS, Report, Dokumente, CRM, Notifications, Monitoring, Audit und Tenant-Grundlagen ab.
 - Fremdschluessel, Indizes, eindeutige Constraints und Zeitstempel sind an vielen Kernmodellen vorhanden.
 - Stripe-Event-IDs sind eindeutig, Reportnummern und Verifikationscodes sind eindeutig.
 - Migrationen sind versioniert und werden im Deployment mit `prisma migrate deploy` angewendet.
@@ -266,7 +266,7 @@ Der primaere MVP-Nachweisweg ist ein externer GPS-Anbieter. Admins laden PDF und
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
 | REP-01 | PDF-Generator ist ein einfacher Eigenbau und kein vollstaendiger Premium-/Rechtsreport | P1 | Reproduzierbaren Renderer mit Layouttests, Seitenumbruechen, eingebetteten Karten/Fotos und Versionierung einfuehren. |
-| REP-02 | Report-Erzeugung sendet teils bereits vor finaler Veroeffentlichung eine Verfuegbarkeitsnachricht | P1 | Benachrichtigungen ausschliesslich an kundenrelevante Statusuebergaenge koppeln. |
+| REP-02 | Report-Erzeugung informiert vor der Veroeffentlichung nur intern; die Kundenbenachrichtigung ist an `PUBLISHED` gekoppelt | erledigt | Regression ueber Report-Smoke und Statusworkflow beibehalten. |
 | REP-03 | Snapshot-Versionierung ist vorhanden, aber Korrektur-/Altversionsansicht nicht vollstaendig operationalisiert | P2 | Unveraenderliche Versionen, aktuelle Version und interne Historie getrennt ausliefern. |
 | REP-04 | Oeffentlicher Verify-Endpunkt gibt nach erfolgreichem Code weiterhin minimale Reportmetadaten aus; Rate-Limit und Audit-Minimierung sind vorhanden | P2 | Antwortfelder, Code-Entropie und Missbrauchsmonitoring vor Launch fachlich abnehmen. |
 

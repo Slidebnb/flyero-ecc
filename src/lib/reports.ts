@@ -512,12 +512,6 @@ export async function createReportForTour(input: {
     entityId: updated.id,
     newValues: { reportNumber: updated.reportNumber, pdfUrl: updated.pdfUrl, version: updated.version },
   });
-  await createNotification({
-    userId: data.customer.userId,
-    type: "REPORT_AVAILABLE",
-    title: "Bericht verfügbar",
-    message: `Der Verteilbericht ${updated.reportNumber} wurde erzeugt.`,
-  });
   await notifyAdmins({
     type: "REPORT_GENERATED",
     title: "Bericht generiert",
@@ -584,6 +578,25 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
   if (!current) throw new Error("Report wurde nicht gefunden.");
   if (current.status === "PUBLISHED") return current;
   if (!current.reportSnapshot) throw new Error("Bericht kann erst nach Snapshot-Erzeugung veröffentlicht werden.");
+  const evidenceDocumentIds = current.reportSource === "EXTERNAL_GPS_REPORT" || current.reportSource === "MANUAL_EVIDENCE"
+    ? evidenceDocumentIdsFromSnapshot(current.reportSnapshot)
+    : [];
+  if ((current.reportSource === "EXTERNAL_GPS_REPORT" || current.reportSource === "MANUAL_EVIDENCE") && evidenceDocumentIds.length === 0) {
+    throw new Error("Bericht kann erst veröffentlicht werden, wenn freizugebende Nachweise im Snapshot hinterlegt sind.");
+  }
+  if (evidenceDocumentIds.length > 0) {
+    const evidenceCount = await prisma.document.count({
+      where: {
+        id: { in: evidenceDocumentIds },
+        orderId: current.orderId,
+        documentType: { in: ["REPORT", "IMAGE"] },
+        status: { in: ["UPLOADED", "UNDER_REVIEW", "APPROVED"] },
+      },
+    });
+    if (evidenceCount !== evidenceDocumentIds.length) {
+      throw new Error("Bericht kann erst veröffentlicht werden, wenn alle Nachweise geprüft vorliegen.");
+    }
+  }
   const report = await prisma.report.update({
     where: { id: input.reportId },
     data: {

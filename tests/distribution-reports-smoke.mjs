@@ -46,6 +46,7 @@ for (const snippet of [
 }
 assert(!reportsService.includes("Math.random"), "Report-Service darf keine Fake-Zufallsdaten erzeugen.");
 assert(reportsService.includes('status === "PUBLISHED"'), "Kundenberichte d\u00fcrfen nur ver\u00f6ffentlicht sichtbar sein.");
+assert(!reportsService.includes('type: "REPORT_AVAILABLE"'), "Kunden duerfen vor der Veroeffentlichung keine Bericht-verfuegbar-Nachricht erhalten.");
 
 const toursService = await read("src/lib/tours.ts");
 for (const snippet of [
