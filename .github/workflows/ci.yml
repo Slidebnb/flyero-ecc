@@ -23,6 +23,10 @@ env:
   EMAIL_PROVIDER: mock
   ENABLE_MOCK_PAYMENTS: "true"
   INTERNAL_API_TOKEN: ci-only-internal-token
+  CUSTOMER_ORDER_AREA_BASE_URL: http://127.0.0.1:3000
+  CUSTOMER_ORDER_CHECKOUT_BASE_URL: http://127.0.0.1:3000
+  BETA_BASE_URL: http://127.0.0.1:3000
+  BETA_PORT: "3000"
 
 jobs:
   quality:
@@ -107,6 +111,20 @@ jobs:
       - name: Seed isolated CI database
         run: npm run prisma:seed
 
+      - name: Start shared test server
+        shell: bash
+        run: |
+          setsid npm run dev > /tmp/flyero-dev.log 2>&1 &
+          echo $! > /tmp/flyero-dev.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:3000/api/health > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/flyero-dev.log
+          exit 1
+
       - name: Authentication UX smoke
         run: npm run test:auth-ux
 
@@ -133,3 +151,15 @@ jobs:
 
       - name: Full beta flow
         run: npm run test:beta
+
+      - name: Show shared test server log on failure
+        if: failure()
+        run: cat /tmp/flyero-dev.log || true
+
+      - name: Stop shared test server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/flyero-dev.pid ]; then
+            kill -- -"$(cat /tmp/flyero-dev.pid)" || true
+          fi

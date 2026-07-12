@@ -28,6 +28,11 @@ assert.match(ci, /npm audit --omit=dev --audit-level=high/, "CI muss hohe produk
 assert.match(ci, /postgres:\s*\n\s*image:\s*postgres:16-alpine/, "Kritische Smokes brauchen isoliertes PostgreSQL 16.");
 assert.match(ci, /npx prisma migrate deploy/, "CI muss Migrationen gegen eine frische Datenbank pruefen.");
 assert.match(ci, /npm run prisma:seed/, "CI-Smokes muessen eine reproduzierbare Datenbasis erhalten.");
+assert.match(ci, /CUSTOMER_ORDER_AREA_BASE_URL:\s*http:\/\/127\.0\.0\.1:3000/, "Gebietstest muss den gemeinsamen CI-Server verwenden.");
+assert.match(ci, /CUSTOMER_ORDER_CHECKOUT_BASE_URL:\s*http:\/\/127\.0\.0\.1:3000/, "Checkout-Test muss den gemeinsamen CI-Server verwenden.");
+assert.match(ci, /BETA_BASE_URL:\s*http:\/\/127\.0\.0\.1:3000/, "Beta-Smokes muessen den gemeinsamen CI-Server verwenden.");
+assert.match(ci, /name:\s*Start shared test server/, "CI muss genau einen gemeinsamen Next-Testserver starten.");
+assert.match(ci, /flyero-dev\.log/, "CI muss die Testserver-Ausgabe fuer Fehlerdiagnosen sichern.");
 for (const script of [
   "test:auth-ux",
   "test:module25",
