@@ -99,7 +99,7 @@ function assertCustomerLanguage(html, path) {
   ]) {
     assert(!html.includes(forbidden), `${path} zeigt technischen Rohtext: ${forbidden}`);
   }
-  for (const required of ["customerUnifiedShell", "Neue Kampagne"]) {
+  for (const required of ["customerUnifiedShell", "Neue Verteilung"]) {
     assert(html.includes(required), `${path} enthaelt nicht: ${required}`);
   }
 }

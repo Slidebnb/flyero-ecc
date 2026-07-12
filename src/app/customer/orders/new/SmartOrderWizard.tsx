@@ -5,9 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
-  Bell,
   CircleHelp,
-  CreditCard,
   Download,
   FileStack,
   FileText,
@@ -18,7 +16,6 @@ import {
   Plus,
   ReceiptText,
   Search,
-  Settings,
 } from "lucide-react";
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
 
@@ -143,16 +140,13 @@ type OrderDraft = {
 };
 
 const orderNavItems = [
-  { href: "/customer/orders/new", label: "Neue Kampagne", icon: Plus, active: true },
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard },
+  { href: "/customer/orders/new", label: "Neue Verteilung", icon: Plus, active: true },
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks },
-  { href: "/customer/documents", label: "Dateien", icon: FileStack },
-  { href: "/customer/payments", label: "Zahlungen", icon: CreditCard },
-  { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText },
   { href: "/customer/reports", label: "Berichte", icon: FileText },
-  { href: "/customer/notifications", label: "Nachrichten", icon: Bell },
-  { href: "/customer/support", label: "Support", icon: CircleHelp },
-  { href: "/customer/profile", label: "Einstellungen", icon: Settings },
+  { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText },
+  { href: "/customer/documents", label: "Dateien", icon: FileStack },
+  { href: "/customer/support", label: "Hilfe", icon: CircleHelp },
 ];
 
 type GoogleLatLng = { lat: () => number; lng: () => number };
@@ -172,12 +166,20 @@ type GooglePolygon = {
   setPath: (path: LatLng[]) => void;
   getPath: () => GooglePath;
 };
+type GoogleDrawingManager = {
+  setMap: (map: GoogleMap | null) => void;
+  setDrawingMode: (mode: string | null) => void;
+};
 type GoogleNamespace = {
   maps: {
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
     Polygon: new (options: Record<string, unknown>) => GooglePolygon;
     LatLngBounds: new () => { extend: (point: LatLng) => void };
-    event: { addListener: (target: unknown, eventName: string, callback: () => void) => void };
+    event: { addListener: (target: unknown, eventName: string, callback: (event?: unknown) => void) => void };
+    drawing?: {
+      OverlayType: { POLYGON: string };
+      DrawingManager: new (options: Record<string, unknown>) => GoogleDrawingManager;
+    };
   };
 };
 
@@ -379,7 +381,7 @@ function loadGoogleMaps() {
   if (!window.__flyeroMapsLoading) {
     window.__flyeroMapsLoading = new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&libraries=geometry,places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&libraries=drawing,geometry,places`;
       script.async = true;
       script.onload = () => resolve();
       script.onerror = () => reject(new Error("Google Maps konnte nicht geladen werden."));
@@ -427,6 +429,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
+  const drawingManagerRef = useRef<GoogleDrawingManager | null>(null);
   const [isPending, startTransition] = useTransition();
   const [mapsReady, setMapsReady] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
@@ -468,6 +471,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const [draftStatus, setDraftStatus] = useState("Entwurf wird vorbereitet");
   const [finishStatus, setFinishStatus] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
+  const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
 
   const coverageAreaSqm = useMemo(() => polygonAreaSqm(polygon), [polygon]);
   const perimeterMeters = useMemo(() => polygonPerimeterMeters(polygon), [polygon]);
@@ -488,7 +492,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   const recommendedFlyerQuantity = recommendedFlyersForHouseholds(households);
   const deliverabilityScore = intelligence?.metrics.score ?? null;
   const calculationConfidence = intelligence?.metrics.confidence ?? (intelligenceStatus === "live" ? "medium" : "low");
-  const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietssch?tzung");
+  const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
   const householdCountSource = intelligence?.metrics.householdCountSource ?? (intelligenceStatus === "live" ? "area-density-formula" : "client-area-estimate");
   const pricingVersion = intelligence?.metrics.pricingVersion ?? "pricing-rule-pending";
   const intelligenceRequestQuery = useMemo(() => new URLSearchParams({
@@ -842,8 +846,22 @@ export function SmartOrderWizard({ areas, today }: Props) {
 
   useEffect(() => {
     if (!mapsReady || !mapElementRef.current || !window.google?.maps) return;
+    const maps = window.google.maps;
+    const syncPath = () => {
+      const next = pathToPoints(polygonRef.current?.getPath() ?? { getLength: () => 0, getAt: () => ({ lat: () => 0, lng: () => 0 }), forEach: () => undefined });
+      if (next.length >= 3) {
+        setPolygon(next);
+        setPolygonSource("manual");
+      }
+    };
+    const attachPolygonListeners = (target: GooglePolygon) => {
+      const path = target.getPath();
+      maps.event.addListener(path, "set_at", syncPath);
+      maps.event.addListener(path, "insert_at", syncPath);
+      maps.event.addListener(target, "dragend", syncPath);
+    };
     if (!mapRef.current) {
-      mapRef.current = new window.google.maps.Map(mapElementRef.current, {
+      mapRef.current = new maps.Map(mapElementRef.current, {
         center,
         zoom: 14,
         disableDefaultUI: true,
@@ -858,7 +876,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       });
     }
     if (!polygonRef.current) {
-      polygonRef.current = new window.google.maps.Polygon({
+      polygonRef.current = new maps.Polygon({
         paths: polygon,
         strokeColor: "#4a90ff",
         strokeOpacity: 1,
@@ -869,17 +887,36 @@ export function SmartOrderWizard({ areas, today }: Props) {
         draggable: true,
       });
       polygonRef.current.setMap(mapRef.current);
-      const syncPath = () => {
-        const next = pathToPoints(polygonRef.current?.getPath() ?? { getLength: () => 0, getAt: () => ({ lat: () => 0, lng: () => 0 }), forEach: () => undefined });
+      attachPolygonListeners(polygonRef.current);
+    }
+    if (!drawingManagerRef.current && maps.drawing && mapRef.current) {
+      drawingManagerRef.current = new maps.drawing.DrawingManager({
+        drawingMode: null,
+        drawingControl: false,
+        polygonOptions: {
+          strokeColor: "#a7ff00",
+          strokeOpacity: 1,
+          strokeWeight: 3,
+          fillColor: "#1f7aff",
+          fillOpacity: 0.28,
+          editable: true,
+          draggable: true,
+        },
+      });
+      drawingManagerRef.current.setMap(mapRef.current);
+      maps.event.addListener(drawingManagerRef.current, "polygoncomplete", (overlay) => {
+        const nextPolygon = overlay as GooglePolygon;
+        polygonRef.current?.setMap(null);
+        polygonRef.current = nextPolygon;
+        polygonRef.current.setMap(mapRef.current);
+        drawingManagerRef.current?.setDrawingMode(null);
+        const next = pathToPoints(nextPolygon.getPath());
         if (next.length >= 3) {
           setPolygon(next);
-          setPolygonSource("manual");
+          setPolygonSource("drawn");
         }
-      };
-      const path = polygonRef.current.getPath();
-      window.google.maps.event.addListener(path, "set_at", syncPath);
-      window.google.maps.event.addListener(path, "insert_at", syncPath);
-      window.google.maps.event.addListener(polygonRef.current, "dragend", syncPath);
+        attachPolygonListeners(nextPolygon);
+      });
     }
   }, [center, mapMode, mapsReady, polygon]);
 
@@ -957,6 +994,20 @@ export function SmartOrderWizard({ areas, today }: Props) {
   function requestHeatmap() {
     setShowHeatmap(false);
     setHeatmapNotice("Heatmap für dieses Gebiet noch nicht verfügbar.");
+  }
+
+  function startDrawingArea() {
+    const drawing = window.google?.maps.drawing;
+    if (!mapsReady || !drawingManagerRef.current || !drawing) {
+      setHeatmapNotice(
+        mapsBrowserKeyConfigured
+          ? "Die Zeichenfunktion lädt noch. Bitte kurz warten und erneut versuchen."
+          : "Google Maps ist live noch nicht konfiguriert. Bitte NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY auf dem Server setzen und die App neu bauen.",
+      );
+      return;
+    }
+    setHeatmapNotice("Klicken Sie auf der Karte die Eckpunkte Ihres Gebiets. Zum Abschließen den ersten Punkt wieder anklicken.");
+    drawingManagerRef.current.setDrawingMode(drawing.OverlayType.POLYGON);
   }
 
   function trackSubmit() {
@@ -1125,7 +1176,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
             </div>
           ) : null}
           <div className="modeTabs">
-            <button type="button" className="selected">Gebiet zeichnen</button>
+            <button type="button" className="selected" onClick={startDrawingArea}>Gebiet zeichnen</button>
             <button type="button" onClick={() => setActiveStep(3)}>POI verwenden</button>
           </div>
           <div className="savedAreaMini">
@@ -1400,6 +1451,16 @@ export function SmartOrderWizard({ areas, today }: Props) {
         {heatmapNotice ? <div className="heatmapNotice" role="status">{heatmapNotice}</div> : null}
         <div ref={mapElementRef} className="orderGoogleMap" aria-hidden={!mapsReady} />
         {!mapsReady ? <MiniMapFallback center={center} polygon={polygon} showHeatmap={showHeatmap} /> : null}
+        {!mapsReady ? (
+          <div className="mapConfigNotice" role="status">
+            <strong>{mapsBrowserKeyConfigured ? "Karte wird geladen" : "Google Maps Key fehlt"}</strong>
+            <span>
+              {mapsBrowserKeyConfigured
+                ? "Falls die Karte nicht erscheint, prüfen Sie Browser-Key, Domain-Freigabe und Google Maps APIs."
+                : "Für Live-Karte und Gebiet zeichnen muss NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY auf dem Server gesetzt und die App neu gebaut werden."}
+            </span>
+          </div>
+        ) : null}
         <div className="mapZoomRail" aria-label="Kartensteuerung">
           <button type="button" onClick={() => geocodeAddress()} aria-label="Aktuelle Adresse zentrieren"><LocateFixed aria-hidden="true" /></button>
           <button type="button" onClick={() => mapRef.current?.setZoom(15)}>+</button>

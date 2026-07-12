@@ -1,16 +1,14 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
-  Bell,
   CircleHelp,
-  CreditCard,
   FileStack,
   FileText,
   LayoutDashboard,
   ListChecks,
   Plus,
   ReceiptText,
-  Settings,
+  UserCircle,
 } from "lucide-react";
 
 type CustomerPortalShellProps = {
@@ -22,16 +20,13 @@ type CustomerPortalShellProps = {
 };
 
 const navItems = [
-  { href: "/customer/orders/new", label: "Neue Kampagne", icon: Plus, group: "Start" },
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
+  { href: "/customer/orders/new", label: "Neue Verteilung", icon: Plus, group: "Start" },
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks, group: "Start" },
   { href: "/customer/reports", label: "Nachweise", icon: FileText, group: "Ergebnisse" },
-  { href: "/customer/documents", label: "Dateien & Druck", icon: FileStack, group: "Ergebnisse" },
-  { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Abrechnung" },
-  { href: "/customer/payments", label: "Zahlungen", icon: CreditCard, group: "Abrechnung" },
-  { href: "/customer/notifications", label: "Nachrichten", icon: Bell, group: "Hilfe" },
+  { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Ergebnisse" },
+  { href: "/customer/documents", label: "Dateien", icon: FileStack, group: "Ergebnisse" },
   { href: "/customer/support", label: "Hilfe", icon: CircleHelp, group: "Hilfe" },
-  { href: "/customer/profile", label: "Profil", icon: Settings, group: "Hilfe" },
 ];
 
 function FlyeroDarkLogo() {
@@ -64,9 +59,13 @@ export function CustomerPortalShell({
           <h1>{title}</h1>
         </div>
         <div className="orderTopActions" aria-label="Kontoaktionen">
-          <Link className="topPrimaryAction" href="/customer/orders/new">Neue Kampagne</Link>
+          <Link className="topPrimaryAction" href="/customer/orders/new">Neue Verteilung</Link>
           <Link href="/customer/reports">Nachweise</Link>
           <Link href="/customer/support">Hilfe</Link>
+          <Link href="/customer/profile" aria-label="Profil">
+            <UserCircle aria-hidden="true" />
+            Profil
+          </Link>
         </div>
       </header>
       <div className="customerUnifiedBody">
