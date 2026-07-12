@@ -1,5 +1,6 @@
 import { UserRole } from "@prisma/client";
 import { AuthError, requireSession, type SessionPayload } from "@/lib/auth";
+import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
 
 export const Permission = {
   ACCOUNTING_EXPORT: "accounting.export",
@@ -43,5 +44,6 @@ export async function requirePermission(permission: Permission) {
   if (!hasPermission(session, permission)) {
     throw new AuthError("Keine Berechtigung für diese Aktion.", 403);
   }
+  await requireActiveTenantMembership(session);
   return session;
 }

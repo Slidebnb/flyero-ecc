@@ -544,6 +544,21 @@ const disabledWarehouseStaff = await prisma.user.upsert({
   },
 });
 
+const internalTenant = await prisma.tenant.upsert({
+  where: { slug: "flyero-internal" },
+  update: { name: "FLYERO Betrieb", status: "ACTIVE" },
+  create: { name: "FLYERO Betrieb", slug: "flyero-internal", status: "ACTIVE" },
+});
+
+for (const [user, role] of [[warehouseStaff, "WAREHOUSE"], [support, "SUPPORT"], [disabledWarehouseStaff, "WAREHOUSE"]]) {
+  await prisma.user.update({ where: { id: user.id }, data: { tenantId: internalTenant.id } });
+  await prisma.tenantMembership.upsert({
+    where: { tenantId_userId: { tenantId: internalTenant.id, userId: user.id } },
+    update: { role, status: "ACTIVE" },
+    create: { tenantId: internalTenant.id, userId: user.id, role, status: "ACTIVE" },
+  });
+}
+
 async function ensureSingleton(model, data) {
   const existing = await prisma[model].findFirst({ orderBy: { createdAt: "asc" } });
   if (existing) return prisma[model].update({ where: { id: existing.id }, data });

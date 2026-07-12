@@ -12,6 +12,7 @@ import { assignWarehouseForOrder, createLogisticsShipment, updateLogisticsShipme
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 
 const adminRoles: UserRole[] = [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER];
 const DOCUMENT_TYPE_VALUES = ["FLYER_PDF", "PRINT_FILE", "INDESIGN", "ILLUSTRATOR", "LOGO", "IMAGE", "ZIP", "REPORT", "INVOICE", "CONTRACT", "OTHER"] as const;
@@ -148,6 +149,10 @@ function isAdmin(actor: SessionUser) {
   return adminRoles.includes(actor.role);
 }
 
+function isPlatformAdmin(actor: SessionUser) {
+  return actor.role === UserRole.ADMIN;
+}
+
 async function customerForActor(actor: SessionUser) {
   if (actor.role !== UserRole.CUSTOMER) return null;
   if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
@@ -157,8 +162,14 @@ async function customerForActor(actor: SessionUser) {
 }
 
 async function assertOrderAccess(actor: SessionUser, orderId: string) {
-  if (isAdmin(actor)) {
+  if (isPlatformAdmin(actor)) {
     const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, customerId: true, tenantId: true } });
+    if (!order) throw new AuthError("Auftrag wurde nicht gefunden.", 404);
+    return order;
+  }
+
+  if (actor.role === UserRole.SUPPORT_DISPATCHER) {
+    const order = await prisma.order.findFirst({ where: { id: orderId, ...tenantWhereForSession(actor) }, select: { id: true, customerId: true, tenantId: true } });
     if (!order) throw new AuthError("Auftrag wurde nicht gefunden.", 404);
     return order;
   }
@@ -171,7 +182,8 @@ async function assertOrderAccess(actor: SessionUser, orderId: string) {
 }
 
 function documentWhere(actor: SessionUser) {
-  if (isAdmin(actor)) return {};
+  if (isPlatformAdmin(actor)) return {};
+  if (actor.role === UserRole.SUPPORT_DISPATCHER) return tenantWhereForSession(actor);
   if (actor.role === UserRole.CUSTOMER) {
     if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
     return { customer: { userId: actor.id }, tenantId: actor.tenantId };
@@ -372,7 +384,7 @@ export async function addDocumentVersion(actor: SessionUser, id: string, input: 
 export async function updateDocument(actor: SessionUser, id: string, input: unknown) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dokumente bearbeiten.", 403);
   const data = documentUpdateSchema.parse(input);
-  const current = await prisma.document.findUnique({ where: { id }, select: { scanStatus: true } });
+  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { scanStatus: true } });
   if (!current) throw new AuthError("Dokument wurde nicht gefunden.", 404);
   if (data.status === "APPROVED" && approvalRequiresCleanScan({ status: current.scanStatus })) {
     throw new AuthError("Dokumente dürfen erst nach erfolgreicher Dateiprüfung freigegeben werden.", 409);
@@ -384,7 +396,7 @@ export async function updateDocument(actor: SessionUser, id: string, input: unkn
 
 export async function approveDocument(actor: SessionUser, id: string, message?: string) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dokumente freigeben.", 403);
-  const current = await prisma.document.findUnique({ where: { id }, select: { scanStatus: true } });
+  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { scanStatus: true } });
   if (!current) throw new AuthError("Dokument wurde nicht gefunden.", 404);
   if (approvalRequiresCleanScan({ status: current.scanStatus })) {
     throw new AuthError("Dokumente dürfen erst nach erfolgreicher Dateiprüfung freigegeben werden.", 409);
@@ -402,7 +414,7 @@ export async function approveDocument(actor: SessionUser, id: string, message?: 
 
 export async function rescanDocument(actor: SessionUser, id: string) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dateien prüfen.", 403);
-  const document = await prisma.document.findUnique({ where: { id }, include: { versions: { orderBy: { version: "desc" }, take: 1 } } });
+  const document = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, include: { versions: { orderBy: { version: "desc" }, take: 1 } } });
   if (!document) throw new AuthError("Dokument wurde nicht gefunden.", 404);
   const stored = await readStoredDocument(document.storedFilename);
   const scan = await scanFileBuffer({ buffer: stored.buffer, originalFilename: document.originalFilename });

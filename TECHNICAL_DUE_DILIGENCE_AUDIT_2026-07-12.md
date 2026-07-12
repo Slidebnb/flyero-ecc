@@ -30,14 +30,14 @@ Status:
 
 ## 2. Executive Summary
 
-FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 76 Prisma-Modellen, 62 Enums, 187 API-Routen, 90 Seiten, 37 Migrationen und 51 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
+FLYERO ist kein einfacher Landingpage-MVP mehr. Das Repository enthaelt einen breiten Next.js-Monolithen mit 76 Prisma-Modellen, 62 Enums, 187 API-Routen, 90 Seiten, 38 Migrationen und 52 Smoke-Testdateien. Auftrag, Checkout, Rechnung, Lager, Dispatch, Tour, externe GPS-Nachweise, Reports, CRM, Monitoring, E-Mail-Queue und mehrere Rollen sind fachlich abgebildet.
 
-Der aktuelle Stand ist dennoch noch kein vollstaendig belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Eine erste Mandantengrundlage ist jetzt vorhanden: `Tenant`, `TenantMembership` sowie verpflichtende `tenantId`-Felder auf den kundenbezogenen Kernmodellen. Kundenregistrierung, Lead-Konvertierung, Seed-Daten und zentrale Customer-APIs erzeugen bzw. pruefen aktive Kundenmandanten. Plattform-Admin und interne Rollen sind weiterhin global; zentrale Tenant-Permissions, Mitarbeiterverwaltung und vollstaendige Tenant-Policies sind noch offen.
+Der aktuelle Stand ist dennoch noch kein vollstaendig belastbares Multi-Tenant-SaaS und nicht ISO-27001- oder SOC-2-ready. Eine erste Mandantengrundlage ist jetzt vorhanden: `Tenant`, `TenantMembership` sowie verpflichtende `tenantId`-Felder auf den kundenbezogenen Kernmodellen. Kundenregistrierung, Lead-Konvertierung, Seed-Daten und zentrale Customer-APIs erzeugen bzw. pruefen aktive Kundenmandanten. Support-/Lager-Mitgliedschaften und sensible Dokument-/Reportpfade werden jetzt tenantbezogen geprüft; globale Adminpfade, Mitarbeiterverwaltung und die vollständige Policy-Migration bleiben offen.
 
 Die groessten aktuellen Risiken sind:
 
 1. `P0` Produktionsdaten und Uploads liegen operativ weiterhin ohne nachgewiesenen automatischen Offsite-Backup- und Restore-Nachweis.
-2. `P0` Die Plattform ist noch nicht vollstaendig mandantenfaehig: Die Kunden-Kernkette ist gescoped, aber interne Rollen, globale Admin-Pfade, Storage-Partitionierung und eine zentrale Policy-Schicht fehlen noch.
+2. `P0` Die Plattform ist noch nicht vollstaendig mandantenfaehig: Kunden-Kernkette, internes Tenant-Backfill und zentrale Membership-Policy sind gescoped; historische Admin-Pfade, Storage-Partitionierung und vollständige Ressourcenscopes fehlen noch.
 3. `P1` Uploads haben jetzt einen ClamAV-Adapter, Quarantaene-Status und fail-closed Freigabepfad; produktive Scanner-/S3-Konfiguration, Altbestandsmigration und Restore-Nachweis fehlen.
 4. `P1` Stripe-Reconciliation und ein serverseitiger Dispute-Prozess sind im Repo vorhanden; signierte Staging-Abnahmetests, Scheduler-/Live-Betriebsnachweise und operative Dispute-Verantwortung fehlen.
 5. `P1` Externes Monitoring, Alarmierung, zentrale Request-Korrelation und Uptime-/Backup-Ueberwachung fehlen weiterhin.
@@ -60,7 +60,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 | Storage | Lokaler privater Dateispeicher und Docker-Volumes | teilweise |
 | Reporting | Report-Snapshots, Freigabe, private Downloads, externe GPS-Belege | teilweise |
 | Deployment | Docker Compose, Caddy, HTTPS, Postgres | vorhanden fuer Einzelserver-MVP |
-| Tests | 50 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission-, Tenant- und Report-Smokes | teilweise |
+| Tests | 52 Node-Smoke-Skripte, einschliesslich Auth-, Storage-, Permission-, Tenant- und Report-Smokes | teilweise |
 | CI/CD | GitHub Actions fuer Prisma, Lint, Build, Security und kritische PostgreSQL-Smokes | vorhanden im Repo; Branch-Schutz/Staging extern offen |
 
 ### Architekturstaerken
@@ -85,7 +85,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 ### Vorhanden
 
-- 75 Modelle und 60 Enums bilden Order, Payment, Invoice, Warehouse, Dispatch, Tour, GPS, Report, Dokumente, CRM, Notifications, Monitoring, Audit und Tenant-Grundlagen ab.
+- 76 Modelle und 62 Enums bilden Order, Payment, Invoice, Warehouse, Dispatch, Tour, GPS, Report, Dokumente, CRM, Notifications, Monitoring, Audit und Tenant-Grundlagen ab.
 - Fremdschluessel, Indizes, eindeutige Constraints und Zeitstempel sind an vielen Kernmodellen vorhanden.
 - Stripe-Event-IDs sind eindeutig, Reportnummern und Verifikationscodes sind eindeutig.
 - Migrationen sind versioniert und werden im Deployment mit `prisma migrate deploy` angewendet.
@@ -94,7 +94,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| DB-01 | Tenant-Grundmodell und Kunden-Kernscoping vorhanden, aber interne Rollen, globale Adminpfade und zentrale Policies noch nicht tenantfaehig | P0 | Tenant-Membership und Permission-Policies auf alle relevanten internen Pfade erweitern; Storage-Partitionierung und negative Tests vervollstaendigen. |
+| DB-01 | Tenant-Grundmodell, internes Tenant-Backfill und zentrale Membership-Policy sind vorhanden; historische Adminpfade, globale Plattform-Admintrennung und vollständige Ressourcenscopes bleiben offen | P0 | Tenant-Filter auf alle internen Listen/Details ausweiten, Plattform-/Unternehmensrollen trennen und A/B-IDOR-Matrix vervollständigen. |
 | DB-02 | Viele fachliche Snapshots und Metadaten liegen als freies `Json` vor | P2 | JSON nur fuer unveraenderliche Snapshots behalten; haeufig abgefragte oder sicherheitsrelevante Felder typisieren. |
 | DB-03 | Soft Delete und Loesch-/Sperrkonzept sind nicht einheitlich | P2 | Datenklassen definieren und pro Modell `deletedAt`, Archivierung oder harte Loeschung verbindlich festlegen. |
 | DB-04 | Retention-Dry-Run und Bereinigung fuer Tokens/Sessions/Buckets vorhanden; fachliche Fristen fuer GPS, Fotos und Reports noch offen | P1 | Datenklassen, Fristen und Legal-Hold-Ausnahmen fachlich freigeben und danach in automatisierte Jobs ueberfuehren. |
@@ -158,10 +158,10 @@ Empfohlene Zielstruktur vor weiteren Enterprise-Funktionen:
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| RBAC-01 | Rollen sind grob; keine zentralen Permissions | P1 | Permission-Matrix fuer Lesen, Erstellen, Aendern, Freigeben, Export und Mitarbeiterverwaltung einfuehren. |
+| RBAC-01 | Zentrale Permission-Matrix und aktive Tenant-Membership-Prüfung sind für sensible Pfade vorhanden; vollständige CRUD-/Tenant-Abdeckung fehlt | P1 | Alle internen APIs auf Permission- und Tenant-Policy migrieren. |
 | RBAC-02 | Admin und Support/Dispatcher teilen viele Hochrisiko-Aktionen | P1 | Payment-Refund, Report-Publish, Nutzerverwaltung und Exporte getrennt berechtigen. |
 | RBAC-03 | Kein Plattform-Superadmin vs. Unternehmensadmin | P1 | Im Zuge der Tenant-Architektur Rollenebenen trennen. |
-| RBAC-04 | Middleware vertraut der Rolle im JWT | P1 | Middleware nur fuer Navigation verwenden; API-Policy aus aktueller DB-Mitgliedschaft ableiten. |
+| RBAC-04 | JWT trägt die Identität; `requirePermission()` liest zusätzlich die aktuelle DB-Membership, einige `requireRole()`-Pfade sind noch nicht migriert | P1 | Verbleibende interne APIs auf DB-authorisierte Permission-/Tenant-Prüfung umstellen. |
 | RBAC-05 | Keine maschinenlesbare Berechtigungsmatrix | P2 | Rollen-/Permission-Matrix dokumentieren und als automatisierte Contract-Tests abbilden. |
 
 ## 8. Sicherheitsanalyse

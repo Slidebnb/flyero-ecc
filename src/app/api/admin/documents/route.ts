@@ -1,12 +1,11 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { listDocuments } from "@/lib/documents";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.DOCUMENT_REVIEW);
     return successResponse(await listDocuments(session, Object.fromEntries(request.nextUrl.searchParams.entries())));
   } catch (error) {
     return routeErrorResponse(error);

@@ -1,17 +1,17 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { collectReportData } from "@/lib/reports";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.REPORT_REVIEW);
     const { id } = await context.params;
     const report = await prisma.report.findUnique({
-      where: { id },
+      where: { id, ...tenantWhereForSession(session) },
       include: {
         order: { include: { customer: true } },
         tour: { include: { distributor: { include: { user: true } }, gpsPoints: true, photoProofs: true } },

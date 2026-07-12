@@ -1,14 +1,15 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 
 export default async function AdminReportsPage() {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.REPORT_REVIEW);
   const reports = await prisma.report.findMany({
+    where: tenantWhereForSession(session),
     include: { order: { include: { customer: true } }, tour: true },
     orderBy: { updatedAt: "desc" },
   });

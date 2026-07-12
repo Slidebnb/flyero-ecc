@@ -152,6 +152,9 @@ jobs:
       - name: File scan contract smoke
         run: npm run test:file-scan
 
+      - name: Tenant policy contract smoke
+        run: npm run test:tenant-policy
+
       - name: Password reset smoke
         run: npm run test:password-reset
 

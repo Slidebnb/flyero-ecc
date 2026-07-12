@@ -1,29 +1,28 @@
 import { revalidatePath } from "next/cache";
-import { UserRole } from "@prisma/client";
 import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
 import { addDocumentComment, approveDocument, DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, getDocumentAnalytics, listDocuments, rejectDocument, rescanDocument } from "@/lib/documents";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function approveAction(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.DOCUMENT_REVIEW);
   await approveDocument(session, String(formData.get("documentId")), String(formData.get("message") || ""));
   revalidatePath("/admin/documents");
 }
 
 async function rejectAction(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.DOCUMENT_REVIEW);
   await rejectDocument(session, String(formData.get("documentId")), String(formData.get("rejectedReason") || "Bitte Datei prüfen und neu hochladen."));
   revalidatePath("/admin/documents");
 }
 
 async function commentAction(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.DOCUMENT_REVIEW);
   await addDocumentComment(session, String(formData.get("documentId")), {
     message: String(formData.get("message") || ""),
     visibility: String(formData.get("visibility") || "INTERNAL"),
@@ -49,13 +48,13 @@ function formatDate(date: Date | null) {
 }
 
 export default async function AdminDocumentsPage({ searchParams }: { searchParams: Promise<Record<string, string | undefined>> }) {
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.DOCUMENT_REVIEW);
   const params = await searchParams;
   const [documents, analytics, customers, orders] = await Promise.all([
     listDocuments(session, params),
     getDocumentAnalytics(),
-    prisma.customerProfile.findMany({ select: { id: true, companyName: true }, orderBy: { companyName: "asc" }, take: 200 }),
-    prisma.order.findMany({ select: { id: true, orderNumber: true, targetAreaName: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
+    prisma.customerProfile.findMany({ where: tenantWhereForSession(session), select: { id: true, companyName: true }, orderBy: { companyName: "asc" }, take: 200 }),
+    prisma.order.findMany({ where: tenantWhereForSession(session), select: { id: true, orderNumber: true, targetAreaName: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
   ]);
 
   return (
