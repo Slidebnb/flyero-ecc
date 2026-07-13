@@ -6,6 +6,8 @@ const support = await readFile("src/lib/support.ts", "utf8");
 const documents = await readFile("src/lib/documents.ts", "utf8");
 const overviewRoute = await readFile("src/app/api/admin/analytics/route.ts", "utf8");
 const exportRoute = await readFile("src/app/api/admin/analytics/export/route.ts", "utf8");
+const heatmap = await readFile("src/lib/smartMaps.ts", "utf8");
+const heatmapRoute = await readFile("src/app/api/admin/maps/heatmap/route.ts", "utf8");
 
 assert.match(analytics, /export type AnalyticsScope/);
 for (const functionName of [
@@ -26,5 +28,9 @@ assert.match(analytics, /wonCustomer: \{ tenantId: scope\.tenantId \}/);
 assert.match(analytics, /tenantId: scope\.tenantId/);
 assert.match(support, /tenantId: scope\.tenantId/);
 assert.match(documents, /tenantId: scope\.tenantId/);
+assert.match(heatmap, /export async function getHeatmapData\(tenantId\?: string \| null\)/);
+assert.match(heatmap, /where: tenantId \? \{ tenantId \} : undefined/);
+assert.match(heatmapRoute, /requirePermission\(Permission\.ANALYTICS_VIEW\)/);
+assert.match(heatmapRoute, /getHeatmapData\(session\.role === UserRole\.ADMIN \? undefined : session\.tenantId\)/);
 
 console.log("Analytics tenant scope smoke checks passed.");

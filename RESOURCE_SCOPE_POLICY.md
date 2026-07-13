@@ -93,6 +93,11 @@ Order-Intelligence verwenden den Scope `maps`; die Grenzwerte werden ueber
 konfiguriert. Das begrenzt Google-Kostenmissbrauch, ersetzt aber keinen
 externen WAF- oder Edge-Limiter.
 
+Die interne Heatmap verwendet fuer `SUPPORT_DISPATCHER` denselben Tenant-Scope
+wie Analytics und akzeptiert keine reine Rollenfreigabe ohne aktive
+Mitgliedschaft. Die globale Ansicht bleibt ausschliesslich der Plattformrolle
+`ADMIN` vorbehalten.
+
 Der oeffentliche Client-Error-Endpunkt verwendet ebenfalls einen persistenten
 IP-Limiter (`client-error`). Er darf nur gekuerzte, nicht-sensitive
 Fehlerhinweise ins plattformweite Monitoring schreiben; ein externer

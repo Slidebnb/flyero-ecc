@@ -1,12 +1,15 @@
 import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
 import { getHeatmapData } from "@/lib/smartMaps";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
-    return Response.json({ ok: true, data: await getHeatmapData() });
+    const session = await requirePermission(Permission.ANALYTICS_VIEW);
+    return Response.json({
+      ok: true,
+      data: await getHeatmapData(session.role === UserRole.ADMIN ? undefined : session.tenantId),
+    });
   } catch (error) {
     return routeErrorResponse(error);
   }

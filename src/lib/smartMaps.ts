@@ -333,15 +333,19 @@ export async function getOrderIntelligence(input: {
   };
 }
 
-export async function getHeatmapData() {
+export async function getHeatmapData(tenantId?: string | null) {
   const [orders, areas] = await Promise.all([
     prisma.order.groupBy({
       by: ["city", "postalCode", "status"],
+      where: tenantId ? { tenantId } : undefined,
       _count: { _all: true },
       _sum: { flyerQuantity: true },
     }),
     prisma.distributionArea.findMany({
-      where: { status: "ACTIVE" },
+      where: {
+        status: "ACTIVE",
+        ...(tenantId ? { OR: [{ tenantId: null }, { tenantId }] } : {}),
+      },
       select: { id: true, name: true, city: true, postalCode: true, centerLat: true, centerLng: true, estimatedHouseholds: true },
       take: 80,
     }),
