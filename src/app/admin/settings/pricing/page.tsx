@@ -1,16 +1,16 @@
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 ﻿import { revalidatePath } from "next/cache";
-import { Prisma, ServiceType, UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Prisma, ServiceType } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { syncOpenOrderPrices, validatePricingRuleChanges } from "@/lib/pricing";
 import { getPricingSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 
 async function savePricing(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN]);
+  const session = await requirePermission(Permission.PRICING_MANAGE);
   const before = await getPricingSettings();
   const ids = formData.getAll("ruleId").map(String);
   const validationError = await validatePricingRuleChanges(ids.map((id) => ({
@@ -59,7 +59,7 @@ async function savePricing(formData: FormData) {
 }
 
 export default async function PricingSettingsPage() {
-  await requireRole([UserRole.ADMIN]);
+  await requirePermission(Permission.PRICING_MANAGE);
   const { settings, rules } = await getPricingSettings();
   const settingValue = (key: string) => settings.find((setting) => setting.key === key)?.valueDecimal.toString() ?? "0";
 

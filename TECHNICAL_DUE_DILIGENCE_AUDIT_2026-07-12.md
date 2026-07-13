@@ -922,3 +922,13 @@ vor dem Launch offen.
 ### P1 Öffentliche Abuse-Schutzschicht
 
 Lead-Formular und öffentlicher Report-Verifikationscode verwenden jetzt persistente, gehashte IP-Buckets in `PublicRateLimitBucket`. Damit bleibt der Schutz über Prozessneustarts und mehrere App-Instanzen hinweg wirksam. Die konfigurierbaren Grenzwerte stehen in `.env.example` und `.env.production.example`; die Retention berücksichtigt beide Bucket-Typen.
+
+### P1 Preisquelle und Produktionskonfiguration (13.07.2026)
+
+- Die Preis-Settings-Seite und die Pricing-API verwenden beide `pricing.manage`.
+- Eine Änderung an aktiven Regeln oder der Mehrwertsteuer ruft `syncOpenOrderPrices()` auf. Offene Kundenaufträge erhalten den neuen Preis-Snapshot, offene Checkout-Zahlungen werden lokal und, sofern möglich, auch bei Stripe ungültig gemacht, und der Kunde erhält eine In-App-Nachricht.
+- Neue Gebietskalkulationen lesen dieselbe Datenbankquelle über `calculateOrderPrice()`. Der Checkout berechnet vor der Session-Erzeugung erneut und Rechnungen verwenden den gespeicherten, nachvollziehbaren Auftragssnapshot.
+- Der lokale Datenbankstand wurde gegen die Premium-Staffel geprüft: 1-5.000 / 5.001-10.000 / ab 10.001 Flyer mit 599 EUR Mindestnetto und marginalen Aufschlägen.
+- `ENABLE_MOCK_PAYMENTS=false` ist im Produktions-Preflight jetzt ausdrücklich erforderlich. Ein fehlender Wert gilt nicht mehr als sichere Produktionskonfiguration.
+
+Offen bleibt die Laufzeitprüfung der tatsächlichen Hetzner-Umgebungsvariablen und Stripe-/Webhook-Konfiguration; diese kann nur auf dem Produktionsserver mit den dort gesetzten Secrets nachgewiesen werden.

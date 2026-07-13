@@ -23,9 +23,7 @@ requireValue("APP_URL", isHttps, "muss eine HTTPS-URL sein.");
 requireValue("NEXT_PUBLIC_SITE_URL", isHttps, "muss eine HTTPS-URL sein.");
 requireValue("DATABASE_URL", (value) => value.startsWith("postgresql://") && !value.includes("replace-"), "muss eine konfigurierte PostgreSQL-URL sein.");
 
-if (process.env.ENABLE_MOCK_PAYMENTS === "true") {
-  errors.push("ENABLE_MOCK_PAYMENTS: darf in Produktion nicht true sein.");
-}
+requireValue("ENABLE_MOCK_PAYMENTS", (value) => value === "false", "muss in Produktion explizit false sein.");
 requireValue("STRIPE_SECRET_KEY", (value) => value.startsWith("sk_test_") || value.startsWith("sk_live_"), "muss ein Stripe-Secret im Test- oder Live-Modus sein.");
 requireValue("STRIPE_WEBHOOK_SECRET", (value) => value.startsWith("whsec_"), "muss ein signierter Stripe-Webhook-Secret sein.");
 

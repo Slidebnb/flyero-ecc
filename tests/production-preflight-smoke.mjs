@@ -46,4 +46,14 @@ assert.notEqual(invalid.status, 0, "Mock-E-Mail darf den Produktions-Preflight n
 assert.match(`${invalid.stdout}\n${invalid.stderr}`, /EMAIL_PROVIDER/);
 assert.ok(!`${invalid.stdout}\n${invalid.stderr}`.includes(validEnvironment.RESEND_API_KEY), "Secrets werden im Fehlertext ausgegeben.");
 
+const missingMockFlagEnvironment = { ...validEnvironment };
+delete missingMockFlagEnvironment.ENABLE_MOCK_PAYMENTS;
+const missingMockFlag = run(missingMockFlagEnvironment);
+assert.notEqual(missingMockFlag.status, 0, "Ein fehlendes Mock-Payment-Flag darf den Produktions-Preflight nicht bestehen.");
+assert.match(`${missingMockFlag.stdout}\n${missingMockFlag.stderr}`, /ENABLE_MOCK_PAYMENTS/);
+
+const enabledMock = run({ ...validEnvironment, ENABLE_MOCK_PAYMENTS: "true" });
+assert.notEqual(enabledMock.status, 0, "Aktive Mock-Payments dürfen den Produktions-Preflight nicht bestehen.");
+assert.match(`${enabledMock.stdout}\n${enabledMock.stderr}`, /ENABLE_MOCK_PAYMENTS/);
+
 console.log("Production preflight smoke checks passed.");
