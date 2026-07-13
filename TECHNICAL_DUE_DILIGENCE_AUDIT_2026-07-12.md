@@ -6,13 +6,13 @@ Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `684785641c1c8957660f58b6da1ff4e1e26f7866`
+Pruef-Commit: `2f84a9b85c0116043a91f2849670054f00afba6e`
 
 ## Aktueller Verifikationsnachtrag (13.07.2026)
 
 Der historische Audittext wird gegen den aktuell verifizierten Repository-Stand
 weitergefuehrt. Der gepruefte Code-Commit ist
-`684785641c1c8957660f58b6da1ff4e1e26f7866`; `origin/main` zeigte waehrend der
+`2f84a9b85c0116043a91f2849670054f00afba6e`; `origin/main` zeigte waehrend der
 Pruefung auf denselben Code-Stand. Die folgenden Checks liefen gegen den
 aktuellen lokalen Stand erfolgreich:
 
@@ -46,6 +46,19 @@ aktuellen lokalen Stand erfolgreich:
 - `npm run lint`
 - `npx tsc --noEmit`
 - `npm run build`
+
+### Aktualisierung: Dependency- und Secret-Scan erneut verifiziert (13.07.2026)
+
+- `npm audit --omit=dev --audit-level=high` meldet weiterhin fuenf moderate
+  Advisories in transitiven Prisma-/PostCSS-Abhaengigkeiten, aber keine hohen
+  oder kritischen Advisories. Die angebotenen `npm audit fix --force`-
+  Aenderungen waeren breaking (unter anderem Next/Prisma) und wurden nicht
+  ungeprueft angewendet. Die kontrollierte Nachverfolgung bleibt P2.
+- Ein Repository-Secret-Scan fand keine echten Stripe-, Webhook-, Cloud- oder
+  Private-Key-Secrets. Treffer beschraenken sich auf absichtlich synthetische
+  CI-/Testwerte und Platzhalter in Environment-Beispielen bzw. Dokumentation.
+- Der Arbeitsbaum war sauber und `origin/main` zeigte waehrend der Pruefung auf
+  denselben Commit.
 
 Damit ist die Preisquelle fuer Admin-Settings, offene Kundenauftraege,
 Gebietsvorschau, neue Auftraege, Checkout, Dashboard und Rechnungs-Snapshot
