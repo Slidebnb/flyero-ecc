@@ -1,5 +1,4 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { getDistributorProfileForUser } from "@/lib/tours";
@@ -11,7 +10,7 @@ type RouteProps = {
 
 export async function GET(_request: Request, { params }: RouteProps) {
   try {
-    const session = await requireRole([UserRole.DISTRIBUTOR]);
+    const session = await requirePermission(Permission.DISTRIBUTOR_OPERATIONS_VIEW);
     const profile = await getDistributorProfileForUser(session.id);
     const { id } = await params;
     const tour = await prisma.distributionTour.findFirst({

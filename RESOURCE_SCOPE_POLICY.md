@@ -75,6 +75,14 @@ Eigene Tourdetails sind ueber `distributorId` geschuetzt, fremde Tour-IDs
 liefern `404`. Der Contract-Smoke `npm run test:distributor-privacy` prueft
 API-Responses und gerenderte Verteilerseiten gegen echte Seed-Touren.
 
+Die Verteiler-Betriebs- und Support-APIs verwenden zusaetzlich die zentralen
+Permissions `distributor.operations.*` und `distributor.support.*`. Weil ein
+Verteiler im MVP tenantuebergreifend eingesetzt werden kann, verlangt diese
+kleine Permissiongruppe keine globale Tenant-Mitgliedschaft; die Services
+muessen stattdessen immer ueber das eigene Verteilerprofil oder die konkrete
+Zuweisung scopen. Der Contract `test:role-permission-migration` schuetzt diese
+bewusste Grenze.
+
 Lageransichten verwenden ebenfalls eine explizite Privacy-Whitelist. Lagerrollen
 sehen Auftragsnummer, Ort, Gebiet, Mengen, Status und notwendige Lagerdaten,
 aber keine vollstaendigen Kundenobjekte, Firmennamen oder Antragsteller-/Freigabe-

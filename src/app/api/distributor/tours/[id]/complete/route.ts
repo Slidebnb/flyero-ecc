@@ -1,5 +1,4 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, readBody } from "@/lib/request";
 import { tourCompleteSchema } from "@/lib/validators";
 import { completeTour } from "@/lib/tours";
@@ -8,7 +7,7 @@ type RouteProps = { params: Promise<{ id: string }> };
 
 export async function POST(request: Request, { params }: RouteProps) {
   try {
-    const session = await requireRole([UserRole.DISTRIBUTOR]);
+    const session = await requirePermission(Permission.DISTRIBUTOR_OPERATIONS_MANAGE);
     const parsed = tourCompleteSchema.safeParse(await readBody(request as never));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     const { id } = await params;

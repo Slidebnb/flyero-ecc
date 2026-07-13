@@ -1,6 +1,6 @@
-import { ErrorSeverity, UserRole } from "@prisma/client";
+import { ErrorSeverity } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { errorResponse, readBody } from "@/lib/request";
 import { tourGpsUploadSchema } from "@/lib/validators";
@@ -10,7 +10,7 @@ type RouteProps = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, { params }: RouteProps) {
   try {
-    const session = await requireRole([UserRole.DISTRIBUTOR]);
+    const session = await requirePermission(Permission.DISTRIBUTOR_OPERATIONS_MANAGE);
     const parsed = tourGpsUploadSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige GPS-Daten.");
     const { id } = await params;

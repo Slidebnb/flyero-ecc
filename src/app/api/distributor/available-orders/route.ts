@@ -1,12 +1,11 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
 import { distributorInventorySelect, distributorOrderSelect } from "@/lib/distributorPrivacy";
 
 export async function GET() {
   try {
-    const session = await requireRole([UserRole.DISTRIBUTOR]);
+    const session = await requirePermission(Permission.DISTRIBUTOR_OPERATIONS_VIEW);
     const profile = await prisma.distributorProfile.findUnique({
       where: { userId: session.id },
       select: { id: true },

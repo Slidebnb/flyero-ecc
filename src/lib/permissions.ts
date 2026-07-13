@@ -48,12 +48,22 @@ export const Permission = {
   MONITORING_MANAGE: "monitoring.manage",
   NOTIFICATION_OPERATIONS_VIEW: "notification-operations.view",
   NOTIFICATION_OPERATIONS_MANAGE: "notification-operations.manage",
+  DISTRIBUTOR_OPERATIONS_VIEW: "distributor.operations.view",
+  DISTRIBUTOR_OPERATIONS_MANAGE: "distributor.operations.manage",
+  DISTRIBUTOR_SUPPORT_VIEW: "distributor.support.view",
+  DISTRIBUTOR_SUPPORT_MANAGE: "distributor.support.manage",
   RETENTION_HOLD_MANAGE: "retention-hold.manage",
 } as const;
 
 export type Permission = (typeof Permission)[keyof typeof Permission];
 
 const ADMIN_PERMISSIONS: readonly Permission[] = Object.values(Permission);
+const DISTRIBUTOR_RELATION_SCOPED_PERMISSIONS = new Set<Permission>([
+  Permission.DISTRIBUTOR_OPERATIONS_VIEW,
+  Permission.DISTRIBUTOR_OPERATIONS_MANAGE,
+  Permission.DISTRIBUTOR_SUPPORT_VIEW,
+  Permission.DISTRIBUTOR_SUPPORT_MANAGE,
+]);
 
 export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>> = {
   [UserRole.ADMIN]: ADMIN_PERMISSIONS,
@@ -77,7 +87,12 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
     Permission.PRINT_ORDER_MANAGE,
   ],
   [UserRole.WAREHOUSE_STAFF]: [],
-  [UserRole.DISTRIBUTOR]: [],
+  [UserRole.DISTRIBUTOR]: [
+    Permission.DISTRIBUTOR_OPERATIONS_VIEW,
+    Permission.DISTRIBUTOR_OPERATIONS_MANAGE,
+    Permission.DISTRIBUTOR_SUPPORT_VIEW,
+    Permission.DISTRIBUTOR_SUPPORT_MANAGE,
+  ],
   [UserRole.CUSTOMER]: [],
 };
 
@@ -90,6 +105,11 @@ export async function requirePermission(permission: Permission) {
   if (!hasPermission(session, permission)) {
     throw new AuthError("Keine Berechtigung für diese Aktion.", 403);
   }
-  await requireActiveTenantMembership(session);
+  // Verteiler werden als Plattform-Arbeitskraefte keinem einzelnen Tenant
+  // zugeordnet. Die betroffenen Services begrenzen jede Abfrage zusaetzlich
+  // ueber das eigene DistributorProfile bzw. die zugewiesene Tour.
+  if (!(session.role === UserRole.DISTRIBUTOR && DISTRIBUTOR_RELATION_SCOPED_PERMISSIONS.has(permission))) {
+    await requireActiveTenantMembership(session);
+  }
   return session;
 }

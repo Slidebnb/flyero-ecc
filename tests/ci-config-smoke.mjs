@@ -51,6 +51,7 @@ for (const script of [
   "test:password-reset",
   "test:password-reset-live",
   "test:permissions",
+  "test:role-permission-migration",
   "test:retention",
   "test:retention-hold",
   "test:retention-hold-runtime",

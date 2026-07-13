@@ -1,7 +1,7 @@
-import { DistributorReviewStatus, Prisma, UserRole } from "@prisma/client";
+import { DistributorReviewStatus, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
@@ -9,7 +9,7 @@ import { distributorProfileUpdateSchema } from "@/lib/validators";
 
 export async function POST(request: NextRequest) {
   try {
-  const session = await requireRole([UserRole.DISTRIBUTOR]);
+  const session = await requirePermission(Permission.DISTRIBUTOR_OPERATIONS_MANAGE);
   const parsed = distributorProfileUpdateSchema.safeParse(await readBody(request));
 
   if (!parsed.success) {

@@ -1,5 +1,4 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
 import { distributorInventorySelect, distributorOrderSelect } from "@/lib/distributorPrivacy";
@@ -7,7 +6,7 @@ import { getDistributorProfileForUser } from "@/lib/tours";
 
 export async function GET() {
   try {
-    const session = await requireRole([UserRole.DISTRIBUTOR]);
+    const session = await requirePermission(Permission.DISTRIBUTOR_OPERATIONS_VIEW);
     const profile = await getDistributorProfileForUser(session.id);
     const tours = await prisma.distributionTour.findMany({
       where: { distributorId: profile.id },

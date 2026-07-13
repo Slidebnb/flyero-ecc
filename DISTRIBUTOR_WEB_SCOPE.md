@@ -49,3 +49,11 @@ Alle Verbesserungen muessen die bestehende Plattform respektieren:
 - keine separaten App-Abhaengigkeiten,
 - keine Aenderungen an Kunde/Admin/Lager als mobile App-Ziel,
 - bestehende Rollen- und API-Schutzpruefungen bleiben serverseitig massgeblich.
+- Die Verteiler-API verwendet fuer Auftrag, Tour, GPS, Foto, Pickup und Profil
+  die zentralen Permissions `distributor.operations.view` bzw.
+  `distributor.operations.manage`; Support-Tickets verwenden eigene
+  `distributor.support.view`/`distributor.support.manage`-Permissions.
+- Verteiler sind im MVP keinem einzelnen Kunden-Tenant zugeordnet. Diese vier
+  Permissions sind deshalb ausdruecklich relation-gescoped: jede Abfrage wird
+  ueber das eigene Verteilerprofil oder die zugewiesene Tour begrenzt. Eine
+  Permission allein oeffnet keinen globalen Kunden- oder Auftragzugriff.

@@ -52,6 +52,7 @@
     "test:password-reset": "node tests/password-reset-smoke.mjs",
     "test:password-reset-live": "node -r dotenv/config tests/password-reset-live-smoke.mjs",
     "test:permissions": "node tests/permission-matrix-smoke.mjs && node tests/platform-operations-permission-smoke.mjs",
+    "test:role-permission-migration": "node tests/role-permission-migration-smoke.mjs",
     "test:audit-log-v2": "node tests/audit-log-v2-smoke.mjs",
     "retention:report": "node -r dotenv/config scripts/retention.mjs",
     "retention:purge": "node -r dotenv/config scripts/retention.mjs --apply",
