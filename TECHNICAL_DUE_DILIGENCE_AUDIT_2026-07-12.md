@@ -72,6 +72,16 @@ auf Hetzner bleibt Teil der Deployment-Verifikation. Virensignatur-Updates,
 S3-/Backup-Einrichtung und ein isolierter Restore sind weiterhin externe
 Betriebsnachweise und durch den Repository-Test nicht bewiesen.
 
+### Aktualisierung: Tenant-Kontext bei Benachrichtigungs-Audits (13.07.2026)
+
+`createNotification()` schreibt bei jedem erstellten
+`notification.created`-Audit jetzt den `tenantId` des Empfaengers mit. Damit
+sind insbesondere Kundenhinweise zu Preis-, Zahlungs-, Auftrags- und
+Berichtsereignissen im Auditlog einem Unternehmen zuordenbar; globale
+Plattformempfaenger bleiben ohne Tenant-ID. Der bestehende Tenant-Audit-Smoke
+prueft diesen Vertrag. Das ersetzt nicht die noch offene vollstaendige
+A/B-IDOR-Matrix aller internen Ressourcen.
+
 ## 1. Auftrag und Pruefmethode
 
 Dieser Bericht bewertet den aktuellen FLYERO-Stand als SaaS-, Betriebs- und spaeteres Due-Diligence-Objekt. Er ersetzt keine externe Penetrationspruefung, Rechtsberatung, Datenschutz-Folgenabschaetzung oder steuerliche Freigabe.

@@ -142,7 +142,7 @@ async function preferenceAllows(userId: string, type: string, channel: Notificat
 }
 
 export async function createNotification(input: NotificationInput) {
-  const user = await prisma.user.findUnique({ where: { id: input.userId }, select: { role: true } });
+  const user = await prisma.user.findUnique({ where: { id: input.userId }, select: { role: true, tenantId: true } });
   const channel = input.channel ?? NotificationChannel.EMAIL;
   const inAppAllowed = await preferenceAllows(input.userId, input.type, NotificationChannel.IN_APP);
   const queueAllowed = await preferenceAllows(input.userId, input.type, channel);
@@ -210,6 +210,7 @@ export async function createNotification(input: NotificationInput) {
   });
   await createAuditLog({
     userId: input.userId,
+    tenantId: user?.tenantId ?? null,
     action: "notification.created",
     entityType: "NotificationMessage",
     entityId: message.id,
