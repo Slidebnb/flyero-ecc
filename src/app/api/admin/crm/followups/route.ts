@@ -1,12 +1,12 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
 import { getCrmFollowups } from "@/lib/crm";
+import { leadScopeFromSession } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
-    return successResponse(await getCrmFollowups());
+    const session = await requirePermission(Permission.CRM_VIEW);
+    return successResponse(await getCrmFollowups(leadScopeFromSession(session)));
   } catch (error) {
     return routeErrorResponse(error);
   }

@@ -111,14 +111,24 @@ await includes("prisma/schema.prisma", [
   "TEST_ORDER_PLANNED",
   "model LeadNote",
   "model LeadActivity",
+  "tenantId              String?",
+  "tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)",
   "assignedToId",
   "wonCustomerId",
+]);
+await includes("src/lib/leadScope.ts", ["leadScopeFromSession", "leadScopeWhere", "tenantId: null"]);
+await includes("prisma/migrations/20260713150000_lead_tenant_scope/migration.sql", [
+  'ADD COLUMN "tenantId" TEXT',
+  'Lead_tenantId_status_createdAt_idx',
+  'Lead_tenantId_fkey',
 ]);
 await includes("src/lib/crm.ts", [
   "listCrmLeads",
   "changeLeadStatus",
   "addLeadNote",
   "convertLeadToCustomer",
+  "leadScopeWhere(scope)",
+  "tenantId: tenant.id",
   "getCrmFollowups",
   "LEAD_FOLLOWUP_DUE",
 ]);

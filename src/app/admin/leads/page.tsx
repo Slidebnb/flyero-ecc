@@ -1,8 +1,9 @@
-import { LeadStatus, LeadType, UserRole } from "@prisma/client";
+import { LeadStatus, LeadType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { leadScopeFromSession, leadScopeWhere } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { updateLead } from "@/lib/leads";
 import { prisma } from "@/lib/prisma";
 
@@ -16,7 +17,7 @@ type SearchParams = Promise<{
 async function updateLeadAction(formData: FormData) {
   "use server";
 
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_MANAGE);
   const id = String(formData.get("id") || "");
   await updateLead(
     id,
@@ -26,12 +27,13 @@ async function updateLeadAction(formData: FormData) {
       archive: formData.get("archive") === "true",
     },
     session.id,
+    leadScopeFromSession(session),
   );
   revalidatePath("/admin/leads");
 }
 
 export default async function AdminLeadsPage({ searchParams }: { searchParams: SearchParams }) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_VIEW);
   const params = await searchParams;
   const status = params.status && Object.values(LeadStatus).includes(params.status as LeadStatus) ? params.status as LeadStatus : undefined;
   const type = params.type && Object.values(LeadType).includes(params.type as LeadType) ? params.type as LeadType : undefined;
@@ -39,7 +41,8 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: S
   const search = params.search?.trim();
 
   const leads = await prisma.lead.findMany({
-    where: {
+      where: {
+        ...leadScopeWhere(leadScopeFromSession(session)),
       ...(status ? { status } : {}),
       ...(type ? { type } : {}),
       ...(archived === "true" ? { archivedAt: { not: null } } : archived === "all" ? {} : { archivedAt: null }),

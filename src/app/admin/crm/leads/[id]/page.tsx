@@ -1,8 +1,9 @@
 import { notFound, redirect } from "next/navigation";
-import { LeadPriority, LeadStatus, UserRole } from "@prisma/client";
+import { LeadPriority, LeadStatus } from "@prisma/client";
 import { ActionPanel, DataSection, EmptyState, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
 import { addLeadNote, changeLeadStatus, convertLeadToCustomer, getAssignableUsers, getCrmLead, updateCrmLead } from "@/lib/crm";
+import { leadScopeFromSession } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/format";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
@@ -37,7 +38,7 @@ function badgeTone(status: LeadStatus) {
 
 async function updateLeadAction(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_MANAGE);
   const id = String(formData.get("id") || "");
   await updateCrmLead(id, {
     priority: String(formData.get("priority") || "") as LeadPriority,
@@ -46,42 +47,43 @@ async function updateLeadAction(formData: FormData) {
     estimatedOrderVolume: String(formData.get("estimatedOrderVolume") || "") || null,
     expectedFlyerQuantity: String(formData.get("expectedFlyerQuantity") || "") || null,
     notes: String(formData.get("notes") || "") || null,
-  }, session.id);
+  }, session.id, leadScopeFromSession(session));
   redirect(`/admin/crm/leads/${id}`);
 }
 
 async function statusAction(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_MANAGE);
   const id = String(formData.get("id") || "");
   await changeLeadStatus(id, {
     status: String(formData.get("status") || "") as LeadStatus,
     detail: String(formData.get("detail") || "") || undefined,
     lostReason: String(formData.get("lostReason") || "") || undefined,
-  }, session.id);
+  }, session.id, leadScopeFromSession(session));
   redirect(`/admin/crm/leads/${id}`);
 }
 
 async function noteAction(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_MANAGE);
   const id = String(formData.get("id") || "");
-  await addLeadNote(id, { body: String(formData.get("body") || "") }, session.id);
+  await addLeadNote(id, { body: String(formData.get("body") || "") }, session.id, leadScopeFromSession(session));
   redirect(`/admin/crm/leads/${id}`);
 }
 
 async function convertAction(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_CONVERT);
   const id = String(formData.get("id") || "");
-  await convertLeadToCustomer(id, session.id);
+  await convertLeadToCustomer(id, session.id, leadScopeFromSession(session));
   redirect(`/admin/crm/leads/${id}`);
 }
 
 export default async function LeadDetailPage({ params }: LeadDetailProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_VIEW);
   const { id } = await params;
-  const [lead, users] = await Promise.all([getCrmLead(id), getAssignableUsers()]);
+  const scope = leadScopeFromSession(session);
+  const [lead, users] = await Promise.all([getCrmLead(id, scope), getAssignableUsers(scope)]);
   if (!lead) notFound();
 
   const actionStatuses: LeadStatus[] = ["CONTACTED", "QUALIFIED", "OFFER_SENT", "TEST_ORDER_PLANNED", "WON", "LOST", "ARCHIVED"];

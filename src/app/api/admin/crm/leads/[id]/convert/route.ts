@@ -1,7 +1,7 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { convertLeadToCustomer } from "@/lib/crm";
+import { leadScopeFromSession } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, routeErrorResponse, successResponse } from "@/lib/request";
 
 type RouteContext = {
@@ -10,9 +10,9 @@ type RouteContext = {
 
 export async function POST(_request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.CRM_CONVERT);
     const { id } = await context.params;
-    const result = await convertLeadToCustomer(id, session.id);
+    const result = await convertLeadToCustomer(id, session.id, leadScopeFromSession(session));
     return successResponse(result);
   } catch (error) {
     if (error instanceof Error && error.message === "Lead wurde nicht gefunden.") return errorResponse(error.message, 404);

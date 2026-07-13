@@ -13,6 +13,10 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `analytics.export` | Ja | Nein | Nein | Nein | Nein |
 | `order.view` | Ja | Nein | Nein | Nein | Nein |
 | `order.manage` | Ja | Nein | Nein | Nein | Nein |
+| `crm.view` | Ja | Ja | Nein | Nein | Nein |
+| `crm.manage` | Ja | Ja | Nein | Nein | Nein |
+| `crm.assign` | Ja | Ja | Nein | Nein | Nein |
+| `crm.convert` | Ja | Ja | Nein | Nein | Nein |
 | `dispatch.assign` | Ja | Ja | Nein | Nein | Nein |
 | `dispatch.view` | Ja | Ja | Nein | Nein | Nein |
 | `dispatch.manage` | Ja | Ja | Nein | Nein | Nein |

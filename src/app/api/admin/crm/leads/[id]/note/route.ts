@@ -1,8 +1,8 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { requireRole } from "@/lib/auth";
 import { addLeadNote } from "@/lib/crm";
+import { leadScopeFromSession } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 
 type RouteContext = {
@@ -11,9 +11,9 @@ type RouteContext = {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.CRM_MANAGE);
     const { id } = await context.params;
-    const note = await addLeadNote(id, await readBody(request), session.id);
+    const note = await addLeadNote(id, await readBody(request), session.id, leadScopeFromSession(session));
     return successResponse(note, 201);
   } catch (error) {
     if (error instanceof ZodError) return errorResponse("Notiz ist ungültig.", 400);

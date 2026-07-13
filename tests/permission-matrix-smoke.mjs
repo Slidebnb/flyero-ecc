@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments, dispatchView, dispatchCombinations, dispatchRecommend, dispatchRecommendations, dispatchDismiss, dispatchAutoAssign, tours, tourDetail, tourApprove, tourClarify, tourNote, tourReject, logisticsDashboard, logisticsShipments, logisticsShipmentDetail, logisticsStockCounts, logisticsTransfers, logisticsTransferDetail] = await Promise.all([
+const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments, dispatchView, dispatchCombinations, dispatchRecommend, dispatchRecommendations, dispatchDismiss, dispatchAutoAssign, tours, tourDetail, tourApprove, tourClarify, tourNote, tourReject, logisticsDashboard, logisticsShipments, logisticsShipmentDetail, logisticsStockCounts, logisticsTransfers, logisticsTransferDetail, crmList, crmDetail, crmStatus, crmNote, crmAssign, crmConvert, crmFollowups, legacyLeadList, legacyLeadDetail] = await Promise.all([
   readFile("src/lib/permissions.ts", "utf8"),
   readFile("PERMISSION_MATRIX.md", "utf8"),
   readFile("src/app/api/admin/settings/users/route.ts", "utf8"),
@@ -42,6 +42,15 @@ const [permissions, matrix, users, userStatus, refund, reportPublish, reportAppr
   readFile("src/app/api/admin/logistics/stock-counts/route.ts", "utf8"),
   readFile("src/app/api/admin/logistics/transfers/route.ts", "utf8"),
   readFile("src/app/api/admin/logistics/transfers/[id]/route.ts", "utf8"),
+  readFile("src/app/api/admin/crm/leads/route.ts", "utf8"),
+  readFile("src/app/api/admin/crm/leads/[id]/route.ts", "utf8"),
+  readFile("src/app/api/admin/crm/leads/[id]/status/route.ts", "utf8"),
+  readFile("src/app/api/admin/crm/leads/[id]/note/route.ts", "utf8"),
+  readFile("src/app/api/admin/crm/leads/[id]/assign/route.ts", "utf8"),
+  readFile("src/app/api/admin/crm/leads/[id]/convert/route.ts", "utf8"),
+  readFile("src/app/api/admin/crm/followups/route.ts", "utf8"),
+  readFile("src/app/api/admin/leads/route.ts", "utf8"),
+  readFile("src/app/api/admin/leads/[id]/route.ts", "utf8"),
 ]);
 
 for (const permission of [
@@ -49,6 +58,10 @@ for (const permission of [
   "ANALYTICS_EXPORT",
   "ORDER_VIEW",
   "ORDER_MANAGE",
+  "CRM_VIEW",
+  "CRM_MANAGE",
+  "CRM_ASSIGN",
+  "CRM_CONVERT",
   "DISPATCH_ASSIGN",
   "DISPATCH_VIEW",
   "DISPATCH_MANAGE",
@@ -120,6 +133,16 @@ for (const [source, permission] of [
   [logisticsTransfers, "WAREHOUSE_VIEW"],
   [logisticsTransfers, "WAREHOUSE_MANAGE"],
   [logisticsTransferDetail, "WAREHOUSE_MANAGE"],
+  [crmList, "CRM_VIEW"],
+  [crmDetail, "CRM_VIEW"],
+  [crmDetail, "CRM_MANAGE"],
+  [crmStatus, "CRM_MANAGE"],
+  [crmNote, "CRM_MANAGE"],
+  [crmAssign, "CRM_ASSIGN"],
+  [crmConvert, "CRM_CONVERT"],
+  [crmFollowups, "CRM_VIEW"],
+  [legacyLeadList, "CRM_VIEW"],
+  [legacyLeadDetail, "CRM_MANAGE"],
 ]) {
   assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
 }

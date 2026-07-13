@@ -545,6 +545,7 @@ model Tenant {
   orderExperienceEvents OrderExperienceEvent[]
   distributionAreas     DistributionArea[]
   supportTickets        SupportTicket[]
+  leads                 Lead[]
 
   @@index([status, createdAt])
 }
@@ -2169,6 +2170,7 @@ model TicketAttachment {
 
 model Lead {
   id                    String       @id @default(cuid())
+  tenantId              String?
   type                  LeadType
   name                  String
   companyName           String?
@@ -2194,6 +2196,7 @@ model Lead {
   updatedAt             DateTime     @updatedAt
 
   assignedTo  User?            @relation("AssignedLeads", fields: [assignedToId], references: [id], onDelete: SetNull)
+  tenant      Tenant?          @relation(fields: [tenantId], references: [id], onDelete: SetNull)
   wonCustomer CustomerProfile? @relation("WonLeads", fields: [wonCustomerId], references: [id], onDelete: SetNull)
   leadNotes   LeadNote[]
   activities  LeadActivity[]
@@ -2206,6 +2209,7 @@ model Lead {
   @@index([wonCustomerId])
   @@index([archivedAt])
   @@index([email])
+  @@index([tenantId, status, createdAt])
 }
 
 model LeadNote {

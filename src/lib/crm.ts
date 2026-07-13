@@ -6,6 +6,7 @@ import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { createCustomerTenant } from "@/lib/tenant";
+import { leadScopeWhere, type LeadScope } from "@/lib/leadScope";
 
 const leadStatusValues = Object.values(LeadStatus) as [LeadStatus, ...LeadStatus[]];
 const leadPriorityValues = Object.values(LeadPriority) as [LeadPriority, ...LeadPriority[]];
@@ -129,9 +130,9 @@ function serializeLeadValues(lead: unknown) {
   }));
 }
 
-export async function listCrmLeads(filters: LeadListFilters) {
+export async function listCrmLeads(filters: LeadListFilters, scope: LeadScope) {
   return prisma.lead.findMany({
-    where: leadWhere(filters),
+    where: { AND: [leadScopeWhere(scope), leadWhere(filters)] },
     include: {
       assignedTo: { select: { id: true, email: true, role: true } },
       wonCustomer: { select: { id: true, companyName: true } },
@@ -143,9 +144,9 @@ export async function listCrmLeads(filters: LeadListFilters) {
   });
 }
 
-export async function getCrmLead(id: string) {
-  return prisma.lead.findUnique({
-    where: { id },
+export async function getCrmLead(id: string, scope: LeadScope) {
+  return prisma.lead.findFirst({
+    where: { AND: [{ id }, leadScopeWhere(scope)] },
     include: {
       assignedTo: { select: { id: true, email: true, role: true } },
       wonCustomer: { select: { id: true, companyName: true, user: { select: { email: true } } } },
@@ -155,9 +156,12 @@ export async function getCrmLead(id: string) {
   });
 }
 
-export async function getAssignableUsers() {
+export async function getAssignableUsers(scope: LeadScope) {
   return prisma.user.findMany({
-    where: { role: { in: [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER] } },
+    where: {
+      role: { in: [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER] },
+      ...(scope.isGlobalAdmin ? {} : { tenantId: scope.tenantId ?? "__no_tenant__" }),
+    },
     select: { id: true, email: true, role: true },
     orderBy: { email: "asc" },
   });
@@ -185,9 +189,9 @@ async function recordLeadActivity(input: {
   });
 }
 
-export async function updateCrmLead(id: string, input: z.input<typeof crmLeadUpdateSchema>, actorId?: string) {
+export async function updateCrmLead(id: string, input: z.input<typeof crmLeadUpdateSchema>, actorId: string | undefined, scope: LeadScope) {
   const data = crmLeadUpdateSchema.parse(input);
-  const existing = await prisma.lead.findUnique({ where: { id } });
+  const existing = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] } });
   if (!existing) throw new Error("Lead wurde nicht gefunden.");
 
   const nextFollowUpAt = Object.prototype.hasOwnProperty.call(data, "nextFollowUpAt")
@@ -247,9 +251,9 @@ export async function updateCrmLead(id: string, input: z.input<typeof crmLeadUpd
   return lead;
 }
 
-export async function changeLeadStatus(id: string, input: z.input<typeof crmStatusSchema>, actorId?: string) {
+export async function changeLeadStatus(id: string, input: z.input<typeof crmStatusSchema>, actorId: string | undefined, scope: LeadScope) {
   const data = crmStatusSchema.parse(input);
-  const existing = await prisma.lead.findUnique({ where: { id } });
+  const existing = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] } });
   if (!existing) throw new Error("Lead wurde nicht gefunden.");
 
   const now = new Date();
@@ -302,9 +306,9 @@ export async function changeLeadStatus(id: string, input: z.input<typeof crmStat
   return lead;
 }
 
-export async function addLeadNote(id: string, input: z.input<typeof crmNoteSchema>, actorId?: string) {
+export async function addLeadNote(id: string, input: z.input<typeof crmNoteSchema>, actorId: string | undefined, scope: LeadScope) {
   const data = crmNoteSchema.parse(input);
-  const lead = await prisma.lead.findUnique({ where: { id } });
+  const lead = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] } });
   if (!lead) throw new Error("Lead wurde nicht gefunden.");
 
   const note = await prisma.leadNote.create({
@@ -323,22 +327,23 @@ export async function addLeadNote(id: string, input: z.input<typeof crmNoteSchem
   return note;
 }
 
-export async function assignLead(id: string, input: z.input<typeof crmAssignSchema>, actorId?: string) {
+export async function assignLead(id: string, input: z.input<typeof crmAssignSchema>, actorId: string | undefined, scope: LeadScope) {
   const data = crmAssignSchema.parse(input);
-  return updateCrmLead(id, { assignedToId: data.assignedToId ?? null }, actorId);
+  return updateCrmLead(id, { assignedToId: data.assignedToId ?? null }, actorId, scope);
 }
 
-export async function convertLeadToCustomer(id: string, actorId?: string) {
-  const lead = await prisma.lead.findUnique({ where: { id }, include: { wonCustomer: true } });
+export async function convertLeadToCustomer(id: string, actorId: string | undefined, scope: LeadScope) {
+  const lead = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] }, include: { wonCustomer: true } });
   if (!lead) throw new Error("Lead wurde nicht gefunden.");
 
   if (lead.wonCustomerId) {
-    await changeLeadStatus(id, { status: LeadStatus.WON, detail: "Bestehende Kundenverknüpfung bestätigt." }, actorId);
-    return { lead: await getCrmLead(id), customerId: lead.wonCustomerId, created: false };
+    await changeLeadStatus(id, { status: LeadStatus.WON, detail: "Bestehende Kundenverknüpfung bestätigt." }, actorId, scope);
+    return { lead: await getCrmLead(id, scope), customerId: lead.wonCustomerId, created: false };
   }
 
   const existingUser = await prisma.user.findUnique({ where: { email: lead.email }, include: { customerProfile: true } });
   let customerId = existingUser?.customerProfile?.id;
+  let tenantId = existingUser?.tenantId ?? existingUser?.customerProfile?.tenantId ?? null;
   let created = false;
 
   if (!customerId) {
@@ -373,15 +378,16 @@ export async function convertLeadToCustomer(id: string, actorId?: string) {
       await tx.tenantMembership.create({
         data: { tenantId: tenant.id, userId: user.id, role: "OWNER", status: "ACTIVE" },
       });
-      return user.customerProfile;
+      return { profile: user.customerProfile, tenantId: tenant.id };
     });
-    customerId = customer?.id;
+    customerId = customer?.profile?.id;
+    tenantId = customer?.tenantId ?? tenantId;
     created = true;
   }
 
   const updated = await prisma.lead.update({
     where: { id },
-    data: { wonCustomerId: customerId, status: LeadStatus.WON },
+    data: { wonCustomerId: customerId, status: LeadStatus.WON, ...(tenantId ? { tenantId } : {}) },
   });
   await recordLeadActivity({
     leadId: id,
@@ -407,10 +413,10 @@ export async function convertLeadToCustomer(id: string, actorId?: string) {
     data: { leadId: lead.id, customerId },
   });
 
-  return { lead: await getCrmLead(id), customerId, created };
+  return { lead: await getCrmLead(id, scope), customerId, created };
 }
 
-export async function getCrmFollowups() {
+export async function getCrmFollowups(scope: LeadScope) {
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
@@ -419,7 +425,7 @@ export async function getCrmFollowups() {
   const weekEnd = new Date(todayEnd);
   weekEnd.setDate(weekEnd.getDate() + 7);
 
-  const baseWhere = { archivedAt: null, status: { notIn: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.ARCHIVED] } };
+  const baseWhere = { ...leadScopeWhere(scope), archivedAt: null, status: { notIn: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.ARCHIVED] } };
   const include = { assignedTo: { select: { email: true } } };
   const [overdue, today, thisWeek, withoutFollowup] = await Promise.all([
     prisma.lead.findMany({ where: { ...baseWhere, nextFollowUpAt: { lt: todayStart } }, include, orderBy: { nextFollowUpAt: "asc" }, take: 100 }),

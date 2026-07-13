@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { LeadPriority, LeadStatus, LeadType, UserRole } from "@prisma/client";
+import { LeadPriority, LeadStatus, LeadType } from "@prisma/client";
 import { redirect } from "next/navigation";
 import { ActionPanel, DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { leadScopeFromSession } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { getAssignableUsers, listCrmLeads, parseLeadListFilters, updateCrmLead } from "@/lib/crm";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
@@ -37,7 +38,7 @@ function badgeTone(status: LeadStatus) {
 
 async function updateLeadFromList(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_MANAGE);
   const id = String(formData.get("id") || "");
   if (!id) return;
   await updateCrmLead(id, {
@@ -45,15 +46,16 @@ async function updateLeadFromList(formData: FormData) {
     priority: String(formData.get("priority") || "") as LeadPriority,
     assignedToId: String(formData.get("assignedToId") || "") || null,
     nextFollowUpAt: String(formData.get("nextFollowUpAt") || "") || null,
-  }, session.id);
+  }, session.id, leadScopeFromSession(session));
   redirect("/admin/crm");
 }
 
 export default async function AdminCrmPage({ searchParams }: CrmPageProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.CRM_VIEW);
   const params = await searchParams;
   const filters = parseLeadListFilters(params ?? {});
-  const [leads, users] = await Promise.all([listCrmLeads(filters), getAssignableUsers()]);
+  const scope = leadScopeFromSession(session);
+  const [leads, users] = await Promise.all([listCrmLeads(filters, scope), getAssignableUsers(scope)]);
   const openLeads = leads.filter((lead) => !["WON", "LOST", "ARCHIVED"].includes(lead.status));
   const urgent = leads.filter((lead) => lead.priority === "URGENT" || lead.priority === "HIGH").length;
   const due = leads.filter((lead) => lead.nextFollowUpAt && lead.nextFollowUpAt <= new Date()).length;

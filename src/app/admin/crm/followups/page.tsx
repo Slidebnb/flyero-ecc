@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { UserRole } from "@prisma/client";
 import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
 import { getCrmFollowups } from "@/lib/crm";
+import { leadScopeFromSession } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/format";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
@@ -33,8 +33,8 @@ function FollowupList({
 }
 
 export default async function CrmFollowupsPage() {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
-  const followups = await getCrmFollowups();
+  const session = await requirePermission(Permission.CRM_VIEW);
+  const followups = await getCrmFollowups(leadScopeFromSession(session));
 
   return (
     <PortalShell

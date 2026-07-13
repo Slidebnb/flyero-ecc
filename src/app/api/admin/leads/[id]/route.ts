@@ -1,7 +1,7 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { ZodError } from "zod";
-import { requireRole } from "@/lib/auth";
+import { leadScopeFromSession } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { updateLead } from "@/lib/leads";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 
@@ -11,9 +11,9 @@ type RouteContext = {
 
 async function handleUpdate(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.CRM_MANAGE);
     const { id } = await context.params;
-    const lead = await updateLead(id, await readBody(request), session.id);
+    const lead = await updateLead(id, await readBody(request), session.id, leadScopeFromSession(session));
 
     return successResponse(lead);
   } catch (error) {

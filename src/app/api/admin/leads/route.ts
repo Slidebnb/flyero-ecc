@@ -1,12 +1,13 @@
-import { LeadStatus, LeadType, UserRole } from "@prisma/client";
+import { LeadStatus, LeadType } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { leadScopeFromSession, leadScopeWhere } from "@/lib/leadScope";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.CRM_VIEW);
     const params = request.nextUrl.searchParams;
     const status = params.get("status");
     const type = params.get("type");
@@ -15,6 +16,7 @@ export async function GET(request: NextRequest) {
 
     const leads = await prisma.lead.findMany({
       where: {
+        ...leadScopeWhere(leadScopeFromSession(session)),
         ...(status && Object.values(LeadStatus).includes(status as LeadStatus) ? { status: status as LeadStatus } : {}),
         ...(type && Object.values(LeadType).includes(type as LeadType) ? { type: type as LeadType } : {}),
         ...(archived === "true" ? { archivedAt: { not: null } } : archived === "all" ? {} : { archivedAt: null }),

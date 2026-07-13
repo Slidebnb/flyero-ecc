@@ -766,6 +766,22 @@ aktive Tenant-Mitgliedschaft wird serverseitig geprueft. Lagerstammdaten bleiben
 gemeinsame Plattformressourcen; die vollstaendige A/B-IDOR-Pruefung der restlichen
 internen Bereiche bleibt offen.
 
+### CRM-Lead-Tenant-Scope (13.07.2026)
+
+`Lead` besitzt jetzt eine optionale `tenantId` mit Index und Foreign Key. Oeffentliche
+Leads bleiben bis zur Konvertierung bewusst unzugeordnet; globale Plattform-Admins
+sehen alle Leads, Support-/CRM-Nutzer sehen ihren Mandanten sowie die offenen,
+noch nicht zugeordneten Leads. Die Konvertierung in ein Kundenkonto erzeugt den
+Kundenmandanten und verknuepft den Lead danach mit diesem Tenant.
+
+CRM- und Legacy-Lead-APIs sowie die CRM-Server-Seiten verwenden jetzt die
+expliziten Berechtigungen `crm.view`, `crm.manage`, `crm.assign` und `crm.convert`
+und reichen den Tenant-Scope bis in Service- und Prisma-Abfragen durch. Status,
+Notizen, Zuweisungen und Konvertierungen werden damit nicht mehr nur ueber eine
+globale Rollenpruefung geschuetzt. Der Modul-20-Smoke prueft Schema, Migration,
+Scope-Helper und den Laufzeit-Konvertierungspfad. Eine vollstaendige A/B-IDOR-
+Matrix fuer alle verbleibenden internen Ressourcen bleibt weiterhin offen.
+
 ### P0 Backup-Scheduler
 
 Der automatische Betriebsweg ist als Repository-Paket vorbereitet:
