@@ -115,7 +115,6 @@ export async function calculateBestDistributor(input: {
 }) {
   const distributors = await prisma.distributorProfile.findMany({
     where: { reviewStatus: "APPROVED", availableToday: true, user: { status: "ACTIVE" } },
-    include: { user: true },
   });
   const city = normalizeCity(input.city);
   const scored = distributors.map((distributor) => {

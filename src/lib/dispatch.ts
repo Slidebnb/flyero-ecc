@@ -38,7 +38,7 @@ type ReadyInventory = Prisma.WarehouseInventoryGetPayload<{
 }>;
 
 type DistributorWithUser = Prisma.DistributorProfileGetPayload<{
-  include: { user: true };
+  include: { user: { select: { id: true, status: true, tenantId: true } } };
 }>;
 
 export type DistributorRecommendation = {
@@ -210,7 +210,7 @@ export async function getSuitableDistributors(orderId: string, tenantId?: string
       availableToday: true,
       user: { status: "ACTIVE", ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) },
     },
-    include: { user: true },
+    include: { user: { select: { id: true, status: true, tenantId: true } } },
   });
 
   const recommendations = await Promise.all(
@@ -254,7 +254,10 @@ export async function createAutoDispatchRecommendations(input: { orderId: string
         reasons: recommendation.reasons,
         warnings: recommendation.warnings,
       },
-      include: { distributor: { include: { user: true } }, order: true },
+      include: {
+        distributor: { include: { user: { select: { id: true, status: true, tenantId: true } } } },
+        order: { select: { id: true, orderNumber: true, tenantId: true } },
+      },
     });
     recommendations.push(created);
   }
@@ -371,7 +374,7 @@ export async function assignOrderToDistributor(input: {
 
   const distributor = await prisma.distributorProfile.findFirst({
     where: { id: input.distributorId, ...distributorTenantWhere(input.tenantId) },
-    include: { user: true },
+    include: { user: { select: { id: true, status: true, tenantId: true } } },
   });
   if (!distributor || distributor.reviewStatus !== "APPROVED" || distributor.user.status !== "ACTIVE") {
     throw new Error("Verteiler ist nicht freigegeben oder nicht aktiv.");

@@ -197,7 +197,7 @@ export async function collectReportData(tourId: string) {
     where: { id: tourId },
     include: {
       order: { include: { customer: true, distributionArea: true } },
-      distributor: { include: { user: true } },
+      distributor: { select: { id: true, userId: true, firstName: true, lastName: true } },
       gpsPoints: { orderBy: { recordedAt: "asc" } },
       photoProofs: { orderBy: { createdAt: "asc" } },
       deviations: { orderBy: { createdAt: "asc" } },

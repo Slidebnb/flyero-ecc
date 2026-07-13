@@ -1084,3 +1084,10 @@ Die globale Plattform-Admin-Berechtigung und die vollständige A/B-Laufzeitmatri
 für interne Ressourcen bleiben als Architektur-/Launchpunkt offen. Diese
 Änderung reduziert den Response-Datenumfang, ersetzt aber keine spätere
 Trennung von Plattform- und Unternehmensadministration.
+
+Der anschliessende Repository-Scan hat weitere vollstaendige User-Relationen
+in den internen Services gefunden. Checkout, Dispatch, Report-Sammlung,
+Routing, Tourpruefung und E-Mail-Verifizierung laden jetzt ebenfalls nur noch
+die jeweils benoetigten User-Felder. Besonders der Report-/Dispatch-Pfad gibt
+damit keine unnoetigen Authentifizierungsdaten ueber zusammengesetzte
+Detailantworten weiter. Der Privacy-Contract umfasst diese Services nun mit.

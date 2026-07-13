@@ -114,7 +114,7 @@ export async function assignTour(input: {
 
   const distributor = await prisma.distributorProfile.findUnique({
     where: { id: input.distributorId },
-    include: { user: true },
+    include: { user: { select: { id: true } } },
   });
   if (!distributor || distributor.reviewStatus !== "APPROVED") {
     throw new Error("Verteiler ist nicht freigegeben.");
@@ -510,7 +510,7 @@ async function loadTourForReview(tourId: string) {
     where: { id: tourId },
     include: {
       order: { include: { customer: true } },
-      distributor: { include: { user: true } },
+      distributor: { select: { id: true, userId: true, firstName: true, lastName: true } },
       gpsPoints: { orderBy: { recordedAt: "asc" } },
       photoProofs: true,
     },

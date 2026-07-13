@@ -163,7 +163,10 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
       ...(input.tenantId ? { tenantId: input.tenantId } : {}),
       customer: { userId: input.customerUserId, ...(input.tenantId ? { tenantId: input.tenantId } : {}) },
     },
-    include: { customer: { include: { user: true } }, payments: { orderBy: { createdAt: "desc" } } },
+    include: {
+      customer: { include: { user: { select: { email: true } } } },
+      payments: { orderBy: { createdAt: "desc" } },
+    },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
   if (!["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "SUBMITTED"].includes(order.status)) {
