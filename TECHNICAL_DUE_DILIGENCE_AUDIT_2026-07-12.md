@@ -931,6 +931,13 @@ vor dem Launch offen.
 
 Lead-Formular und öffentlicher Report-Verifikationscode verwenden jetzt persistente, gehashte IP-Buckets in `PublicRateLimitBucket`. Damit bleibt der Schutz über Prozessneustarts und mehrere App-Instanzen hinweg wirksam. Die konfigurierbaren Grenzwerte stehen in `.env.example` und `.env.production.example`; die Retention berücksichtigt beide Bucket-Typen.
 
+### P1 Mandantenscope fuer Lagerzaehler (13.07.2026)
+
+- `src/app/api/admin/logistics/warehouses/route.ts` unterscheidet jetzt Plattform-Admins von Support/Disposition. Globale Lagerstammdaten bleiben sichtbar, aber Bestands-, Sendungs-, Umlagerungs- und Inventurzaehler werden fuer nicht globale Sitzungen ueber die Auftrags-Tenant-ID gefiltert.
+- `tests/warehouse-privacy-smoke.mjs` prueft diesen Contract zusaetzlich zu den bestehenden Lagerdaten- und Antwort-Privacy-Regeln.
+
+Die vollstaendige A/B-Laufzeitmatrix fuer alle internen Ressourcen bleibt weiterhin offen; dieser Befund betraf konkret die aggregierten Lagerzaehler.
+
 ### P1 Geschuetzte Datei-Auslieferung (13.07.2026)
 
 - Geschuetzte Kunden-, Nachweis-, Rechnungs-, Report- und Export-Downloads verwenden jetzt eine gemeinsame Header-Policy mit `private, no-store`, `X-Content-Type-Options: nosniff` und bereinigten Download-Dateinamen.

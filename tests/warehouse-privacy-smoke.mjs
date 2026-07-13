@@ -16,6 +16,7 @@ const files = [
   "src/app/api/warehouse/stock-counts/route.ts",
   "src/app/api/warehouse/checkin/route.ts",
   "src/app/api/warehouse/status/route.ts",
+  "src/app/api/admin/logistics/warehouses/route.ts",
 ];
 
 const sources = await Promise.all(files.map(async (file) => [file, await readFile(file, "utf8")]));
@@ -32,5 +33,10 @@ assert(transfers.includes("select:"), "Umlagerungen verwenden keine explizite An
 
 const checkinPage = sources.find(([file]) => file === "src/app/warehouse/checkin/page.tsx")[1];
 assert(checkinPage.includes("assignedWarehouseId"), "Wareneingang filtert Aufträge nicht nach dem zugewiesenen Lager.");
+
+const adminWarehouseList = sources.find(([file]) => file === "src/app/api/admin/logistics/warehouses/route.ts")[1];
+assert(adminWarehouseList.includes("session.role === UserRole.ADMIN"), "Lagerliste unterscheidet Plattform-Admin und Mandantenbereich nicht.");
+assert(adminWarehouseList.includes("order: { tenantId"), "LagerzÃ¤hler werden nicht auf den aktiven Mandanten begrenzt.");
+assert(adminWarehouseList.includes("transfersFrom") && adminWarehouseList.includes("stockCounts"), "Nicht alle LagerzÃ¤hler verwenden den Mandantenscope.");
 
 console.log("Warehouse privacy smoke checks passed.");
