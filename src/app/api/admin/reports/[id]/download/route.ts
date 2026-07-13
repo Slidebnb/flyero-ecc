@@ -1,16 +1,16 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.REPORT_REVIEW);
     const { id } = await context.params;
-    const report = await prisma.report.findUnique({ where: { id } });
+    const report = await prisma.report.findFirst({ where: { id, ...tenantWhereForSession(session) } });
     if (!report?.pdfUrl) return errorResponse("PDF wurde nicht gefunden.", 404);
     const file = await readGeneratedAsset(report.pdfUrl);
     return new Response(file.buffer, {

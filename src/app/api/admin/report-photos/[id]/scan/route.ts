@@ -4,6 +4,7 @@ import { scanFileBuffer } from "@/lib/fileScanning";
 import { createAuditLog } from "@/lib/audit";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -17,7 +18,7 @@ export async function POST(_request: Request, context: RouteContext) {
   try {
     const session = await requirePermission(Permission.DOCUMENT_SCAN);
     const { id } = await context.params;
-    const photo = await prisma.photoProof.findUnique({ where: { id } });
+    const photo = await prisma.photoProof.findFirst({ where: { id, order: tenantWhereForSession(session) } });
     if (!photo) return Response.json({ ok: false, error: "Nachweisfoto wurde nicht gefunden." }, { status: 404 });
     const storagePath = metadataValue(photo.metadata, "storagePath");
     if (!storagePath) return Response.json({ ok: false, error: "Für dieses Foto ist kein privater Speicherpfad vorhanden." }, { status: 410 });

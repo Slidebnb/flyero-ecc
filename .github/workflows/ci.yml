@@ -197,6 +197,9 @@ jobs:
       - name: Production preflight contract smoke
         run: npm run test:production-preflight
 
+      - name: Report evidence tenant scope smoke
+        run: npm run test:report-evidence-tenant-scope
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

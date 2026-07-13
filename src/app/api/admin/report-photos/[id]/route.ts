@@ -1,10 +1,11 @@
-import { ReviewStatus, UserRole } from "@prisma/client";
+import { ReviewStatus } from "@prisma/client";
 import { z } from "zod";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { approvalRequiresCleanScan } from "@/lib/fileScanning";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -17,10 +18,13 @@ const payloadSchema = z.object({
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.DOCUMENT_REVIEW);
     const { id } = await context.params;
     const parsed = payloadSchema.parse(await request.json());
-    const current = await prisma.photoProof.findUnique({ where: { id }, select: { scanStatus: true } });
+    const current = await prisma.photoProof.findFirst({
+      where: { id, order: tenantWhereForSession(session) },
+      select: { scanStatus: true },
+    });
     if (!current) return Response.json({ ok: false, error: "Nachweisfoto wurde nicht gefunden." }, { status: 404 });
     if ((parsed.customerVisible === true || parsed.reviewStatus === "APPROVED") && approvalRequiresCleanScan({ status: current.scanStatus })) {
       return Response.json({ ok: false, error: "Das Foto darf erst nach erfolgreicher Dateiprüfung freigegeben werden." }, { status: 409 });
