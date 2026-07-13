@@ -182,6 +182,12 @@ jobs:
       - name: Private object storage smoke
         run: npm run test:private-storage
 
+      - name: Backup configuration smoke
+        run: npm run backup:config
+
+      - name: Production storage layout smoke
+        run: npm run test:storage-layout
+
       - name: Backup scheduler smoke
         run: npm run test:backup-scheduler
 

@@ -938,6 +938,14 @@ Lead-Formular und öffentlicher Report-Verifikationscode verwenden jetzt persist
 
 Die vollstaendige A/B-Laufzeitmatrix fuer alle internen Ressourcen bleibt weiterhin offen; dieser Befund betraf konkret die aggregierten Lagerzaehler.
 
+### P0 Persistenzpfad fuer Generated-Assets (13.07.2026)
+
+- Der Produktions-Compose mountete `app_generated` bisher unter `/app/public/generated`, waehrend `src/lib/generatedAssets.ts` standardmaessig nach `/app/storage/generated` schreibt. Dadurch waren erzeugte Rechnungs-, Report- und Accounting-Dateien im lokalen Produktionsbetrieb nicht durch das vorgesehene Generated-Volume geschuetzt; bei Container-/Volume-Wechseln bestand ein konkretes Datenverlustrisiko.
+- `docker-compose.production.yml` mountet `app_generated` jetzt auf `/app/storage/generated`. Backup und Restore verwenden denselben Pfad. `tests/storage-layout-smoke.mjs` prueft Anwendungspfad, Compose-Mount sowie Backup-/Restore-Vertrag.
+- Fuer einen bereits laufenden Hetzner-Stack ist eine kontrollierte einmalige Volume-Migration erforderlich, bevor der neue Mount aktiviert wird. Die Migration ist in `DEPLOYMENT_HETZNER.md` dokumentiert und wird nicht automatisch beim Start ausgefuehrt.
+
+Der Codepfad ist damit korrigiert; der operative Nachweis der Migration und ein anschliessender Restore-Test bleiben als P0-Betriebsaufgabe offen.
+
 ### P1 Geschuetzte Datei-Auslieferung (13.07.2026)
 
 - Geschuetzte Kunden-, Nachweis-, Rechnungs-, Report- und Export-Downloads verwenden jetzt eine gemeinsame Header-Policy mit `private, no-store`, `X-Content-Type-Options: nosniff` und bereinigten Download-Dateinamen.

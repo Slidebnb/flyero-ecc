@@ -17,7 +17,8 @@ FLYERO unterstützt zwei Speicherprovider:
 ## Schutz vor Legacy-Webroot-Assets
 
 Revisionsrelevante Generated-Assets duerfen nicht unter `public/generated`
-liegen. `readGeneratedAsset()` akzeptiert ausschliesslich Pfade mit
+liegen. Der lokale Produktionspfad ist `storage/generated`; im S3-Betrieb wird
+der Namespace `generated` verwendet. `readGeneratedAsset()` akzeptiert ausschliesslich Pfade mit
 `/private/generated/`; alte Datenbankpfade muessen vor einem Produktions-Rollout
 ueber eine kontrollierte Storage-Migration uebertragen werden.
 

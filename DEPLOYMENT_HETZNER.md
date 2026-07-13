@@ -116,5 +116,14 @@ Der Check gibt keine Secretwerte aus und lehnt Mock-Zahlungen, Mock-E-Mail, loka
 
 - Postgres ist nur im Docker-Netz erreichbar.
 - Caddy verwaltet HTTPS-Zertifikate automatisch.
-- Lokal liegen `storage` und `public/generated` in Docker-Volumes. Für den öffentlichen Betrieb soll `FILE_STORAGE_PROVIDER=s3` auf einen privaten S3-kompatiblen Bucket zeigen; Einrichtung und Migration sind in `PRIVATE_OBJECT_STORAGE.md` beschrieben.
+- Lokal liegen private Dokumente und Generated-Assets unter `storage` beziehungsweise `storage/generated` in Docker-Volumes. `public/generated` ist kein Produktionsspeicher für Rechnungen oder Reports. Für den öffentlichen Betrieb soll `FILE_STORAGE_PROVIDER=s3` auf einen privaten S3-kompatiblen Bucket zeigen; Einrichtung und Migration sind in `PRIVATE_OBJECT_STORAGE.md` beschrieben.
+
+### Migration des Generated-Volumes
+
+Vor dem ersten Neustart mit dem korrigierten Mount muss ein bereits laufender
+Stack geprüft werden. Der neue Mount `app_generated:/app/storage/generated`
+überdeckt den bisherigen Unterordner im `app_storage`-Volume. Falls dort schon
+Generated-Assets liegen, müssen sie vor dem Umschalten kontrolliert in das neue
+Volume kopiert und stichprobenartig über die geschützten Download-Routen geprüft
+werden. Diese Migration ist bewusst kein automatischer Startschritt.
 - Keine Demo-Seeds in echter Produktion ausführen, außer bewusst für eine geschlossene Beta.
