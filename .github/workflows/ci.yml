@@ -194,6 +194,9 @@ jobs:
       - name: Request-ID propagation contract smoke
         run: npm run test:request-id-propagation
 
+      - name: Production preflight contract smoke
+        run: npm run test:production-preflight
+
       - name: Launch hardening smoke
         run: npm run test:module25
 

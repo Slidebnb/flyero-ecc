@@ -1,0 +1,49 @@
+import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+
+assert.ok(existsSync("scripts/production-preflight.mjs"), "Produktions-Preflight fehlt.");
+
+const validEnvironment = {
+  NODE_ENV: "production",
+  AUTH_SECRET: "a".repeat(64),
+  APP_URL: "https://flyero.org",
+  NEXT_PUBLIC_SITE_URL: "https://flyero.org",
+  DATABASE_URL: "postgresql://flyero:secret@postgres:5432/flyero?schema=public",
+  ENABLE_MOCK_PAYMENTS: "false",
+  STRIPE_SECRET_KEY: "sk_test_synthetic_123456",
+  STRIPE_WEBHOOK_SECRET: "whsec_synthetic_123456",
+  EMAIL_PROVIDER: "resend",
+  EMAIL_FROM: "FLYERO <noreply@flyero.org>",
+  RESEND_API_KEY: "re_synthetic_123456",
+  NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY: "browser-synthetic-key",
+  GOOGLE_MAPS_SERVER_KEY: "server-synthetic-key",
+  FILE_STORAGE_PROVIDER: "s3",
+  FILE_SCAN_MODE: "required",
+  S3_ENDPOINT: "https://s3.example.com",
+  S3_REGION: "eu-central-1",
+  S3_BUCKET: "flyero-private",
+  S3_ACCESS_KEY_ID: "access-synthetic-key",
+  S3_SECRET_ACCESS_KEY: "secret-synthetic-key",
+  CLAMSCAN_PATH: "/usr/bin/clamscan",
+  BACKUP_RESTIC_REPOSITORY: "sftp:backup@storagebox.internal:/flyero",
+  BACKUP_RESTIC_PASSWORD_FILE: "/etc/flyero/restic-password",
+};
+
+function run(environment) {
+  return spawnSync(process.execPath, ["scripts/production-preflight.mjs"], {
+    env: { ...process.env, ...environment },
+    encoding: "utf8",
+  });
+}
+
+const valid = run(validEnvironment);
+assert.equal(valid.status, 0, `Gueltige Konfiguration wurde abgelehnt: ${valid.stdout}\n${valid.stderr}`);
+assert.match(valid.stdout, /Production preflight passed/);
+
+const invalid = run({ ...validEnvironment, EMAIL_PROVIDER: "mock" });
+assert.notEqual(invalid.status, 0, "Mock-E-Mail darf den Produktions-Preflight nicht bestehen.");
+assert.match(`${invalid.stdout}\n${invalid.stderr}`, /EMAIL_PROVIDER/);
+assert.ok(!`${invalid.stdout}\n${invalid.stderr}`.includes(validEnvironment.RESEND_API_KEY), "Secrets werden im Fehlertext ausgegeben.");
+
+console.log("Production preflight smoke checks passed.");

@@ -311,6 +311,13 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - Der neue Contract-Smoke `npm run test:health-fail-safe` ist in CI eingebunden.
 - Das ersetzt kein externes Uptime-/Error-Monitoring und keinen produktiven Alarmweg; OPS-05 und OPS-06 bleiben offen.
 
+### Produktions-Preflight (13.07.2026)
+
+- `scripts/production-preflight.mjs` prueft vor einem Produktionsstart HTTPS-URLs, Auth- und Datenbankkonfiguration, Stripe-Webhooks, echte E-Mail-Provider, Google-Maps-Keys, privaten S3-Storage, erforderlichen Malware-Scan und externes Restic-Backup.
+- Der Check akzeptiert keine Mock-Zahlungen oder `EMAIL_PROVIDER=mock` und gibt keine Secretwerte aus.
+- Er ist als `ENV_FILE=.env.production npm run production:preflight` manuell vor dem Deployment auszufuehren; die laufende App wird bewusst nicht automatisch blockiert, damit lokale Beta- und Migrationsprozesse nicht unkontrolliert ausfallen.
+- `npm run test:production-preflight` prueft eine gueltige Konfiguration sowie die Ablehnung des Mock-Mailproviders und ist in CI eingebunden.
+
 ### Request-ID-Korrelation (13.07.2026)
 
 - Der Proxy erzeugt oder validiert eine begrenzte `x-request-id` fuer API- und geschuetzte Portal-Aufrufe, reicht sie an die Route weiter und gibt sie in der Response zurueck.

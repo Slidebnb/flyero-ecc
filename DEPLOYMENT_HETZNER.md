@@ -30,6 +30,7 @@ cd /opt/flyero
 git clone https://github.com/Slidebnb/flyero-ecc.git .
 cp .env.production.example .env.production
 nano .env.production
+ENV_FILE=.env.production npm run production:preflight
 docker compose -f docker-compose.production.yml build
 docker compose -f docker-compose.production.yml up -d postgres
 docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy
@@ -98,6 +99,16 @@ docker compose -f docker-compose.production.yml ps
 docker compose -f docker-compose.production.yml logs --tail=100 app
 docker compose -f docker-compose.production.yml logs --tail=100 caddy
 ```
+
+## Produktions-Preflight
+
+Vor jedem Produktionsstart ausfuehren:
+
+```bash
+ENV_FILE=.env.production npm run production:preflight
+```
+
+Der Check gibt keine Secretwerte aus und lehnt Mock-Zahlungen, Mock-E-Mail, lokalen Storage, fehlenden Malware-Scan sowie fehlende Backup- und Provider-Konfiguration ab. Er wird bewusst manuell ausgefuehrt, damit lokale Beta- und Migrationsprozesse nicht automatisch blockiert werden.
 
 ## Hinweise
 
