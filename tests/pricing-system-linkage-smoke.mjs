@@ -35,6 +35,7 @@ for (const [name, content] of [["adminApi", adminApi], ["adminPage", adminPage]]
 
 assert.match(adminApi, /createAuditLog/, "Admin-Preisänderungen müssen revisionssicher protokolliert werden.");
 assert.match(adminApi, /notifyAdmins/, "Admin-Preisänderungen müssen intern benachrichtigt werden.");
+assert.match(source.get("adminPage"), /revalidatePath\("\/customer\/orders\/\[id\]",\s*"page"\)/, "Die Server-Action muss dynamische Kunden-Auftragsseiten nach einer Preisänderung invalidieren.");
 assert.match(pricing, /OPEN_PRICE_ORDER_STATUSES/, "Offene Orderstatus müssen zentral definiert sein.");
 assert.match(pricing, /SETTLED_PAYMENT_STATUSES/, "Bezahlte oder erstattete Aufträge müssen vor automatischer Preisänderung geschützt sein.");
 assert.match(pricing, /pricingRuleSignature/, "Jede Preisberechnung muss ihre aktuelle Regel-Signatur speichern.");
