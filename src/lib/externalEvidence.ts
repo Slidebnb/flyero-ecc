@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { UserRole, type DocumentType, type ReportSource } from "@prisma/client";
+import { type DocumentType, type ReportSource } from "@prisma/client";
 import { z } from "zod";
-import { requireRole, type SessionUser } from "@/lib/auth";
+import { AuthError, type SessionUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { normalizeExtension, storeDocumentFile, protectedDocumentUrl, type UploadableDocumentFile } from "@/lib/documentStorage";
 import { notifyAdmins } from "@/lib/notifications";
+import { Permission, hasPermission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { generateOnlineReportUrl, generateReportNumber, publishReport } from "@/lib/reports";
+import { requireActiveTenantMembership, tenantWhereForSession } from "@/lib/tenantPolicy";
 
 const evidenceTypeSchema = z.enum(["GPS_PDF", "GPS_FILE", "PHOTO", "OTHER"]);
 const optionalDateFromForm = z.preprocess((value) => (value === "" || value === null ? undefined : value), z.coerce.date().optional());
@@ -69,7 +71,10 @@ export async function uploadExternalEvidence(input: {
 }) {
   const data = externalEvidenceUploadSchema.parse(input.payload);
   assertEvidenceFileMatchesType(data.evidenceType, input.file);
-  const order = await prisma.order.findUnique({ where: { id: input.orderId }, select: { id: true, customerId: true, tenantId: true, orderNumber: true } });
+  const order = await prisma.order.findFirst({
+    where: { id: input.orderId, ...tenantWhereForSession(input.actor) },
+    select: { id: true, customerId: true, tenantId: true, orderNumber: true },
+  });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
 
   const stored = await storeDocumentFile(input.file);
@@ -124,19 +129,29 @@ export async function uploadExternalEvidence(input: {
 
 async function ensureManualEvidenceTour(input: {
   orderId: string;
+  tenantId: string;
   distributorId?: string;
   startTime?: Date;
   endTime?: Date;
   deliveredFlyerQuantity?: number;
   remainingFlyerQuantity?: number;
 }) {
-  const order = await prisma.order.findUnique({ where: { id: input.orderId }, select: { id: true, flyerQuantity: true, assignedDistributorId: true } });
+  const order = await prisma.order.findFirst({
+    where: { id: input.orderId, tenantId: input.tenantId },
+    select: { id: true, flyerQuantity: true, assignedDistributorId: true },
+  });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
-  const existing = await prisma.distributionTour.findFirst({ where: { orderId: input.orderId }, orderBy: { updatedAt: "desc" } });
+  const requestedDistributor = input.distributorId
+    ? await prisma.distributorProfile.findFirst({
+        where: { id: input.distributorId, reviewStatus: "APPROVED", user: { tenantId: input.tenantId } },
+      })
+    : null;
+  if (input.distributorId && !requestedDistributor) throw new Error("Der ausgewählte Verteiler gehört nicht zu diesem Unternehmensbereich.");
+  const existing = await prisma.distributionTour.findFirst({ where: { orderId: input.orderId, order: { tenantId: input.tenantId } }, orderBy: { updatedAt: "desc" } });
   if (existing) {
     return updateManualEvidenceTour({
       tourId: existing.id,
-      distributorId: input.distributorId,
+      distributorId: requestedDistributor?.id,
       plannedFlyerQuantity: existing.plannedFlyerQuantity ?? order.flyerQuantity,
       startTime: input.startTime,
       endTime: input.endTime,
@@ -144,11 +159,10 @@ async function ensureManualEvidenceTour(input: {
       remainingFlyerQuantity: input.remainingFlyerQuantity,
     });
   }
-  const distributor = input.distributorId
-    ? await prisma.distributorProfile.findFirst({ where: { id: input.distributorId, reviewStatus: "APPROVED" } })
-    : order.assignedDistributorId
-    ? await prisma.distributorProfile.findUnique({ where: { id: order.assignedDistributorId } })
-    : await prisma.distributorProfile.findFirst({ where: { reviewStatus: "APPROVED" }, orderBy: { createdAt: "asc" } });
+  const distributor = requestedDistributor
+    ?? (order.assignedDistributorId
+      ? await prisma.distributorProfile.findFirst({ where: { id: order.assignedDistributorId, user: { tenantId: input.tenantId } } })
+      : await prisma.distributorProfile.findFirst({ where: { reviewStatus: "APPROVED", user: { tenantId: input.tenantId } }, orderBy: { createdAt: "asc" } }));
   if (!distributor) throw new Error("Bitte zuerst einen Verteilerkontakt oder Verteiler zuweisen.");
   return prisma.distributionTour.create({
     data: {
@@ -198,7 +212,10 @@ export async function prepareExternalReportForOrder(input: {
   payload: unknown;
 }) {
   const data = externalReportPrepareSchema.parse(input.payload);
-  const order = await prisma.order.findUnique({ where: { id: input.orderId }, include: { customer: true } });
+  const order = await prisma.order.findFirst({
+    where: { id: input.orderId, ...tenantWhereForSession(input.actor) },
+    include: { customer: true },
+  });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
   const evidenceDocuments = await prisma.document.findMany({
     where: { orderId: order.id, documentType: { in: ["REPORT", "IMAGE"] } },
@@ -210,6 +227,7 @@ export async function prepareExternalReportForOrder(input: {
 
   const tour = await ensureManualEvidenceTour({
     orderId: order.id,
+    tenantId: order.tenantId,
     distributorId: data.distributorId,
     startTime: data.startTime,
     endTime: data.endTime,
@@ -326,9 +344,13 @@ export async function prepareExternalReportForOrder(input: {
 }
 
 export async function publishExternalReport(input: { actor: SessionUser; reportId: string }) {
+  if (!hasPermission(input.actor, Permission.REPORT_PUBLISH)) throw new AuthError("Keine Berechtigung, diesen Bericht zu veröffentlichen.", 403);
+  await requireActiveTenantMembership(input.actor);
+  const report = await prisma.report.findFirst({ where: { id: input.reportId, ...tenantWhereForSession(input.actor) }, select: { id: true } });
+  if (!report) throw new AuthError("Bericht wurde nicht gefunden.", 404);
   return publishReport({ reportId: input.reportId, adminUserId: input.actor.id });
 }
 
 export async function requireAdminEvidenceSession() {
-  return requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  return requirePermission(Permission.REPORT_REVIEW);
 }

@@ -1,7 +1,6 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { uploadExternalEvidence } from "@/lib/externalEvidence";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -18,7 +17,7 @@ async function fileFromForm(formData: FormData) {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const actor = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const actor = await requirePermission(Permission.DOCUMENT_REVIEW);
     const { id } = await context.params;
     const formData = await request.formData();
     const document = await uploadExternalEvidence({
