@@ -46,6 +46,9 @@ async function login(email, ip) {
   return cookieHeaderFrom(response);
 }
 
+const adminIp = process.env.PRICING_PROPAGATION_ADMIN_IP || "198.51.100.88";
+const customerIp = process.env.PRICING_PROPAGATION_CUSTOMER_IP || "198.51.100.89";
+
 async function requestJson(path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
@@ -101,8 +104,8 @@ let adminCookie = "";
 let originalRules = [];
 let originalVatRate = "0.19";
 try {
-  adminCookie = await login("admin@example.com", "198.51.100.88");
-  const customerCookie = await login("kunde.immobilien@example.com", "198.51.100.89");
+  adminCookie = await login("admin@example.com", adminIp);
+  const customerCookie = await login("kunde.immobilien@example.com", customerIp);
 
   const initial = await requestJson("/api/admin/settings/pricing", { headers: { cookie: adminCookie } });
   originalRules = initial.data.rules.filter((rule) => rule.serviceType === "FLYER_DISTRIBUTION" && rule.isActive);
@@ -134,6 +137,14 @@ try {
   assert.equal(propagated.data.calculatedVat, "140", "MwSt.-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
   assert.equal(propagated.data.calculatedGrossPrice, "2140", "Bruttopreis wurde nach der MwSt.-Aenderung nicht aktualisiert.");
   assert.equal(typeof propagated.data.priceRuleSnapshot?.pricingRuleSignature, "string", "Preis-Konfigurationssignatur wurde nicht in den Kunden-Snapshot propagiert.");
+
+  const customerOrders = await requestJson("/api/customer/orders", { headers: { cookie: customerCookie } });
+  const propagatedListOrder = customerOrders.data.find((item) => item.id === existingOrder.data.id);
+  assert.equal(propagatedListOrder?.calculatedGrossPrice, "2140", "Die Kunden-Auftragsliste zeigt nicht den aktualisierten Bruttopreis.");
+
+  const customerNotifications = await requestJson("/api/customer/notifications", { headers: { cookie: customerCookie } });
+  const priceNotification = customerNotifications.data?.messages?.find((item) => item.type === "ORDER_PRICE_UPDATED");
+  assert(priceNotification, "Kunde erhält keine Preisänderungsbenachrichtigung.");
 
   const intelligence = await requestJson("/api/maps/order-intelligence?city=Koblenz&postalCode=56068&coverageAreaSqm=640000&flyerQuantity=2000", {
     headers: { cookie: customerCookie },

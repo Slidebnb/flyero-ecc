@@ -10,6 +10,7 @@ const files = new Map([
   ["payments", "src/lib/payments.ts"],
   ["invoices", "src/lib/invoices.ts"],
   ["customerDashboard", "src/app/customer/dashboard/page.tsx"],
+  ["customerUx", "src/app/customer/customerUx.ts"],
   ["pricing", "src/lib/pricing.ts"],
 ]);
 
@@ -40,5 +41,6 @@ assert.match(pricing, /pricingRuleSignature/, "Jede Preisberechnung muss ihre ak
 assert.match(pricing, /invalidatedCheckoutCount/, "Offene Checkout-Zahlungen müssen bei einer Preisänderung ungültig werden.");
 assert.match(source.get("invoices"), /priceRuleSnapshot/, "Rechnungen müssen den gespeicherten Auftragspreis-Snapshot verwenden.");
 assert.match(source.get("customerDashboard"), /getOrderGrossPrice/, "Das Kunden-Dashboard muss denselben effektiven Auftragspreis anzeigen.");
+assert.match(source.get("customerUx"), /ORDER_PRICE_UPDATED:\s*"Preisvorschau aktualisiert"/, "Preisänderungen müssen im Kundenportal verständlich benannt werden.");
 
 console.log("Pricing system linkage smoke checks passed.");

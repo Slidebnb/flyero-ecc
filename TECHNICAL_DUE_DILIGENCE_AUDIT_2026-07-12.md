@@ -41,6 +41,24 @@ Die Zaehldaten und der Pruef-Commit im historischen Kopfbereich beziehen sich
 auf den urspruenglichen Auditlauf. Fuer den aktuellen Stand ist dieser Nachtrag
 die verbindliche Verifikationsreferenz.
 
+### Aktualisierung: Preisweitergabe und Kundenhinweis (13.07.2026)
+
+Die Laufzeitpruefung wurde um die sichtbare Kunden-Auftragsliste und die
+Kundenbenachrichtigung erweitert. Eine Aenderung der aktiven Preisregeln oder
+des MwSt.-Satzes im Adminbereich wird fuer offene Auftraege neu berechnet,
+aktualisiert den gespeicherten Preis-Snapshot, macht offene Checkout-Zahlungen
+ungueltig und legt einen Hinweis vom Typ `ORDER_PRICE_UPDATED` an. Der Typ wird
+im Kundenportal als `Preisvorschau aktualisiert` dargestellt. Neue Auftraege,
+die Gebiets-/Preisvorschau, Checkout und die Rechnungsanzeige verwenden weiter
+die zentrale Funktion `calculateOrderPrice`; bereits bezahlte oder erstattete
+Auftraege bleiben von der automatischen Neuberechnung ausgeschlossen.
+
+Der Test setzt keine Live-Verbindung zu einem externen Push-System voraus:
+Eine bereits geoeffnete Browserseite aktualisiert sich erst beim naechsten
+Request oder Reload. Ein echter Push waere eine separate Polling-, SSE- oder
+WebSocket-Entscheidung und ist fuer die fachliche Preisrichtigkeit nicht
+erforderlich.
+
 ## 1. Auftrag und Pruefmethode
 
 Dieser Bericht bewertet den aktuellen FLYERO-Stand als SaaS-, Betriebs- und spaeteres Due-Diligence-Objekt. Er ersetzt keine externe Penetrationspruefung, Rechtsberatung, Datenschutz-Folgenabschaetzung oder steuerliche Freigabe.

@@ -349,6 +349,7 @@ export async function syncOpenOrderPrices() {
           : `Die Preisgrundlage fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln geprueft.`,
       data: {
         orderNumber: order.orderNumber,
+        orderId: order.id,
         paymentAmount: price.gross.toString(),
         pricingVersion: price.snapshot.pricingVersion,
         pricingRuleSignature: price.snapshot.pricingRuleSignature,
