@@ -547,7 +547,7 @@ Enthalten:
 - Kunden-Berichtsliste unter `/customer/reports`
 - professioneller Online-Verteilbericht unter `/customer/reports/:id`
 - serverseitige PDF-Erzeugung ohne externe Abhaengigkeit
-- PDF-Dateien unter `/public/generated/reports`
+- PDF-Dateien unter `/private/generated/reports`
 - digitale Berichtnummer, Verification-Code, PDF-Checksumme, Version und Online-URL
 - Report-Templates `STANDARD`, `IMMOBILIEN`, `RESTAURANT`, `FRANCHISE`, `CUSTOM_BRANDING`
 - GPS-Qualitaetsscore 0 bis 100 mit Kundenlabel `Sehr gut`, `Gut` oder `Auffaellig`
@@ -703,7 +703,7 @@ Rechnungsablauf:
 4. Admin genehmigt den Auftrag.
 5. Auftrag steht auf `APPROVED`.
 6. Rechnung wird idempotent erzeugt.
-7. PDF wird serverseitig unter `/public/generated/invoices` gespeichert.
+7. PDF wird serverseitig unter `/private/generated/invoices` gespeichert.
 8. Kunde sieht Rechnung im Portal und kann das PDF herunterladen.
 
 Rechnungsnummern:
@@ -756,7 +756,7 @@ POST /api/internal/orders/:id/create-invoice
 PDF-Technik:
 
 - serverseitige PDF-Erzeugung in `src/lib/invoices.ts`
-- PDF-Speicherort: `/public/generated/invoices`
+- PDF-Speicherort: `/private/generated/invoices`
 - Inhalt: Flyero Text/Logo, Rechnungsnummer, Rechnungsdatum, Kunde, Rechnungsadresse,
   Auftrag, Zahlungsreferenz, Leistungsbeschreibung, Netto, MwSt., Brutto, Hinweis
   `bereits bezahlt`, Zahlungsdatum und Footer-Platzhalter.
@@ -854,7 +854,7 @@ Exportformate:
 
 Speicherort:
 
-- `/public/generated/accounting`
+- `/private/generated/accounting`
 - Dateiname: `flyero-accounting-export-{exportNumber}.csv`
 
 Wichtiger DATEV-Hinweis:

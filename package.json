@@ -61,6 +61,7 @@
     "test:tenant-policy": "node --experimental-strip-types tests/tenant-policy-smoke.mjs",
     "test:retention": "node -r dotenv/config tests/retention-smoke.mjs",
     "test:private-storage": "node tests/private-storage-smoke.mjs",
+    "test:public-artifact-privacy": "node tests/public-artifact-privacy-smoke.mjs",
     "test:security-headers": "node tests/security-headers-smoke.mjs",
     "test:upload-security": "node tests/upload-security-smoke.mjs",
     "test:ci-config": "node tests/ci-config-smoke.mjs",

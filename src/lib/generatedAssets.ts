@@ -1,5 +1,4 @@
 import { readPrivateObject, writePrivateObject } from "@/lib/privateObjectStorage";
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 const GENERATED_KINDS = ["accounting", "invoices", "reports", "proofs", "quarantine"] as const;
@@ -38,15 +37,10 @@ export async function writeGeneratedAsset(input: {
 
 export async function readGeneratedAsset(storagePath: string) {
   const relative = storagePath.replace(/^\/+/, "");
-  if (relative.startsWith("generated/")) {
-    const legacyPath = path.join(/*turbopackIgnore: true*/ process.cwd(), "public", relative);
-    return {
-      absolutePath: legacyPath,
-      buffer: await readFile(legacyPath),
-      fileName: path.basename(relative),
-    };
+  if (!relative.startsWith("private/generated/")) {
+    throw new Error("Generated Asset liegt nicht im privaten Storage.");
   }
-  const normalized = relative.startsWith("private/generated/") ? relative.slice("private/generated/".length) : relative;
+  const normalized = relative.slice("private/generated/".length);
   const [kind, ...rest] = normalized.split("/");
   const fileName = rest.join("/");
   if (!kind || !fileName) throw new Error("Generated Asset Pfad ist ungueltig.");

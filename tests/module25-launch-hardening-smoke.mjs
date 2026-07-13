@@ -40,6 +40,13 @@ assert(
   "Accounting-CSV-Exports werden noch unter /generated/accounting veroeffentlicht.",
 );
 
+const generatedAssets = await readUtf8("src/lib/generatedAssets.ts");
+assert(
+  !generatedAssets.includes('path.join(/*turbopackIgnore: true*/ process.cwd(), "public"'),
+  "Generated Assets haben weiterhin einen public-Fallback.",
+);
+assert(generatedAssets.includes("Generated Asset liegt nicht im privaten Storage"), "Legacy-Generated-Assets werden nicht blockiert.");
+
 const invoiceDownloadRoute = await readUtf8("src/app/api/customer/invoices/[id]/download/route.ts");
 assert(
   !invoiceDownloadRoute.includes('path.join(process.cwd(), "public"'),

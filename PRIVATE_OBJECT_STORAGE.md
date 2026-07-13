@@ -14,6 +14,13 @@ FLYERO unterstützt zwei Speicherprovider:
 - `S3_PREFIX` trennt FLYERO-Objekte innerhalb des Buckets logisch.
 - Versionierung, Verschlüsselung at rest, Lifecycle und Offsite-Replikation müssen im Anbieter aktiviert und regelmäßig geprüft werden.
 
+## Schutz vor Legacy-Webroot-Assets
+
+Revisionsrelevante Generated-Assets duerfen nicht unter `public/generated`
+liegen. `readGeneratedAsset()` akzeptiert ausschliesslich Pfade mit
+`/private/generated/`; alte Datenbankpfade muessen vor einem Produktions-Rollout
+ueber eine kontrollierte Storage-Migration uebertragen werden.
+
 ## Migration vom lokalen Speicher
 
 1. Privaten Bucket und einen minimal berechtigten Service-User anlegen.
