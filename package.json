@@ -76,6 +76,7 @@
     "test:distributor-privacy": "node -r dotenv/config tests/distributor-privacy-smoke.mjs",
     "test:proof-download-privacy": "node -r dotenv/config tests/proof-download-privacy-smoke.mjs",
     "test:route-analysis-privacy": "node -r dotenv/config tests/route-analysis-privacy-smoke.mjs",
+    "test:maps-abuse": "node -r dotenv/config tests/maps-abuse-smoke.mjs",
     "test:backup-scheduler": "node tests/backup-scheduler-smoke.mjs",
     "test:tenant-foundation": "node tests/tenant-foundation-smoke.mjs",
     "test:public-url": "node --experimental-strip-types tests/public-url-smoke.mjs",

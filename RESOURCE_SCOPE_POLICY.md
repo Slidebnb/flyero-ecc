@@ -86,6 +86,13 @@ Kunden-/Verteilerprofile fuer eine nachgelagerte Pruefung und gibt bei fremden
 Tour-IDs `404` zurueck. `npm run test:route-analysis-privacy` prueft eigene
 und fremde Touren.
 
+Die authentifizierten Google-Maps-Proxies sind mit einem gemeinsamen
+persistenten IP-Limiter geschuetzt. Autocomplete, Geocoding und
+Order-Intelligence verwenden den Scope `maps`; die Grenzwerte werden ueber
+`PUBLIC_MAPS_RATE_LIMIT_MAX` und `PUBLIC_MAPS_RATE_LIMIT_WINDOW_MS`
+konfiguriert. Das begrenzt Google-Kostenmissbrauch, ersetzt aber keinen
+externen WAF- oder Edge-Limiter.
+
 ## Bewusst offene Punkte
 
 - Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch; die

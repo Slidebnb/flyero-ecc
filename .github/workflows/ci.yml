@@ -209,6 +209,9 @@ jobs:
       - name: Route analysis privacy smoke
         run: npm run test:route-analysis-privacy
 
+      - name: Maps abuse smoke
+        run: npm run test:maps-abuse
+
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe
 

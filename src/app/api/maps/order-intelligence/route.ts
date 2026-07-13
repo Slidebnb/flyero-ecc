@@ -2,6 +2,7 @@ import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { requireTenantSession } from "@/lib/tenant";
 import { getOrderIntelligence } from "@/lib/smartMaps";
+import { enforcePublicRateLimit, publicRateLimitResponse } from "@/lib/publicAbuseProtection";
 import { routeErrorResponse } from "@/lib/request";
 
 function numberParam(value: string | null) {
@@ -12,6 +13,8 @@ function numberParam(value: string | null) {
 export async function GET(request: Request) {
   try {
     const baseSession = await requireRole([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const abuseDecision = await enforcePublicRateLimit(request, "maps");
+    if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
     const session = baseSession.role === UserRole.CUSTOMER ? await requireTenantSession() : baseSession;
     const params = new URL(request.url).searchParams;
     const data = await getOrderIntelligence({

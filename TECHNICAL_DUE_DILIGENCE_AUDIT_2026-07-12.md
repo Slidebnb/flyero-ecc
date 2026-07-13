@@ -179,8 +179,8 @@ Empfohlene Zielstruktur vor weiteren Enterprise-Funktionen:
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| SEC-01 | DB-gestuetzter Auth- und Public-Abuse-Basisschutz fuer Login, Lead und Report-Verifikation ist vorhanden; weitere oeffentliche APIs und Alarmierung fehlen | P1 | Schutz auf weitere oeffentliche Endpunkte ausweiten und bei Schwellwerten alarmieren. |
-| SEC-02 | Lead-Rate-Limit ist persistent in PostgreSQL; ein allgemeiner verteilter Public-Limiter fuer weitere Endpunkte fehlt | P2 | Weitere sensible oeffentliche Endpunkte an den persistenten Limiter anbinden. |
+| SEC-01 | DB-gestuetzter Auth- und Public-Abuse-Basisschutz fuer Login, Lead, Report-Verifikation und Maps ist vorhanden; externe Alarmierung fehlt | P1 | CAPTCHA/WAF, IP-Reputation und Alarmierung fuer Schwellenwerte ergaenzen. |
+| SEC-02 | Persistente Public-Rate-Limits decken Lead, Report-Verifikation und die authentifizierten Google-Maps-Proxies ab; ein zentraler verteilter Edge-Limiter fehlt | P2 | Weitere sensible Endpunkte und den vorgeschalteten Edge-Limiter anbinden. |
 | SEC-03 | Security-Header sind im Caddy-/Next-Pfad vorhanden; CSP muss gegen alle produktiven Drittanbieterpfade weiter verifiziert werden | P2 | Staging-CSP-Report-Only und anschliessende harte Abnahme etablieren. |
 | SEC-04 | Magic-Byte-/Strukturpruefung, Quarantaene und Scanstatus sind vorhanden; produktiver ClamAV-Betrieb bleibt Deploymentnachweis | P1 | `FILE_SCAN_MODE=required` mit ClamAV betreiben und Scanalarme nachweisen. |
 | SEC-05 | `svg`, Office-, ZIP- und Adobe-Dateien sind erlaubt | P1 | Aktive Inhalte nie inline ausliefern; Scan- und Download-Policy je Dateiklasse definieren. |
@@ -389,6 +389,20 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   Seed-Foto ab. Admin-/Support- und eigener Verteilerzugriff bleiben separat
   rollenbasiert; die vollstaendige Matrix aller internen Proof-Responses
   bleibt offen.
+
+### Maps-Abuse-Schutz (13.07.2026)
+
+- Die authentifizierten Google-Maps-Proxy-Routen fuer Autocomplete, Geocoding
+  und Order-Intelligence verwenden jetzt einen gemeinsamen persistenten
+  PostgreSQL-IP-Bucket mit standardmaessig 60 Anfragen je 15 Minuten.
+- Die Grenzwerte sind ueber `PUBLIC_MAPS_RATE_LIMIT_MAX` und
+  `PUBLIC_MAPS_RATE_LIMIT_WINDOW_MS` konfigurierbar und werden nicht als
+  Secret behandelt.
+- `npm run test:maps-abuse` prueft alle drei Routen statisch und verifiziert
+  den `429`-Schutz mit einer echten authentifizierten Anfragefolge, ohne
+  einen externen Google-Aufruf auszufuehren.
+- Der Schutz reduziert API-Kosten- und Abuse-Risiken, ersetzt aber keinen
+  vorgeschalteten WAF-/Edge-Limiter oder externes Alarmierungsmonitoring.
 
 ### Route-Analyse-Scope (13.07.2026)
 
