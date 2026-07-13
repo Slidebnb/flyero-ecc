@@ -406,6 +406,15 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   serialisiert. Der Contract-Smoke `npm run test:internal-response-privacy`
   prueft die Whitelist gegen Rueckfaelle.
 
+### Public Health Fail-safe (13.07.2026)
+
+- `GET /api/health` bleibt minimal und liefert bei einer nicht erreichbaren
+  Datenbank kontrolliert `{"status":"DOWN"}` mit HTTP 503 statt selbst mit
+  einem ungefangenen Datenbankfehler zu antworten.
+- Der Smoke `npm run test:health-failsafe` schuetzt den Fallback und die
+  Cache-Control-Regel. Externes Uptime-Monitoring und Alarmierung bleiben ein
+  Deployment-/Betriebsthema.
+
 ### Proof-Download-Freigabe (13.07.2026)
 
 - Der Foto-Download fuer Kunden prueft neben dem eigenen Auftrag jetzt auch

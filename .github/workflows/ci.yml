@@ -204,6 +204,8 @@ jobs:
         run: npm run test:warehouse-privacy
       - name: Internal response privacy smoke
         run: npm run test:internal-response-privacy
+      - name: Health fail-safe smoke
+        run: npm run test:health-failsafe
 
       - name: Support permission smoke
         run: npm run test:support-permission
