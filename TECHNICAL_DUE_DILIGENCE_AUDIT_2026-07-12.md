@@ -44,7 +44,7 @@ Die groessten aktuellen Risiken sind:
 6. `P1` AuditLogs haben jetzt Kontextfelder und eine optionale Tenant-ID, aber noch keine vollstaendige Anbindung aller kritischen Aktionen und kein extern manipulationsgeschuetztes Archiv.
 7. `P1` MFA, Passwort-Historie und kompromittierte-Passwort-Pruefung fehlen trotz vorhandenem Passwort-Reset-Basispaket.
 
-Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock-Zahlungen sind in Produktion standardmaessig deaktiviert, generierte PDFs werden inzwischen unter privatem Storage abgelegt, Kunden-Downloads sind rollen- und eigentumsgeprueft, externe GPS-Berichte koennen ohne erfundene Coverage veroeffentlicht werden, und die Domain ist per HTTPS erreichbar.
+Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock-Zahlungen sind in Produktion hart deaktiviert, generierte PDFs werden inzwischen unter privatem Storage abgelegt, Kunden-Downloads sind rollen- und eigentumsgeprueft, externe GPS-Berichte koennen ohne erfundene Coverage veroeffentlicht werden, und die Domain ist per HTTPS erreichbar. Der Production-Guard wird durch `npm run test:payment-production-guard` gegen eine versehentliche `ENABLE_MOCK_PAYMENTS=true`-Konfiguration geschuetzt.
 
 ## 3. Repository- und Architektur-Analyse
 

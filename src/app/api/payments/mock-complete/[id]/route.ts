@@ -11,7 +11,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const mockPaymentFlag = process.env.ENABLE_MOCK_PAYMENTS;
-    if (mockPaymentFlag !== "true" && !mockPaymentsEnabled()) {
+    if (process.env.NODE_ENV === "production" || (mockPaymentFlag !== "true" && !mockPaymentsEnabled())) {
       return errorResponse("Mock-Zahlungen sind deaktiviert.", 404);
     }
     const session = await requireRole([UserRole.CUSTOMER]);

@@ -79,6 +79,7 @@
     "test:warehouse-privacy": "node tests/warehouse-privacy-smoke.mjs",
     "test:internal-response-privacy": "node tests/internal-response-privacy-smoke.mjs",
     "test:health-failsafe": "node tests/health-failsafe-smoke.mjs",
+    "test:payment-production-guard": "node tests/payment-production-guard-smoke.mjs",
     "test:support-permission": "node tests/support-permission-smoke.mjs",
     "test:distributor-privacy": "node -r dotenv/config tests/distributor-privacy-smoke.mjs",
     "test:proof-download-privacy": "node -r dotenv/config tests/proof-download-privacy-smoke.mjs",

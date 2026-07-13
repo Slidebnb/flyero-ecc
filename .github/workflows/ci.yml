@@ -206,6 +206,8 @@ jobs:
         run: npm run test:internal-response-privacy
       - name: Health fail-safe smoke
         run: npm run test:health-failsafe
+      - name: Payment production guard smoke
+        run: npm run test:payment-production-guard
 
       - name: Support permission smoke
         run: npm run test:support-permission

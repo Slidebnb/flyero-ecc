@@ -19,13 +19,14 @@ function stripeSecretKey() {
 }
 
 export function mockPaymentsEnabled() {
-  if (process.env.ENABLE_MOCK_PAYMENTS === "true") return true;
-  return process.env.NODE_ENV !== "production";
+  if (process.env.NODE_ENV === "production") return false;
+  return process.env.ENABLE_MOCK_PAYMENTS !== "false";
 }
 
 function isMockStripe() {
+  if (!mockPaymentsEnabled()) return false;
   const secret = stripeSecretKey();
-  return secret.includes("_mock") || secret === "sk_test_mock" || (mockPaymentsEnabled() && !secret);
+  return secret.includes("_mock") || secret === "sk_test_mock" || !secret;
 }
 
 function stripeClient() {
