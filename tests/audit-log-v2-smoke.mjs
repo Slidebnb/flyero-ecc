@@ -21,5 +21,7 @@ assert.match(context, /slice\(0, MAX_USER_AGENT_LENGTH\)/);
 assert.match(login, /auditRequestContext\(request\)/);
 assert.match(logout, /auditRequestContext\(request\)/);
 assert.doesNotMatch(context, /authorization|cookie/i);
+assert.match(audit, /isForeignKeyViolation/);
+assert.match(audit, /userId: null, tenantId: undefined/);
 
 console.log("AuditLog v2 smoke checks passed.");
