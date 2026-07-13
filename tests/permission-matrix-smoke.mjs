@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments, dispatchView, dispatchCombinations, dispatchRecommend, dispatchRecommendations, dispatchDismiss, dispatchAutoAssign, tours, tourDetail, tourApprove, tourClarify, tourNote, tourReject] = await Promise.all([
+const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments, dispatchView, dispatchCombinations, dispatchRecommend, dispatchRecommendations, dispatchDismiss, dispatchAutoAssign, tours, tourDetail, tourApprove, tourClarify, tourNote, tourReject, logisticsDashboard, logisticsShipments, logisticsShipmentDetail, logisticsStockCounts, logisticsTransfers, logisticsTransferDetail] = await Promise.all([
   readFile("src/lib/permissions.ts", "utf8"),
   readFile("PERMISSION_MATRIX.md", "utf8"),
   readFile("src/app/api/admin/settings/users/route.ts", "utf8"),
@@ -36,6 +36,12 @@ const [permissions, matrix, users, userStatus, refund, reportPublish, reportAppr
   readFile("src/app/api/admin/tours/[id]/clarify/route.ts", "utf8"),
   readFile("src/app/api/admin/tours/[id]/note/route.ts", "utf8"),
   readFile("src/app/api/admin/tours/[id]/reject/route.ts", "utf8"),
+  readFile("src/app/api/admin/logistics/route.ts", "utf8"),
+  readFile("src/app/api/admin/logistics/shipments/route.ts", "utf8"),
+  readFile("src/app/api/admin/logistics/shipments/[id]/route.ts", "utf8"),
+  readFile("src/app/api/admin/logistics/stock-counts/route.ts", "utf8"),
+  readFile("src/app/api/admin/logistics/transfers/route.ts", "utf8"),
+  readFile("src/app/api/admin/logistics/transfers/[id]/route.ts", "utf8"),
 ]);
 
 for (const permission of [
@@ -105,6 +111,15 @@ for (const [source, permission] of [
   [tourClarify, "TOUR_MANAGE"],
   [tourNote, "TOUR_MANAGE"],
   [tourReject, "TOUR_MANAGE"],
+  [logisticsDashboard, "WAREHOUSE_VIEW"],
+  [logisticsShipments, "WAREHOUSE_VIEW"],
+  [logisticsShipments, "WAREHOUSE_MANAGE"],
+  [logisticsShipmentDetail, "WAREHOUSE_MANAGE"],
+  [logisticsStockCounts, "WAREHOUSE_VIEW"],
+  [logisticsStockCounts, "WAREHOUSE_MANAGE"],
+  [logisticsTransfers, "WAREHOUSE_VIEW"],
+  [logisticsTransfers, "WAREHOUSE_MANAGE"],
+  [logisticsTransferDetail, "WAREHOUSE_MANAGE"],
 ]) {
   assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
 }

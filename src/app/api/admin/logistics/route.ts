@@ -1,12 +1,12 @@
 import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
 import { getLogisticsAnalytics } from "@/lib/logistics";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET() {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.WAREHOUSE_VIEW);
     const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
     const [analytics, openShipments, transfers, stockDifferences] = await Promise.all([
       getLogisticsAnalytics(tenantId),

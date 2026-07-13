@@ -1,7 +1,6 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { updateWarehouseTransfer } from "@/lib/logistics";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { warehouseTransferUpdateSchema } from "@/lib/validators";
 
@@ -9,7 +8,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.WAREHOUSE_MANAGE);
     const { id } = await context.params;
     const parsed = warehouseTransferUpdateSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");

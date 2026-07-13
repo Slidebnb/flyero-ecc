@@ -1,14 +1,14 @@
 import { TransferStatus, UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { createWarehouseTransfer } from "@/lib/logistics";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { warehouseTransferCreateSchema } from "@/lib/validators";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.WAREHOUSE_VIEW);
     const status = request.nextUrl.searchParams.get("status") as TransferStatus | null;
     const transfers = await prisma.warehouseTransfer.findMany({
       where: { ...(session.role === UserRole.ADMIN ? {} : { inventory: { order: { tenantId: session.tenantId ?? "__no_tenant__" } } }), ...(status ? { status } : {}) },
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.WAREHOUSE_MANAGE);
     const parsed = warehouseTransferCreateSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     return successResponse(await createWarehouseTransfer({ ...parsed.data, actorId: session.id, tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId }), 201);

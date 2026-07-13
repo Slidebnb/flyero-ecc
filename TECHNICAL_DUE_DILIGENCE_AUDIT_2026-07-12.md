@@ -760,8 +760,11 @@ Migration von Logistik-, CRM-, Monitoring- und Nebenressourcen bleibt offen.
 Sendungen, Umlagerungen, Inventurdifferenzen und Logistik-KPIs werden fuer
 Nicht-Admins jetzt ueber den verknuepften Auftrag tenantbezogen gelesen und
 geschrieben. Erstellen, Statusaenderungen und Bestandszaehlungen validieren den
-Tenant vor der Mutation. Lagerstammdaten bleiben gemeinsame Plattformressourcen;
-die vollstaendige A/B-IDOR-Pruefung der restlichen internen Bereiche bleibt offen.
+Tenant vor der Mutation. Die Logistik-API verwendet fuer Lesen `warehouse.view`
+und fuer Mutationen `warehouse.manage`; dadurch bleibt der Support lesend und
+aktive Tenant-Mitgliedschaft wird serverseitig geprueft. Lagerstammdaten bleiben
+gemeinsame Plattformressourcen; die vollstaendige A/B-IDOR-Pruefung der restlichen
+internen Bereiche bleibt offen.
 
 ### P0 Backup-Scheduler
 

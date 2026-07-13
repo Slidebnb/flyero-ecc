@@ -46,6 +46,7 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 - Globale Auftrags-, Rechnungs- und Zahlungslisten bleiben Admin-only. Support erhält keinen globalen Zugriff auf diese Ressourcen.
 - Die operative Verteilerzuweisung nutzt `dispatch.assign` und bleibt für Support auf den aktiven Tenant-Scope begrenzt.
 
+- Logistik-Lesezugriffe nutzen `warehouse.view`; Sendungen, Umlagerungen und Bestandsmutationen nutzen `warehouse.manage` und bleiben Admin-only.
 - Eine Permission wird nur in der serverseitigen API als wirksam betrachtet.
 - Kritische Finanz-, Preis-, Nutzer- und Veröffentlichungsaktionen sind auf `ADMIN` begrenzt.
 - Support/Disposition darf operative Prüfungen durchführen, aber keine Zahlungen erstatten, Preise ändern, Nutzer sperren, Exporte laden oder Berichte veröffentlichen.
