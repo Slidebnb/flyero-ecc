@@ -143,6 +143,9 @@ try {
   assert.equal(propagated.data.calculatedVat, "140", "MwSt.-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
   assert.equal(propagated.data.calculatedGrossPrice, "2140", "Bruttopreis wurde nach der MwSt.-Aenderung nicht aktualisiert.");
   assert.equal(typeof propagated.data.priceRuleSnapshot?.pricingRuleSignature, "string", "Preis-Konfigurationssignatur wurde nicht in den Kunden-Snapshot propagiert.");
+  assert.equal(propagated.data.priceRuleSnapshot?.areaCalculationSnapshot?.pricingRuleSignature, propagated.data.priceRuleSnapshot?.pricingRuleSignature, "Gebiets-Snapshot und Preis-Snapshot laufen nach der Admin-Aenderung auseinander.");
+  assert.equal(propagated.data.priceRuleSnapshot?.areaCalculationSnapshot?.pricingGrossPrice, "2140", "Gebiets-Snapshot enthaelt nicht den aktuellen Bruttopreis.");
+  assert.equal(propagated.data.priceRuleSnapshot?.completionPath, "inquiry", "Die Preispropagierung darf den Abschlussweg der Kunden-Order nicht entfernen.");
 
   const customerOrders = await requestJson("/api/customer/orders", { headers: { cookie: customerCookie } });
   const propagatedListOrder = customerOrders.data.find((item) => item.id === existingOrder.data.id);

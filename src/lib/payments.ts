@@ -5,7 +5,7 @@ import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { classifyStripeDisputeEvent, isRefundBlockedByDispute } from "@/lib/paymentDisputeLogic";
-import { calculateOrderPrice, calculatePriceFromNet } from "@/lib/pricing";
+import { calculateOrderPrice, calculatePriceFromNet, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getVatRate } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
@@ -193,7 +193,10 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
           calculatedNetPrice: currentPrice.net,
           calculatedVat: currentPrice.vat,
           calculatedGrossPrice: currentPrice.gross,
-          priceRuleSnapshot: toJson({ ...currentSnapshot, ...currentPrice.snapshot }),
+          priceRuleSnapshot: withCurrentPricingSnapshot({
+            price: currentPrice,
+            snapshot: currentSnapshot,
+          }),
         },
       })
     : currentManualPrice

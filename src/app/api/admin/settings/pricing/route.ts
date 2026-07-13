@@ -77,6 +77,7 @@ export async function PATCH(request: NextRequest) {
     await createAuditLog({ userId: session.id, action: "settings.pricing_updated", entityType: "Pricing", entityId: "pricing", oldValues: before, newValues: after });
     await notifyAdmins({ type: "PRICING_CHANGED", title: "Preisregel geaendert", message: "Preisregeln wurden aktualisiert." });
     revalidatePath("/admin/settings/pricing");
+    revalidatePath("/preise");
     revalidatePath("/customer/dashboard");
     revalidatePath("/customer/orders");
     revalidatePath("/customer/orders/[id]", "page");

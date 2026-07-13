@@ -6,7 +6,7 @@ import { assignAreaToOrder, createDistributionArea } from "@/lib/areas";
 import { createNotification } from "@/lib/notifications";
 import { assignWarehouseForOrder } from "@/lib/logistics";
 import { generateOrderNumber, createOrderStatusEvent } from "@/lib/orders";
-import { calculateOrderPrice } from "@/lib/pricing";
+import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderCreateSchema } from "@/lib/validators";
@@ -144,7 +144,10 @@ export async function POST(request: NextRequest) {
             calculatedNetPrice: price.net,
             calculatedVat: price.vat,
             calculatedGrossPrice: price.gross,
-            priceRuleSnapshot: {
+            priceRuleSnapshot: withCurrentPricingSnapshot({
+              price,
+              areaCalculationSnapshot: data.areaCalculationSnapshot,
+              snapshot: {
               ...price.snapshot,
               completionPath: data.completionPath,
               printDataStatus: data.printDataStatus,
@@ -154,7 +157,8 @@ export async function POST(request: NextRequest) {
               reviewNotice: "Gebiet, Druckdaten und Zustellbarkeit werden durch FLYERO final geprüft.",
               includedProofs: ["GPS-Nachweis", "Foto-Dokumentation", "PDF-Bericht nach Abschluss"],
               areaCalculationSnapshot: data.areaCalculationSnapshot ?? null,
-            },
+              },
+            }),
           },
         });
         break;

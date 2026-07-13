@@ -3,7 +3,7 @@ import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { assignAreaToOrder, createDistributionArea } from "@/lib/areas";
 import { createOrderStatusEvent } from "@/lib/orders";
-import { calculateOrderPrice } from "@/lib/pricing";
+import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderUpdateSchema } from "@/lib/validators";
@@ -123,10 +123,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         calculatedNetPrice: price.net,
         calculatedVat: price.vat,
         calculatedGrossPrice: price.gross,
-        priceRuleSnapshot: {
-          ...price.snapshot,
-          areaCalculationSnapshot: data.areaCalculationSnapshot ?? null,
-        },
+        priceRuleSnapshot: withCurrentPricingSnapshot({
+          price,
+          areaCalculationSnapshot: data.areaCalculationSnapshot,
+          snapshot: order.priceRuleSnapshot,
+        }),
       },
     });
 

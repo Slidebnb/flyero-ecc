@@ -218,11 +218,47 @@ export async function validatePricingRuleChanges(changes: PricingRuleChange[]) {
   for (const [serviceType, rules] of grouped) {
     const error = activeRuleValidationMessage(rules);
     if (error) return error;
-    if (serviceType === ServiceType.FLYER_DISTRIBUTION && rules[0]?.minQuantity !== 1) {
+    const ordered = [...rules].sort((left, right) => left.minQuantity - right.minQuantity);
+    if (serviceType === ServiceType.FLYER_DISTRIBUTION && ordered[0]?.minQuantity !== 1) {
       return "Die Flyer-Staffel muss bei 1 Flyer beginnen.";
     }
   }
+  if (!grouped.get(ServiceType.FLYER_DISTRIBUTION)?.length) {
+    return "Mindestens eine aktive Flyer-Preisregel ist erforderlich.";
+  }
   return null;
+}
+
+function jsonRecord(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+}
+
+export function withCurrentPricingSnapshot(input: {
+  price: PriceCalculation;
+  snapshot?: unknown;
+  areaCalculationSnapshot?: unknown;
+}) {
+  const existing = jsonRecord(input.snapshot);
+  const areaSnapshotValue = input.areaCalculationSnapshot ?? existing.areaCalculationSnapshot;
+  const areaSnapshot = areaSnapshotValue && typeof areaSnapshotValue === "object" && !Array.isArray(areaSnapshotValue)
+    ? {
+        ...areaSnapshotValue as Record<string, unknown>,
+        pricingVersion: input.price.snapshot.pricingVersion,
+        pricingRuleSignature: input.price.snapshot.pricingRuleSignature,
+        pricingNetPrice: input.price.net.toString(),
+        pricingVatRate: input.price.snapshot.vatRate,
+        pricingGrossPrice: input.price.gross.toString(),
+        pricingCalculatedAt: input.price.snapshot.calculatedAt,
+      }
+    : null;
+
+  return {
+    ...existing,
+    ...input.price.snapshot,
+    areaCalculationSnapshot: areaSnapshot,
+  } as Prisma.InputJsonValue;
 }
 
 export async function syncOpenOrderPrices() {
@@ -290,11 +326,10 @@ export async function syncOpenOrderPrices() {
         calculatedNetPrice: price.net,
         calculatedVat: price.vat,
         calculatedGrossPrice: price.gross,
-        priceRuleSnapshot: {
-          ...existingSnapshot,
-          ...price.snapshot,
-          areaCalculationSnapshot: existingSnapshot.areaCalculationSnapshot ?? null,
-        } as Prisma.InputJsonValue,
+        priceRuleSnapshot: withCurrentPricingSnapshot({
+          price,
+          snapshot: existingSnapshot,
+        }),
       },
     });
 

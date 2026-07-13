@@ -40,6 +40,8 @@ assert.match(source.get("adminPage"), /revalidatePath\("\/customer\/orders\/\[id
 assert.match(pricing, /OPEN_PRICE_ORDER_STATUSES/, "Offene Orderstatus müssen zentral definiert sein.");
 assert.match(pricing, /SETTLED_PAYMENT_STATUSES/, "Bezahlte oder erstattete Aufträge müssen vor automatischer Preisänderung geschützt sein.");
 assert.match(pricing, /pricingRuleSignature/, "Jede Preisberechnung muss ihre aktuelle Regel-Signatur speichern.");
+assert.match(pricing, /withCurrentPricingSnapshot/, "Gebiets- und Preis-Snapshot muessen gemeinsam aktualisiert werden.");
+assert.match(pricing, /Mindestens eine aktive Flyer-Preisregel ist erforderlich/, "Alle Flyer-Preisregeln duerfen nicht deaktiviert werden.");
 assert.match(pricing, /invalidatedCheckoutCount/, "Offene Checkout-Zahlungen müssen bei einer Preisänderung ungültig werden.");
 assert.match(source.get("invoices"), /priceRuleSnapshot/, "Rechnungen müssen den gespeicherten Auftragspreis-Snapshot verwenden.");
 assert.match(source.get("customerDashboard"), /getOrderGrossPrice/, "Das Kunden-Dashboard muss denselben effektiven Auftragspreis anzeigen.");
@@ -47,5 +49,8 @@ assert.match(source.get("customerUx"), /ORDER_PRICE_UPDATED:\s*"Preisvorschau ak
 assert.match(source.get("publicPricing"), /getPricingSettings/, "Die öffentliche Preisseite muss aktuelle Admin-Preisregeln verwenden.");
 assert.match(source.get("publicPricing"), /dynamic\s*=\s*"force-dynamic"/, "Die öffentliche Preisseite darf keinen veralteten Preis-Cache verwenden.");
 assert.match(source.get("publicPricing"), /distributionRules/, "Die öffentliche Preisseite muss die aktiven Verteilungsregeln darstellen.");
+
+assert.match(adminApi, /revalidatePath\("\/preise"\)/, "Admin-API invalidiert die öffentliche Preisseite.");
+assert.match(adminPage, /revalidatePath\("\/preise"\)/, "Server-Action invalidiert die öffentliche Preisseite.");
 
 console.log("Pricing system linkage smoke checks passed.");
