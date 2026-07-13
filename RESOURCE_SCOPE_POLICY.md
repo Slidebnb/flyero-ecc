@@ -75,6 +75,11 @@ Eigene Tourdetails sind ueber `distributorId` geschuetzt, fremde Tour-IDs
 liefern `404`. Der Contract-Smoke `npm run test:distributor-privacy` prueft
 API-Responses und gerenderte Verteilerseiten gegen echte Seed-Touren.
 
+Der geschuetzte Foto-Download prueft bei Kunden zusaetzlich Auftragseigentum,
+`customerVisible` und den Status `APPROVED`. Interne oder noch nicht
+freigegebene Fotos liefern auch dann `404`, wenn der Kunde die eigene
+Auftrags-ID kennt. Das prueft `npm run test:proof-download-privacy`.
+
 ## Bewusst offene Punkte
 
 - Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch; die

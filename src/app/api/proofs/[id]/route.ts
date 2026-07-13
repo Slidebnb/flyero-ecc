@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { ReviewStatus, UserRole } from "@prisma/client";
 import { requireSession } from "@/lib/auth";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
 import { prisma } from "@/lib/prisma";
@@ -19,8 +19,8 @@ export async function GET(_request: Request, context: RouteContext) {
     const roleAwareWhere =
       session.role === UserRole.ADMIN || session.role === UserRole.SUPPORT_DISPATCHER
         ? { id }
-        : session.role === UserRole.CUSTOMER
-          ? { id, order: { customer: { userId: session.id } } }
+          : session.role === UserRole.CUSTOMER
+          ? { id, customerVisible: true, reviewStatus: ReviewStatus.APPROVED, order: { customer: { userId: session.id } } }
           : session.role === UserRole.DISTRIBUTOR
             ? { id, tour: { distributor: { userId: session.id } } }
             : null;

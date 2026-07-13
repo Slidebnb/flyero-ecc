@@ -203,6 +203,9 @@ jobs:
       - name: Distributor privacy smoke
         run: npm run test:distributor-privacy
 
+      - name: Proof download privacy smoke
+        run: npm run test:proof-download-privacy
+
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe
 

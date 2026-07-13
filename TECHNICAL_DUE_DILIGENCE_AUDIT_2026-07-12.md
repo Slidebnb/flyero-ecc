@@ -379,6 +379,17 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   geschlossen. Eine vollstaendige Laufzeitmatrix fuer alle internen
   Dispatch-, Support- und Admin-Responses bleibt als Audit-Risiko offen.
 
+### Proof-Download-Freigabe (13.07.2026)
+
+- Der Foto-Download fuer Kunden prueft neben dem eigenen Auftrag jetzt auch
+  `customerVisible = true` und `reviewStatus = APPROVED`.
+- Interne oder noch nicht gepruefte Fotos werden nicht ausgeliefert und
+  antworten fuer den Kunden mit `404`, auch wenn eine Foto-ID bekannt ist.
+- `npm run test:proof-download-privacy` deckt diesen Fall mit einem echten
+  Seed-Foto ab. Admin-/Support- und eigener Verteilerzugriff bleiben separat
+  rollenbasiert; die vollstaendige Matrix aller internen Proof-Responses
+  bleibt offen.
+
 ### Rechnungs-PDF-Tenant-Scope (13.07.2026)
 
 - Der interne Rechnungs-PDF-Download verlangt jetzt `INVOICE_VIEW`; Admin bleibt global, Support benoetigt eine aktive Unternehmensmitgliedschaft.
