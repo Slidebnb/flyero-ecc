@@ -1,5 +1,4 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse, successResponse } from "@/lib/request";
 
@@ -9,7 +8,7 @@ type RouteContext = {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    await requirePermission(Permission.MONITORING_VIEW);
     const { id } = await context.params;
     const error = await prisma.errorLog.findUnique({
       where: { id },

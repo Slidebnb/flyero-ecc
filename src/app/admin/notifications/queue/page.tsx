@@ -1,8 +1,8 @@
-import { NotificationQueueStatus, UserRole } from "@prisma/client";
+import { NotificationQueueStatus } from "@prisma/client";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { sendEmail } from "@/lib/email";
 import { createAuditLog } from "@/lib/audit";
 import { formatDateTime } from "@/lib/format";
@@ -14,7 +14,7 @@ import { adminNavItems } from "@/app/admin/AdminPortalShell";
 async function processQueueAction() {
   "use server";
 
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.NOTIFICATION_OPERATIONS_MANAGE);
   await processPendingNotifications({ triggeredById: session.id });
   revalidatePath("/admin/notifications/queue");
 }
@@ -22,7 +22,7 @@ async function processQueueAction() {
 async function retryQueueAction(formData: FormData) {
   "use server";
 
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.NOTIFICATION_OPERATIONS_MANAGE);
   const id = String(formData.get("id") || "");
   await retryFailedNotification(id, session.id);
   revalidatePath("/admin/notifications/queue");
@@ -31,7 +31,7 @@ async function retryQueueAction(formData: FormData) {
 async function sendTestEmailAction(formData: FormData) {
   "use server";
 
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.NOTIFICATION_OPERATIONS_MANAGE);
   const recipient = String(formData.get("recipient") || "").trim();
   const templateId = String(formData.get("templateId") || "").trim();
   const subjectInput = String(formData.get("subject") || "").trim();
@@ -64,7 +64,7 @@ function queueTone(status: NotificationQueueStatus) {
 }
 
 export default async function AdminNotificationQueuePage() {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  await requirePermission(Permission.NOTIFICATION_OPERATIONS_VIEW);
   const [queues, counts, templates] = await Promise.all([
     prisma.notificationQueue.findMany({
       include: {

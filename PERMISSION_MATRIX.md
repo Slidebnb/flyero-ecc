@@ -40,6 +40,10 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `support.ticket.manage` | Ja | Ja | Nein | Nein | Nein |
 | `warehouse.view` | Ja | Ja | Nein | Nein | Nein |
 | `warehouse.manage` | Ja | Nein | Nein | Nein | Nein |
+| `monitoring.view` | Ja | Nein | Nein | Nein | Nein |
+| `monitoring.manage` | Ja | Nein | Nein | Nein | Nein |
+| `notification-operations.view` | Ja | Nein | Nein | Nein | Nein |
+| `notification-operations.manage` | Ja | Nein | Nein | Nein | Nein |
 | `print-partner.view` | Ja | Ja | Nein | Nein | Nein |
 | `print-partner.manage` | Ja | Nein | Nein | Nein | Nein |
 | `print-order.view` | Ja | Ja | Nein | Nein | Nein |

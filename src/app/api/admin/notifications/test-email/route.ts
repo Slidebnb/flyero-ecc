@@ -1,15 +1,15 @@
-import { ErrorSeverity, NotificationChannel, NotificationQueueStatus, SystemLogLevel, UserRole } from "@prisma/client";
+import { ErrorSeverity, NotificationChannel, NotificationQueueStatus, SystemLogLevel } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { sendEmail } from "@/lib/email";
 import { createErrorLogFromUnknown, createSystemLog } from "@/lib/monitoring";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
+import { Permission, requirePermission } from "@/lib/permissions";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.NOTIFICATION_OPERATIONS_MANAGE);
     const body = (await readBody(request)) as Record<string, unknown>;
     const recipient = typeof body.recipient === "string" ? body.recipient.trim() : "";
     const templateId = typeof body.templateId === "string" ? body.templateId.trim() : "";

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { NotificationAudience, NotificationChannel, UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { NotificationAudience, NotificationChannel } from "@prisma/client";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { EmptyState } from "@/app/PortalComponents";
@@ -20,7 +20,7 @@ function dateFilter(date?: string) {
 }
 
 export default async function AdminNotificationsPage({ searchParams }: PageProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  await requirePermission(Permission.NOTIFICATION_OPERATIONS_VIEW);
   const filters = await searchParams;
   const readFilter = filters.read === "unread" ? { readAt: null } : filters.read === "read" ? { readAt: { not: null } } : {};
   const typeFilter = filters.type ? { type: filters.type } : {};

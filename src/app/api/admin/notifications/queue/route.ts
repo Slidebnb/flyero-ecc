@@ -1,13 +1,13 @@
-import { NotificationQueueStatus, UserRole } from "@prisma/client";
+import { NotificationQueueStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { getEmailProviderStatus } from "@/lib/email";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    await requirePermission(Permission.NOTIFICATION_OPERATIONS_VIEW);
     const status = request.nextUrl.searchParams.get("status");
     const where = status && Object.values(NotificationQueueStatus).includes(status as NotificationQueueStatus)
       ? { status: status as NotificationQueueStatus }

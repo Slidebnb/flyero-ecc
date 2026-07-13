@@ -1,12 +1,12 @@
-import { ErrorSeverity, ErrorStatus, UserRole } from "@prisma/client";
+import { ErrorSeverity, ErrorStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    await requirePermission(Permission.MONITORING_VIEW);
     const params = request.nextUrl.searchParams;
     const status = params.get("status");
     const severity = params.get("severity");

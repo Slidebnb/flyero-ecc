@@ -41,6 +41,10 @@ export const Permission = {
   PRINT_PARTNER_MANAGE: "print-partner.manage",
   PRINT_ORDER_VIEW: "print-order.view",
   PRINT_ORDER_MANAGE: "print-order.manage",
+  MONITORING_VIEW: "monitoring.view",
+  MONITORING_MANAGE: "monitoring.manage",
+  NOTIFICATION_OPERATIONS_VIEW: "notification-operations.view",
+  NOTIFICATION_OPERATIONS_MANAGE: "notification-operations.manage",
 } as const;
 
 export type Permission = (typeof Permission)[keyof typeof Permission];

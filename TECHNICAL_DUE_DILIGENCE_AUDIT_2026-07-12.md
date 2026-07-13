@@ -790,6 +790,22 @@ direkte Rollenpruefung. Damit ist der Endpunkt an den zentralen Permission-
 Contract und die aktuelle Membership-Pruefung angebunden; der Permission-
 Matrix-Smoke deckt den Detailpfad mit ab.
 
+### Plattformbetrieb: Monitoring und Benachrichtigungs-Queue (13.07.2026)
+
+Monitoring-Fehler, Health-Checks sowie interne Benachrichtigungsnachrichten,
+Queue-Inhalte und Testversand sind globale Plattformdaten und tragen aktuell
+keinen Tenant-Scope. Diese Bereiche sind deshalb jetzt explizit mit
+`monitoring.view`, `monitoring.manage`, `notification-operations.view` und
+`notification-operations.manage` geschützt und nur fuer Plattform-Admins
+freigegeben. Support-/Disposition bleibt fuer kundenbezogene Support- und
+operative Berechtigungen zustaendig, erhält aber keinen globalen Einblick in
+Fehlerpayloads, Empfaengerlisten oder Queue-Aktionen.
+
+Der Contract-Smoke `npm run test:permissions` prueft die Route- und Seitenpfade.
+Eine spaetere Enterprise-Ausbaustufe kann diese Daten bei Bedarf tenantbezogen
+modellieren; bis dahin bleibt die explizite Admin-only-Grenze die sichere
+Betriebsregel.
+
 ### P0 Backup-Scheduler
 
 Der automatische Betriebsweg ist als Repository-Paket vorbereitet:
