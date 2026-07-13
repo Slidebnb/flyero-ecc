@@ -15,7 +15,7 @@ export async function GET(request: Request) {
       distributorId: url.searchParams.get("distributorId"),
       status: url.searchParams.get("status"),
     });
-    await createAuditLog({ userId: session.id, action: "analytics.viewed", entityType: "Analytics", entityId: "revenue", newValues: { filters } });
+    await createAuditLog({ userId: session.id, tenantId: session.tenantId, action: "analytics.viewed", entityType: "Analytics", entityId: "revenue", newValues: { filters } });
     return successResponse(await getRevenueMetrics(filters, { tenantId: session.tenantId }));
   } catch (error) {
     return routeErrorResponse(error);

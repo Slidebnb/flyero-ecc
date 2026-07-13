@@ -3,6 +3,13 @@ import { readFile } from "node:fs/promises";
 
 const documents = await readFile("src/lib/documents.ts", "utf8");
 const photoReview = await readFile("src/app/api/admin/report-photos/[id]/route.ts", "utf8");
+const analyticsRoutes = await Promise.all([
+  "src/app/api/admin/analytics/route.ts",
+  "src/app/api/admin/analytics/distributors/route.ts",
+  "src/app/api/admin/analytics/export/route.ts",
+  "src/app/api/admin/analytics/orders/route.ts",
+  "src/app/api/admin/analytics/revenue/route.ts",
+].map((file) => readFile(file, "utf8")));
 
 for (const action of [
   "document.uploaded",
@@ -23,5 +30,8 @@ for (const action of [
 
 assert.match(photoReview, /tenantWhereForSession\(session\)/, "Foto-Pruefung muss tenant-gescoped bleiben.");
 assert.match(photoReview, /createAuditLog\(\{[\s\S]*tenantId:\s*session\.tenantId/, "Foto-Pruefung muss Tenant-Kontext auditieren.");
+for (const route of analyticsRoutes) {
+  assert.match(route, /tenantId:\s*session\.tenantId/, "Analytics-Audit muss Tenant-Kontext schreiben.");
+}
 
 console.log("Tenant audit context smoke checks passed.");

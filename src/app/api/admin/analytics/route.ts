@@ -22,6 +22,7 @@ export async function GET(request: Request) {
     const data = await getBusinessOverview(filters, { tenantId: session.tenantId });
     await createAuditLog({
       userId: session.id,
+      tenantId: session.tenantId,
       action: "analytics.viewed",
       entityType: "Analytics",
       entityId: "overview",

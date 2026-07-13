@@ -19,6 +19,7 @@ export async function GET(request: Request) {
     const rows = await getAnalyticsExportRows(filters, { tenantId: session.tenantId });
     await createAuditLog({
       userId: session.id,
+      tenantId: session.tenantId,
       action: "analytics.exported",
       entityType: "Analytics",
       entityId: "export",
