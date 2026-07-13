@@ -49,7 +49,11 @@ async function login(email, ip) {
 async function requestJson(path, options = {}) {
   const response = await fetch(`${baseUrl}${path}`, {
     ...options,
-    headers: { "content-type": "application/json", ...(options.headers || {}) },
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": process.env.SMOKE_MAPS_IP || "198.51.100.202",
+      ...(options.headers || {}),
+    },
   });
   const text = await response.text();
   const body = text ? JSON.parse(text) : {};
@@ -144,11 +148,52 @@ try {
   });
   assert.equal(created.data.calculatedNetPrice, "2000", "Neue Order uebernimmt die Admin-Preisregel nicht.");
 
+  const pendingCheckoutOrder = await requestJson("/api/customer/orders", {
+    method: "POST",
+    headers: { cookie: customerCookie },
+    body: JSON.stringify({ ...orderPayload(), completionPath: "direct_payment" }),
+  });
+  const firstCheckout = await requestJson("/api/payments/checkout", {
+    method: "POST",
+    headers: { cookie: customerCookie },
+    body: JSON.stringify({ orderId: pendingCheckoutOrder.data.id }),
+  });
+  assert(firstCheckout.data.checkoutUrl, "Offener Checkout konnte nicht vorbereitet werden.");
+
+  const manualPriceOrder = await requestJson("/api/customer/orders", {
+    method: "POST",
+    headers: { cookie: customerCookie },
+    body: JSON.stringify(orderPayload()),
+  });
+  await requestJson(`/api/admin/orders/${manualPriceOrder.data.id}/price`, {
+    method: "POST",
+    headers: { cookie: adminCookie },
+    body: JSON.stringify({ manualPriceOverride: "1000", note: "Manual pricing propagation smoke." }),
+  });
+  const manualAtChangedVat = await requestJson(`/api/customer/orders/${manualPriceOrder.data.id}`, { headers: { cookie: customerCookie } });
+  assert.equal(manualAtChangedVat.data.calculatedNetPrice, "1000", "Individueller Nettopreis wurde nicht gespeichert.");
+  assert.equal(manualAtChangedVat.data.calculatedGrossPrice, "1070", "Individueller Bruttopreis nutzt die geänderte MwSt. nicht.");
+
   await requestJson("/api/admin/settings/pricing", {
     method: "PATCH",
     headers: { cookie: adminCookie },
     body: JSON.stringify({ rules: originalRules, settings: { vat_rate: originalVatRate } }),
   });
+
+  const refreshedPendingCheckout = await requestJson(`/api/customer/orders/${pendingCheckoutOrder.data.id}`, { headers: { cookie: customerCookie } });
+  assert.equal(refreshedPendingCheckout.data.calculatedNetPrice, "760", "Preisänderung erreicht einen Auftrag mit offenem Checkout nicht.");
+
+  const refreshedManualPrice = await requestJson(`/api/customer/orders/${manualPriceOrder.data.id}`, { headers: { cookie: customerCookie } });
+  assert.equal(refreshedManualPrice.data.calculatedNetPrice, "1000", "Individueller Nettopreis wurde bei der MwSt.-Synchronisierung verändert.");
+  assert.equal(refreshedManualPrice.data.calculatedGrossPrice, "1190", "Individueller Bruttopreis wurde nach der MwSt.-Synchronisierung nicht aktualisiert.");
+
+  const restartedCheckout = await requestJson("/api/payments/checkout", {
+    method: "POST",
+    headers: { cookie: customerCookie },
+    body: JSON.stringify({ orderId: pendingCheckoutOrder.data.id }),
+  });
+  assert(restartedCheckout.data.checkoutUrl, "Checkout konnte nach der Preisaktualisierung nicht neu gestartet werden.");
+  assert.notEqual(restartedCheckout.data.checkoutUrl, firstCheckout.data.checkoutUrl, "Alter Checkout-Link wurde nach Preisänderung wiederverwendet.");
 
   await requestJson("/api/payments/checkout", {
     method: "POST",

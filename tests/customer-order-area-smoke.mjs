@@ -68,7 +68,12 @@ async function login(email) {
 }
 
 async function json(path, { cookie }) {
-  const response = await fetchWithTimeout(`${baseUrl}${path}`, { headers: { cookie } });
+  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+    headers: {
+      cookie,
+      "x-forwarded-for": process.env.SMOKE_MAPS_IP || "198.51.100.201",
+    },
+  });
   const text = await response.text();
   assert(response.status === 200, `GET ${path} lieferte ${response.status}: ${text}`);
   return JSON.parse(text);

@@ -58,7 +58,10 @@ function cookieHeaderFrom(response) {
 async function login(email) {
   const response = await fetchWithTimeout(`${baseUrl}/api/auth/login`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": process.env.SMOKE_MAPS_IP || "198.51.100.204",
+    },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
   assert(response.status === 200, `Login fehlgeschlagen fuer ${email}: ${response.status} ${await response.text()}`);
@@ -66,7 +69,12 @@ async function login(email) {
 }
 
 async function json(path, { cookie = "", expected = [200] } = {}) {
-  const response = await fetchWithTimeout(`${baseUrl}${path}`, { headers: cookie ? { cookie } : undefined });
+  const response = await fetchWithTimeout(`${baseUrl}${path}`, {
+    headers: {
+      "x-forwarded-for": process.env.SMOKE_MAPS_IP || "198.51.100.204",
+      ...(cookie ? { cookie } : {}),
+    },
+  });
   const text = await response.text();
   assert(expected.includes(response.status), `GET ${path} erwartete ${expected.join("/")} bekam ${response.status}: ${text}`);
   return text ? JSON.parse(text) : null;

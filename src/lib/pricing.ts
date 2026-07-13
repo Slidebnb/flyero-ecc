@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { Prisma, ServiceType } from "@prisma/client";
+import Stripe from "stripe";
+import { PaymentStatus, Prisma, ServiceType } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -76,6 +77,34 @@ export type PricingRuleChange = {
   minimumNetPrice: Prisma.Decimal | string | number;
   isActive: boolean;
 };
+
+const OPEN_PRICE_ORDER_STATUSES = [
+  "DRAFT",
+  "PAYMENT_PENDING",
+  "PAYMENT_FAILED",
+  "SUBMITTED",
+  "WAITING_FOR_CUSTOMER",
+] as const;
+
+const SETTLED_PAYMENT_STATUSES = ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"] as const;
+const OPEN_CHECKOUT_PAYMENT_STATUSES: PaymentStatus[] = ["CREATED", "CHECKOUT_CREATED", "PENDING"];
+
+async function expireExternalCheckoutSession(sessionId: string | null) {
+  if (!sessionId || sessionId.startsWith("cs_test_mock_")) return false;
+  const secret = process.env.STRIPE_SECRET_KEY;
+  if (!secret) return false;
+
+  try {
+    const stripe = new Stripe(secret, { apiVersion: "2026-06-24.dahlia" });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.status === "open") await stripe.checkout.sessions.expire(sessionId);
+    return true;
+  } catch {
+    // The local payment state is still invalidated below. Stripe retries or
+    // the next checkout request must never reuse the old amount.
+    return false;
+  }
+}
 
 function decimal(value: Prisma.Decimal | string | number) {
   return value instanceof Prisma.Decimal ? value : new Prisma.Decimal(value);
@@ -199,9 +228,8 @@ export async function validatePricingRuleChanges(changes: PricingRuleChange[]) {
 export async function syncOpenOrderPrices() {
   const orders = await prisma.order.findMany({
     where: {
-      status: { in: ["DRAFT", "PAYMENT_PENDING", "PAYMENT_FAILED", "SUBMITTED", "WAITING_FOR_CUSTOMER"] },
-      manualPriceOverride: null,
-      payments: { none: { status: { in: ["CREATED", "CHECKOUT_CREATED", "PENDING", "PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } } },
+      status: { in: [...OPEN_PRICE_ORDER_STATUSES] },
+      payments: { none: { status: { in: [...SETTLED_PAYMENT_STATUSES] } } },
     },
     select: {
       id: true,
@@ -210,22 +238,51 @@ export async function syncOpenOrderPrices() {
       customerId: true,
       serviceType: true,
       flyerQuantity: true,
+      manualPriceOverride: true,
       calculatedNetPrice: true,
       calculatedVat: true,
       calculatedGrossPrice: true,
       priceRuleSnapshot: true,
       customer: { select: { userId: true } },
+      payments: {
+        where: { status: { in: OPEN_CHECKOUT_PAYMENT_STATUSES } },
+        select: { id: true, status: true, stripeCheckoutSessionId: true },
+      },
     },
   });
 
   let updatedCount = 0;
+  let invalidatedCheckoutCount = 0;
   for (const order of orders) {
-    const price = await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity });
+    const configuredPrice = await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity });
     const existingSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
       ? order.priceRuleSnapshot as Record<string, unknown>
       : {};
+    const manualOverride = order.manualPriceOverride;
+    const manualPrice = manualOverride === null
+      ? null
+      : calculatePriceFromNet(manualOverride as Prisma.Decimal, configuredPrice.snapshot.vatRate);
+    const price = manualPrice
+      ? {
+          ...configuredPrice,
+          net: manualPrice.net,
+          vat: manualPrice.vat,
+          gross: manualPrice.gross,
+          snapshot: {
+            ...configuredPrice.snapshot,
+            manualPriceOverride: (manualOverride as Prisma.Decimal).toString(),
+            manualVatRate: configuredPrice.snapshot.vatRate,
+            manualVat: manualPrice.vat.toString(),
+            manualCalculatedGross: manualPrice.gross.toString(),
+            calculatedNet: manualPrice.net.toString(),
+            calculatedGross: manualPrice.gross.toString(),
+          },
+        }
+      : configuredPrice;
     const amountChanged = !order.calculatedNetPrice.equals(price.net) || !order.calculatedVat.equals(price.vat) || !order.calculatedGrossPrice.equals(price.gross);
-    const snapshotChanged = existingSnapshot.pricingRuleSignature !== price.snapshot.pricingRuleSignature;
+    const snapshotChanged = manualOverride === null
+      ? existingSnapshot.pricingRuleSignature !== price.snapshot.pricingRuleSignature
+      : existingSnapshot.manualVatRate !== configuredPrice.snapshot.vatRate || existingSnapshot.manualCalculatedGross !== manualPrice?.gross.toString();
     if (!amountChanged && !snapshotChanged) continue;
     await prisma.order.update({
       where: { id: order.id },
@@ -240,6 +297,26 @@ export async function syncOpenOrderPrices() {
         } as Prisma.InputJsonValue,
       },
     });
+
+    const invalidatedPayments = [];
+    for (const payment of order.payments) {
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: { status: "CANCELLED", cancelledAt: new Date() },
+      });
+      await prisma.paymentStatusHistory.create({
+        data: {
+          paymentId: payment.id,
+          fromStatus: payment.status,
+          toStatus: "CANCELLED",
+          reason: "Preisregel wurde geändert. Offener Checkout wurde aus Sicherheitsgründen ungültig gemacht.",
+        },
+      });
+      const externalSessionExpired = await expireExternalCheckoutSession(payment.stripeCheckoutSessionId);
+      invalidatedPayments.push({ id: payment.id, externalSessionExpired });
+      invalidatedCheckoutCount += 1;
+    }
+
     await createAuditLog({
       userId: order.customer.userId,
       tenantId: order.tenantId,
@@ -258,25 +335,29 @@ export async function syncOpenOrderPrices() {
         calculatedGrossPrice: price.gross.toString(),
         pricingVersion: price.snapshot.pricingVersion,
         pricingRuleSignature: price.snapshot.pricingRuleSignature,
+        invalidatedPayments,
       },
     });
     await createNotification({
       userId: order.customer.userId,
       type: "ORDER_PRICE_UPDATED",
       title: "Preisvorschau aktualisiert",
-      message: amountChanged
-        ? `Die Preisvorschau fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln neu berechnet.`
-        : `Die Preisgrundlage fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln geprueft.`,
+      message: order.payments.length
+        ? `Die Preisvorschau fuer ${order.orderNumber} wurde aktualisiert. Bitte starte die Zahlung mit dem neuen Betrag erneut.`
+        : amountChanged
+          ? `Die Preisvorschau fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln neu berechnet.`
+          : `Die Preisgrundlage fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln geprueft.`,
       data: {
         orderNumber: order.orderNumber,
         paymentAmount: price.gross.toString(),
         pricingVersion: price.snapshot.pricingVersion,
         pricingRuleSignature: price.snapshot.pricingRuleSignature,
+        paymentInvalidated: order.payments.length > 0 ? "true" : "false",
       },
     });
     updatedCount += 1;
   }
-  return { updatedCount };
+  return { updatedCount, invalidatedCheckoutCount };
 }
 
 export function calculatePremiumDistributionTierNetPrice(flyerQuantity: number) {

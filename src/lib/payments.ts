@@ -326,6 +326,16 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     },
     orderBy: { createdAt: "desc" },
   });
+  if (payment?.status === "CANCELLED") {
+    await createAuditLog({
+      tenantId: payment.tenantId,
+      action: "payment.completed_rejected_cancelled_checkout",
+      entityType: "Payment",
+      entityId: payment.id,
+      newValues: { orderId, sessionId: session.id },
+    });
+    return payment;
+  }
   const order = await prisma.order.findUnique({ where: { id: orderId }, include: { customer: true } });
   if (!order) throw new Error("Auftrag für Zahlung wurde nicht gefunden.");
 
