@@ -10,13 +10,22 @@ export async function GET(_request: Request, { params }: RouteProps) {
   try {
     const session = await requireRole([UserRole.ADMIN, UserRole.CUSTOMER, UserRole.DISTRIBUTOR]);
     const { id } = await params;
-    const tour = await prisma.distributionTour.findUnique({
-      where: { id },
-      include: { order: { include: { customer: true } }, distributor: true, gpsPoints: { orderBy: { recordedAt: "asc" } } },
+    const accessWhere =
+      session.role === UserRole.ADMIN
+        ? { id }
+        : session.role === UserRole.CUSTOMER
+          ? { id, order: { customer: { userId: session.id } } }
+          : { id, distributor: { userId: session.id } };
+    const tour = await prisma.distributionTour.findFirst({
+      where: accessWhere,
+      select: {
+        id: true,
+        totalPauseSeconds: true,
+        order: { select: { targetAreaGeoJson: true } },
+        gpsPoints: { orderBy: { recordedAt: "asc" } },
+      },
     });
     if (!tour) return errorResponse("Tour wurde nicht gefunden.", 404);
-    if (session.role === "CUSTOMER" && tour.order.customer.userId !== session.id) return errorResponse("Nicht erlaubt.", 403);
-    if (session.role === "DISTRIBUTOR" && tour.distributor.userId !== session.id) return errorResponse("Nicht erlaubt.", 403);
     const analysis = analyzeRoute({
       points: tour.gpsPoints.map(normalizeRoutePoint),
       pauseSeconds: tour.totalPauseSeconds,

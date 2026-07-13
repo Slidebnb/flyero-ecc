@@ -80,6 +80,12 @@ Der geschuetzte Foto-Download prueft bei Kunden zusaetzlich Auftragseigentum,
 freigegebene Fotos liefern auch dann `404`, wenn der Kunde die eigene
 Auftrags-ID kennt. Das prueft `npm run test:proof-download-privacy`.
 
+Die Route-Analyse verwendet denselben Grundsatz: Kunden und Verteiler lesen
+nur ihre eigene Tour, Admins die Plattformsicht. Die Query laedt keine
+Kunden-/Verteilerprofile fuer eine nachgelagerte Pruefung und gibt bei fremden
+Tour-IDs `404` zurueck. `npm run test:route-analysis-privacy` prueft eigene
+und fremde Touren.
+
 ## Bewusst offene Punkte
 
 - Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch; die

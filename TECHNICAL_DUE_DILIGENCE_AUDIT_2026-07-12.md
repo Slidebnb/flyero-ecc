@@ -390,6 +390,18 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   rollenbasiert; die vollstaendige Matrix aller internen Proof-Responses
   bleibt offen.
 
+### Route-Analyse-Scope (13.07.2026)
+
+- `/api/tours/[id]/route-analysis` nutzt jetzt eine relationale Query-Grenze:
+  Kunden erhalten nur eigene Touren, Verteiler nur eigene Touren und Admins
+  behalten die Plattformsicht.
+- Die Analyse laedt nur Tour-ID, Pausenwert, Zielgeometrie und GPS-Punkte;
+  komplette Kunden- oder Verteilerprofile werden nicht mehr fuer eine
+  nachgelagerte Autorisierungsentscheidung geladen.
+- Fremde Tour-IDs liefern `404`; `npm run test:route-analysis-privacy` prueft
+  den eigenen und den fremden Kunden-Tourpfad. Eine vollstaendige A/B-Matrix
+  fuer alle weiteren internen Detailrouten bleibt offen.
+
 ### Rechnungs-PDF-Tenant-Scope (13.07.2026)
 
 - Der interne Rechnungs-PDF-Download verlangt jetzt `INVOICE_VIEW`; Admin bleibt global, Support benoetigt eine aktive Unternehmensmitgliedschaft.

@@ -206,6 +206,9 @@ jobs:
       - name: Proof download privacy smoke
         run: npm run test:proof-download-privacy
 
+      - name: Route analysis privacy smoke
+        run: npm run test:route-analysis-privacy
+
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe
 
