@@ -57,7 +57,10 @@ function cookieHeaderFrom(response) {
 async function login(email) {
   const response = await fetchWithTimeout(`${baseUrl}/api/auth/login`, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "x-forwarded-for": process.env.SMOKE_TEST_IP || "198.51.100.31",
+    },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
   assert(response.status === 200, `Login fehlgeschlagen fuer ${email}: ${response.status} ${await response.text()}`);

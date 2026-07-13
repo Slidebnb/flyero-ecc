@@ -5,6 +5,7 @@ import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPre
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_ORDER_STATUS_LABELS, customerAreaName, customerOrderName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
 import { EmptyState, StatusBadge } from "@/app/PortalComponents";
+import { getOrderGrossPrice } from "@/lib/pricing";
 import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
@@ -31,6 +32,7 @@ type DashboardOrder = {
   preferredStartDate: Date;
   calculatedGrossPrice: unknown;
   manualPriceOverride: unknown;
+  priceRuleSnapshot: unknown;
   targetAreaGeoJson: unknown;
   distributionArea: { geoJson: unknown; geometryGeoJson: unknown } | null;
 };
@@ -198,6 +200,7 @@ export default async function CustomerDashboardPage() {
         preferredStartDate: true,
         calculatedGrossPrice: true,
         manualPriceOverride: true,
+        priceRuleSnapshot: true,
         targetAreaGeoJson: true,
         distributionArea: { select: { geoJson: true, geometryGeoJson: true } },
       },
@@ -284,7 +287,7 @@ export default async function CustomerDashboardPage() {
                 <div><dt>Kampagne</dt><dd>{customerOrderName(lastOrder.orderNumber)}</dd></div>
                 <div><dt>Start</dt><dd>{formatDate(lastOrder.preferredStartDate)}</dd></div>
                 <div><dt>Flyer</dt><dd>{formatNumber(lastOrder.flyerQuantity)}</dd></div>
-                <div><dt>Preis</dt><dd>{formatCurrency(lastOrder.manualPriceOverride ?? lastOrder.calculatedGrossPrice)}</dd></div>
+                <div><dt>Preis</dt><dd>{formatCurrency(getOrderGrossPrice(lastOrder))}</dd></div>
               </dl>
               <Link className="customerPanelLink" href={`/customer/orders/${lastOrder.id}`}>Kampagne öffnen<ArrowRight aria-hidden="true" /></Link>
             </>

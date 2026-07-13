@@ -11,6 +11,7 @@ import {
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireTenantSession } from "@/lib/tenant";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getOrderGrossPrice } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 export default async function CustomerOrdersPage() {
@@ -54,7 +55,7 @@ export default async function CustomerOrdersPage() {
                     <span>{customerAreaName(order.targetAreaName)}</span>
                     <span>{formatDate(order.createdAt)}</span>
                     <span>{order.flyerQuantity.toLocaleString("de-DE")} Flyer</span>
-                    <span>{formatCurrency(order.manualPriceOverride ?? order.calculatedGrossPrice)}</span>
+                    <span>{formatCurrency(getOrderGrossPrice(order))}</span>
                   </div>
                 </div>
                 <Link className="primaryButton" href={action.href}>{action.label}</Link>

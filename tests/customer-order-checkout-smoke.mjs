@@ -59,7 +59,7 @@ async function login(email) {
     headers: {
       "content-type": "application/json",
       // Use a TEST-NET address so repeated local smoke runs do not share the developer's auth bucket.
-      "x-forwarded-for": "198.51.100.24",
+      "x-forwarded-for": process.env.SMOKE_TEST_IP || "198.51.100.24",
     },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
@@ -162,6 +162,7 @@ try {
   ]);
 
   const customerCookie = await login("kunde.immobilien@example.com");
+  const adminCookie = await login("admin@example.com");
   const direct = await postJson("/api/customer/orders", orderPayload("Direct", "direct_payment"), customerCookie);
   assert(direct.data.id, "Direktbuchung hat keine Order-ID geliefert.");
   assert(direct.data.status === "PAYMENT_PENDING", `Direktbuchung Status falsch: ${direct.data.status}`);
@@ -175,6 +176,7 @@ try {
   assert(directOrder?.priceRuleSnapshot?.completionPath === "direct_payment", "Abschlussweg direct_payment fehlt.");
   assert(directOrder?.priceRuleSnapshot?.printDataStatus === "UPLOAD_LATER", "Druckdatenstatus fehlt.");
   assert(directOrder?.priceRuleSnapshot?.pricingVersion === "premium-distribution-v4", "Premium Pricing-Version fehlt im Snapshot.");
+  assert(typeof directOrder?.priceRuleSnapshot?.pricingRuleSignature === "string", "Preis-Konfigurationssignatur fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.minimumOrderValueNet === "599", "Mindestauftragswert fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.tier1Rate === "0.38", "Tier 1 Rate fehlt im Snapshot.");
   assert(directOrder?.priceRuleSnapshot?.tier2Rate === "0.34", "Tier 2 Rate fehlt im Snapshot.");
@@ -188,6 +190,17 @@ try {
   const inquiryOrder = await prisma.order.findUnique({ where: { id: inquiry.data.id }, include: { payments: true } });
   assert(inquiryOrder?.payments.length === 0, "Anfrage darf keine Zahlung erzwingen.");
   assert(inquiryOrder?.priceRuleSnapshot?.completionPath === "inquiry", "Abschlussweg inquiry fehlt.");
+
+  const manual = await postJson("/api/customer/orders", orderPayload("Manual", "inquiry"), customerCookie);
+  await postJson(`/api/admin/orders/${manual.data.id}/price`, { manualPriceOverride: "1000", note: "Manual pricing smoke." }, adminCookie);
+  const manualCheckout = await postJson("/api/payments/checkout", { orderId: manual.data.id }, customerCookie);
+  assert(manualCheckout.data.checkoutUrl, "Checkout fuer individuellen Nettopreis fehlt.");
+  const manualOrder = await prisma.order.findUnique({ where: { id: manual.data.id }, include: { payments: true } });
+  assert(manualOrder?.calculatedNetPrice.toString() === "1000", "Individueller Nettopreis wurde nicht gespeichert.");
+  assert(manualOrder?.calculatedVat.toString() === "190", "MwSt. fuer individuellen Nettopreis ist falsch.");
+  assert(manualOrder?.calculatedGrossPrice.toString() === "1190", "Bruttopreis fuer individuellen Nettopreis ist falsch.");
+  assert(manualOrder?.payments[0]?.amount.toString() === "1190", "Checkout darf beim individuellen Nettopreis nicht die Netto-Summe abbuchen.");
+  assert(manualOrder?.priceRuleSnapshot?.manualCalculatedGross === "1190", "Individueller Bruttopreis fehlt im Snapshot.");
 
   const download = await fetchWithTimeout(`${baseUrl}/downloads/flyero-anfrageformular.html`);
   assert(download.status === 200, `Anfrageformular Download liefert ${download.status}`);

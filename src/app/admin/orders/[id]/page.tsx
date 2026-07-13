@@ -12,6 +12,7 @@ import {
 import { getSuitableDistributors } from "@/lib/dispatch";
 import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { getOrderGrossPrice } from "@/lib/pricing";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -92,7 +93,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
       <section className="gridCards">
         <article className="card">
-          <strong>{formatCurrency(order.manualPriceOverride ?? order.calculatedGrossPrice)}</strong>
+          <strong>{formatCurrency(getOrderGrossPrice(order))}</strong>
           <span>Aktueller Preis</span>
         </article>
         <article className="card">

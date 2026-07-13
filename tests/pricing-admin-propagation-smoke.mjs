@@ -129,6 +129,7 @@ try {
   assert.equal(propagated.data.calculatedNetPrice, "2000", "Preisregel-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
   assert.equal(propagated.data.calculatedVat, "140", "MwSt.-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
   assert.equal(propagated.data.calculatedGrossPrice, "2140", "Bruttopreis wurde nach der MwSt.-Aenderung nicht aktualisiert.");
+  assert.equal(typeof propagated.data.priceRuleSnapshot?.pricingRuleSignature, "string", "Preis-Konfigurationssignatur wurde nicht in den Kunden-Snapshot propagiert.");
 
   const intelligence = await requestJson("/api/maps/order-intelligence?city=Koblenz&postalCode=56068&coverageAreaSqm=640000&flyerQuantity=2000", {
     headers: { cookie: customerCookie },

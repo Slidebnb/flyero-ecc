@@ -18,6 +18,7 @@ import {
 } from "@/lib/constants";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { warehouseAddressText } from "@/lib/logistics";
+import { getOrderGrossPrice } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 type PageProps = {
@@ -107,7 +108,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
         </article>
         <article>
           <span>Preis</span>
-          <strong>{formatCurrency(order.manualPriceOverride ?? order.calculatedGrossPrice)}</strong>
+          <strong>{formatCurrency(getOrderGrossPrice(order))}</strong>
         </article>
         <article>
           <span>Flyer</span>

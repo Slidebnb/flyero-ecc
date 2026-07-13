@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Prisma, ServiceType } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
@@ -33,6 +34,7 @@ export type PriceCalculation = {
     vatRate: string;
     ruleId: string | null;
     pricingVersion: string;
+    pricingRuleSignature: string;
     minimumOrderValueNet: string;
     tier1Rate: string;
     tier2Rate: string;
@@ -77,6 +79,34 @@ export type PricingRuleChange = {
 
 function decimal(value: Prisma.Decimal | string | number) {
   return value instanceof Prisma.Decimal ? value : new Prisma.Decimal(value);
+}
+
+export function calculatePriceFromNet(
+  netValue: Prisma.Decimal | string | number,
+  vatRateValue: Prisma.Decimal | string | number,
+) {
+  const net = decimal(netValue).toDecimalPlaces(2);
+  const vat = net.mul(decimal(vatRateValue)).toDecimalPlaces(2);
+  return { net, vat, gross: net.plus(vat).toDecimalPlaces(2) };
+}
+
+export function getOrderGrossPrice(input: {
+  manualPriceOverride: unknown;
+  calculatedGrossPrice: unknown;
+  priceRuleSnapshot?: unknown;
+}) {
+  const calculatedGross = decimal(String(input.calculatedGrossPrice ?? "0"));
+  if (input.manualPriceOverride === null || input.manualPriceOverride === undefined) return calculatedGross;
+  const snapshot = input.priceRuleSnapshot && typeof input.priceRuleSnapshot === "object" && !Array.isArray(input.priceRuleSnapshot)
+    ? input.priceRuleSnapshot as Record<string, unknown>
+    : {};
+  if (typeof snapshot.manualCalculatedGross === "string") return decimal(snapshot.manualCalculatedGross);
+  const vatRate = typeof snapshot.manualVatRate === "string" || typeof snapshot.manualVatRate === "number"
+    ? snapshot.manualVatRate
+    : typeof snapshot.vatRate === "string" || typeof snapshot.vatRate === "number"
+      ? snapshot.vatRate
+      : "0.19";
+  return calculatePriceFromNet(String(input.manualPriceOverride), vatRate).gross;
 }
 
 function activeRuleValidationMessage(rules: PricingRuleChange[]) {
@@ -191,10 +221,12 @@ export async function syncOpenOrderPrices() {
   let updatedCount = 0;
   for (const order of orders) {
     const price = await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity });
-    if (order.calculatedNetPrice.equals(price.net) && order.calculatedVat.equals(price.vat) && order.calculatedGrossPrice.equals(price.gross)) continue;
     const existingSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
       ? order.priceRuleSnapshot as Record<string, unknown>
       : {};
+    const amountChanged = !order.calculatedNetPrice.equals(price.net) || !order.calculatedVat.equals(price.vat) || !order.calculatedGrossPrice.equals(price.gross);
+    const snapshotChanged = existingSnapshot.pricingRuleSignature !== price.snapshot.pricingRuleSignature;
+    if (!amountChanged && !snapshotChanged) continue;
     await prisma.order.update({
       where: { id: order.id },
       data: {
@@ -211,18 +243,36 @@ export async function syncOpenOrderPrices() {
     await createAuditLog({
       userId: order.customer.userId,
       tenantId: order.tenantId,
-      action: "order.price_updated_from_pricing_settings",
+      action: amountChanged ? "order.price_updated_from_pricing_settings" : "order.price_snapshot_updated_from_pricing_settings",
       entityType: "Order",
       entityId: order.id,
-      oldValues: { calculatedNetPrice: order.calculatedNetPrice.toString(), calculatedGrossPrice: order.calculatedGrossPrice.toString() },
-      newValues: { calculatedNetPrice: price.net.toString(), calculatedGrossPrice: price.gross.toString(), pricingVersion: price.snapshot.pricingVersion },
+      oldValues: {
+        calculatedNetPrice: order.calculatedNetPrice.toString(),
+        calculatedVat: order.calculatedVat.toString(),
+        calculatedGrossPrice: order.calculatedGrossPrice.toString(),
+        pricingRuleSignature: existingSnapshot.pricingRuleSignature ?? null,
+      },
+      newValues: {
+        calculatedNetPrice: price.net.toString(),
+        calculatedVat: price.vat.toString(),
+        calculatedGrossPrice: price.gross.toString(),
+        pricingVersion: price.snapshot.pricingVersion,
+        pricingRuleSignature: price.snapshot.pricingRuleSignature,
+      },
     });
     await createNotification({
       userId: order.customer.userId,
       type: "ORDER_PRICE_UPDATED",
       title: "Preisvorschau aktualisiert",
-      message: `Die Preisvorschau fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln neu berechnet.`,
-      data: { orderNumber: order.orderNumber, paymentAmount: price.gross.toString() },
+      message: amountChanged
+        ? `Die Preisvorschau fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln neu berechnet.`
+        : `Die Preisgrundlage fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln geprueft.`,
+      data: {
+        orderNumber: order.orderNumber,
+        paymentAmount: price.gross.toString(),
+        pricingVersion: price.snapshot.pricingVersion,
+        pricingRuleSignature: price.snapshot.pricingRuleSignature,
+      },
     });
     updatedCount += 1;
   }
@@ -334,6 +384,21 @@ export async function calculateOrderPrice(input: {
   const tier1 = rules[0];
   const tier2 = rules[1];
   const tier3 = rules[2];
+  const pricingRuleSignature = createHash("sha256")
+    .update(JSON.stringify({
+      pricingVersion: PREMIUM_PRICING_VERSION,
+      vatRate: vatRate.toString(),
+      rules: rules.map((candidate) => ({
+        id: candidate.id,
+        minQuantity: candidate.minQuantity,
+        maxQuantity: candidate.maxQuantity,
+        pricePerUnit: candidate.pricePerUnit.toString(),
+        basePrice: candidate.basePrice.toString(),
+        minimumNetPrice: candidate.minimumNetPrice.toString(),
+      })),
+    }))
+    .digest("hex")
+    .slice(0, 16);
 
   return {
     net,
@@ -348,6 +413,7 @@ export async function calculateOrderPrice(input: {
       vatRate: vatRate.toString(),
       ruleId: rule?.id ?? null,
       pricingVersion: PREMIUM_PRICING_VERSION,
+      pricingRuleSignature,
       minimumOrderValueNet: minimumNetPrice.toString(),
       tier1Rate: tier1?.pricePerUnit.toString() ?? TIER_1_RATE.toString(),
       tier2Rate: tier2?.pricePerUnit.toString() ?? TIER_2_RATE.toString(),

@@ -55,6 +55,7 @@ async function savePricing(formData: FormData) {
   revalidatePath("/admin/settings/pricing");
   revalidatePath("/customer/orders");
   revalidatePath("/customer/dashboard");
+  revalidatePath("/customer/orders/[id]", "page");
 }
 
 export default async function PricingSettingsPage() {

@@ -5,7 +5,8 @@ import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { classifyStripeDisputeEvent, isRefundBlockedByDispute } from "@/lib/paymentDisputeLogic";
-import { calculateOrderPrice } from "@/lib/pricing";
+import { calculateOrderPrice, calculatePriceFromNet } from "@/lib/pricing";
+import { getVatRate } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 const PROVIDER_CODE = "stripe";
@@ -179,6 +180,9 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
   const currentPrice = order.manualPriceOverride === null
     ? await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity })
     : null;
+  const currentManualPrice = order.manualPriceOverride !== null
+    ? calculatePriceFromNet(order.manualPriceOverride, await getVatRate())
+    : null;
   const pricedOrder = currentPrice
     ? await prisma.order.update({
         where: { id: order.id },
@@ -189,7 +193,21 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
           priceRuleSnapshot: toJson({ ...currentSnapshot, ...currentPrice.snapshot }),
         },
       })
-    : order;
+    : currentManualPrice
+      ? await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            calculatedNetPrice: currentManualPrice.net,
+            calculatedVat: currentManualPrice.vat,
+            calculatedGrossPrice: currentManualPrice.gross,
+            priceRuleSnapshot: toJson({
+              ...currentSnapshot,
+              manualVat: currentManualPrice.vat.toString(),
+              manualCalculatedGross: currentManualPrice.gross.toString(),
+            }),
+          },
+        })
+      : order;
 
   if (currentPrice) {
     await createAuditLog({
@@ -204,7 +222,9 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
   }
 
   const provider = await ensureStripeProvider();
-  const amount = pricedOrder.manualPriceOverride ?? pricedOrder.calculatedGrossPrice;
+  const amount = pricedOrder.manualPriceOverride === null
+    ? pricedOrder.calculatedGrossPrice
+    : calculatePriceFromNet(pricedOrder.manualPriceOverride, await getVatRate()).gross;
   const description = `Flyero Auftrag ${order.orderNumber}`;
   const metadata = {
     orderId: order.id,

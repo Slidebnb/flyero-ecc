@@ -178,12 +178,32 @@ async function calculateSeedPrice(flyerQuantity) {
   const vatRate =
     (await prisma.pricingSetting.findUnique({ where: { key: "vat_rate" } }))
       ?.valueDecimal ?? new Prisma.Decimal("0.19");
+  const activeRules = await prisma.pricingRule.findMany({
+    where: { serviceType: "FLYER_DISTRIBUTION", isActive: true },
+    orderBy: { minQuantity: "asc" },
+    select: { id: true, minQuantity: true, maxQuantity: true, pricePerUnit: true, basePrice: true, minimumNetPrice: true },
+  });
   const basePrice = rule?.basePrice ?? new Prisma.Decimal("0");
   const pricePerUnit = rule?.pricePerUnit ?? new Prisma.Decimal("0.38");
   const minimumNetPrice = rule?.minimumNetPrice ?? new Prisma.Decimal("599");
   const baseDistributionNet = calculatePremiumDistributionTierNetPrice(flyerQuantity);
   const net = calculatePremiumDistributionNetPrice(flyerQuantity);
   const vat = net.mul(vatRate).toDecimalPlaces(2);
+  const pricingRuleSignature = createHash("sha256")
+    .update(JSON.stringify({
+      pricingVersion: "premium-distribution-v4",
+      vatRate: vatRate.toString(),
+      rules: activeRules.map((candidate) => ({
+        id: candidate.id,
+        minQuantity: candidate.minQuantity,
+        maxQuantity: candidate.maxQuantity,
+        pricePerUnit: candidate.pricePerUnit.toString(),
+        basePrice: candidate.basePrice.toString(),
+        minimumNetPrice: candidate.minimumNetPrice.toString(),
+      })),
+    }))
+    .digest("hex")
+    .slice(0, 16);
 
   return {
     net,
@@ -198,6 +218,7 @@ async function calculateSeedPrice(flyerQuantity) {
       vatRate: vatRate.toString(),
       ruleId: rule?.id ?? null,
       pricingVersion: "premium-distribution-v4",
+      pricingRuleSignature,
       minimumOrderValueNet: "599",
       tier1Rate: "0.38",
       tier2Rate: "0.34",

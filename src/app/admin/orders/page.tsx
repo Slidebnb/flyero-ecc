@@ -5,6 +5,7 @@ import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { ADMIN_ORDER_STATUS_OPTIONS, ORDER_STATUS_LABELS } from "@/lib/constants";
 import { formatCurrency, formatDate } from "@/lib/format";
+import { getOrderGrossPrice } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 type PageProps = {
@@ -88,7 +89,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                   <td><StatusBadge>{ORDER_STATUS_LABELS[order.status]}</StatusBadge></td>
                   <td>{order.city}</td>
                   <td>{formatDate(order.createdAt)}</td>
-                  <td>{formatCurrency(order.manualPriceOverride ?? order.calculatedGrossPrice)}</td>
+                  <td>{formatCurrency(getOrderGrossPrice(order))}</td>
                   <td>
                     <Link className="textLink" href={`/admin/orders/${order.id}`}>
                       Öffnen
