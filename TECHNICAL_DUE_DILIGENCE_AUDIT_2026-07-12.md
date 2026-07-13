@@ -417,6 +417,16 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - `npm run test:logistics-tenant-scope` prueft die API- und Seitenpfade gegen
   Rueckfaelle.
 
+### Support-Tenant-Scope (13.07.2026)
+
+- Support-Dispatcher werden bei Support-Tickets nicht mehr als globaler
+  Support-Admin behandelt. Listen, Details, Nachrichten und Statusaenderungen
+  verwenden serverseitig den aktiven Mandanten.
+- Beim Anlegen eines Tickets werden Kunden- und Auftragsbezug auf den
+  Supportmandanten geprueft; fremde oder nicht vorhandene Bezüge werden
+  abgelehnt. Plattform-Admins behalten den globalen Zugriff.
+- `npm run test:support-permission` prueft die Permission- und Scope-Regeln.
+
 ### Public Health Fail-safe (13.07.2026)
 
 - `GET /api/health` bleibt minimal und liefert bei einer nicht erreichbaren

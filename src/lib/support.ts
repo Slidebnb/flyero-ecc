@@ -77,6 +77,10 @@ export function isSupportAdmin(actor: SessionUser) {
   return adminRoles.includes(actor.role);
 }
 
+export function isGlobalSupportAdmin(actor: SessionUser) {
+  return actor.role === UserRole.ADMIN;
+}
+
 function ticketInclude(publicOnly: boolean) {
   return {
     customer: { include: { user: { select: { email: true } } } },
@@ -182,7 +186,11 @@ async function assertDistributorLinks(distributorId: string | null, data: z.infe
 }
 
 function scopeWhere(actor: SessionUser): Prisma.SupportTicketWhereInput {
-  if (isSupportAdmin(actor)) return {};
+  if (isGlobalSupportAdmin(actor)) return {};
+  if (actor.role === UserRole.SUPPORT_DISPATCHER) {
+    if (!actor.tenantId) throw new AuthError("Dein Supportkonto ist keinem Unternehmen zugeordnet.", 403);
+    return { tenantId: actor.tenantId };
+  }
   if (actor.role === UserRole.CUSTOMER) {
     if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
     return { tenantId: actor.tenantId, customer: { userId: actor.id, tenantId: actor.tenantId } };
@@ -248,6 +256,15 @@ export async function createTicket(actor: SessionUser, input: unknown) {
   const linkedOrder = data.orderId
     ? await prisma.order.findUnique({ where: { id: data.orderId }, select: { tenantId: true } })
     : null;
+  if (customerId && !customerTenant) throw new AuthError("Kundenbezug wurde nicht gefunden.", 404);
+  if (data.orderId && !linkedOrder) throw new AuthError("Auftragsbezug wurde nicht gefunden.", 404);
+  if (actor.role === UserRole.SUPPORT_DISPATCHER) {
+    if (!actor.tenantId) throw new AuthError("Dein Supportkonto ist keinem Unternehmen zugeordnet.", 403);
+    const linkedTenants = [customerTenant?.tenantId, linkedOrder?.tenantId].filter(Boolean);
+    if (linkedTenants.some((linkedTenantId) => linkedTenantId !== actor.tenantId)) {
+      throw new AuthError("Der Bezug gehoert nicht zu deinem Supportmandanten.", 403);
+    }
+  }
   const tenantId = actor.role === UserRole.CUSTOMER ? actor.tenantId : customerTenant?.tenantId ?? linkedOrder?.tenantId ?? null;
 
   let ticket: Awaited<ReturnType<typeof prisma.supportTicket.create>> | null = null;
@@ -324,7 +341,7 @@ async function notifyTicketOwner(ticketId: string, type: string, title: string, 
 export async function updateTicket(actor: SessionUser, id: string, input: unknown) {
   if (!isSupportAdmin(actor)) throw new AuthError("Nur Admin/Support darf Tickets bearbeiten.", 403);
   const data = ticketUpdateSchema.parse(input);
-  const current = await prisma.supportTicket.findUnique({ where: { id } });
+  const current = await prisma.supportTicket.findFirst({ where: { id, ...scopeWhere(actor) } });
   if (!current) throw new AuthError("Ticket wurde nicht gefunden.", 404);
 
   const updated = await prisma.supportTicket.update({

@@ -98,6 +98,10 @@ Support-/Dispatcher-Logistikseiten verwenden dieselbe Mandantengrenze wie die
 APIs: Sendungen, Auftragseingaben und Lagerdetail-Bestände werden auf die
 aktive `tenantId` beschränkt. Nur Admin darf die Plattformdaten global sehen.
 
+Support-Tickets sind ebenfalls tenantbezogen: Support-Dispatcher erhalten nur
+Tickets ihres aktiven Mandanten und dürfen keine fremden Kunden-/Auftragsbezüge
+anlegen oder ändern. Nur Plattform-Admins haben globale Ticket-Sicht.
+
 Die Route-Analyse verwendet denselben Grundsatz: Kunden und Verteiler lesen
 nur ihre eigene Tour, Admins die Plattformsicht. Die Query laedt keine
 Kunden-/Verteilerprofile fuer eine nachgelagerte Pruefung und gibt bei fremden

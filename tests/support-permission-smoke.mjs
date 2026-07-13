@@ -9,6 +9,7 @@ const [permissions, matrix, listRoute, detailRoute, messageRoute, closeRoute] = 
   readFile("src/app/api/admin/support/tickets/[id]/message/route.ts", "utf8"),
   readFile("src/app/api/admin/support/tickets/[id]/close/route.ts", "utf8"),
 ]);
+const support = await readFile("src/lib/support.ts", "utf8");
 
 assert.match(permissions, /SUPPORT_TICKET_VIEW:/, "Support-Lesepermission fehlt.");
 assert.match(permissions, /SUPPORT_TICKET_MANAGE:/, "Support-Mutationspermission fehlt.");
@@ -20,5 +21,10 @@ assert.match(detailRoute, /requirePermission\(Permission\.SUPPORT_TICKET_VIEW\)/
 assert.match(detailRoute, /requirePermission\(Permission\.SUPPORT_TICKET_MANAGE\)/);
 assert.match(messageRoute, /requirePermission\(Permission\.SUPPORT_TICKET_MANAGE\)/);
 assert.match(closeRoute, /requirePermission\(Permission\.SUPPORT_TICKET_MANAGE\)/);
+assert.match(support, /isGlobalSupportAdmin/);
+assert.match(support, /actor\.role === UserRole\.SUPPORT_DISPATCHER/);
+assert.match(support, /return \{ tenantId: actor\.tenantId \}/);
+assert.match(support, /findFirst\(\{ where: \{ id, \.\.\.scopeWhere\(actor\) \} \}\)/);
+assert.match(support, /Der Bezug gehoert nicht zu deinem Supportmandanten/);
 
 console.log("Support permission smoke checks passed.");
