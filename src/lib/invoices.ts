@@ -5,6 +5,7 @@ import { formatAddress, formatDate, formatDateTime } from "@/lib/format";
 import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { getVatRate } from "@/lib/pricing";
 import { generateSettingsNumber, getBrandingSettings, getCompanySettings, getSystemSettings } from "@/lib/settings";
 
 function pad(value: number, length = 6) {
@@ -128,7 +129,19 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
 
   const system = await getSystemSettings();
   const subtotalNet = order.manualPriceOverride ?? order.calculatedNetPrice;
-  const vatAmount = subtotalNet.mul(system.defaultVatRate).toDecimalPlaces(2);
+  const snapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
+    ? order.priceRuleSnapshot as Record<string, unknown>
+    : {};
+  const storedVatRate = typeof snapshot.vatRate === "string" || typeof snapshot.vatRate === "number"
+    ? new Prisma.Decimal(String(snapshot.vatRate))
+    : null;
+  const usesStoredOrderPrice = order.manualPriceOverride === null && order.calculatedNetPrice.equals(subtotalNet);
+  const vatRate = order.manualPriceOverride === null
+    ? storedVatRate ?? (subtotalNet.gt(0) ? order.calculatedVat.div(subtotalNet).toDecimalPlaces(6) : await getVatRate())
+    : await getVatRate();
+  const vatAmount = usesStoredOrderPrice
+    ? order.calculatedVat
+    : subtotalNet.mul(vatRate).toDecimalPlaces(2);
   const totalGross = subtotalNet.plus(vatAmount).toDecimalPlaces(2);
   const now = new Date();
   let invoice: Awaited<ReturnType<typeof prisma.invoice.create>> | null = null;
@@ -150,7 +163,7 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
             dueDate: new Date(now.getTime() + system.paymentDueDays * 24 * 60 * 60 * 1000),
             paidAt: payment.paidAt ?? now,
             subtotalNet,
-            vatRate: system.defaultVatRate,
+            vatRate,
             vatAmount,
             totalGross,
             amountNet: subtotalNet,
@@ -163,7 +176,7 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
                 quantity: new Prisma.Decimal(order.flyerQuantity),
                 unit: "Flyer",
                 unitPriceNet: subtotalNet.div(order.flyerQuantity).toDecimalPlaces(4),
-                vatRate: system.defaultVatRate,
+                vatRate,
                 lineTotalNet: subtotalNet,
               },
             },

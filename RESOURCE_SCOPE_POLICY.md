@@ -106,6 +106,10 @@ Druckaufträge verwenden dieselbe Trennung: Listen und Änderungen eines
 Support-Dispatchers sind auf `tenantId` begrenzt; Plattform-Admins bleiben
 global berechtigt.
 
+Die Admin-Reportdetailseite verwendet dieselbe Tenant-/Permission-Policy wie die
+Report-APIs; Support kann fremde Reports nicht per ID laden und sieht keine
+unzulässigen Publish-/Archive-Aktionen.
+
 Die Route-Analyse verwendet denselben Grundsatz: Kunden und Verteiler lesen
 nur ihre eigene Tour, Admins die Plattformsicht. Die Query laedt keine
 Kunden-/Verteilerprofile fuer eine nachgelagerte Pruefung und gibt bei fremden

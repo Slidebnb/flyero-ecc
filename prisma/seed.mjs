@@ -917,7 +917,7 @@ for (const item of module23WarehouseSeed) {
 
 await prisma.user.updateMany({
   where: { email: "warehouse@example.com" },
-  data: { warehouseId: warehouse.id },
+  data: { warehouseId: (await prisma.warehouse.findUnique({ where: { id: "demo-logistik-koblenz" }, select: { id: true } }))?.id ?? warehouse.id },
 });
 
 const customers = await prisma.customerProfile.findMany({

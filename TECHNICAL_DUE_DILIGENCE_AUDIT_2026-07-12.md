@@ -702,6 +702,20 @@ Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `F
   signaturgeprueften Rohbody-Pfad.
 - Bodylose Cookie-Mutationen und externe Integrationsvertraege benoetigen
   weiterhin eine separate CSRF-/Origin-Abnahme.
+- Rechnungen verwenden bei normal bepreisten Auftraegen den Preis- und MwSt.-Snapshot
+  aus Order/Checkout statt eine abweichende globale MwSt. neu zu berechnen. Damit
+  bleiben Kundenportal, Zahlungsbetrag und Rechnung auf demselben Stand. Das
+  Kunden-Dashboard verwendet ausserdem denselben effektiven Preis wie die
+  Auftragsdetailseite, einschliesslich eines dokumentierten manuellen Overrides.
+
+### Admin-Reportdetail-Tenant-Scope (13.07.2026)
+
+- Die serverseitige Admin-Reportdetailseite verwendet jetzt `REPORT_REVIEW`
+  zusammen mit `tenantWhereForSession`.
+- Support sieht keinen fremden Bericht mehr per erratbarer ID; Veröffentlichungs-
+  und Archivierungsaktionen werden ohne `REPORT_PUBLISH` nicht angeboten.
+- `npm run test:report-evidence-tenant-scope` schützt den Seitenpfad neben den
+  bereits geschützten Report-APIs.
 
 ### Aktueller Upload-Scan-Stand
 

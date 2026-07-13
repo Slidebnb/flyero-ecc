@@ -95,12 +95,14 @@ function orderPayload() {
 await waitForServer();
 let adminCookie = "";
 let originalRules = [];
+let originalVatRate = "0.19";
 try {
   adminCookie = await login("admin@example.com", "198.51.100.88");
   const customerCookie = await login("kunde.immobilien@example.com", "198.51.100.89");
 
   const initial = await requestJson("/api/admin/settings/pricing", { headers: { cookie: adminCookie } });
   originalRules = initial.data.rules.filter((rule) => rule.serviceType === "FLYER_DISTRIBUTION" && rule.isActive);
+  originalVatRate = initial.data.settings.find((setting) => setting.key === "vat_rate")?.valueDecimal ?? "0.19";
   assert.equal(originalRules.length, 3, "Drei Flyerverteilungsregeln fehlen.");
 
   const existingOrder = await requestJson("/api/customer/orders", {
@@ -120,16 +122,19 @@ try {
   await requestJson("/api/admin/settings/pricing", {
     method: "PATCH",
     headers: { cookie: adminCookie },
-    body: JSON.stringify({ rules: modifiedRules }),
+    body: JSON.stringify({ rules: modifiedRules, settings: { vat_rate: "0.07" } }),
   });
 
   const propagated = await requestJson(`/api/customer/orders/${existingOrder.data.id}`, { headers: { cookie: customerCookie } });
   assert.equal(propagated.data.calculatedNetPrice, "2000", "Preisregel-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
+  assert.equal(propagated.data.calculatedVat, "140", "MwSt.-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
+  assert.equal(propagated.data.calculatedGrossPrice, "2140", "Bruttopreis wurde nach der MwSt.-Aenderung nicht aktualisiert.");
 
   const intelligence = await requestJson("/api/maps/order-intelligence?city=Koblenz&postalCode=56068&coverageAreaSqm=640000&flyerQuantity=2000", {
     headers: { cookie: customerCookie },
   });
   assert.equal(intelligence.data.metrics.netPrice, "2000", "Kunden-Wizard verwendet die geaenderte Admin-Preisregel nicht.");
+  assert.equal(intelligence.data.metrics.grossPrice, "2140", "Kunden-Wizard verwendet den geaenderten Bruttopreis nicht.");
 
   const created = await requestJson("/api/customer/orders", {
     method: "POST",
@@ -141,7 +146,7 @@ try {
   await requestJson("/api/admin/settings/pricing", {
     method: "PATCH",
     headers: { cookie: adminCookie },
-    body: JSON.stringify({ rules: originalRules }),
+    body: JSON.stringify({ rules: originalRules, settings: { vat_rate: originalVatRate } }),
   });
 
   await requestJson("/api/payments/checkout", {
@@ -157,7 +162,7 @@ try {
     await requestJson("/api/admin/settings/pricing", {
       method: "PATCH",
       headers: { cookie: adminCookie },
-      body: JSON.stringify({ rules: originalRules }),
+      body: JSON.stringify({ rules: originalRules, settings: { vat_rate: originalVatRate } }),
     }).catch(() => {});
   }
   if (child) child.kill();

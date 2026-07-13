@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { revalidatePath } from "next/cache";
 import { Prisma, ServiceType } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
@@ -75,6 +76,10 @@ export async function PATCH(request: NextRequest) {
     const propagated = await syncOpenOrderPrices();
     await createAuditLog({ userId: session.id, action: "settings.pricing_updated", entityType: "Pricing", entityId: "pricing", oldValues: before, newValues: after });
     await notifyAdmins({ type: "PRICING_CHANGED", title: "Preisregel geaendert", message: "Preisregeln wurden aktualisiert." });
+    revalidatePath("/admin/settings/pricing");
+    revalidatePath("/customer/dashboard");
+    revalidatePath("/customer/orders");
+    revalidatePath("/customer/orders/[id]", "page");
     return successResponse({ ...after, propagatedOpenOrders: propagated.updatedCount });
   } catch (error) {
     return routeErrorResponse(error);

@@ -18,6 +18,7 @@ Lager
 -----
 E-Mail: warehouse@example.com
 Rolle: WAREHOUSE_STAFF
+Lagerzuordnung: FLYERO Lager Koblenz (KOB-M23)
 Bereiche: Lager-Dashboard, Wareneingang, Lagerbestand, Lagerplaetze.
 Start: /warehouse/dashboard
 

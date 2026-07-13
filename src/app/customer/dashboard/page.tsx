@@ -30,6 +30,7 @@ type DashboardOrder = {
   status: OrderStatus;
   preferredStartDate: Date;
   calculatedGrossPrice: unknown;
+  manualPriceOverride: unknown;
   targetAreaGeoJson: unknown;
   distributionArea: { geoJson: unknown; geometryGeoJson: unknown } | null;
 };
@@ -196,6 +197,7 @@ export default async function CustomerDashboardPage() {
         status: true,
         preferredStartDate: true,
         calculatedGrossPrice: true,
+        manualPriceOverride: true,
         targetAreaGeoJson: true,
         distributionArea: { select: { geoJson: true, geometryGeoJson: true } },
       },
@@ -282,7 +284,7 @@ export default async function CustomerDashboardPage() {
                 <div><dt>Kampagne</dt><dd>{customerOrderName(lastOrder.orderNumber)}</dd></div>
                 <div><dt>Start</dt><dd>{formatDate(lastOrder.preferredStartDate)}</dd></div>
                 <div><dt>Flyer</dt><dd>{formatNumber(lastOrder.flyerQuantity)}</dd></div>
-                <div><dt>Preis</dt><dd>{formatCurrency(lastOrder.calculatedGrossPrice)}</dd></div>
+                <div><dt>Preis</dt><dd>{formatCurrency(lastOrder.manualPriceOverride ?? lastOrder.calculatedGrossPrice)}</dd></div>
               </dl>
               <Link className="customerPanelLink" href={`/customer/orders/${lastOrder.id}`}>Kampagne öffnen<ArrowRight aria-hidden="true" /></Link>
             </>

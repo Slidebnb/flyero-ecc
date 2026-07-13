@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [reportDownload, photoReview, photoScan, archive, evidenceUpload, evidencePrepare, evidenceService, regenerate, correction, generateFromTour] = await Promise.all([
+const [reportDownload, photoReview, photoScan, archive, evidenceUpload, evidencePrepare, evidenceService, regenerate, correction, generateFromTour, reportDetailPage] = await Promise.all([
   readFile("src/app/api/admin/reports/[id]/download/route.ts", "utf8"),
   readFile("src/app/api/admin/report-photos/[id]/route.ts", "utf8"),
   readFile("src/app/api/admin/report-photos/[id]/scan/route.ts", "utf8"),
@@ -12,6 +12,7 @@ const [reportDownload, photoReview, photoScan, archive, evidenceUpload, evidence
   readFile("src/app/api/admin/reports/[id]/regenerate/route.ts", "utf8"),
   readFile("src/app/api/admin/reports/[id]/request-correction/route.ts", "utf8"),
   readFile("src/app/api/admin/tours/[id]/generate-report/route.ts", "utf8"),
+  readFile("src/app/admin/reports/[id]/page.tsx", "utf8"),
 ]);
 
 assert.match(reportDownload, /requirePermission\(Permission\.REPORT_REVIEW\)/);
@@ -40,5 +41,9 @@ for (const route of [regenerate, correction]) {
 assert.match(generateFromTour, /requirePermission\(Permission\.REPORT_REVIEW\)/);
 assert.match(generateFromTour, /tenantWhereForSession/);
 assert.match(generateFromTour, /findFirst\(/);
+assert.match(reportDetailPage, /requirePermission\(Permission\.REPORT_REVIEW\)/);
+assert.match(reportDetailPage, /tenantWhereForSession/);
+assert.match(reportDetailPage, /findFirst\(/);
+assert.match(reportDetailPage, /hasPermission\(session, Permission\.REPORT_PUBLISH\)/);
 
 console.log("Report evidence tenant-scope smoke checks passed.");

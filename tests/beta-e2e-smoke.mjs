@@ -103,10 +103,10 @@ async function jsonRequest(path, { method = "GET", cookie = "", body, expected =
   return text ? JSON.parse(text) : null;
 }
 
-async function login(email) {
+async function login(email, ip) {
   const response = await fetchOk("/api/auth/login", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: { "content-type": "application/json", "x-forwarded-for": ip },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
   assert(response.status === 200, `Login fehlgeschlagen fuer ${email}: ${response.status} ${await response.text()}`);
@@ -126,6 +126,9 @@ async function pageOk(path, cookie, label) {
 async function main() {
   const server = await ensureServer();
   try {
+    if (process.env.BETA_RESET_RATE_LIMITS !== "false") {
+      await prisma.authRateLimitBucket.deleteMany({});
+    }
     const unique = Date.now();
     const email = `beta.customer.${unique}@example.com`;
 
@@ -151,11 +154,11 @@ async function main() {
       body: { token: register.data.verificationToken },
     });
 
-    const customerCookie = await login(email);
-    const adminCookie = await login("admin@example.com");
-    const warehouseCookie = await login("warehouse@example.com");
-    const distributorCookie = await login("verteiler.approved1@example.com");
-    const pendingDistributorCookie = await login("verteiler.pending1@example.com");
+    const customerCookie = await login(email, "198.51.100.201");
+    const adminCookie = await login("admin@example.com", "198.51.100.202");
+    const warehouseCookie = await login("warehouse@example.com", "198.51.100.203");
+    const distributorCookie = await login("verteiler.approved1@example.com", "198.51.100.204");
+    const pendingDistributorCookie = await login("verteiler.pending1@example.com", "198.51.100.205");
 
     await pageOk("/login", "", "Login-Seite");
     await pageOk("/customer/dashboard", customerCookie, "Customer Dashboard");
@@ -233,6 +236,11 @@ async function main() {
     });
     const invoice = await prisma.invoice.findUnique({ where: { orderId } });
     assert(invoice, "Rechnung wurde nach Admin-Genehmigung nicht erzeugt.");
+    const pricedOrder = await prisma.order.findUnique({ where: { id: orderId } });
+    assert(pricedOrder, "Bestellung fuer Rechnungspruefung fehlt.");
+    const expectedNet = pricedOrder.manualPriceOverride ?? pricedOrder.calculatedNetPrice;
+    assert(invoice.subtotalNet.equals(expectedNet), "Rechnung verwendet nicht den gleichen Nettopreis wie der Auftrag.");
+    assert(pricedOrder.manualPriceOverride !== null || invoice.totalGross.equals(pricedOrder.calculatedGrossPrice), "Rechnung und gespeicherter Auftragspreis laufen auseinander.");
 
     const warehouseUser = await prisma.user.findUnique({
       where: { email: "warehouse@example.com" },
@@ -306,7 +314,7 @@ async function main() {
       method: "POST",
       cookie: distributorCookie,
       body: {
-        imageDataUrl: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NDAiIGhlaWdodD0iNDgwIj48cmVjdCB3aWR0aD0iNjQwIiBoZWlnaHQ9IjQ4MCIgZmlsbD0iIzBlMTUyNSIvPjx0ZXh0IHg9IjMyMCIgeT0iMjQwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjZjhmYWZjIiBmb250LXNpemU9IjI4IiBmb250LWZhbWlseT0iQXJpYWwiPkJldGEtU21va2UtRm90bzwvdGV4dD48L3N2Zz4=",
+        imageDataUrl: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
         lat: 50.358,
         lng: 7.5901,
         accuracy: 20,

@@ -12,6 +12,7 @@ export async function GET() {
       where: shipmentScopeForUser(session),
       select: {
         id: true,
+        warehouseId: true,
         shipmentType: true,
         status: true,
         trackingNumber: true,

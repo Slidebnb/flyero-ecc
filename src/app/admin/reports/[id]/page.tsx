@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { UserRole } from "@prisma/client";
 import { RouteMap } from "@/app/components/RouteMap";
-import { requireRole } from "@/lib/auth";
+import { requirePermission, hasPermission, Permission } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/format";
 import { collectReportData } from "@/lib/reports";
 import { prisma } from "@/lib/prisma";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminReportDetailPage({ params }: PageProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.REPORT_REVIEW);
+  const canPublish = hasPermission(session, Permission.REPORT_PUBLISH);
   const { id } = await params;
-  const report = await prisma.report.findUnique({
-    where: { id },
+  const report = await prisma.report.findFirst({
+    where: { id, ...tenantWhereForSession(session) },
     include: { order: { include: { customer: true } }, tour: true, approver: true },
   });
   if (!report) notFound();
@@ -38,9 +39,9 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
         <div className="actions">
           <form action={`/api/admin/reports/${report.id}/regenerate`} method="post"><button type="submit">Bericht neu generieren</button></form>
           <form action={`/api/admin/reports/${report.id}/approve`} method="post"><button type="submit">Intern freigeben</button></form>
-          <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veröffentlichen</button></form>
+          {canPublish ? <form action={`/api/admin/reports/${report.id}/publish`} method="post"><button type="submit">Bericht veröffentlichen</button></form> : null}
           <form action={`/api/admin/reports/${report.id}/request-correction`} method="post"><button type="submit">Korrektur anfordern</button></form>
-          <form action={`/api/admin/reports/${report.id}/archive`} method="post"><button type="submit">Bericht archivieren</button></form>
+          {canPublish ? <form action={`/api/admin/reports/${report.id}/archive`} method="post"><button type="submit">Bericht archivieren</button></form> : null}
           {report.pdfUrl ? <a href={`/api/admin/reports/${report.id}/download`}>PDF ansehen</a> : null}
         </div>
       </section>
