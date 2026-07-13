@@ -197,6 +197,9 @@ jobs:
       - name: Tenant audit context smoke
         run: npm run test:tenant-audit-context
 
+      - name: Operational documentation smoke
+        run: npm run test:operational-docs
+
       - name: Backup scheduler smoke
         run: npm run test:backup-scheduler
 

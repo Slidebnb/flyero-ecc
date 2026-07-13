@@ -72,6 +72,7 @@
     "test:storage-layout": "node tests/storage-layout-smoke.mjs",
     "test:document-review-tenant-scope": "node tests/document-review-tenant-scope-smoke.mjs",
     "test:tenant-audit-context": "node tests/tenant-audit-context-smoke.mjs",
+    "test:operational-docs": "node tests/operational-docs-smoke.mjs",
     "test:analytics-tenant-scope": "node tests/analytics-tenant-scope-smoke.mjs",
     "test:dispatch-tenant-scope": "node tests/dispatch-tenant-scope-smoke.mjs",
     "test:logistics-tenant-scope": "node tests/logistics-tenant-scope-smoke.mjs",
