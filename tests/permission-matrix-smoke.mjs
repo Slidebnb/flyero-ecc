@@ -83,6 +83,8 @@ for (const permission of [
   "INVOICE_VIEW",
   "WAREHOUSE_MANAGE",
   "WAREHOUSE_VIEW",
+  "WAREHOUSE_OPERATIONS_VIEW",
+  "WAREHOUSE_OPERATIONS_MANAGE",
 ]) {
   assert.match(permissions, new RegExp(`${permission}:`), `Permission ${permission} fehlt.`);
 }
