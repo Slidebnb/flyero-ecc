@@ -474,7 +474,8 @@ export async function getDocumentDownload(actor: SessionUser, id: string, versio
 }
 
 function printScope(actor: SessionUser) {
-  if (isAdmin(actor)) return {};
+  if (isPlatformAdmin(actor)) return {};
+  if (actor.role === UserRole.SUPPORT_DISPATCHER) return tenantWhereForSession(actor);
   if (actor.role === UserRole.CUSTOMER) {
     if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
     return { customer: { userId: actor.id }, tenantId: actor.tenantId };
@@ -584,7 +585,7 @@ async function ensureWarehouseInventoryForPrint(printOrderId: string, actor: Ses
 export async function updatePrintOrder(actor: SessionUser, id: string, input: unknown) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Druckaufträge bearbeiten.", 403);
   const data = printOrderUpdateSchema.parse(input);
-  const current = await prisma.printOrder.findUnique({ where: { id }, include: { customer: true, order: true } });
+  const current = await prisma.printOrder.findFirst({ where: { id, ...printScope(actor) }, include: { customer: true, order: true } });
   if (!current) throw new AuthError("Druckauftrag wurde nicht gefunden.", 404);
 
   let warehouseInventoryId = current.warehouseInventoryId;

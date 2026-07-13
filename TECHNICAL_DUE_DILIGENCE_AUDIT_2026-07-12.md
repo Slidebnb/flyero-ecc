@@ -427,6 +427,14 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   abgelehnt. Plattform-Admins behalten den globalen Zugriff.
 - `npm run test:support-permission` prueft die Permission- und Scope-Regeln.
 
+### Druckauftrags-Tenant-Scope (13.07.2026)
+
+- Druckauftragslisten und Statusaenderungen unterscheiden jetzt zwischen dem
+  globalen Plattform-Admin und dem tenantgebundenen Support-Dispatcher.
+- Ein Support-Dispatcher kann einen fremden Druckauftrag auch bei bekannter ID
+  nicht mehr lesen oder aktualisieren. `npm run test:print-order-tenant-scope`
+  schuetzt die Policy im zentralen Dokument-/Druckservice.
+
 ### Public Health Fail-safe (13.07.2026)
 
 - `GET /api/health` bleibt minimal und liefert bei einer nicht erreichbaren

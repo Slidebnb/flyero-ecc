@@ -208,6 +208,8 @@ jobs:
         run: npm run test:health-failsafe
       - name: Payment production guard smoke
         run: npm run test:payment-production-guard
+      - name: Print order tenant scope smoke
+        run: npm run test:print-order-tenant-scope
 
       - name: Support permission smoke
         run: npm run test:support-permission
