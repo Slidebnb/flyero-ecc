@@ -112,6 +112,22 @@ try {
   originalVatRate = initial.data.settings.find((setting) => setting.key === "vat_rate")?.valueDecimal ?? "0.19";
   assert.equal(originalRules.length, 3, "Drei Flyerverteilungsregeln fehlen.");
 
+  const incompletePricingResponse = await fetch(`${baseUrl}/api/admin/settings/pricing`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      cookie: adminCookie,
+      "x-forwarded-for": adminIp,
+    },
+    body: JSON.stringify({
+      rules: originalRules.map((rule) => ({
+        ...rule,
+        isActive: rule.minQuantity !== 10001,
+      })),
+    }),
+  });
+  assert.equal(incompletePricingResponse.status, 422, "Die letzte Flyer-Staffel darf nicht deaktiviert werden.");
+
   const existingOrder = await requestJson("/api/customer/orders", {
     method: "POST",
     headers: { cookie: customerCookie },

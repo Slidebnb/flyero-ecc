@@ -1103,3 +1103,15 @@ Detailantworten weiter. Der Privacy-Contract umfasst diese Services nun mit.
 
 - `/preise` liest die aktiven Flyer-Verteilungsregeln jetzt aus `getPricingSettings()` und wird dynamisch gerendert. Dadurch koennen alte Staffeltexte nicht neben einer neuen Admin-Preisregel stehen.
 - Der Pricing-Propagation-Smoke prueft jetzt ausser der Kundenorder, Karte, Benachrichtigung und Checkout auch die oeffentliche Preisseite.
+
+### P1 Support-Scope fuer Foto-Nachweise (13.07.2026)
+
+- Der geschuetzte Foto-Endpunkt `/api/proofs/[id]` behandelte Support zuvor wie
+  einen globalen Admin und konnte dadurch einen Foto-Nachweis allein anhand
+  seiner ID tenantuebergreifend lesen.
+- Support wird jetzt vor dem Lesen gegen die aktive Tenant-Membership geprueft
+  und der Fotozugriff auf die Tenant-ID des verknuepften Auftrags begrenzt.
+  Plattform-Admins bleiben bewusst global; Kunden und Verteiler behalten ihre
+  bestehenden Eigentums-/Freigabepruefungen.
+- `npm run test:proof-download-privacy` schuetzt den Scope-Contract zusammen
+  mit der Customer-Freigabe gegen Rueckfaelle.

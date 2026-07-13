@@ -1,9 +1,10 @@
 import { ReviewStatus, UserRole } from "@prisma/client";
-import { requireSession } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { privateDownloadHeaders, rasterProofMimeType } from "@/lib/downloadHeaders";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
+import { requireActiveTenantMembership, tenantWhereForSession } from "@/lib/tenantPolicy";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -15,11 +16,14 @@ function metadataValue(metadata: unknown, key: string) {
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    const session = await requireSession();
+    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER, UserRole.CUSTOMER, UserRole.DISTRIBUTOR]);
+    if (session.role === UserRole.SUPPORT_DISPATCHER) await requireActiveTenantMembership(session);
     const { id } = await context.params;
     const roleAwareWhere =
       session.role === UserRole.ADMIN || session.role === UserRole.SUPPORT_DISPATCHER
-        ? { id }
+        ? session.role === UserRole.ADMIN
+          ? { id }
+          : { id, order: tenantWhereForSession(session) }
           : session.role === UserRole.CUSTOMER
           ? { id, customerVisible: true, reviewStatus: ReviewStatus.APPROVED, order: { customer: { userId: session.id } } }
           : session.role === UserRole.DISTRIBUTOR

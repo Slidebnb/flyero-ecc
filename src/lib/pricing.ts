@@ -173,6 +173,10 @@ function activeRuleValidationMessage(rules: PricingRuleChange[]) {
     }
   }
 
+  if (ordered[0]?.serviceType === ServiceType.FLYER_DISTRIBUTION && ordered[ordered.length - 1]?.maxQuantity !== null) {
+    return "Die letzte Flyer-Staffel muss nach oben offen sein.";
+  }
+
   return null;
 }
 

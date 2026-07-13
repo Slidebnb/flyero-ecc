@@ -10,8 +10,8 @@ laufende Quelle fuer Flyerpreise und MwSt. Die zentrale Berechnung liegt in
 
 1. Admin speichert Preisregeln oder MwSt. ueber die Settings-Seite oder die
    Admin-API.
-2. Die Eingabe wird auf Staffel-Luecken, Ueberschneidungen und fallende Preise
-   geprueft.
+2. Die Eingabe wird auf Staffel-Luecken, Ueberschneidungen, fallende Preise
+   und eine nach oben offene letzte Flyer-Staffel geprueft.
 3. Offene Orders ohne bezahlte Zahlung werden mit der aktuellen Konfiguration
    neu berechnet.
 4. Offene Checkout-Zahlungen werden storniert und ein alter externer Checkout
@@ -45,4 +45,3 @@ Der Ablauf wird durch folgende Checks abgesichert:
 - `npm run test:pricing-admin-propagation`
 - `npm run test:customer-order-area`
 - `npm run test:customer-order-checkout`
-

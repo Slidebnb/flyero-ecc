@@ -5,6 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const PASSWORD = "DemoPasswort123!";
 const TEST_PORT = process.env.PROOF_PRIVACY_PORT || process.env.PORT || "3042";
+const TEST_IP = process.env.PROOF_PRIVACY_TEST_IP || "127.0.0.232";
 let baseUrl = process.env.PROOF_PRIVACY_BASE_URL || `http://localhost:${TEST_PORT}`;
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
@@ -66,7 +67,7 @@ async function ensureServer() {
 async function login(email) {
   const response = await fetchLocal("/api/auth/login", {
     method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": "127.0.0.232" },
+    headers: { "content-type": "application/json", "x-forwarded-for": TEST_IP },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
   if (response.status !== 200) throw new Error(`Login fehlgeschlagen: ${response.status} ${await response.text()}`);
@@ -76,6 +77,8 @@ async function login(email) {
 const routeSource = await readFile("src/app/api/proofs/[id]/route.ts", "utf8");
 assert(routeSource.includes("customerVisible: true"), "Customer-Proof-Download prueft customerVisible nicht.");
 assert(routeSource.includes("ReviewStatus.APPROVED"), "Customer-Proof-Download prueft den Freigabestatus nicht.");
+assert(routeSource.includes("tenantWhereForSession"), "Support-Proof-Download prueft den Tenant-Scope nicht.");
+assert(routeSource.includes("requireActiveTenantMembership"), "Support-Proof-Download prueft keine aktive Membership.");
 
 const hiddenPhoto = await prisma.photoProof.findFirst({
   where: {
