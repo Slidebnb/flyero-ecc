@@ -90,6 +90,14 @@ try {
   });
   assert(foreignInventory?.warehouseId, "Es fehlt ein Bestand in einem fremden Lager fuer den Scope-Test.");
 
+  const foreignCheckinOrder = await prisma.order.findFirst({
+    where: {
+      assignedWarehouseId: { not: staff.warehouseId },
+      status: { in: ["APPROVED", "READY_FOR_FLYERS", "FLYERS_EXPECTED"] },
+    },
+    select: { orderNumber: true },
+  });
+
   const ownLocation = await prisma.warehouseLocation.findFirst({
     where: { warehouseId: staff.warehouseId },
     select: { id: true },
@@ -98,6 +106,12 @@ try {
 
   if (!sharedBaseUrl) await startServer();
   const cookie = await login();
+
+  if (foreignCheckinOrder) {
+    const checkinPage = await request("/warehouse/checkin", { headers: { cookie } });
+    assertStatus(checkinPage, [200], "Wareneingangsseite");
+    assert(!(await checkinPage.text()).includes(foreignCheckinOrder.orderNumber), "Wareneingang zeigt einen fremden Lagerauftrag.");
+  }
 
   const inventoryResponse = await request("/api/warehouse/inventory", { headers: { cookie } });
   assertStatus(inventoryResponse, [200], "Lagerbestandliste");

@@ -8,12 +8,14 @@ import { prisma } from "@/lib/prisma";
 export default async function WarehouseCheckinPage() {
   const session = await requireRole([UserRole.WAREHOUSE_STAFF]);
   const warehouseScope = warehouseScopeForUser(session);
+  const assignedWarehouseId = session.warehouseId || "__none__";
 
   const [warehouses, locations, orders] = await Promise.all([
     prisma.warehouse.findMany({ where: warehouseScope, orderBy: { name: "asc" } }),
     prisma.warehouseLocation.findMany({ where: { warehouse: warehouseScope }, include: { warehouse: true }, orderBy: { fullLabel: "asc" } }),
     prisma.order.findMany({
       where: {
+        assignedWarehouseId,
         OR: [
           { status: { in: ["APPROVED", "READY_FOR_FLYERS", "FLYERS_EXPECTED"] } },
           { warehouseInventory: { status: "FLYERS_EXPECTED" } },

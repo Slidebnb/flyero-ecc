@@ -30,4 +30,7 @@ assert(!transfers.includes("requestedBy: true"), "Umlagerungen geben interne Ant
 assert(!transfers.includes("approvedBy: true"), "Umlagerungen geben interne Freigabeobjekte aus.");
 assert(transfers.includes("select:"), "Umlagerungen verwenden keine explizite Antwort-Whitelist.");
 
+const checkinPage = sources.find(([file]) => file === "src/app/warehouse/checkin/page.tsx")[1];
+assert(checkinPage.includes("assignedWarehouseId"), "Wareneingang filtert Aufträge nicht nach dem zugewiesenen Lager.");
+
 console.log("Warehouse privacy smoke checks passed.");

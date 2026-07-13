@@ -80,6 +80,9 @@ sehen Auftragsnummer, Ort, Gebiet, Mengen, Status und notwendige Lagerdaten,
 aber keine vollstaendigen Kundenobjekte, Firmennamen oder Antragsteller-/Freigabe-
 Benutzerobjekte aus Umlagerungen. Der Contract-Smoke
 `npm run test:warehouse-privacy` prueft diese sichtbaren Lagerpfade.
+Die Wareneingangsliste filtert ausserdem nach `assignedWarehouseId`; ein
+Lagerzugang erhaelt keine fremden Auftragsauswahlen. Der Warehouse-Scope-Smoke
+prueft diesen Seitenpfad neben den API-Mutationen.
 
 Der geschuetzte Foto-Download prueft bei Kunden zusaetzlich Auftragseigentum,
 `customerVisible` und den Status `APPROVED`. Interne oder noch nicht

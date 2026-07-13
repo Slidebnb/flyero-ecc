@@ -392,6 +392,9 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - `npm run test:warehouse-privacy` prueft die sichtbaren Lagerseiten und
   Warehouse-GET-Responses statisch auf die Privacy-Grenze. Eine erweiterte
   Laufzeitmatrix fuer jede interne Admin-/Support-Ansicht bleibt offen.
+- Die Wareneingangsliste filtert zusaetzlich serverseitig auf das dem
+  Warehouse-Login zugewiesene Lager. Der Warehouse-Scope-Smoke prueft, dass
+  ein fremder, statusmaessig passender Auftrag nicht in der Seite erscheint.
 
 ### Proof-Download-Freigabe (13.07.2026)
 
