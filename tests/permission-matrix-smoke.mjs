@@ -51,5 +51,12 @@ for (const [source, permission] of [
 const warehouseRoute = await readFile("src/app/api/admin/logistics/warehouses/[id]/route.ts", "utf8");
 assert.match(warehouseRoute, /requirePermission\(Permission\.WAREHOUSE_VIEW\)/, "Lager-Lesen erzwingt keine aktive Unternehmensmitgliedschaft.");
 assert.match(warehouseRoute, /requirePermission\(Permission\.WAREHOUSE_MANAGE\)/, "Lager-Stammdaten sind nicht auf Admin beschrÃ¤nkt.");
+const printPartnerRoute = await readFile("src/app/api/admin/print-partners/route.ts", "utf8");
+const printPartnerDetailRoute = await readFile("src/app/api/admin/print-partners/[id]/route.ts", "utf8");
+const printPartnerPage = await readFile("src/app/admin/print-partners/page.tsx", "utf8");
+assert.match(printPartnerRoute, /requirePermission\(Permission\.PRINT_PARTNER_VIEW\)/);
+assert.match(printPartnerRoute, /requirePermission\(Permission\.PRINT_PARTNER_MANAGE\)/);
+assert.match(printPartnerDetailRoute, /requirePermission\(Permission\.PRINT_PARTNER_MANAGE\)/);
+assert.match(printPartnerPage, /hasPermission\(session, Permission\.PRINT_PARTNER_MANAGE\)/);
 
 console.log("Permission-Matrix Smoke-Test erfolgreich abgeschlossen.");

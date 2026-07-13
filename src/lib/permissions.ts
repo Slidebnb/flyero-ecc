@@ -22,6 +22,8 @@ export const Permission = {
   SUPPORT_TICKET_MANAGE: "support.ticket.manage",
   WAREHOUSE_VIEW: "warehouse.view",
   WAREHOUSE_MANAGE: "warehouse.manage",
+  PRINT_PARTNER_VIEW: "print-partner.view",
+  PRINT_PARTNER_MANAGE: "print-partner.manage",
 } as const;
 
 export type Permission = (typeof Permission)[keyof typeof Permission];
@@ -38,6 +40,7 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
     Permission.SUPPORT_TICKET_VIEW,
     Permission.SUPPORT_TICKET_MANAGE,
     Permission.WAREHOUSE_VIEW,
+    Permission.PRINT_PARTNER_VIEW,
   ],
   [UserRole.WAREHOUSE_STAFF]: [],
   [UserRole.DISTRIBUTOR]: [],

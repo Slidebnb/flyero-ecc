@@ -1,12 +1,11 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { createPrintPartner, listPrintPartners } from "@/lib/documents";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    await requirePermission(Permission.PRINT_PARTNER_VIEW);
     return successResponse(await listPrintPartners());
   } catch (error) {
     return routeErrorResponse(error);
@@ -15,7 +14,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.PRINT_PARTNER_MANAGE);
     return successResponse(await createPrintPartner(session, await readBody(request)), 201);
   } catch (error) {
     return routeErrorResponse(error);

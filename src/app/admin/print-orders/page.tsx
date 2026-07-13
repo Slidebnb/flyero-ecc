@@ -2,12 +2,14 @@ import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { listPrintOrders, listPrintPartners, PRINT_STATUS_LABELS, updatePrintOrder } from "@/lib/documents";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function updateAction(formData: FormData) {
   "use server";
   const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  await requirePermission(Permission.PRINT_PARTNER_VIEW);
   await updatePrintOrder(session, String(formData.get("id")), {
     status: String(formData.get("status") || ""),
     printerId: String(formData.get("printerId") || "") || null,

@@ -644,7 +644,7 @@ export async function listPrintPartners() {
 }
 
 export async function createPrintPartner(actor: SessionUser, input: unknown) {
-  if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Druckpartner anlegen.", 403);
+  if (!isPlatformAdmin(actor)) throw new AuthError("Nur Admin darf Druckpartner anlegen.", 403);
   const data = printPartnerSchema.parse(input);
   const partner = await prisma.printPartner.create({
     data: {
@@ -661,7 +661,7 @@ export async function createPrintPartner(actor: SessionUser, input: unknown) {
 }
 
 export async function updatePrintPartner(actor: SessionUser, id: string, input: unknown) {
-  if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Druckpartner bearbeiten.", 403);
+  if (!isPlatformAdmin(actor)) throw new AuthError("Nur Admin darf Druckpartner bearbeiten.", 403);
   const data = printPartnerSchema.partial().parse(input);
   const partner = await prisma.printPartner.update({
     where: { id },
