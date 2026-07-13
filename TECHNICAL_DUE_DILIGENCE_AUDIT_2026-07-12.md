@@ -120,7 +120,7 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 | AUTH-03 | DB-Rate-Limit fuer Login/Register/Verifizierung ist vorhanden; CAPTCHA/WAF und Monitoring fehlen | P1 | CAPTCHA/WAF fuer oeffentliche Angriffsflächen sowie Alarmierung und Retention ergaenzen. |
 | AUTH-04 | Keine MFA-Unterstuetzung | P2 | TOTP/WebAuthn fuer Admin, Support, Buchhaltung und spaetere Enterprise-Kunden vorbereiten. |
 | AUTH-05 | Passwort-Reset war im urspruenglichen Stand nicht vorhanden | P1 erledigt als Basispaket | Einmal-Token, 30-Minuten-Ablauf, DB-Rate-Limit, Session-Revoke, generische Antwort, E-Mail und AuditLog umgesetzt; MFA, Passwort-Historie und kompromittierte-Passwort-Pruefung bleiben offen. |
-| AUTH-06 | Kein ausdruecklicher CSRF-Token-/Origin-Pruefmechanismus | P2 | Fuer mutierende Cookie-Requests Origin/Referer pruefen oder CSRF-Token einfuehren. |
+| AUTH-06 | Origin-Pruefung ist fuer mutierende JSON-/Formular-Requests zentral vorhanden; bodylose Mutationen und externe Rohbody-Webhooks folgen eigenen Schutzpfaden | P2 | Origin-/CSRF-Abdeckung der verbleibenden bodylosen Cookie-Mutationen und externe Integrationsvertraege separat verifizieren. |
 
 ## 6. Mandantentrennungsanalyse
 
@@ -618,6 +618,20 @@ Der Auditbericht wurde nach dem ursprünglichen Prüflauf weitergeführt. Folgen
 - **Privater Object-Storage-Pfad: technisch vorbereitet, operativ noch offen.** `src/lib/privateObjectStorage.ts` bündelt lokale und S3-kompatible private Ablage für Dokumente sowie generierte Dateien. Lokal bleibt der Entwicklungsfallback aktiv; Produktion muss Bucket, Verschlüsselung, Versionierung, Lifecycle, initiale Migration und Restore-Test noch nachweisen.
 
 Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `FILE-08` nicht mehr als unverändert fehlend zu bewerten. `SEC-04` und `FILE-04` sind teilweise beziehungsweise durch die Folgeänderung für neu erzeugte Versionen behoben; Quarantäne, Malware-Scan und Altbestandsmigration bleiben offen.
+
+### Admin-Preis-Propagation und CSRF-Basisschutz
+
+- Aktive `PricingRule`-Datensaetze sind die Quelle fuer Gebietsintelligenz,
+  neue Kundenorders und offene Checkouts. Deaktivierte historische Regeln
+  werden nicht mehr als aktuelle Settings angeboten; `pricing:sync-premium`
+  synchronisiert die drei Produktionsstaffeln ohne Demo-Seed.
+- `npm run test:pricing-admin-propagation` prueft Adminaenderung,
+  Kundenpreview, Order-Snapshot und Checkout-Neuberechnung.
+- `readBody()` validiert `Origin` gegen Request- und Site-Origin. Fremde
+  Origins werden mit `403` abgewiesen. Stripe-Webhooks bleiben im
+  signaturgeprueften Rohbody-Pfad.
+- Bodylose Cookie-Mutationen und externe Integrationsvertraege benoetigen
+  weiterhin eine separate CSRF-/Origin-Abnahme.
 
 ### Aktueller Upload-Scan-Stand
 

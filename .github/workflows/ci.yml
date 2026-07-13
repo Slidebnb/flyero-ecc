@@ -216,6 +216,8 @@ jobs:
         run: npm run test:auth-session-management
       - name: Pricing admin propagation smoke
         run: npm run test:pricing-admin-propagation
+      - name: CSRF origin smoke
+        run: npm run test:csrf-origin
 
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe
