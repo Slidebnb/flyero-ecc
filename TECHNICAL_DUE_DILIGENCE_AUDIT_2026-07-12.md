@@ -6,13 +6,13 @@ Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `2f84a9b85c0116043a91f2849670054f00afba6e`
+Pruef-Commit: `eb52d66659016906cd216c8c9d3700797275f83b`
 
 ## Aktueller Verifikationsnachtrag (13.07.2026)
 
 Der historische Audittext wird gegen den aktuell verifizierten Repository-Stand
 weitergefuehrt. Der gepruefte Code-Commit ist
-`2f84a9b85c0116043a91f2849670054f00afba6e`; `origin/main` zeigte waehrend der
+`eb52d66659016906cd216c8c9d3700797275f83b`; `origin/main` zeigte waehrend der
 Pruefung auf denselben Code-Stand. Die folgenden Checks liefen gegen den
 aktuellen lokalen Stand erfolgreich:
 
@@ -46,14 +46,18 @@ aktuellen lokalen Stand erfolgreich:
 - `npm run lint`
 - `npx tsc --noEmit`
 - `npm run build`
+- `npm audit --omit=dev --audit-level=high`
+- `npm run test:dependency-security`
 
 ### Aktualisierung: Dependency- und Secret-Scan erneut verifiziert (13.07.2026)
 
-- `npm audit --omit=dev --audit-level=high` meldet weiterhin fuenf moderate
-  Advisories in transitiven Prisma-/PostCSS-Abhaengigkeiten, aber keine hohen
-  oder kritischen Advisories. Die angebotenen `npm audit fix --force`-
-  Aenderungen waeren breaking (unter anderem Next/Prisma) und wurden nicht
-  ungeprueft angewendet. Die kontrollierte Nachverfolgung bleibt P2.
+- `npm audit --omit=dev --audit-level=high` meldet nach den gezielten Overrides
+  keine Vulnerabilities mehr. `postcss@8.5.19` und
+  `@hono/node-server@1.19.13` sind im Lockfile und im Installationsbaum
+  festgeschrieben. Ein blindes `npm audit fix --force` war nicht erforderlich.
+- `tests/dependency-security-smoke.mjs` und der CI-Contract verhindern, dass
+  diese beiden Patch-Versionen bei einer späteren Lockfile-Aenderung still
+  zurueckfallen.
 - Ein Repository-Secret-Scan fand keine echten Stripe-, Webhook-, Cloud- oder
   Private-Key-Secrets. Treffer beschraenken sich auf absichtlich synthetische
   CI-/Testwerte und Platzhalter in Environment-Beispielen bzw. Dokumentation.
