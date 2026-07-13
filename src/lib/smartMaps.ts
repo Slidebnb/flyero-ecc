@@ -196,6 +196,8 @@ export async function getOrderIntelligence(input: {
   coverageAreaSqm?: number | null;
   distanceMeters?: number | null;
   perimeterMeters?: number | null;
+  includeOperationalData?: boolean;
+  publicOnly?: boolean;
 }) {
   const areaFilters = [
     input.distributionAreaId ? { id: input.distributionAreaId } : null,
@@ -203,11 +205,16 @@ export async function getOrderIntelligence(input: {
     input.postalCode ? { postalCode: { startsWith: input.postalCode.slice(0, 3) } } : null,
     input.street ? { name: { contains: input.street, mode: "insensitive" as const } } : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const includeOperationalData = input.includeOperationalData ?? true;
   const [matchingAreas, warehouseMatch, combinations] = await Promise.all([
     prisma.distributionArea.findMany({
       where: {
         AND: [
-          ...(input.tenantId ? [{ OR: [{ tenantId: null }, { tenantId: input.tenantId }] }] : []),
+          ...(input.publicOnly
+            ? [{ tenantId: null }]
+            : input.tenantId
+              ? [{ OR: [{ tenantId: null }, { tenantId: input.tenantId }] }]
+              : []),
           ...(areaFilters.length ? [{ OR: areaFilters }] : []),
         ],
         status: "ACTIVE",
@@ -217,8 +224,12 @@ export async function getOrderIntelligence(input: {
       include: { estimates: { orderBy: { createdAt: "desc" }, take: 1 } },
       take: 8,
     }),
-    findBestWarehouseForArea({ city: input.city, postalCode: input.postalCode }).catch(() => null),
-    combineOrders({ city: input.city, postalCode: input.postalCode }).catch(() => []),
+    includeOperationalData
+      ? findBestWarehouseForArea({ city: input.city, postalCode: input.postalCode }).catch(() => null)
+      : Promise.resolve(null),
+    includeOperationalData
+      ? combineOrders({ city: input.city, postalCode: input.postalCode }).catch(() => [])
+      : Promise.resolve([]),
   ]);
   const densitySamples = matchingAreas
     .map((area) => {
@@ -282,6 +293,8 @@ export async function getOrderIntelligence(input: {
       coverageAreaSqm: input.coverageAreaSqm ?? Math.round(households * 92),
       grossPrice: price.gross.toString(),
       netPrice: price.net.toString(),
+      vatAmount: price.vat.toString(),
+      vatRate: price.snapshot.vatRate,
       distributorNeed,
       score: scoreArea({ city: input.city, postalCode: input.postalCode, households, flyerQuantity, coverageAreaSqm: input.coverageAreaSqm, distanceMeters: routeDistanceMeters }),
       source: referenceArea?.estimatedHouseholds ? "area-household-estimate" : "area-formula",

@@ -97,6 +97,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
 
       <section className="customerDetailActions" aria-label="Kampagnenaktionen">
         <Link className="secondaryButton" href="/customer/orders">Alle Kampagnen</Link>
+        <Link className="secondaryButton" href={`/customer/orders/new?repeatFrom=${encodeURIComponent(order.id)}`}>Kampagne wiederholen</Link>
         <Link className="secondaryButton" href={`/customer/orders/${order.id}/documents`}>Dateien öffnen</Link>
         <Link className="secondaryButton" href="/customer/reports">Nachweise ansehen</Link>
       </section>

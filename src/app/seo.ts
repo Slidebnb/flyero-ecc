@@ -72,6 +72,7 @@ export const siteMetadata: Metadata = {
 export const publicSeoRoutes = [
   { path: "/", priority: 1, changeFrequency: "weekly" as const },
   { path: "/verteilung-anfragen", priority: 0.95, changeFrequency: "weekly" as const },
+  { path: "/verteilung-planen", priority: 0.9, changeFrequency: "weekly" as const },
   { path: "/fuer-unternehmen", priority: 0.85, changeFrequency: "monthly" as const },
   { path: "/so-funktionierts", priority: 0.8, changeFrequency: "monthly" as const },
   { path: "/preise", priority: 0.75, changeFrequency: "monthly" as const },

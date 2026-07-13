@@ -42,8 +42,6 @@ export default async function NewCustomerOrderPage() {
         <h1>Neue Kampagne starten</h1>
         <span>Automatische Speicherung</span>
         <div className="orderTopActions" aria-label="Kontoaktionen">
-          <span>Darkmode</span>
-          <span>Nachrichten</span>
           <strong>Kundenkonto</strong>
         </div>
       </header>

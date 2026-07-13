@@ -25,8 +25,6 @@ export const metadata = createSeoMetadata({
   keywords: ["Flyerverteilung GPS Nachweis", "Flyer verteilen mit Bericht", "Flyer Zustellnachweis"],
 });
 
-const directBookingParam = encodeURIComponent("/customer/orders/new");
-
 const problems = [
   ["Keine Kontrolle", "Nach der Abgabe bleibt oft unklar, ob wirklich im richtigen Gebiet verteilt wurde.", defaultProofIcons.shield],
   ["Keine Nachweise", "Fotos, Zeiten und Tourverlauf liegen selten sauber zusammen.", defaultProofIcons.camera],
@@ -92,8 +90,8 @@ export default function HomePage() {
               in einem professionellen Ablauf für lokale Kampagnen.
             </p>
             <div className="mkHeroActions">
-              <MarketingButton href="/verteilung-anfragen">Verteilung anfragen</MarketingButton>
-              <MarketingButton href={`/login?next=${directBookingParam}`} variant="ghost">Online Buchung ansehen</MarketingButton>
+              <MarketingButton href="/verteilung-planen">Gebiet und Preis prüfen</MarketingButton>
+              <MarketingButton href="/verteilung-anfragen" variant="ghost">Unverbindlich anfragen</MarketingButton>
             </div>
             <div className="mkTrustRow" aria-label="FLYERO Nachweise">
               <TrustBadge icon={defaultProofIcons.gps}>GPS-verifiziert</TrustBadge>
@@ -199,7 +197,7 @@ export default function HomePage() {
             title="Unverbindlich anfragen"
             text="Für Kampagnen, bei denen Gebiet, Auflage oder Timing noch geklärt werden sollen."
             bullets={["Persönliche Beratung", "Individuelles Angebot", "Keine Registrierung nötig"]}
-            href="/verteilung-anfragen"
+            href="/verteilung-planen"
             buttonLabel="Anfrage starten"
             icon={defaultProofIcons.shield}
           />
@@ -207,7 +205,7 @@ export default function HomePage() {
             title="Online Buchung ansehen"
             text="Für konkrete Kampagnen mit Kundenkonto, Gebietsauswahl, Preisprüfung und Auftrag."
             bullets={["Verteilgebiet wählen", "Preis vorab sehen", "Nachweis im Portal erhalten"]}
-            href={`/login?next=${directBookingParam}`}
+            href="/verteilung-planen"
             buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}

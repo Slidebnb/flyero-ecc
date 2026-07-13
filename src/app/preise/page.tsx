@@ -73,8 +73,8 @@ export default async function PricingPage() {
               bevor Sie verbindlich buchen.
             </p>
             <div className="mkHeroActions">
-              <MarketingButton href="/verteilung-anfragen">Preis anfragen</MarketingButton>
-              <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="ghost">Online Buchung ansehen</MarketingButton>
+              <MarketingButton href="/verteilung-planen">Gebiet und Preis prüfen</MarketingButton>
+              <MarketingButton href="/verteilung-anfragen" variant="ghost">Unverbindlich anfragen</MarketingButton>
             </div>
             <div className="mkTrustRow">
               <TrustBadge icon={defaultProofIcons.report}>Preis vor Zahlung</TrustBadge>
@@ -110,7 +110,7 @@ export default async function PricingPage() {
             title="Unverbindlich kalkulieren lassen"
             text="Für individuelle Kampagnen mit Gebiet, Zeitraum, Druck oder besonderem Ablauf."
             bullets={["Persönliche Einschätzung", "Keine Registrierung nötig", "Passende Startempfehlung"]}
-            href="/verteilung-anfragen"
+            href="/verteilung-planen"
             buttonLabel="Anfrage senden"
             icon={defaultProofIcons.shield}
           />
@@ -118,7 +118,7 @@ export default async function PricingPage() {
             title="Direkt im Auftrag berechnen"
             text="Für konkrete Buchungen wird der Preis im Kundenportal vor der Zahlung angezeigt."
             bullets={["Gebiet wählen", "Menge prüfen", "Preis vor Buchung sehen"]}
-            href="/login?next=%2Fcustomer%2Forders%2Fnew"
+            href="/verteilung-planen"
             buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}

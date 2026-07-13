@@ -13,6 +13,7 @@ import {
   LocateFixed,
   LayoutDashboard,
   ListChecks,
+  Maximize2,
   Plus,
   ReceiptText,
   Search,
@@ -36,6 +37,7 @@ type LocationResult = {
 type Props = {
   areas: ReusableAreaOption[];
   today: string;
+  mode?: "public_quote" | "authenticated_order";
 };
 
 type Suggestion = {
@@ -60,6 +62,8 @@ type Intelligence = {
     coverageAreaSqm: number;
     grossPrice: string;
     netPrice: string;
+    vatAmount?: string;
+    vatRate?: string;
     distributorNeed: number;
     score: number;
     source?: string;
@@ -79,8 +83,8 @@ type Intelligence = {
       estimateConfidence: number | null;
     };
   };
-  warehouse: { id: string; name: string; code: string; city: string; reason: string } | null;
-  combinations: Array<{ key: string; orders: unknown[]; savedDistanceMeters: number; savedMinutes: number; savedCostEstimate: string }>;
+  warehouse?: { id: string; name: string; code: string; city: string; reason: string } | null;
+  combinations?: Array<{ key: string; orders: unknown[]; savedDistanceMeters: number; savedMinutes: number; savedCostEstimate: string }>;
 };
 
 type OrderDraft = {
@@ -150,6 +154,13 @@ const orderNavItems = [
   { href: "/customer/support", label: "Hilfe", icon: CircleHelp, group: "Hilfe" },
 ];
 
+const publicPlannerNavItems = [
+  { href: "/", label: "FLYERO Start", icon: LayoutDashboard, group: "FLYERO" },
+  { href: "/preise", label: "Preise", icon: ReceiptText, group: "FLYERO" },
+  { href: "/verteilung-anfragen", label: "Anfrage senden", icon: Mail, group: "FLYERO" },
+  { href: "/login?next=%2Fcustomer%2Forders%2Fnew", label: "Einloggen", icon: CircleHelp, group: "Konto" },
+];
+
 type GoogleLatLng = { lat: () => number; lng: () => number };
 type GooglePath = {
   getLength: () => number;
@@ -201,7 +212,9 @@ const DEFAULT_POLYGON: LatLng[] = [
   { lat: 50.3548, lng: 7.5818 },
 ];
 
-const ORDER_DRAFT_KEY = "flyero:customer:new-order-draft";
+const ORDER_DRAFT_KEY = "flyero:order-planner:draft:v2";
+const PUBLIC_ORDER_DRAFT_KEY = "flyero:order-planner:public-draft:v2";
+const LEGACY_ORDER_DRAFT_KEY = "flyero:customer:new-order-draft";
 
 const productOptions = [
   { value: "DIN Lang (99 × 210 mm)", label: "DIN Lang (99 × 210 mm)" },
@@ -419,9 +432,17 @@ function MiniMapFallback({
   );
 }
 
-export function SmartOrderWizard({ areas, today }: Props) {
+export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }: Props) {
+  const isPublicPlanner = mode === "public_quote";
+  const draftStorageKey = isPublicPlanner ? PUBLIC_ORDER_DRAFT_KEY : ORDER_DRAFT_KEY;
+  const mapsApiPrefix = isPublicPlanner ? "/api/public/planner" : "/api/maps";
+  const autocompleteEndpoint = isPublicPlanner ? `${mapsApiPrefix}/autocomplete` : "/api/maps/autocomplete";
+  const geocodeEndpoint = isPublicPlanner ? `${mapsApiPrefix}/geocode` : "/api/maps/geocode";
+  const intelligenceEndpoint = isPublicPlanner ? `${mapsApiPrefix}/quote` : "/api/maps/order-intelligence";
+  const experienceEndpoint = isPublicPlanner ? "/api/public/planner/experience" : "/api/maps/experience";
   const startedAtRef = useRef<number | null>(null);
   const draftRestoredRef = useRef(false);
+  const repeatLoadedRef = useRef(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const forceLocationReplaceRef = useRef(false);
   const lastIntelligenceRequestRef = useRef<string | null>(null);
@@ -617,7 +638,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
   // Restore customer draft once from localStorage before the user continues editing.
   useEffect(() => {
     try {
-      const rawDraft = window.localStorage.getItem(ORDER_DRAFT_KEY);
+      const rawDraft = window.localStorage.getItem(draftStorageKey) ?? (!isPublicPlanner ? window.localStorage.getItem(LEGACY_ORDER_DRAFT_KEY) : null);
       if (!rawDraft) {
         draftRestoredRef.current = true;
         setDraftStatus("Entwurf wird automatisch gespeichert");
@@ -653,12 +674,54 @@ export function SmartOrderWizard({ areas, today }: Props) {
       if (draft.notes) setNotes(draft.notes);
       setDraftStatus("Entwurf geladen");
     } catch {
-      window.localStorage.removeItem(ORDER_DRAFT_KEY);
+      window.localStorage.removeItem(draftStorageKey);
       setDraftStatus("Entwurf wird automatisch gespeichert");
     } finally {
       draftRestoredRef.current = true;
     }
-  }, []);
+  }, [draftStorageKey, isPublicPlanner]);
+
+  useEffect(() => {
+    if (isPublicPlanner || repeatLoadedRef.current) return;
+    repeatLoadedRef.current = true;
+    const repeatFrom = new URLSearchParams(window.location.search).get("repeatFrom");
+    if (!repeatFrom) return;
+    const timer = window.setTimeout(() => {
+      fetch(`/api/customer/orders/${encodeURIComponent(repeatFrom)}/repeat`)
+        .then((response) => response.ok ? response.json() : null)
+        .then((payload) => {
+          const draft = payload?.data?.draft as Partial<OrderDraft> & { targetAreaGeoJson?: unknown; center?: LatLng | null } | undefined;
+          if (!draft) return;
+          if (draft.query) setQuery(draft.query);
+          if (draft.city) setCity(draft.city);
+          if (draft.postalCode) setPostalCode(draft.postalCode);
+          if (draft.street) setStreet(draft.street);
+          if (draft.houseNumber) setHouseNumber(draft.houseNumber);
+          if (draft.targetAreaName) setTargetAreaName(draft.targetAreaName);
+          if (draft.center) setCenter(draft.center);
+          const repeatedPolygon = featurePoints(draft.targetAreaGeoJson);
+          if (repeatedPolygon.length >= 3) {
+            setPolygon(repeatedPolygon);
+            setPolygonSource("saved_area");
+            setHistory([repeatedPolygon]);
+          }
+          if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
+          setFlyerQuantityTouched(true);
+          if (draft.flyerSource) setFlyerSource(draft.flyerSource);
+          if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
+          if (draft.startDate) setStartDate(draft.startDate);
+          if (draft.endDate) setEndDate(draft.endDate);
+          if (typeof draft.flexibleScheduling === "boolean") setFlexibleScheduling(draft.flexibleScheduling);
+          if (draft.contactPerson) setContactPerson(draft.contactPerson);
+          if (draft.contactPhone) setContactPhone(draft.contactPhone);
+          if (draft.notes) setNotes(draft.notes);
+          setActiveStep(1);
+          setDraftStatus("Kampagne übernommen");
+        })
+        .catch(() => undefined);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [isPublicPlanner]);
 
   useEffect(() => {
     if (!draftRestoredRef.current) return;
@@ -689,7 +752,10 @@ export function SmartOrderWizard({ areas, today }: Props) {
       contactPhone,
       notes,
     };
-    window.localStorage.setItem(ORDER_DRAFT_KEY, JSON.stringify(draft));
+    const persistedDraft = isPublicPlanner
+      ? Object.fromEntries(Object.entries(draft).filter(([key]) => !["contactPerson", "contactPhone", "notes"].includes(key)))
+      : draft;
+    window.localStorage.setItem(draftStorageKey, JSON.stringify(persistedDraft));
     setDraftStatus("Entwurf gespeichert");
   }, [
     activeStep,
@@ -717,6 +783,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
     street,
     targetAreaName,
     targetGroup,
+    draftStorageKey,
+    isPublicPlanner,
   ]);
 
   const applyLocationResult = useCallback((result: LocationResult, options?: { forceReplace?: boolean }) => {
@@ -767,7 +835,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
       street,
       houseNumber,
     });
-    fetch(`/api/maps/geocode?${params.toString()}`)
+    fetch(`${geocodeEndpoint}?${params.toString()}`)
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => {
         const result = payload?.data;
@@ -775,18 +843,18 @@ export function SmartOrderWizard({ areas, today }: Props) {
         applyLocationResult(result, { forceReplace: forceLocationReplaceRef.current });
       })
       .catch(() => undefined);
-  }, [applyLocationResult, city, houseNumber, postalCode, query, street]);
+  }, [applyLocationResult, city, geocodeEndpoint, houseNumber, postalCode, query, street]);
 
   const fetchSuggestions = useMemo(() => debounce((value: string) => {
     if (value.trim().length < 2) {
       setSuggestions([]);
       return;
     }
-    fetch(`/api/maps/autocomplete?q=${encodeURIComponent(value)}`)
+    fetch(`${autocompleteEndpoint}?q=${encodeURIComponent(value)}`)
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => setSuggestions(payload?.data ?? []))
       .catch(() => setSuggestions([]));
-  }, 220), []);
+  }, 220), [autocompleteEndpoint]);
 
   useEffect(() => {
     fetchSuggestions(query);
@@ -799,7 +867,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
     lastIntelligenceRequestRef.current = intelligenceRequestQuery;
     setIntelligenceStatus("updating");
     startTransition(() => {
-      fetch(`/api/maps/order-intelligence?${intelligenceRequestQuery}`)
+      fetch(`${intelligenceEndpoint}?${intelligenceRequestQuery}`)
         .then((response) => response.ok ? response.json() : null)
         .then((payload) => {
           if (lastIntelligenceRequestRef.current !== intelligenceRequestQuery) return;
@@ -816,7 +884,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
           }
         });
     });
-  }, [intelligenceRequestQuery]);
+  }, [intelligenceEndpoint, intelligenceRequestQuery]);
 
   useEffect(() => {
     startedAtRef.current = Date.now();
@@ -826,9 +894,9 @@ export function SmartOrderWizard({ areas, today }: Props) {
       postalCode,
       source: "order-wizard-reference-redesign",
     });
-    navigator.sendBeacon?.("/api/maps/experience", new Blob([startedPayload], { type: "application/json" }));
+    navigator.sendBeacon?.(experienceEndpoint, new Blob([startedPayload], { type: "application/json" }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [experienceEndpoint]);
 
   useEffect(() => {
     let isMounted = true;
@@ -1008,10 +1076,14 @@ export function SmartOrderWizard({ areas, today }: Props) {
     drawingManagerRef.current.setDrawingMode(drawing.OverlayType.POLYGON);
   }
 
-  function trackSubmit() {
-    window.localStorage.removeItem(ORDER_DRAFT_KEY);
+  function trackSubmit(options?: { clearDraft?: boolean; handoffToCustomer?: boolean }) {
+    if (options?.clearDraft !== false) window.localStorage.removeItem(draftStorageKey);
+    if (isPublicPlanner && options?.handoffToCustomer) {
+      const publicDraft = window.localStorage.getItem(PUBLIC_ORDER_DRAFT_KEY);
+      if (publicDraft) window.localStorage.setItem(ORDER_DRAFT_KEY, publicDraft);
+    }
     const durationMs = Date.now() - (startedAtRef.current ?? Date.now());
-    void fetch("/api/maps/experience", {
+    void fetch(experienceEndpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -1031,7 +1103,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
         coverageAreaSqm,
         routeDistanceMeters,
         routeDurationMinutes,
-        metadata: { mapMode, showHeatmap, productFormat, targetGroup, distributionType },
+        metadata: { mapMode, showHeatmap, productFormat, targetGroup, distributionType, plannerMode: mode },
       }),
     });
   }
@@ -1071,6 +1143,15 @@ export function SmartOrderWizard({ areas, today }: Props) {
   async function finishOrder(completionPath: "direct_payment" | "inquiry") {
     if (isFinishing) return;
     setIsFinishing(true);
+    if (isPublicPlanner) {
+      trackSubmit({ clearDraft: false, handoffToCustomer: completionPath === "direct_payment" });
+      if (completionPath === "direct_payment") {
+        window.location.href = `/register/customer?next=${encodeURIComponent("/customer/orders/new")}`;
+      } else {
+        window.location.href = "/verteilung-anfragen?from=planner";
+      }
+      return;
+    }
     setFinishStatus(completionPath === "direct_payment" ? "Buchung wird vorbereitet ..." : "Anfrage wird übermittelt ...");
     try {
       trackSubmit();
@@ -1119,7 +1200,8 @@ export function SmartOrderWizard({ areas, today }: Props) {
     { id: 5, title: "Zusammenfassung", detail: "Prüfe Gebiet, Preis und Nachweise", value: formatCurrency(netPrice) },
     { id: 6, title: "Abschluss", detail: "Buchen, anfragen oder klassisch senden", value: "3 Wege" },
   ];
-  const orderNavGroups = Array.from(new Set(orderNavItems.map((item) => item.group)));
+  const activeNavItems = isPublicPlanner ? publicPlannerNavItems : orderNavItems;
+  const orderNavGroups = Array.from(new Set(activeNavItems.map((item) => item.group)));
 
   function beginOverviewDrag(event: PointerEvent<HTMLButtonElement>) {
     if (event.button !== 0) return;
@@ -1207,7 +1289,6 @@ export function SmartOrderWizard({ areas, today }: Props) {
           ) : null}
           <div className="modeTabs">
             <button type="button" className="selected" onClick={startDrawingArea}>Gebiet zeichnen</button>
-            <button type="button" onClick={() => setActiveStep(3)}>POI verwenden</button>
           </div>
           <div className="savedAreaMini">
             <div>
@@ -1410,10 +1491,10 @@ export function SmartOrderWizard({ areas, today }: Props) {
         {orderNavGroups.map((group) => (
           <div className="customerSideNavSection" key={group}>
             <small>{group}</small>
-            {orderNavItems.filter((item) => item.group === group).map((item) => {
+            {activeNavItems.filter((item) => item.group === group).map((item) => {
               const Icon = item.icon;
               return (
-                <Link key={item.href} href={item.href} className={item.active ? "sideNavActive" : ""}>
+                <Link key={item.href} href={item.href} className={"active" in item && item.active ? "sideNavActive" : ""}>
                   <span><Icon aria-hidden="true" /></span>
                   {item.label}
                 </Link>
@@ -1422,16 +1503,18 @@ export function SmartOrderWizard({ areas, today }: Props) {
           </div>
         ))}
         <div className="sideNavFooter">
-          <button
-            type="button"
-            onClick={() => {
-              void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
-                window.location.href = "/login";
-              });
-            }}
-          >
-            Ausloggen
-          </button>
+          {isPublicPlanner ? <Link href="/verteilung-anfragen">Zur Anfrage</Link> : (
+            <button
+              type="button"
+              onClick={() => {
+                void fetch("/api/auth/logout", { method: "POST" }).finally(() => {
+                  window.location.href = "/login";
+                });
+              }}
+            >
+              Ausloggen
+            </button>
+          )}
         </div>
       </aside>
 
@@ -1468,12 +1551,11 @@ export function SmartOrderWizard({ areas, today }: Props) {
       <section className={`orderMapStage ${mapMode} ${showHeatmap ? "heatmap" : ""}`}>
         <div className="mapChromeTop">
           <span>{postalCode} {city}</span>
-          <span>18°C</span>
         </div>
         <div className="mapTabs">
           <button type="button" className={mapMode === "map" ? "selected" : ""} onClick={() => setMapMode("map")}>Karte</button>
           <button type="button" className={mapMode === "satellite" ? "selected" : ""} onClick={() => setMapMode("satellite")}>Satellit</button>
-          <button type="button" className={showHeatmap ? "selected" : ""} onClick={requestHeatmap}>Heatmap</button>
+          {!isPublicPlanner ? <button type="button" className={showHeatmap ? "selected" : ""} onClick={requestHeatmap}>Heatmap</button> : null}
         </div>
         {heatmapNotice ? <div className="heatmapNotice" role="status">{heatmapNotice}</div> : null}
         <div ref={mapElementRef} className="orderGoogleMap" aria-hidden={!mapsReady} />
@@ -1492,7 +1574,7 @@ export function SmartOrderWizard({ areas, today }: Props) {
           <button type="button" onClick={() => geocodeAddress()} aria-label="Aktuelle Adresse zentrieren"><LocateFixed aria-hidden="true" /></button>
           <button type="button" onClick={() => mapRef.current?.setZoom(15)}>+</button>
           <button type="button" onClick={() => mapRef.current?.setZoom(13)}>−</button>
-          <button type="button" onClick={() => document.documentElement.requestFullscreen?.()}>⛶</button>
+          <button type="button" onClick={() => document.documentElement.requestFullscreen?.()} aria-label="Karte vergrößern"><Maximize2 aria-hidden="true" /></button>
         </div>
         <aside
           className="areaOverview"

@@ -67,6 +67,9 @@ export default function DistributionRequestPage() {
               <span>Buchen</span>
             </div>
             <div className="mkBookingActions">
+              <MarketingButton href="/verteilung-planen" variant="coral">
+                Gebiet und Preis prüfen
+              </MarketingButton>
               <MarketingButton href={`/register/customer?next=${directBookingParam}`} variant="coral">
                 Kundenkonto erstellen
               </MarketingButton>
