@@ -24,6 +24,13 @@ const result = spawnSync(process.execPath, ["-r", "dotenv/config", "scripts/rete
 assert.equal(result.status, 0, `Retention-Dry-Run fehlgeschlagen:\n${result.stdout}\n${result.stderr}`);
 const summary = JSON.parse(result.stdout);
 assert.equal(summary.mode, "dry-run", "Retention darf standardmäßig keinen Purge ausführen.");
-assert.deepEqual(summary.deleted, { verificationTokens: 0, sessions: 0, rateLimitBuckets: 0, publicRateLimitBuckets: 0 });
+assert.deepEqual(summary.deleted, {
+  verificationTokens: 0,
+  sessions: 0,
+  rateLimitBuckets: 0,
+  publicRateLimitBuckets: 0,
+  gpsPointsForLegalReview: 0,
+  rejectedPhotosForLegalReview: 0,
+});
 
 console.log("Retention Smoke-Test erfolgreich abgeschlossen.");

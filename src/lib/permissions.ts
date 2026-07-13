@@ -48,6 +48,7 @@ export const Permission = {
   MONITORING_MANAGE: "monitoring.manage",
   NOTIFICATION_OPERATIONS_VIEW: "notification-operations.view",
   NOTIFICATION_OPERATIONS_MANAGE: "notification-operations.manage",
+  RETENTION_HOLD_MANAGE: "retention-hold.manage",
 } as const;
 
 export type Permission = (typeof Permission)[keyof typeof Permission];

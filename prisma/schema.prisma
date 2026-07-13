@@ -546,6 +546,7 @@ model Tenant {
   distributionAreas     DistributionArea[]
   supportTickets        SupportTicket[]
   leads                 Lead[]
+  retentionHolds        RetentionHold[]
 
   @@index([status, createdAt])
 }
@@ -619,6 +620,8 @@ model User {
   approvedTransfers       WarehouseTransfer[]      @relation("TransferApprovedBy")
   stockCounts             WarehouseStockCount[]    @relation("StockCountedBy")
   orderExperienceEvents   OrderExperienceEvent[]
+  createdRetentionHolds   RetentionHold[]          @relation("CreatedRetentionHolds")
+  releasedRetentionHolds  RetentionHold[]          @relation("ReleasedRetentionHolds")
 
   @@index([role, status])
   @@index([warehouseId])
@@ -677,6 +680,29 @@ model AuthRateLimitBucket {
 
   @@index([blockedUntil])
   @@index([updatedAt])
+}
+
+model RetentionHold {
+  id            String    @id @default(cuid())
+  tenantId      String
+  orderId       String
+  reason        String
+  caseReference String?
+  releaseNote   String?
+  createdById   String
+  releasedById  String?
+  createdAt     DateTime  @default(now())
+  releasedAt    DateTime?
+  expiresAt     DateTime?
+
+  tenant     Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdBy  User    @relation("CreatedRetentionHolds", fields: [createdById], references: [id], onDelete: Restrict)
+  releasedBy User?   @relation("ReleasedRetentionHolds", fields: [releasedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, releasedAt, expiresAt])
+  @@index([orderId, releasedAt, expiresAt])
+  @@index([createdById, createdAt])
 }
 
 model PublicRateLimitBucket {
@@ -835,6 +861,7 @@ model Order {
   autoDispatchRecommendations AutoDispatchRecommendation[]
   logisticsShipments          LogisticsShipment[]
   experienceEvents            OrderExperienceEvent[]
+  retentionHolds              RetentionHold[]
 
   @@index([customerId, status])
   @@index([tenantId, status, createdAt])

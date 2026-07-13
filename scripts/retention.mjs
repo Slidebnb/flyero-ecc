@@ -17,10 +17,35 @@ const apply = applyRequested && applyEnabled;
 const verificationTokenDays = positiveDays("RETENTION_VERIFICATION_TOKEN_DAYS", 7);
 const sessionDays = positiveDays("RETENTION_SESSION_DAYS", 30);
 const rateLimitBucketDays = positiveDays("RETENTION_RATE_LIMIT_BUCKET_DAYS", 7);
+const gpsRawReviewDays = positiveDays("RETENTION_GPS_RAW_REVIEW_DAYS", 365);
+const rejectedPhotoReviewDays = positiveDays("RETENTION_REJECTED_PHOTO_REVIEW_DAYS", 365);
 
 const verificationCutoff = new Date(now.getTime() - verificationTokenDays * 24 * 60 * 60 * 1000);
 const sessionCutoff = new Date(now.getTime() - sessionDays * 24 * 60 * 60 * 1000);
 const rateLimitCutoff = new Date(now.getTime() - rateLimitBucketDays * 24 * 60 * 60 * 1000);
+const gpsRawReviewCutoff = new Date(now.getTime() - gpsRawReviewDays * 24 * 60 * 60 * 1000);
+const rejectedPhotoReviewCutoff = new Date(now.getTime() - rejectedPhotoReviewDays * 24 * 60 * 60 * 1000);
+
+const activeRetentionHoldWhere = {
+  releasedAt: null,
+  OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+};
+const orderWithoutActiveHold = {
+  retentionHolds: { none: activeRetentionHoldWhere },
+};
+const gpsPointReviewWhere = {
+  recordedAt: { lt: gpsRawReviewCutoff },
+  tour: {
+    completedAt: { not: null },
+    order: { is: orderWithoutActiveHold },
+  },
+};
+const rejectedPhotoReviewWhere = {
+  uploadedAt: { lt: rejectedPhotoReviewCutoff },
+  reviewStatus: "REJECTED",
+  customerVisible: false,
+  order: { is: orderWithoutActiveHold },
+};
 
 const verificationWhere = {
   OR: [
@@ -37,11 +62,13 @@ const sessionWhere = {
 const rateLimitWhere = { updatedAt: { lt: rateLimitCutoff } };
 
 try {
-  const [verificationTokens, sessions, rateLimitBuckets, publicRateLimitBuckets] = await Promise.all([
+  const [verificationTokens, sessions, rateLimitBuckets, publicRateLimitBuckets, gpsPointsForLegalReview, rejectedPhotosForLegalReview] = await Promise.all([
     prisma.emailVerificationToken.count({ where: verificationWhere }),
     prisma.authSession.count({ where: sessionWhere }),
     prisma.authRateLimitBucket.count({ where: rateLimitWhere }),
     prisma.publicRateLimitBucket.count({ where: rateLimitWhere }),
+    prisma.gpsPoint.count({ where: gpsPointReviewWhere }),
+    prisma.photoProof.count({ where: rejectedPhotoReviewWhere }),
   ]);
 
   const result = {
@@ -51,9 +78,25 @@ try {
       verificationTokenDays,
       sessionDays,
       rateLimitBucketDays,
+      gpsRawReviewDays,
+      rejectedPhotoReviewDays,
     },
-    candidates: { verificationTokens, sessions, rateLimitBuckets, publicRateLimitBuckets },
-    deleted: { verificationTokens: 0, sessions: 0, rateLimitBuckets: 0, publicRateLimitBuckets: 0 },
+    candidates: {
+      verificationTokens,
+      sessions,
+      rateLimitBuckets,
+      publicRateLimitBuckets,
+      gpsPointsForLegalReview,
+      rejectedPhotosForLegalReview,
+    },
+    deleted: {
+      verificationTokens: 0,
+      sessions: 0,
+      rateLimitBuckets: 0,
+      publicRateLimitBuckets: 0,
+      gpsPointsForLegalReview: 0,
+      rejectedPhotosForLegalReview: 0,
+    },
     skipped: ["GpsPoint", "PhotoProof", "Document", "AuditLog", "Invoice"],
   };
 

@@ -1,17 +1,17 @@
 # FLYERO Technical Due Diligence und Sicherheits-Audit
 
-Stand: 12.07.2026
+Stand: 13.07.2026
 
 Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `3874c6def95b903d22ad4e948f1c07076efe6b47`
+Pruef-Commit: `f21da1f8a30c33e885069b72346434640b5448cb`
 
 ## Aktueller Verifikationsnachtrag (13.07.2026)
 
 Der historische Audittext wird gegen den aktuell verifizierten Repository-Stand
-weitergefuehrt. Der gepruefte Commit ist `d747c34190dbfecd4dc826588697628c29d95eb4`;
+weitergefuehrt. Der gepruefte Commit ist `f21da1f8a30c33e885069b72346434640b5448cb`;
 `origin/main` zeigt auf denselben Commit. Die folgenden Checks liefen gegen den
 aktuellen lokalen Stand erfolgreich:
 
@@ -23,6 +23,16 @@ aktuellen lokalen Stand erfolgreich:
 - `npm run test:module24`
 - `npm run test:module16-landing`
 - `npm run test:permissions`
+- `npm run test:tenant-foundation`
+- `npm run test:tenant-policy`
+- `npm run test:tenant-ab-idor`
+- `npm run test:area-tenant-scope`
+- `npm run test:warehouse-scope`
+- `npm run test:report-evidence-tenant-scope`
+- `npm run test:document-review-tenant-scope`
+- `npm run test:logistics-tenant-scope`
+- `npm run test:analytics-tenant-scope`
+- `npm run test:dispatch-tenant-scope`
 - `npm run test:payment-production-guard`
 - `npm run lint`
 - `npx tsc --noEmit`
@@ -36,6 +46,12 @@ keinen Push. Die vollstaendige Auditbewertung bleibt davon unberuehrt: externe
 Hetzner-Backup-/Restore-Nachweise, Produktions-Scannerbetrieb, die A/B-Matrix
 aller internen Ressourcen sowie die Trennung Plattform-Admin gegen
 Unternehmensadmin sind weiterhin offen.
+
+Die Tenant-Smokes wurden fuer diese Nachpruefung gegen den bereits laufenden
+lokalen Next-Server auf Port 3000 ausgefuehrt. Ein paralleler zweiter Next-
+Dev-Server im selben Arbeitsverzeichnis ist wegen der gemeinsamen `.next`
+Dev-Lockdatei nicht zulaessig; das ist eine Testumgebungsgrenze und kein
+positiver oder negativer Tenant-Befund.
 
 Die Zaehldaten und der Pruef-Commit im historischen Kopfbereich beziehen sich
 auf den urspruenglichen Auditlauf. Fuer den aktuellen Stand ist dieser Nachtrag
@@ -1115,3 +1131,41 @@ Detailantworten weiter. Der Privacy-Contract umfasst diese Services nun mit.
   bestehenden Eigentums-/Freigabepruefungen.
 - `npm run test:proof-download-privacy` schuetzt den Scope-Contract zusammen
   mit der Customer-Freigabe gegen Rueckfaelle.
+
+### P1 Legal Hold fuer Nachweisdaten (13.07.2026)
+
+- `RetentionHold` wurde als eigener, tenantbezogener Datensatz mit Grund,
+  Aktenzeichen, Ablaufdatum, Ersteller und Aufhebungsdaten eingefuehrt.
+- Erstellen und Aufheben ist auf `RETENTION_HOLD_MANAGE` beschraenkt. Diese
+  Berechtigung ist in der aktuellen Matrix nur fuer Admins vergeben; der
+  Tenant wird beim Erstellen aus dem Auftrag abgeleitet und nicht vom Client
+  uebernommen.
+- `POST`, `GET` und `PATCH /api/admin/retention-holds` schreiben AuditLogs.
+  Der Retention-Dry-Run weist alte abgeschlossene GPS-Punkte und abgelehnte,
+  nicht kundensichtbare Fotos ohne aktive Sperre als `forLegalReview` aus.
+- Die Sperre verhindert nur eine spaetere Bereinigungsfreigabe. Es werden
+  bewusst keine GPS-, Foto-, Report- oder Auditdaten automatisch geloescht;
+  eine rechtlich freigegebene Aufbewahrungs- und Loeschmatrix bleibt offen.
+- Migration: `20260713170000_retention_holds`. Verifiziert mit
+  `test:retention`, `test:retention-hold`,
+  `test:retention-hold-runtime` und `npx prisma migrate status`.
+
+### P1 Preispropagierung End-to-End verifiziert (13.07.2026)
+
+- Admin-Regelaenderungen und MwSt.-Aenderungen werden ueber beide
+  Administrationswege (`/admin/settings/pricing` und die Pricing-API) in
+  offene Kundenauftraege, deren Preis-Snapshot, die Gebietsberechnung und
+  neue Auftraege weitergegeben.
+- Offene Checkout-Zahlungen werden bei einer Preisabweichung lokal storniert
+  und eine externe offene Stripe-Session wird, sofern die Stripe-Konfiguration
+  verfuegbar ist, abgelaufen gesetzt. Bezahlte oder erstattete Auftraege
+  werden nicht nachtraeglich umgeschrieben; individuelle Admin-Preise bleiben
+  erhalten und erhalten nur den aktuellen MwSt.-Satz.
+- Der Propagierungs-Smoke prueft aktuelle oeffentliche Preise, Kundenliste,
+  Kundenauftrag, Benachrichtigung, Kartenintelligenz, neue Verteilung,
+  Checkout, offene Zahlung und manuellen Preis. `pricingVersion` und
+  `pricingRuleSignature` bleiben dabei im Preis- und Gebietssnapshot
+  identisch.
+- Ausgefuehrt: `test:pricing-system-linkage`, `test:pricing-sync`,
+  `test:pricing-admin-propagation`, `test:customer-order-area` und
+  `test:customer-order-checkout` erfolgreich gegen den lokalen Server.
