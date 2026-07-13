@@ -320,6 +320,12 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - Report-Archivierung ist eine Admin-Publishing-Aktion und verlangt jetzt `REPORT_PUBLISH` statt einer reinen Rollenpruefung.
 - `npm run test:report-evidence-tenant-scope` ist als CI-Contract eingebunden. Eine vollstaendige A/B-IDOR-Matrix aller internen Ressourcen bleibt weiterhin offen.
 
+### Rechnungs-PDF-Tenant-Scope (13.07.2026)
+
+- Der interne Rechnungs-PDF-Download verlangt jetzt `INVOICE_VIEW`; Admin bleibt global, Support benoetigt eine aktive Unternehmensmitgliedschaft.
+- Die Rechnung wird vor dem Lesen mit `tenantWhereForSession` geladen, statt nur ueber eine erratbare Rechnungs-ID gefunden zu werden.
+- Die Permission ist in `PERMISSION_MATRIX.md` und `npm run test:permissions` verankert. Weitere Finanz- und Exportrouten bleiben separat zu pruefen.
+
 ### Produktions-Preflight (13.07.2026)
 
 - `scripts/production-preflight.mjs` prueft vor einem Produktionsstart HTTPS-URLs, Auth- und Datenbankkonfiguration, Stripe-Webhooks, echte E-Mail-Provider, Google-Maps-Keys, privaten S3-Storage, erforderlichen Malware-Scan und externes Restic-Backup.

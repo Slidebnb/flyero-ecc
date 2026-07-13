@@ -10,6 +10,7 @@ export const Permission = {
   ANALYTICS_EXPORT: "analytics.export",
   DOCUMENT_REVIEW: "document.review",
   DOCUMENT_SCAN: "document.scan",
+  INVOICE_VIEW: "invoice.view",
   INTERNAL_USERS_MANAGE: "internal-users.manage",
   PAYMENT_REFUND: "payment.refund",
   PAYMENT_RECONCILE: "payment.reconcile",
@@ -28,6 +29,7 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
   [UserRole.SUPPORT_DISPATCHER]: [
     Permission.ANALYTICS_VIEW,
     Permission.DOCUMENT_REVIEW,
+    Permission.INVOICE_VIEW,
     Permission.REPORT_REVIEW,
   ],
   [UserRole.WAREHOUSE_STAFF]: [],

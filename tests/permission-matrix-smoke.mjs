@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing] = await Promise.all([
+const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload] = await Promise.all([
   readFile("src/lib/permissions.ts", "utf8"),
   readFile("PERMISSION_MATRIX.md", "utf8"),
   readFile("src/app/api/admin/settings/users/route.ts", "utf8"),
@@ -13,6 +13,7 @@ const [permissions, matrix, users, userStatus, refund, reportPublish, reportAppr
   readFile("src/app/api/admin/analytics/export/route.ts", "utf8"),
   readFile("src/app/api/admin/accounting/exports/route.ts", "utf8"),
   readFile("src/app/api/admin/settings/pricing/route.ts", "utf8"),
+  readFile("src/app/api/admin/invoices/[id]/download/route.ts", "utf8"),
 ]);
 
 for (const permission of [
@@ -22,6 +23,7 @@ for (const permission of [
   "PAYMENT_REFUND",
   "PRICING_MANAGE",
   "REPORT_PUBLISH",
+  "INVOICE_VIEW",
 ]) {
   assert.match(permissions, new RegExp(`${permission}:`), `Permission ${permission} fehlt.`);
 }
@@ -39,6 +41,7 @@ for (const [source, permission] of [
   [analyticsExport, "ANALYTICS_EXPORT"],
   [accounting, "ACCOUNTING_EXPORT"],
   [pricing, "PRICING_MANAGE"],
+  [invoiceDownload, "INVOICE_VIEW"],
 ]) {
   assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
 }
