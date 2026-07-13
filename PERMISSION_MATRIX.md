@@ -23,6 +23,8 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `report.publish` | Ja | Nein | Nein | Nein | Nein |
 | `support.ticket.view` | Ja | Ja | Nein | Nein | Nein |
 | `support.ticket.manage` | Ja | Ja | Nein | Nein | Nein |
+| `warehouse.view` | Ja | Ja | Nein | Nein | Nein |
+| `warehouse.manage` | Ja | Nein | Nein | Nein | Nein |
 
 ## Designregeln
 

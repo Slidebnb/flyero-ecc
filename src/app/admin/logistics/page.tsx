@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { UserRole } from "@prisma/client";
 import { DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { getLogisticsAnalytics } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 
 export default async function AdminLogisticsPage() {
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.WAREHOUSE_VIEW);
   const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
   const [analytics, warehouses, shipments, transfers, stockCounts] = await Promise.all([
     getLogisticsAnalytics(tenantId),

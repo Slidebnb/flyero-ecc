@@ -9,6 +9,7 @@ const stockCountsRoute = await readFile("src/app/api/admin/logistics/stock-count
 const page = await readFile("src/app/admin/logistics/page.tsx", "utf8");
 const shipmentPage = await readFile("src/app/admin/logistics/shipments/page.tsx", "utf8");
 const warehouseDetailPage = await readFile("src/app/admin/logistics/warehouses/[id]/page.tsx", "utf8");
+const warehouseDetailRoute = await readFile("src/app/api/admin/logistics/warehouses/[id]/route.ts", "utf8");
 
 assert.match(logistics, /shipmentScopeForUser/);
 assert.match(logistics, /order: \{ tenantId: actor\.tenantId \?\? "__no_tenant__" \}/);
@@ -25,5 +26,9 @@ assert.match(shipmentPage, /where: tenantId === undefined \? \{\} : \{ tenantId:
 assert.match(warehouseDetailPage, /const orderTenantWhere = tenantId === undefined \? \{\} : \{ tenantId: tenantId \?\? "__no_tenant__" \}/);
 assert.match(warehouseDetailPage, /inventories: \{ where: \{ order: orderTenantWhere \}/);
 assert.match(warehouseDetailPage, /stockCounts: \{ where: \{ inventory: \{ order: orderTenantWhere \} \}/);
+assert.match(warehouseDetailRoute, /inventories: \{[\s\S]*where: \{ order: orderTenantWhere \}/);
+assert.match(warehouseDetailRoute, /shipments: \{[\s\S]*where: \{ order: orderTenantWhere \}/);
+assert(!warehouseDetailRoute.includes("customer: true"), "Lagerdetail-API gibt weiterhin vollstÃ¤ndige Kundenobjekte aus.");
+assert(!warehouseDetailRoute.includes("countedBy: true"), "Lagerdetail-API gibt weiterhin interne Benutzerobjekte aus.");
 
 console.log("Logistics tenant scope smoke checks passed.");

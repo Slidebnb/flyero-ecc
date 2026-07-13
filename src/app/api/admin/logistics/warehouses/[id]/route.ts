@@ -1,7 +1,7 @@
 import { Prisma, UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { logisticsWarehouseUpdateSchema } from "@/lib/validators";
@@ -10,18 +10,81 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.WAREHOUSE_VIEW);
     const { id } = await context.params;
+    const orderTenantWhere = session.role === UserRole.ADMIN ? {} : { tenantId: session.tenantId ?? "__no_tenant__" };
     const warehouse = await prisma.warehouse.findUnique({
       where: { id },
       include: {
         regions: { orderBy: [{ priority: "desc" }, { name: "asc" }] },
         locations: { orderBy: { fullLabel: "asc" } },
-        inventories: { include: { order: true, warehouseLocation: true }, orderBy: { updatedAt: "desc" }, take: 50 },
-        shipments: { include: { order: true }, orderBy: { createdAt: "desc" }, take: 50 },
-        transfersFrom: { include: { toWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 25 },
-        transfersTo: { include: { fromWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 25 },
-        stockCounts: { include: { inventory: { include: { order: true } }, countedBy: true }, orderBy: { countedAt: "desc" }, take: 25 },
+        inventories: {
+          where: { order: orderTenantWhere },
+          select: {
+            id: true,
+            status: true,
+            remainingStockStatus: true,
+            expectedFlyers: true,
+            receivedFlyers: true,
+            remainingFlyers: true,
+            damagedFlyers: true,
+            warehouseLocation: { select: { id: true, fullLabel: true } },
+            order: { select: { id: true, orderNumber: true } },
+          },
+          orderBy: { updatedAt: "desc" },
+          take: 50,
+        },
+        shipments: {
+          where: { order: orderTenantWhere },
+          select: {
+            id: true,
+            shipmentType: true,
+            status: true,
+            trackingNumber: true,
+            expectedDeliveryDate: true,
+            deliveredAt: true,
+            order: { select: { id: true, orderNumber: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        },
+        transfersFrom: {
+          where: { inventory: { order: orderTenantWhere } },
+          select: {
+            id: true,
+            status: true,
+            quantity: true,
+            toWarehouse: { select: { id: true, name: true, code: true } },
+            inventory: { select: { id: true, order: { select: { id: true, orderNumber: true } } } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 25,
+        },
+        transfersTo: {
+          where: { inventory: { order: orderTenantWhere } },
+          select: {
+            id: true,
+            status: true,
+            quantity: true,
+            fromWarehouse: { select: { id: true, name: true, code: true } },
+            inventory: { select: { id: true, order: { select: { id: true, orderNumber: true } } } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 25,
+        },
+        stockCounts: {
+          where: { inventory: { order: orderTenantWhere } },
+          select: {
+            id: true,
+            expectedQuantity: true,
+            countedQuantity: true,
+            difference: true,
+            countedAt: true,
+            inventory: { select: { id: true, order: { select: { id: true, orderNumber: true } } } },
+          },
+          orderBy: { countedAt: "desc" },
+          take: 25,
+        },
       },
     });
     if (!warehouse) return errorResponse("Lager wurde nicht gefunden.", 404);
@@ -33,7 +96,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.WAREHOUSE_MANAGE);
     const { id } = await context.params;
     const parsed = logisticsWarehouseUpdateSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");

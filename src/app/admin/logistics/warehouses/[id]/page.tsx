@@ -2,14 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminWarehouseDetailPage({ params }: PageProps) {
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.WAREHOUSE_VIEW);
   const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
   const { id } = await params;
   const orderTenantWhere = tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" };
@@ -18,11 +18,11 @@ export default async function AdminWarehouseDetailPage({ params }: PageProps) {
     include: {
       regions: { orderBy: [{ priority: "desc" }, { name: "asc" }] },
       locations: { orderBy: { fullLabel: "asc" } },
-      inventories: { where: { order: orderTenantWhere }, include: { order: { include: { customer: { select: { id: true, companyName: true, userId: true } } } }, warehouseLocation: true }, orderBy: { updatedAt: "desc" }, take: 40 },
-      shipments: { where: { order: orderTenantWhere }, include: { order: true }, orderBy: { createdAt: "desc" }, take: 30 },
-      transfersFrom: { where: { inventory: { order: orderTenantWhere } }, include: { toWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 20 },
-      transfersTo: { where: { inventory: { order: orderTenantWhere } }, include: { fromWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 20 },
-      stockCounts: { where: { inventory: { order: orderTenantWhere } }, include: { inventory: { include: { order: true } }, countedBy: true }, orderBy: { countedAt: "desc" }, take: 20 },
+      inventories: { where: { order: orderTenantWhere }, select: { id: true, status: true, remainingStockStatus: true, expectedFlyers: true, receivedFlyers: true, remainingFlyers: true, warehouseLocation: { select: { id: true, fullLabel: true } }, order: { select: { id: true, orderNumber: true } } }, orderBy: { updatedAt: "desc" }, take: 40 },
+      shipments: { where: { order: orderTenantWhere }, select: { id: true, shipmentType: true, status: true, trackingNumber: true, order: { select: { id: true, orderNumber: true } } }, orderBy: { createdAt: "desc" }, take: 30 },
+      transfersFrom: { where: { inventory: { order: orderTenantWhere } }, select: { id: true, status: true, quantity: true, toWarehouse: { select: { id: true, name: true, code: true } }, inventory: { select: { id: true, order: { select: { id: true, orderNumber: true } } } } }, orderBy: { createdAt: "desc" }, take: 20 },
+      transfersTo: { where: { inventory: { order: orderTenantWhere } }, select: { id: true, status: true, quantity: true, fromWarehouse: { select: { id: true, name: true, code: true } }, inventory: { select: { id: true, order: { select: { id: true, orderNumber: true } } } } }, orderBy: { createdAt: "desc" }, take: 20 },
+      stockCounts: { where: { inventory: { order: orderTenantWhere } }, select: { id: true, expectedQuantity: true, countedQuantity: true, difference: true, countedAt: true, inventory: { select: { id: true, order: { select: { id: true, orderNumber: true } } } } }, orderBy: { countedAt: "desc" }, take: 20 },
     },
   });
   if (!warehouse) notFound();
@@ -57,8 +57,8 @@ export default async function AdminWarehouseDetailPage({ params }: PageProps) {
       </DataSection>
 
       <DataSection title="Aktuelle Bestände">
-        <div className="tableWrap"><table><thead><tr><th>Auftrag</th><th>Kunde</th><th>Status</th><th>Platz</th><th>Flyer</th></tr></thead><tbody>
-          {warehouse.inventories.map((item) => <tr key={item.id}><td>{item.order.orderNumber}</td><td>{item.order.customer.companyName}</td><td>{item.status}</td><td>{item.warehouseLocation?.fullLabel ?? "-"}</td><td>{item.remainingFlyers ?? item.expectedFlyers}</td></tr>)}
+        <div className="tableWrap"><table><thead><tr><th>Auftrag</th><th>Status</th><th>Platz</th><th>Flyer</th></tr></thead><tbody>
+          {warehouse.inventories.map((item) => <tr key={item.id}><td>{item.order.orderNumber}</td><td>{item.status}</td><td>{item.warehouseLocation?.fullLabel ?? "-"}</td><td>{item.remainingFlyers ?? item.expectedFlyers}</td></tr>)}
         </tbody></table></div>
       </DataSection>
 

@@ -160,3 +160,10 @@ aktuellen Sitzung.
   weiterhin eine vollstaendige Laufzeitmatrix.
 - Plattformrollen sind noch nicht in Superadmin, Unternehmensadmin und
   Support-Organisation getrennt.
+
+Der Admin-Logistikdetailpfad filtert BestÃ¤nde, Sendungen, Umlagerungen und
+Inventuren fÃ¼r Support ebenfalls auf die aktive `tenantId` und serialisiert
+nur operative Auftragsreferenzen. Lager-StammdatenÃ¤nderungen Ã¼ber diesen
+Pfad erfordern `warehouse.view` und sind damit an die aktive Mitgliedschaft
+gebunden; StammdatenÃ¤nderungen Ã¼ber diesen Pfad sind mit `warehouse.manage`
+ausschlieÃŸlich Admins vorbehalten.

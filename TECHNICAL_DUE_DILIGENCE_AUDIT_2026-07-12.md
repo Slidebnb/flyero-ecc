@@ -838,6 +838,16 @@ Der Passwort-Reset ist als Basispaket umgesetzt:
 
 Offen bleiben MFA, Passwort-Historie, kompromittierte-Passwort-Pruefung und eine zentrale Bounce-/Zustellüberwachung.
 
+### P1 Lagerdetail und Stammdaten-RBAC (13.07.2026)
+
+Der interne Admin-Logistikdetailpfad filtert BestÃ¤nde, Sendungen,
+Umlagerungen und Inventuren fÃ¼r Support auf die aktive `tenantId`. Die
+Antwort verwendet eine operative Whitelist und gibt keine Kundenprofile oder
+internen Benutzerobjekte zurÃ¼ck. Mutationen von Lager-Stammdaten Ã¼ber den
+Detail-Endpunkt erfordern jetzt `warehouse.manage`, eine Admin-only-
+Berechtigung. Die fachliche Lagerpflege unter `/admin/settings/warehouses`
+war bereits Admin-only.
+
 ### P1 Auth-Abuse-Schutz
 
 Das zentrale Auth-Abuse-Paket wurde anschließend ergänzt:

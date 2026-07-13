@@ -24,6 +24,8 @@ for (const permission of [
   "PRICING_MANAGE",
   "REPORT_PUBLISH",
   "INVOICE_VIEW",
+  "WAREHOUSE_MANAGE",
+  "WAREHOUSE_VIEW",
 ]) {
   assert.match(permissions, new RegExp(`${permission}:`), `Permission ${permission} fehlt.`);
 }
@@ -45,5 +47,9 @@ for (const [source, permission] of [
 ]) {
   assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
 }
+
+const warehouseRoute = await readFile("src/app/api/admin/logistics/warehouses/[id]/route.ts", "utf8");
+assert.match(warehouseRoute, /requirePermission\(Permission\.WAREHOUSE_VIEW\)/, "Lager-Lesen erzwingt keine aktive Unternehmensmitgliedschaft.");
+assert.match(warehouseRoute, /requirePermission\(Permission\.WAREHOUSE_MANAGE\)/, "Lager-Stammdaten sind nicht auf Admin beschrÃ¤nkt.");
 
 console.log("Permission-Matrix Smoke-Test erfolgreich abgeschlossen.");
