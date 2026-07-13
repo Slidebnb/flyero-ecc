@@ -1,15 +1,12 @@
 import { revalidatePath } from "next/cache";
-import { UserRole } from "@prisma/client";
 import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { listPrintOrders, listPrintPartners, PRINT_STATUS_LABELS, updatePrintOrder } from "@/lib/documents";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function updateAction(formData: FormData) {
   "use server";
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
-  await requirePermission(Permission.PRINT_PARTNER_VIEW);
+  const session = await requirePermission(Permission.PRINT_ORDER_MANAGE);
   await updatePrintOrder(session, String(formData.get("id")), {
     status: String(formData.get("status") || ""),
     printerId: String(formData.get("printerId") || "") || null,
@@ -21,7 +18,8 @@ async function updateAction(formData: FormData) {
 }
 
 export default async function AdminPrintOrdersPage() {
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.PRINT_ORDER_VIEW);
+  await requirePermission(Permission.PRINT_PARTNER_VIEW);
   const [printOrders, partners] = await Promise.all([listPrintOrders(session), listPrintPartners()]);
   return (
     <PortalShell eyebrow="Adminbereich" title="Druckaufträge" description="Status, Partner, Tracking und manuelle FLYERO-Druckpreise pflegen." navItems={adminNavItems}>

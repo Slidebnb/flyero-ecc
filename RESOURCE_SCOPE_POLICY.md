@@ -141,6 +141,11 @@ Smoke `npm run test:auth-session-management` prueft zwei echte Logins,
 Sitzungsanzeige, Widerruf der zweiten Sitzung und die weitere Gueltigkeit der
 aktuellen Sitzung.
 
+Die Admin-Druckauftragsrouten erzwingen `print-order.view` bzw.
+`print-order.manage` und pruefen damit zusaetzlich die aktive
+Unternehmensmitgliedschaft; die bestehende Support-Sicht bleibt auf
+`tenantId` begrenzt.
+
 ## Bewusst offene Punkte
 
 - Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch; die

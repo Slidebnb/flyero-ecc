@@ -58,5 +58,11 @@ assert.match(printPartnerRoute, /requirePermission\(Permission\.PRINT_PARTNER_VI
 assert.match(printPartnerRoute, /requirePermission\(Permission\.PRINT_PARTNER_MANAGE\)/);
 assert.match(printPartnerDetailRoute, /requirePermission\(Permission\.PRINT_PARTNER_MANAGE\)/);
 assert.match(printPartnerPage, /hasPermission\(session, Permission\.PRINT_PARTNER_MANAGE\)/);
+const printOrderRoute = await readFile("src/app/api/admin/print-orders/route.ts", "utf8");
+const printOrderDetailRoute = await readFile("src/app/api/admin/print-orders/[id]/route.ts", "utf8");
+const printOrderPage = await readFile("src/app/admin/print-orders/page.tsx", "utf8");
+assert.match(printOrderRoute, /requirePermission\(Permission\.PRINT_ORDER_VIEW\)/);
+assert.match(printOrderDetailRoute, /requirePermission\(Permission\.PRINT_ORDER_MANAGE\)/);
+assert.match(printOrderPage, /requirePermission\(Permission\.PRINT_ORDER_VIEW\)/);
 
 console.log("Permission-Matrix Smoke-Test erfolgreich abgeschlossen.");

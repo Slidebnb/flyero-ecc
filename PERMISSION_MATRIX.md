@@ -27,6 +27,8 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `warehouse.manage` | Ja | Nein | Nein | Nein | Nein |
 | `print-partner.view` | Ja | Ja | Nein | Nein | Nein |
 | `print-partner.manage` | Ja | Nein | Nein | Nein | Nein |
+| `print-order.view` | Ja | Ja | Nein | Nein | Nein |
+| `print-order.manage` | Ja | Ja | Nein | Nein | Nein |
 
 ## Designregeln
 
