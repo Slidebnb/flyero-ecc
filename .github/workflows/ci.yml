@@ -188,6 +188,12 @@ jobs:
       - name: Production storage layout smoke
         run: npm run test:storage-layout
 
+      - name: Document review tenant scope smoke
+        run: npm run test:document-review-tenant-scope
+
+      - name: Pricing system linkage smoke
+        run: npm run test:pricing-system-linkage
+
       - name: Backup scheduler smoke
         run: npm run test:backup-scheduler
 

@@ -444,6 +444,8 @@ export async function rescanDocument(actor: SessionUser, id: string) {
 
 export async function rejectDocument(actor: SessionUser, id: string, rejectedReason: string) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dokumente ablehnen.", 403);
+  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { id: true } });
+  if (!current) throw new AuthError("Dokument wurde nicht gefunden.", 404);
   const document = await prisma.document.update({
     where: { id },
     data: { status: "REJECTED", rejectedReason, approvedById: null, approvedAt: null },

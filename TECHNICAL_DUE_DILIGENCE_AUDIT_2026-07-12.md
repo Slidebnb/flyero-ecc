@@ -946,6 +946,12 @@ Die vollstaendige A/B-Laufzeitmatrix fuer alle internen Ressourcen bleibt weiter
 
 Der Codepfad ist damit korrigiert; der operative Nachweis der Migration und ein anschliessender Restore-Test bleiben als P0-Betriebsaufgabe offen.
 
+### P1 Dokumentfreigabe mit Tenant-Scope (13.07.2026)
+
+- `rejectDocument()` akzeptierte die Support-/Dokumentenpruefberechtigung, schrieb aber vor der Aenderung direkt per Dokument-ID. Dadurch fehlte fuer diese Mutation der gleiche Tenant-Scope, den Listen, Details und Freigaben bereits verwendeten.
+- Vor der Ablehnung wird das Dokument jetzt mit `documentWhere(actor)` geladen. Fremde oder nicht vorhandene Dokumente werden mit `404` abgewiesen; erst danach erfolgt die Mutation.
+- `tests/document-review-tenant-scope-smoke.mjs` ist als CI-Contract eingebunden. Die vollstaendige A/B-Laufzeitmatrix aller internen Ressourcen bleibt weiterhin offen.
+
 ### P1 Geschuetzte Datei-Auslieferung (13.07.2026)
 
 - Geschuetzte Kunden-, Nachweis-, Rechnungs-, Report- und Export-Downloads verwenden jetzt eine gemeinsame Header-Policy mit `private, no-store`, `X-Content-Type-Options: nosniff` und bereinigten Download-Dateinamen.
@@ -960,6 +966,7 @@ Offen bleiben der produktive ClamAV-Betrieb mit `FILE_SCAN_MODE=required`, die S
 - Die Preis-Settings-Seite und die Pricing-API verwenden beide `pricing.manage`.
 - Eine Änderung an aktiven Regeln oder der Mehrwertsteuer ruft `syncOpenOrderPrices()` auf. Offene Kundenaufträge erhalten den neuen Preis-Snapshot, offene Checkout-Zahlungen werden lokal und, sofern möglich, auch bei Stripe ungültig gemacht, und der Kunde erhält eine In-App-Nachricht.
 - Neue Gebietskalkulationen lesen dieselbe Datenbankquelle über `calculateOrderPrice()`. Der Checkout berechnet vor der Session-Erzeugung erneut und Rechnungen verwenden den gespeicherten, nachvollziehbaren Auftragssnapshot.
+- Die serverseitige Settings-Seite und die JSON-API sind beide an dieselbe Propagation gebunden; `npm run test:pricing-system-linkage` schützt zusätzlich neue Aufträge, Auftragsänderungen, Kartenintelligenz, Checkout und die Ausschlüsse für bezahlte Aufträge vor einer abweichenden Preisquelle.
 - Der lokale Datenbankstand wurde gegen die Premium-Staffel geprüft: 1-5.000 / 5.001-10.000 / ab 10.001 Flyer mit 599 EUR Mindestnetto und marginalen Aufschlägen.
 - `ENABLE_MOCK_PAYMENTS=false` ist im Produktions-Preflight jetzt ausdrücklich erforderlich. Ein fehlender Wert gilt nicht mehr als sichere Produktionskonfiguration.
 
