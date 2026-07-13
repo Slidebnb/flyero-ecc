@@ -406,6 +406,17 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   serialisiert. Der Contract-Smoke `npm run test:internal-response-privacy`
   prueft die Whitelist gegen Rueckfaelle.
 
+### Interne Logistikseiten (13.07.2026)
+
+- Die Support-/Dispatcher-Ansicht fuer Sendungen filtert jetzt serverseitig
+  nach dem aktiven `tenantId`; auch die Auswahl neuer Auftraege ist auf diesen
+  Mandanten begrenzt.
+- Lagerdetailseiten begrenzen Bestände, Sendungen, Umlagerungen und Inventuren
+  bei Support-Zugriffen auf Aufträge des eigenen Mandanten. Admin bleibt als
+  Plattformrolle global berechtigt.
+- `npm run test:logistics-tenant-scope` prueft die API- und Seitenpfade gegen
+  Rueckfaelle.
+
 ### Public Health Fail-safe (13.07.2026)
 
 - `GET /api/health` bleibt minimal und liefert bei einer nicht erreichbaren

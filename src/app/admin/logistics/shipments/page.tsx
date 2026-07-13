@@ -7,19 +7,34 @@ import { adminNavItems } from "@/app/admin/AdminPortalShell";
 type PageProps = { searchParams?: Promise<Record<string, string | undefined>> };
 
 export default async function AdminLogisticsShipmentsPage({ searchParams }: PageProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
   const params = (await searchParams) ?? {};
   const status = Object.values(ShipmentStatus).includes(params.status as ShipmentStatus) ? (params.status as ShipmentStatus) : undefined;
   const shipmentType = Object.values(ShipmentType).includes(params.type as ShipmentType) ? (params.type as ShipmentType) : undefined;
   const [shipments, warehouses, orders] = await Promise.all([
     prisma.logisticsShipment.findMany({
-      where: { ...(status ? { status } : {}), ...(shipmentType ? { shipmentType } : {}), ...(params.warehouseId ? { warehouseId: params.warehouseId } : {}) },
-      include: { order: { include: { customer: true } }, warehouse: true, printOrder: true },
+      where: {
+        ...(tenantId === undefined ? {} : { order: { tenantId: tenantId ?? "__no_tenant__" } }),
+        ...(status ? { status } : {}),
+        ...(shipmentType ? { shipmentType } : {}),
+        ...(params.warehouseId ? { warehouseId: params.warehouseId } : {}),
+      },
+      include: {
+        order: { include: { customer: { select: { id: true, companyName: true, userId: true } } } },
+        warehouse: true,
+        printOrder: true,
+      },
       orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }],
       take: 200,
     }),
     prisma.warehouse.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
-    prisma.order.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: { id: true, orderNumber: true, targetAreaName: true } }),
+    prisma.order.findMany({
+      where: tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      select: { id: true, orderNumber: true, targetAreaName: true },
+    }),
   ]);
   return (
     <PortalShell eyebrow="Admin Logistik" title="Sendungsverwaltung" description="Sendungen filtern, anlegen und Status zentral pflegen." navItems={adminNavItems}>

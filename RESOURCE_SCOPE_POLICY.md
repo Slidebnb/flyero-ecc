@@ -94,6 +94,10 @@ Kunden-Whitelists. Passwort-Hashes, vollstaendige Kundenadressen und andere
 Profilfelder werden nicht an die Browserantwort angehaengt. Der Contract-Smoke
 `npm run test:internal-response-privacy` schuetzt diese Grenze.
 
+Support-/Dispatcher-Logistikseiten verwenden dieselbe Mandantengrenze wie die
+APIs: Sendungen, Auftragseingaben und Lagerdetail-Bestände werden auf die
+aktive `tenantId` beschränkt. Nur Admin darf die Plattformdaten global sehen.
+
 Die Route-Analyse verwendet denselben Grundsatz: Kunden und Verteiler lesen
 nur ihre eigene Tour, Admins die Plattformsicht. Die Query laedt keine
 Kunden-/Verteilerprofile fuer eine nachgelagerte Pruefung und gibt bei fremden

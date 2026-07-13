@@ -9,18 +9,20 @@ import { adminNavItems } from "@/app/admin/AdminPortalShell";
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminWarehouseDetailPage({ params }: PageProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
   const { id } = await params;
+  const orderTenantWhere = tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" };
   const warehouse = await prisma.warehouse.findUnique({
     where: { id },
     include: {
       regions: { orderBy: [{ priority: "desc" }, { name: "asc" }] },
       locations: { orderBy: { fullLabel: "asc" } },
-      inventories: { include: { order: { include: { customer: true } }, warehouseLocation: true }, orderBy: { updatedAt: "desc" }, take: 40 },
-      shipments: { include: { order: true }, orderBy: { createdAt: "desc" }, take: 30 },
-      transfersFrom: { include: { toWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 20 },
-      transfersTo: { include: { fromWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 20 },
-      stockCounts: { include: { inventory: { include: { order: true } }, countedBy: true }, orderBy: { countedAt: "desc" }, take: 20 },
+      inventories: { where: { order: orderTenantWhere }, include: { order: { include: { customer: { select: { id: true, companyName: true, userId: true } } } }, warehouseLocation: true }, orderBy: { updatedAt: "desc" }, take: 40 },
+      shipments: { where: { order: orderTenantWhere }, include: { order: true }, orderBy: { createdAt: "desc" }, take: 30 },
+      transfersFrom: { where: { inventory: { order: orderTenantWhere } }, include: { toWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 20 },
+      transfersTo: { where: { inventory: { order: orderTenantWhere } }, include: { fromWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 20 },
+      stockCounts: { where: { inventory: { order: orderTenantWhere } }, include: { inventory: { include: { order: true } }, countedBy: true }, orderBy: { countedAt: "desc" }, take: 20 },
     },
   });
   if (!warehouse) notFound();
