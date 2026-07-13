@@ -6,13 +6,14 @@ Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `1e9e7ee519af38ca402fcec9571750aa2bf2a88d`
+Pruef-Commit: `4054d96778bc89a0dbe73b96049d43f4a3b0a5d0`
 
 ## Aktueller Verifikationsnachtrag (13.07.2026)
 
 Der historische Audittext wird gegen den aktuell verifizierten Repository-Stand
-weitergefuehrt. Der gepruefte Commit ist `1e9e7ee519af38ca402fcec9571750aa2bf2a88d`;
-`origin/main` zeigt auf denselben Commit. Die folgenden Checks liefen gegen den
+weitergefuehrt. Der gepruefte Code-Commit ist
+`4054d96778bc89a0dbe73b96049d43f4a3b0a5d0`; `origin/main` zeigte waehrend der
+Pruefung auf denselben Code-Stand. Die folgenden Checks liefen gegen den
 aktuellen lokalen Stand erfolgreich:
 
 - `npm run test:pricing-sync`
