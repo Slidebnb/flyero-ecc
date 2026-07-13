@@ -5,11 +5,12 @@ async function read(path) {
   return readFile(path, "utf8");
 }
 
-const [ci, codeql, dependabot, packageJson] = await Promise.all([
+const [ci, codeql, dependabot, packageJson, productionCompose] = await Promise.all([
   read(".github/workflows/ci.yml"),
   read(".github/workflows/codeql.yml"),
   read(".github/dependabot.yml"),
   read("package.json").then(JSON.parse),
+  read("docker-compose.production.yml"),
 ]);
 
 assert.match(ci, /pull_request:\s*\n\s*branches:\s*\[main\]/, "CI muss Pull Requests auf main pruefen.");
@@ -34,6 +35,9 @@ assert.match(ci, /BETA_BASE_URL:\s*http:\/\/127\.0\.0\.1:3000/, "Beta-Smokes mue
 assert.match(ci, /name:\s*Start shared test server/, "CI muss genau einen gemeinsamen Next-Testserver starten.");
 assert.match(ci, /flyero-dev\.log/, "CI muss die Testserver-Ausgabe fuer Fehlerdiagnosen sichern.");
 assert.match(ci, /npm run test:security-headers/, "CI muss die Security-Header-Konfiguration pruefen.");
+assert.match(productionCompose, /healthcheck:/, "Der Produktions-App-Service braucht einen Docker-Healthcheck.");
+assert.match(productionCompose, /127\.0\.0\.1:3000\/api\/health/, "Der Docker-Healthcheck muss den echten Health-Endpunkt pruefen.");
+assert.match(productionCompose, /condition:\s*service_healthy/, "Caddy darf erst nach einem gesunden App-Service starten.");
 for (const script of [
   "test:auth-ux",
   "test:auth-session",
