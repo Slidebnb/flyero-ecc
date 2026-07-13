@@ -626,7 +626,12 @@ Damit sind die früheren Befunde `AUTH-01`, `AUTH-03`, `SEC-03`, `SEC-07` und `F
   werden nicht mehr als aktuelle Settings angeboten; `pricing:sync-premium`
   synchronisiert die drei Produktionsstaffeln ohne Demo-Seed.
 - `npm run test:pricing-admin-propagation` prueft Adminaenderung,
-  Kundenpreview, Order-Snapshot und Checkout-Neuberechnung.
+  Kundenpreview, Order-Snapshot und Checkout-Neuberechnung. Aenderungen
+  werden zusaetzlich auf offene, unbezahlte Orders ohne manuellen Preis
+  propagiert; bezahlte Orders und gestartete Checkouts bleiben unveraendert.
+- Admin-Staffeln werden vor dem Speichern auf positive Mengen, Luecken,
+  Ueberschneidungen und Preisabfaelle an Schwellen geprueft. Settings- und
+  API-Speicherungen laufen atomar in einer Transaktion.
 - `readBody()` validiert `Origin` gegen Request- und Site-Origin. Fremde
   Origins werden mit `403` abgewiesen. Stripe-Webhooks bleiben im
   signaturgeprueften Rohbody-Pfad.

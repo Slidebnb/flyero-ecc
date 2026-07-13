@@ -103,14 +103,28 @@ try {
   originalRules = initial.data.rules.filter((rule) => rule.serviceType === "FLYER_DISTRIBUTION" && rule.isActive);
   assert.equal(originalRules.length, 3, "Drei Flyerverteilungsregeln fehlen.");
 
+  const existingOrder = await requestJson("/api/customer/orders", {
+    method: "POST",
+    headers: { cookie: customerCookie },
+    body: JSON.stringify(orderPayload()),
+  });
+  assert.equal(existingOrder.data.calculatedNetPrice, "760", "Ausgangspreis der bestehenden offenen Order ist unerwartet.");
+
   const modifiedRules = originalRules.map((rule) => rule.minQuantity === 1
     ? { ...rule, pricePerUnit: "1.00", basePrice: "0", minimumNetPrice: "0", isActive: true }
-    : rule);
+    : rule.minQuantity === 5001
+      ? { ...rule, basePrice: "5000", isActive: true }
+      : rule.minQuantity === 10001
+        ? { ...rule, basePrice: "6700", isActive: true }
+        : rule);
   await requestJson("/api/admin/settings/pricing", {
     method: "PATCH",
     headers: { cookie: adminCookie },
     body: JSON.stringify({ rules: modifiedRules }),
   });
+
+  const propagated = await requestJson(`/api/customer/orders/${existingOrder.data.id}`, { headers: { cookie: customerCookie } });
+  assert.equal(propagated.data.calculatedNetPrice, "2000", "Preisregel-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
 
   const intelligence = await requestJson("/api/maps/order-intelligence?city=Koblenz&postalCode=56068&coverageAreaSqm=640000&flyerQuantity=2000", {
     headers: { cookie: customerCookie },

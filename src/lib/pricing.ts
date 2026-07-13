@@ -1,4 +1,6 @@
 import { Prisma, ServiceType } from "@prisma/client";
+import { createAuditLog } from "@/lib/audit";
+import { createNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { ensureDefaultPricingSettings, getSystemSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 
@@ -61,6 +63,171 @@ type PricingRuleLike = {
   basePrice: Prisma.Decimal;
   minimumNetPrice: Prisma.Decimal;
 };
+
+export type PricingRuleChange = {
+  id?: string;
+  serviceType: ServiceType;
+  minQuantity: number;
+  maxQuantity: number | null;
+  pricePerUnit: Prisma.Decimal | string | number;
+  basePrice: Prisma.Decimal | string | number;
+  minimumNetPrice: Prisma.Decimal | string | number;
+  isActive: boolean;
+};
+
+function decimal(value: Prisma.Decimal | string | number) {
+  return value instanceof Prisma.Decimal ? value : new Prisma.Decimal(value);
+}
+
+function activeRuleValidationMessage(rules: PricingRuleChange[]) {
+  const ordered = [...rules].sort((left, right) => left.minQuantity - right.minQuantity);
+  if (!ordered.length) return "Mindestens eine aktive Preisregel ist erforderlich.";
+
+  for (const rule of ordered) {
+    if (!Number.isInteger(rule.minQuantity) || rule.minQuantity < 1) {
+      return "Die Mindestmenge einer Preisregel muss eine positive ganze Zahl sein.";
+    }
+    if (rule.maxQuantity !== null && (!Number.isInteger(rule.maxQuantity) || rule.maxQuantity < rule.minQuantity)) {
+      return "Die Maximalmenge einer Preisregel ist ungueltig.";
+    }
+    if (decimal(rule.pricePerUnit).isNegative() || decimal(rule.basePrice).isNegative() || decimal(rule.minimumNetPrice).isNegative()) {
+      return "Preisregeln duerfen keine negativen Werte enthalten.";
+    }
+  }
+
+  for (let index = 1; index < ordered.length; index += 1) {
+    const previous = ordered[index - 1];
+    const current = ordered[index];
+    if (previous.maxQuantity === null || current.minQuantity <= previous.maxQuantity) {
+      return "Aktive Preisregeln duerfen sich nicht ueberschneiden.";
+    }
+    if (previous.serviceType === ServiceType.FLYER_DISTRIBUTION && current.serviceType === ServiceType.FLYER_DISTRIBUTION && current.minQuantity !== previous.maxQuantity + 1) {
+      return "Die Flyer-Staffel muss ohne Luecken aufeinanderfolgen.";
+    }
+
+    const previousEnd = decimal(previous.basePrice).plus(decimal(previous.pricePerUnit).mul(previous.maxQuantity === null ? previous.minQuantity : previous.maxQuantity - previous.minQuantity + 1));
+    const currentStart = decimal(current.basePrice).plus(decimal(current.pricePerUnit));
+    const previousEffective = Prisma.Decimal.max(previousEnd, decimal(previous.minimumNetPrice));
+    const currentEffective = Prisma.Decimal.max(currentStart, decimal(current.minimumNetPrice));
+    if (currentEffective.lessThan(previousEffective)) {
+      return "Die Preisstaffel darf an einer Schwelle nicht guenstiger werden.";
+    }
+  }
+
+  return null;
+}
+
+export async function validatePricingRuleChanges(changes: PricingRuleChange[]) {
+  const current = await prisma.pricingRule.findMany({
+    select: {
+      id: true,
+      serviceType: true,
+      minQuantity: true,
+      maxQuantity: true,
+      pricePerUnit: true,
+      basePrice: true,
+      minimumNetPrice: true,
+      isActive: true,
+    },
+  });
+  const byId = new Map(current.map((rule) => [rule.id, rule]));
+  const proposed: PricingRuleChange[] = current.filter((rule) => rule.isActive).map((rule) => ({ ...rule }));
+
+  for (const change of changes) {
+    const normalized = {
+      id: change.id,
+      serviceType: change.serviceType ?? ServiceType.FLYER_DISTRIBUTION,
+      minQuantity: change.minQuantity,
+      maxQuantity: change.maxQuantity,
+      pricePerUnit: change.pricePerUnit,
+      basePrice: change.basePrice,
+      minimumNetPrice: change.minimumNetPrice,
+      isActive: change.isActive,
+    };
+    const existing = change.id ? byId.get(change.id) : null;
+    const next = existing ? proposed.filter((rule) => rule.id !== existing.id) : proposed;
+    if (normalized.isActive) next.push(normalized);
+    proposed.splice(0, proposed.length, ...next);
+  }
+
+  const grouped = new Map<ServiceType, PricingRuleChange[]>();
+  for (const rule of proposed) {
+    const list = grouped.get(rule.serviceType) ?? [];
+    list.push(rule);
+    grouped.set(rule.serviceType, list);
+  }
+  for (const [serviceType, rules] of grouped) {
+    const error = activeRuleValidationMessage(rules);
+    if (error) return error;
+    if (serviceType === ServiceType.FLYER_DISTRIBUTION && rules[0]?.minQuantity !== 1) {
+      return "Die Flyer-Staffel muss bei 1 Flyer beginnen.";
+    }
+  }
+  return null;
+}
+
+export async function syncOpenOrderPrices() {
+  const orders = await prisma.order.findMany({
+    where: {
+      status: { in: ["DRAFT", "PAYMENT_PENDING", "PAYMENT_FAILED", "SUBMITTED", "WAITING_FOR_CUSTOMER"] },
+      manualPriceOverride: null,
+      payments: { none: { status: { in: ["CREATED", "CHECKOUT_CREATED", "PENDING", "PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } } },
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      tenantId: true,
+      customerId: true,
+      serviceType: true,
+      flyerQuantity: true,
+      calculatedNetPrice: true,
+      calculatedVat: true,
+      calculatedGrossPrice: true,
+      priceRuleSnapshot: true,
+      customer: { select: { userId: true } },
+    },
+  });
+
+  let updatedCount = 0;
+  for (const order of orders) {
+    const price = await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity });
+    if (order.calculatedNetPrice.equals(price.net) && order.calculatedVat.equals(price.vat) && order.calculatedGrossPrice.equals(price.gross)) continue;
+    const existingSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
+      ? order.priceRuleSnapshot as Record<string, unknown>
+      : {};
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        calculatedNetPrice: price.net,
+        calculatedVat: price.vat,
+        calculatedGrossPrice: price.gross,
+        priceRuleSnapshot: {
+          ...existingSnapshot,
+          ...price.snapshot,
+          areaCalculationSnapshot: existingSnapshot.areaCalculationSnapshot ?? null,
+        } as Prisma.InputJsonValue,
+      },
+    });
+    await createAuditLog({
+      userId: order.customer.userId,
+      tenantId: order.tenantId,
+      action: "order.price_updated_from_pricing_settings",
+      entityType: "Order",
+      entityId: order.id,
+      oldValues: { calculatedNetPrice: order.calculatedNetPrice.toString(), calculatedGrossPrice: order.calculatedGrossPrice.toString() },
+      newValues: { calculatedNetPrice: price.net.toString(), calculatedGrossPrice: price.gross.toString(), pricingVersion: price.snapshot.pricingVersion },
+    });
+    await createNotification({
+      userId: order.customer.userId,
+      type: "ORDER_PRICE_UPDATED",
+      title: "Preisvorschau aktualisiert",
+      message: `Die Preisvorschau fuer ${order.orderNumber} wurde nach einer Aktualisierung der Preisregeln neu berechnet.`,
+      data: { orderNumber: order.orderNumber, paymentAmount: price.gross.toString() },
+    });
+    updatedCount += 1;
+  }
+  return { updatedCount };
+}
 
 export function calculatePremiumDistributionTierNetPrice(flyerQuantity: number) {
   const safeQuantity = Math.max(0, Math.floor(flyerQuantity));

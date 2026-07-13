@@ -1,42 +1,60 @@
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 ﻿import { revalidatePath } from "next/cache";
-import { Prisma, UserRole } from "@prisma/client";
+import { Prisma, ServiceType, UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { syncOpenOrderPrices, validatePricingRuleChanges } from "@/lib/pricing";
 import { getPricingSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 
 async function savePricing(formData: FormData) {
   "use server";
   const session = await requireRole([UserRole.ADMIN]);
   const before = await getPricingSettings();
-  for (const key of Object.values(PRICING_SETTING_KEYS)) {
-    const value = formData.get(key);
-    if (value !== null) {
-      await prisma.pricingSetting.upsert({
-        where: { key },
-        update: { valueDecimal: new Prisma.Decimal(String(value)) },
-        create: { key, valueDecimal: new Prisma.Decimal(String(value)), description: `Admin Setting ${key}` },
+  const ids = formData.getAll("ruleId").map(String);
+  const validationError = await validatePricingRuleChanges(ids.map((id) => ({
+    id,
+    serviceType: ServiceType.FLYER_DISTRIBUTION,
+    minQuantity: Number(formData.get(`minQuantity-${id}`)),
+    maxQuantity: formData.get(`maxQuantity-${id}`) ? Number(formData.get(`maxQuantity-${id}`)) : null,
+    minimumNetPrice: String(formData.get(`minimumNetPrice-${id}`) ?? "0"),
+    pricePerUnit: String(formData.get(`pricePerUnit-${id}`) ?? "0"),
+    basePrice: String(formData.get(`basePrice-${id}`) ?? "0"),
+    isActive: formData.get(`isActive-${id}`) === "on",
+  })));
+  if (validationError) throw new Error(validationError);
+
+  await prisma.$transaction(async (tx) => {
+    for (const key of Object.values(PRICING_SETTING_KEYS)) {
+      const value = formData.get(key);
+      if (value !== null) {
+        await tx.pricingSetting.upsert({
+          where: { key },
+          update: { valueDecimal: new Prisma.Decimal(String(value)) },
+          create: { key, valueDecimal: new Prisma.Decimal(String(value)), description: `Admin Setting ${key}` },
+        });
+      }
+    }
+    for (const id of ids) {
+      await tx.pricingRule.update({
+        where: { id },
+        data: {
+          minimumNetPrice: new Prisma.Decimal(String(formData.get(`minimumNetPrice-${id}`) ?? "0")),
+          pricePerUnit: new Prisma.Decimal(String(formData.get(`pricePerUnit-${id}`) ?? "0")),
+          basePrice: new Prisma.Decimal(String(formData.get(`basePrice-${id}`) ?? "0")),
+          isActive: formData.get(`isActive-${id}`) === "on",
+        },
       });
     }
-  }
-  const ids = formData.getAll("ruleId").map(String);
-  for (const id of ids) {
-    await prisma.pricingRule.update({
-      where: { id },
-      data: {
-        minimumNetPrice: new Prisma.Decimal(String(formData.get(`minimumNetPrice-${id}`) ?? "0")),
-        pricePerUnit: new Prisma.Decimal(String(formData.get(`pricePerUnit-${id}`) ?? "0")),
-        basePrice: new Prisma.Decimal(String(formData.get(`basePrice-${id}`) ?? "0")),
-        isActive: formData.get(`isActive-${id}`) === "on",
-      },
-    });
-  }
+  });
+  await syncOpenOrderPrices();
   const after = await getPricingSettings();
   await createAuditLog({ userId: session.id, action: "settings.pricing_updated", entityType: "Pricing", entityId: "pricing", oldValues: before, newValues: after });
   await notifyAdmins({ type: "PRICING_CHANGED", title: "Preisregel geaendert", message: "Preisregeln wurden aktualisiert." });
   revalidatePath("/admin/settings/pricing");
+  revalidatePath("/customer/orders");
+  revalidatePath("/customer/dashboard");
 }
 
 export default async function PricingSettingsPage() {
@@ -59,7 +77,7 @@ export default async function PricingSettingsPage() {
             <tbody>
               {rules.map((rule) => (
                 <tr key={rule.id}>
-                  <td>{rule.minQuantity}-{rule.maxQuantity ?? "∞"}<input type="hidden" name="ruleId" value={rule.id} /></td>
+                  <td>{rule.minQuantity}-{rule.maxQuantity ?? "unbegrenzt"}<input type="hidden" name="ruleId" value={rule.id} /><input type="hidden" name={`minQuantity-${rule.id}`} value={rule.minQuantity} /><input type="hidden" name={`maxQuantity-${rule.id}`} value={rule.maxQuantity ?? ""} /></td>
                   <td><input name={`minimumNetPrice-${rule.id}`} defaultValue={rule.minimumNetPrice.toString()} /></td>
                   <td><input name={`pricePerUnit-${rule.id}`} defaultValue={rule.pricePerUnit.toString()} /></td>
                   <td><input name={`basePrice-${rule.id}`} defaultValue={rule.basePrice.toString()} /></td>
@@ -74,4 +92,3 @@ export default async function PricingSettingsPage() {
     </AdminPortalShell>
   );
 }
-
