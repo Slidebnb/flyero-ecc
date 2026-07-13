@@ -11,8 +11,14 @@ export async function GET() {
     await requireRole([UserRole.ADMIN]);
     const tours = await prisma.distributionTour.findMany({
       include: {
-        distributor: { include: { user: true } },
-        order: { include: { customer: true } },
+        distributor: {
+          include: { user: { select: { id: true, email: true, status: true } } },
+        },
+        order: {
+          include: {
+            customer: { select: { id: true, companyName: true, userId: true } },
+          },
+        },
         inventory: { include: { warehouseLocation: { include: { warehouse: true } } } },
         gpsPoints: true,
         photoProofs: true,

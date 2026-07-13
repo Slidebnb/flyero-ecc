@@ -89,6 +89,11 @@ Der geschuetzte Foto-Download prueft bei Kunden zusaetzlich Auftragseigentum,
 freigegebene Fotos liefern auch dann `404`, wenn der Kunde die eigene
 Auftrags-ID kennt. Das prueft `npm run test:proof-download-privacy`.
 
+Interne Tour- und Logistik-APIs verwenden ebenfalls explizite Benutzer- und
+Kunden-Whitelists. Passwort-Hashes, vollstaendige Kundenadressen und andere
+Profilfelder werden nicht an die Browserantwort angehaengt. Der Contract-Smoke
+`npm run test:internal-response-privacy` schuetzt diese Grenze.
+
 Die Route-Analyse verwendet denselben Grundsatz: Kunden und Verteiler lesen
 nur ihre eigene Tour, Admins die Plattformsicht. Die Query laedt keine
 Kunden-/Verteilerprofile fuer eine nachgelagerte Pruefung und gibt bei fremden

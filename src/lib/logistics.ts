@@ -280,7 +280,10 @@ export async function createLogisticsShipment(input: {
       expectedDeliveryDate: input.expectedDeliveryDate ?? null,
       notes: input.notes ?? null,
     },
-    include: { order: { include: { customer: true } }, warehouse: true },
+    include: {
+      order: { include: { customer: { select: { id: true, companyName: true, userId: true } } } },
+      warehouse: true,
+    },
   });
   await createAuditLog({
     userId: input.actorId ?? null,
@@ -307,7 +310,13 @@ export async function updateLogisticsShipment(input: {
   expectedDeliveryDate?: Date | null;
   notes?: string | null;
 }) {
-  const current = await prisma.logisticsShipment.findFirst({ where: { id: input.id, ...shipmentScopeForUser(input.actor) }, include: { order: { include: { customer: true } }, warehouse: true } });
+  const current = await prisma.logisticsShipment.findFirst({
+    where: { id: input.id, ...shipmentScopeForUser(input.actor) },
+    include: {
+      order: { include: { customer: { select: { id: true, companyName: true, userId: true } } } },
+      warehouse: true,
+    },
+  });
   if (!current) throw new Error("Sendung wurde nicht gefunden oder ist nicht berechtigt.");
   const nextStatus = input.status ?? current.status;
   const update: Prisma.LogisticsShipmentUpdateInput = {
@@ -319,7 +328,14 @@ export async function updateLogisticsShipment(input: {
     deliveredAt: ["DELIVERED", "RECEIVED"].includes(nextStatus) ? new Date() : undefined,
     receivedBy: nextStatus === "RECEIVED" ? { connect: { id: input.actor.id } } : undefined,
   };
-  const shipment = await prisma.logisticsShipment.update({ where: { id: current.id }, data: update, include: { order: { include: { customer: true } }, warehouse: true } });
+  const shipment = await prisma.logisticsShipment.update({
+    where: { id: current.id },
+    data: update,
+    include: {
+      order: { include: { customer: { select: { id: true, companyName: true, userId: true } } } },
+      warehouse: true,
+    },
+  });
   const action =
     shipment.status === "RECEIVED"
       ? "logistics.shipment_received"

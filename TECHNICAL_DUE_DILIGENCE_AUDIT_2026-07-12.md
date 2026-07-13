@@ -396,6 +396,16 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   Warehouse-Login zugewiesene Lager. Der Warehouse-Scope-Smoke prueft, dass
   ein fremder, statusmaessig passender Auftrag nicht in der Seite erscheint.
 
+### Interne API-Antworten (13.07.2026)
+
+- Tour- und Logistik-Responses laden keine vollstaendigen `User`-Objekte mehr.
+  Admin-Touren liefern fuer den Verteiler nur ID, E-Mail und Status; Shipment-
+  Responses begrenzen auch den Empfangsbenutzer auf diese operativen Felder.
+- Kundenbeziehungen in diesen Responses enthalten nur ID, Firmenname und
+  `userId`; Passwort-Hashes, Adressdaten und weitere Profildaten werden nicht
+  serialisiert. Der Contract-Smoke `npm run test:internal-response-privacy`
+  prueft die Whitelist gegen Rueckfaelle.
+
 ### Proof-Download-Freigabe (13.07.2026)
 
 - Der Foto-Download fuer Kunden prueft neben dem eigenen Auftrag jetzt auch

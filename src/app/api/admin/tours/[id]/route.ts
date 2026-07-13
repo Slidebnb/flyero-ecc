@@ -12,8 +12,14 @@ export async function GET(_request: Request, { params }: RouteProps) {
     const tour = await prisma.distributionTour.findUnique({
       where: { id },
       include: {
-        distributor: { include: { user: true } },
-        order: { include: { customer: true } },
+        distributor: {
+          include: { user: { select: { id: true, email: true, status: true } } },
+        },
+        order: {
+          include: {
+            customer: { select: { id: true, companyName: true, userId: true } },
+          },
+        },
         inventory: { include: { warehouseLocation: { include: { warehouse: true } } } },
         gpsPoints: { orderBy: { recordedAt: "asc" } },
         photoProofs: { orderBy: { createdAt: "desc" } },

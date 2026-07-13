@@ -20,7 +20,12 @@ export async function GET(request: NextRequest) {
         ...(shipmentType ? { shipmentType } : {}),
         ...(warehouseId ? { warehouseId } : {}),
       },
-      include: { order: { include: { customer: true } }, printOrder: true, warehouse: true, receivedBy: true },
+      include: {
+        order: { include: { customer: { select: { id: true, companyName: true, userId: true } } } },
+        printOrder: true,
+        warehouse: true,
+        receivedBy: { select: { id: true, email: true, role: true, status: true } },
+      },
       orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }],
       take: 200,
     });

@@ -23,7 +23,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   const profile = await prisma.distributorProfile.findUnique({
     where: { id },
-    include: { user: true },
+    select: { id: true, userId: true, reviewStatus: true, adminNotes: true, approvedAt: true, rejectedAt: true },
   });
 
   if (!profile) {

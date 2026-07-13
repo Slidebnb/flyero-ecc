@@ -22,7 +22,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
   const tour = await prisma.distributionTour.findUnique({
     where: { id },
     include: {
-      distributor: { include: { user: true } },
+      distributor: { include: { user: { select: { id: true, email: true, status: true } } } },
       order: { include: { customer: true, statusEvents: { orderBy: { createdAt: "desc" } } } },
       inventory: { include: { warehouseLocation: { include: { warehouse: true } } } },
       gpsPoints: { orderBy: { recordedAt: "asc" } },
