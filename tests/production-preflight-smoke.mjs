@@ -24,7 +24,7 @@ const validEnvironment = {
   FILE_STORAGE_PROVIDER: "s3",
   FILE_SCAN_MODE: "required",
   S3_ENDPOINT: "https://s3.example.com",
-  S3_REGION: "eu-central-1",
+  S3_REGION: "fsn1",
   S3_BUCKET: "flyero-private",
   S3_ACCESS_KEY_ID: "access-synthetic-key",
   S3_SECRET_ACCESS_KEY: "secret-synthetic-key",

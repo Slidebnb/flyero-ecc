@@ -17,6 +17,10 @@ function isConfiguredSecret(value) {
   return value.length >= 8 && !value.includes("replace-") && !value.includes("example");
 }
 
+function isConfiguredValue(value) {
+  return value.trim().length > 0 && !value.includes("replace-") && !value.includes("example");
+}
+
 requireValue("NODE_ENV", (value) => value === "production", "muss production sein.");
 requireValue("AUTH_SECRET", (value) => value.length >= 32 && !value.includes("replace-"), "muss mindestens 32 Zeichen haben.");
 requireValue("APP_URL", isHttps, "muss eine HTTPS-URL sein.");
@@ -45,7 +49,7 @@ requireValue("GOOGLE_MAPS_SERVER_KEY", isConfiguredSecret, "muss gesetzt sein.")
 requireValue("FILE_STORAGE_PROVIDER", (value) => value.toLowerCase() === "s3", "muss in Produktion s3 sein.");
 requireValue("FILE_SCAN_MODE", (value) => value.toLowerCase() === "required", "muss required sein.");
 requireValue("S3_ENDPOINT", isHttps, "muss eine HTTPS-URL sein.");
-requireValue("S3_REGION", isConfiguredSecret, "muss gesetzt sein.");
+requireValue("S3_REGION", isConfiguredValue, "muss gesetzt sein.");
 requireValue("S3_BUCKET", isConfiguredSecret, "muss gesetzt sein.");
 requireValue("S3_ACCESS_KEY_ID", isConfiguredSecret, "muss gesetzt sein.");
 requireValue("S3_SECRET_ACCESS_KEY", isConfiguredSecret, "muss gesetzt sein.");
