@@ -6,12 +6,12 @@ Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `f21da1f8a30c33e885069b72346434640b5448cb`
+Pruef-Commit: `ff3f6756905df801cde0950a5c3bb2da02ef80a7`
 
 ## Aktueller Verifikationsnachtrag (13.07.2026)
 
 Der historische Audittext wird gegen den aktuell verifizierten Repository-Stand
-weitergefuehrt. Der gepruefte Commit ist `f21da1f8a30c33e885069b72346434640b5448cb`;
+weitergefuehrt. Der gepruefte Commit ist `ff3f6756905df801cde0950a5c3bb2da02ef80a7`;
 `origin/main` zeigt auf denselben Commit. Die folgenden Checks liefen gegen den
 aktuellen lokalen Stand erfolgreich:
 
@@ -33,6 +33,14 @@ aktuellen lokalen Stand erfolgreich:
 - `npm run test:logistics-tenant-scope`
 - `npm run test:analytics-tenant-scope`
 - `npm run test:dispatch-tenant-scope`
+- `npm run test:retention`
+- `npm run test:retention-hold`
+- `npm run test:retention-hold-runtime`
+- `npm run test:permissions`
+- `npm run test:production-preflight`
+- `npm run test:module25`
+- `npm run test:ci-config`
+- `npm run test:operational-docs`
 - `npm run test:payment-production-guard`
 - `npm run lint`
 - `npx tsc --noEmit`
@@ -1169,3 +1177,17 @@ Detailantworten weiter. Der Privacy-Contract umfasst diese Services nun mit.
 - Ausgefuehrt: `test:pricing-system-linkage`, `test:pricing-sync`,
   `test:pricing-admin-propagation`, `test:customer-order-area` und
   `test:customer-order-checkout` erfolgreich gegen den lokalen Server.
+
+### P1 CI-Abdeckung fuer Nachweis- und Upload-Schutz (13.07.2026)
+
+- Die neuen Legal-Hold-Vertraege werden jetzt im GitHub-Critical-Smoke
+  ausgefuehrt: `test:retention-hold` prueft Struktur und Berechtigung,
+  `test:retention-hold-runtime` prueft Login, API, Datenbank, Audit und
+  Aufhebung gegen den gemeinsamen CI-Server.
+- `test:upload-security`, `test:protected-download-headers` und
+  `test:public-artifact-privacy` sind ebenfalls als CI-Gates verdrahtet.
+- `test:ci-config` erzwingt, dass diese Tests nicht aus dem Workflow entfernt
+  werden, ohne dass der Contract-Smoke fehlschlaegt.
+- Externer Branch-Schutz, verpflichtende GitHub-Statuschecks und eine
+  getrennte Staging-Umgebung bleiben Plattform-/Repository-Einstellungen und
+  sind durch den Repo-Smoke nicht nachgewiesen.
