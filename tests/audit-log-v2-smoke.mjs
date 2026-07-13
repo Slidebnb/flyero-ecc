@@ -5,13 +5,15 @@ const schema = await readFile("prisma/schema.prisma", "utf8");
 const audit = await readFile("src/lib/audit.ts", "utf8");
 const context = await readFile("src/lib/auditRequestContext.ts", "utf8");
 const migration = await readFile("prisma/migrations/20260712160000_audit_log_context/migration.sql", "utf8");
+const integrityMigration = await readFile("prisma/migrations/20260713160000_audit_log_integrity/migration.sql", "utf8");
 const login = await readFile("src/app/api/auth/login/route.ts", "utf8");
 const logout = await readFile("src/app/api/auth/logout/route.ts", "utf8");
 
-for (const field of ["requestId", "ipAddress", "userAgent", "result"]) {
+for (const field of ["requestId", "ipAddress", "userAgent", "result", "previousIntegrityHash", "integrityHash"]) {
   assert.match(schema, new RegExp(`\\b${field}\\b`), `AuditLog field missing: ${field}`);
   assert.match(audit, new RegExp(`\\b${field}\\b`), `Audit writer field missing: ${field}`);
-  assert.match(migration, new RegExp(`\\"${field}\\"`), `Migration field missing: ${field}`);
+  const migrationSource = ["previousIntegrityHash", "integrityHash"].includes(field) ? integrityMigration : migration;
+  assert.match(migrationSource, new RegExp(`\\"${field}\\"`), `Migration field missing: ${field}`);
 }
 
 assert.match(context, /randomUUID/);
@@ -23,5 +25,8 @@ assert.match(logout, /auditRequestContext\(request\)/);
 assert.doesNotMatch(context, /authorization|cookie/i);
 assert.match(audit, /isForeignKeyViolation/);
 assert.match(audit, /userId: null, tenantId: undefined/);
+assert.match(audit, /pg_advisory_xact_lock/);
+assert.match(audit, /createAuditIntegrityHash/);
+assert.match(audit, /verifyAuditLogIntegrity/);
 
 console.log("AuditLog v2 smoke checks passed.");

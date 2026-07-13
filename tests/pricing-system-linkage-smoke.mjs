@@ -11,6 +11,7 @@ const files = new Map([
   ["invoices", "src/lib/invoices.ts"],
   ["customerDashboard", "src/app/customer/dashboard/page.tsx"],
   ["customerUx", "src/app/customer/customerUx.ts"],
+  ["publicPricing", "src/app/preise/page.tsx"],
   ["pricing", "src/lib/pricing.ts"],
 ]);
 
@@ -43,5 +44,8 @@ assert.match(pricing, /invalidatedCheckoutCount/, "Offene Checkout-Zahlungen mü
 assert.match(source.get("invoices"), /priceRuleSnapshot/, "Rechnungen müssen den gespeicherten Auftragspreis-Snapshot verwenden.");
 assert.match(source.get("customerDashboard"), /getOrderGrossPrice/, "Das Kunden-Dashboard muss denselben effektiven Auftragspreis anzeigen.");
 assert.match(source.get("customerUx"), /ORDER_PRICE_UPDATED:\s*"Preisvorschau aktualisiert"/, "Preisänderungen müssen im Kundenportal verständlich benannt werden.");
+assert.match(source.get("publicPricing"), /getPricingSettings/, "Die öffentliche Preisseite muss aktuelle Admin-Preisregeln verwenden.");
+assert.match(source.get("publicPricing"), /dynamic\s*=\s*"force-dynamic"/, "Die öffentliche Preisseite darf keinen veralteten Preis-Cache verwenden.");
+assert.match(source.get("publicPricing"), /distributionRules/, "Die öffentliche Preisseite muss die aktiven Verteilungsregeln darstellen.");
 
 console.log("Pricing system linkage smoke checks passed.");

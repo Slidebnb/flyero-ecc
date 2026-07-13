@@ -1091,3 +1091,15 @@ Routing, Tourpruefung und E-Mail-Verifizierung laden jetzt ebenfalls nur noch
 die jeweils benoetigten User-Felder. Besonders der Report-/Dispatch-Pfad gibt
 damit keine unnoetigen Authentifizierungsdaten ueber zusammengesetzte
 Detailantworten weiter. Der Privacy-Contract umfasst diese Services nun mit.
+
+### P1 Lokaler Integritaetsnachweis fuer AuditLogs (13.07.2026)
+
+- AuditLogs speichern jetzt `previousIntegrityHash` und `integrityHash`. Neue Eintraege werden mit SHA-256 aus dem vorherigen Hash und dem stabil serialisierten Audit-Inhalt gebildet.
+- Eine PostgreSQL-Transaktionssperre serialisiert konkurrierende Audit-Schreiber. `verifyAuditLogIntegrity()` kann die lokale Kette auf fehlende oder nicht passende Hashes pruefen.
+- Die Migration `20260713160000_audit_log_integrity` ist lokal auf PostgreSQL `127.0.0.1:5432` angewendet; `prisma migrate status` ist aktuell.
+- Das ist ein lokaler Manipulationsnachweis, kein unveraenderliches Compliance-Archiv. Externes WORM/SIEM, eingeschraenkte Datenbankrechte und unabhaengige Aufbewahrung bleiben fuer den echten Launch offen.
+
+### P1 Preisquelle auch fuer die oeffentliche Preisseite (13.07.2026)
+
+- `/preise` liest die aktiven Flyer-Verteilungsregeln jetzt aus `getPricingSettings()` und wird dynamisch gerendert. Dadurch koennen alte Staffeltexte nicht neben einer neuen Admin-Preisregel stehen.
+- Der Pricing-Propagation-Smoke prueft jetzt ausser der Kundenorder, Karte, Benachrichtigung und Checkout auch die oeffentliche Preisseite.

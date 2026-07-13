@@ -132,6 +132,12 @@ try {
     body: JSON.stringify({ rules: modifiedRules, settings: { vat_rate: "0.07" } }),
   });
 
+  const publicPricingPage = await fetch(`${baseUrl}/preise`);
+  const publicPricingHtml = await publicPricingPage.text();
+  assert.equal(publicPricingPage.status, 200, "Öffentliche Preisseite ist nach einer Preisänderung nicht erreichbar.");
+  assert(publicPricingHtml.includes("1,00 €"), "Öffentliche Preisseite verwendet nach der Admin-Änderung noch eine alte Flyerregel.");
+  assert(publicPricingHtml.includes("5.000 Flyer"), "Öffentliche Preisseite zeigt die aktuelle Staffel nicht an.");
+
   const propagated = await requestJson(`/api/customer/orders/${existingOrder.data.id}`, { headers: { cookie: customerCookie } });
   assert.equal(propagated.data.calculatedNetPrice, "2000", "Preisregel-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
   assert.equal(propagated.data.calculatedVat, "140", "MwSt.-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");

@@ -10,7 +10,11 @@ import {
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
+import { ServiceType } from "@prisma/client";
 import { createSeoMetadata } from "@/app/seo";
+import { getPricingSettings } from "@/lib/settings";
+
+export const dynamic = "force-dynamic";
 
 export const metadata = createSeoMetadata({
   title: "Preise für Flyerverteilung",
@@ -28,14 +32,33 @@ const priceFactors = [
 ] as const;
 
 const priceDetails = [
-  ["Mindestauftrag", "599 € netto inklusive Gebietsplanung, GPS-Nachweis, Foto-Dokumentation und PDF-Bericht."],
-  ["Marginale Staffel", "Bis 5.000 Flyer gelten 0,38 € je Flyer. Ab 5.001 bzw. 10.001 Flyern gilt der jeweilige Preis nur für die zusätzlichen Flyer."],
+  ["Mindestauftrag", "Der aktuelle Mindestauftrag wird aus den aktiven FLYERO-Preisregeln geladen."],
+  ["Marginale Staffel", "Die aktuelle Flyer-Staffel wird aus den aktiven FLYERO-Preisregeln geladen."],
   ["Gebiet", "PLZ, Ort oder gezeichnete Fläche bestimmen Planung, Aufwand und Zustellbarkeit."],
   ["Zeitfenster", "Standardverteilung, enge Termine oder Expresswünsche verändern die operative Planung."],
   ["Nachweis", "GPS-Spur, Foto-Dokumentation, Admin-Prüfung und PDF-Bericht sind Teil des Qualitätsprozesses."],
 ] as const;
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const pricing = await getPricingSettings();
+  const distributionRules = pricing.rules
+    .filter((rule) => rule.serviceType === ServiceType.FLYER_DISTRIBUTION)
+    .sort((left, right) => left.minQuantity - right.minQuantity);
+  const minimumOrderValue = distributionRules.length
+    ? distributionRules.reduce((minimum, rule) => minimum < rule.minimumNetPrice ? minimum : rule.minimumNetPrice, distributionRules[0].minimumNetPrice)
+    : null;
+  const formatNet = (value: { toString(): string } | null) => value ? `${Number(value.toString()).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : "auf Anfrage";
+  const livePriceDetails = distributionRules.length
+    ? [
+        ["Mindestauftrag", `${formatNet(minimumOrderValue)} netto inklusive Gebietsplanung, GPS-Nachweis, Foto-Dokumentation und PDF-Bericht.`],
+        ["Marginale Staffel", distributionRules.map((rule) => rule.maxQuantity
+          ? `Bis ${rule.maxQuantity.toLocaleString("de-DE")} Flyer: ${formatNet(rule.pricePerUnit)} je Flyer.`
+          : `Ab ${rule.minQuantity.toLocaleString("de-DE")} Flyern: ${formatNet(rule.pricePerUnit)} je zusätzlichem Flyer.`).join(" ")],
+        ["Gebiet", "PLZ, Ort oder gezeichnete Fläche bestimmen Planung, Aufwand und Zustellbarkeit."],
+        ["Zeitfenster", "Standardverteilung, enge Termine oder Expresswünsche verändern die operative Planung."],
+        ["Nachweis", "GPS-Spur, Foto-Dokumentation, Admin-Prüfung und PDF-Bericht sind Teil des Qualitätsprozesses."],
+      ]
+    : priceDetails;
   return (
     <MarketingPage>
       <section className="mkHero" aria-labelledby="pricing-hero-title">
@@ -45,7 +68,7 @@ export default function PricingPage() {
             <p className="mkEyebrow">Preise</p>
             <h1 id="pricing-hero-title">Klare Kalkulation vor der Buchung.</h1>
             <p className="mkHeroLead">
-              Mindestauftrag 599 € netto inklusive Gebietsplanung, GPS-Nachweis,
+              Mindestauftrag {formatNet(minimumOrderValue)} netto inklusive Gebietsplanung, GPS-Nachweis,
               Foto-Dokumentation und PDF-Bericht. Sie sehen die Kosten netto zzgl. MwSt.,
               bevor Sie verbindlich buchen.
             </p>
@@ -72,7 +95,7 @@ export default function PricingPage() {
 
       <MarketingSection eyebrow="Transparenz" title="Was vor der Buchung geprüft wird." tone="light">
         <div className="mkPriceSystem">
-          {priceDetails.map(([title, text]) => (
+          {livePriceDetails.map(([title, text]) => (
             <article key={title}>
               <span>{title}</span>
               <p>{text}</p>

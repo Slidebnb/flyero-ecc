@@ -2259,6 +2259,8 @@ model AuditLog {
   ipAddress  String?
   userAgent  String?
   result     String   @default("SUCCESS")
+  previousIntegrityHash String?
+  integrityHash         String?
   createdAt  DateTime @default(now())
 
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -2268,6 +2270,7 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([tenantId, createdAt])
   @@index([requestId])
+  @@index([integrityHash])
 }
 
 model Notification {

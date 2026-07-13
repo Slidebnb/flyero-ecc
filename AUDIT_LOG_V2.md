@@ -43,3 +43,21 @@ Login und Logout schreiben den Request-Kontext bereits mit. Die übrigen bestehe
 ## Offener Ausbau
 
 Für eine vollständige zentrale Korrelation sollten später Webhooks, Zahlungsaktionen, Dokumentfreigaben und Berichtspublikationen ebenfalls `auditRequestContext(request)` übergeben. Für revisionsrelevante Produktion ist zusätzlich ein externes, manipulationsgeschütztes Logziel mit geprüfter Aufbewahrung erforderlich.
+
+## Lokale Integritaetskette
+
+Seit der Migration `20260713160000_audit_log_integrity` speichert jeder neue
+Audit-Eintrag einen SHA-256-`integrityHash` sowie den Hash des vorherigen
+Eintrags in `previousIntegrityHash`. Die Erstellung wird innerhalb einer
+PostgreSQL-Transaktion mit einem Advisory Lock serialisiert, damit parallele
+Requests keine unerkannte lokale Kette aufspalten.
+
+`verifyAuditLogIntegrity()` prueft die gespeicherten Hashes und die Verweise
+auf den vorherigen Eintrag. Historische Eintraege vor dieser Migration bleiben
+ohne Hash und bilden bewusst keinen nachtraeglich erfundenen Integritaetsnachweis.
+
+Die Kette ist ein lokaler Manipulationsnachweis, keine unveraenderliche
+Compliance-Archivierung: Ein privilegierter Datenbankzugriff kann weiterhin
+Zeilen und die Kette gemeinsam veraendern. Vor einem echten Launch braucht es
+deshalb weiterhin ein externes WORM-/SIEM-Ziel, eingeschraenkte DB-Rechte und
+regelmaessige unabhaengige Integritaetspruefungen.
