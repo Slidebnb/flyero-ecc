@@ -29,6 +29,7 @@ async function readApiResponse(response: Response): Promise<Record<string, unkno
 export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [dialogNotice, setDialogNotice] = useState<Notice | null>(null);
   const [showResend, setShowResend] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [isResending, startResendTransition] = useTransition();
@@ -36,6 +37,7 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice(null);
+    setDialogNotice(null);
     setShowResend(false);
 
     const form = event.currentTarget;
@@ -60,12 +62,12 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
       if (response.ok && payload.ok === true) {
         const verificationEmailSent = data.verificationEmailSent !== false;
         setShowResend(!verificationEmailSent);
-        setNotice({
+        setDialogNotice({
           tone: verificationEmailSent ? "success" : "warning",
-          title: verificationEmailSent ? "Konto erstellt" : "Konto erstellt, Versand prüfen",
+          title: verificationEmailSent ? "Bestätigungslink gesendet" : "Konto erstellt",
           text: verificationEmailSent
-            ? "Wir haben dir einen Bestätigungslink per E-Mail gesendet. Danach kannst du dich einloggen."
-            : "Dein Konto wurde erstellt, aber der Bestätigungslink konnte gerade nicht versendet werden. Du kannst ihn hier erneut anfordern.",
+            ? "Wir haben dir einen Bestätigungslink per E-Mail gesendet. Öffne dein Postfach und bestätige deine E-Mail-Adresse, bevor du dich einloggst."
+            : "Dein Konto wurde erstellt, aber der Bestätigungslink konnte gerade nicht automatisch versendet werden. Du kannst ihn danach erneut anfordern.",
         });
         form.reset();
         setEmail(submittedEmail);
@@ -109,7 +111,8 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
       const data = payload.data && typeof payload.data === "object" ? (payload.data as Record<string, unknown>) : {};
 
       if (response.ok && payload.ok === true) {
-        setNotice({
+        setNotice(null);
+        setDialogNotice({
           tone: "success",
           title: data.alreadyVerified ? "E-Mail bereits bestätigt" : "Bestätigungslink gesendet",
           text:
@@ -130,6 +133,31 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
 
   return (
     <>
+      {dialogNotice ? (
+        <div className="authDialogBackdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setDialogNotice(null);
+        }}>
+          <section
+            className={`authDialog ${dialogNotice.tone}`}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="auth-dialog-title"
+            aria-describedby="auth-dialog-text"
+          >
+            <div className="authDialogIcon" aria-hidden="true">
+              {dialogNotice.tone === "success" ? "✓" : "!"}
+            </div>
+            <div className="authDialogContent">
+              <p className="authDialogEyebrow">Kundenkonto</p>
+              <h2 id="auth-dialog-title">{dialogNotice.title}</h2>
+              <p id="auth-dialog-text">{dialogNotice.text}</p>
+              <button type="button" className="authDialogClose" onClick={() => setDialogNotice(null)} autoFocus>
+                Verstanden
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
       {notice ? (
         <div className={`authNotice ${notice.tone}`} role="status">
           <strong>{notice.title}</strong>

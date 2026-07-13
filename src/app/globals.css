@@ -6100,6 +6100,102 @@ body {
   background: #fff1f0;
 }
 
+.authDialogBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(9, 14, 20, 0.58);
+  backdrop-filter: blur(10px);
+}
+
+.authDialog {
+  width: min(100%, 540px);
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  gap: 18px;
+  padding: 28px;
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 24px;
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.28);
+}
+
+.authDialogIcon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #b7e800;
+  color: #111111;
+  font-size: 1.65rem;
+  font-weight: 950;
+}
+
+.authDialog.warning .authDialogIcon {
+  background: #ffe5ad;
+  color: #8a5800;
+}
+
+.authDialogContent {
+  min-width: 0;
+}
+
+.authDialogEyebrow {
+  margin: 2px 0 7px;
+  color: #65717e;
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.authDialog h2 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  line-height: 1.08;
+}
+
+.authDialogContent > p:not(.authDialogEyebrow) {
+  margin: 12px 0 0;
+  color: #4b5865;
+  line-height: 1.6;
+}
+
+.authDialogClose {
+  min-height: 44px;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 20px;
+  background: #111111;
+  color: #ffffff;
+  font: inherit;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.authDialogClose:hover {
+  background: #29323b;
+}
+
+.authDialogClose:focus-visible {
+  outline: 3px solid rgba(183, 232, 0, 0.48);
+  outline-offset: 3px;
+}
+
+@media (max-width: 560px) {
+  .authDialog {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 22px;
+  }
+}
+
 .authPanel .form {
   display: grid;
   gap: 16px;

@@ -26,6 +26,8 @@ assert.match(registerPage, /<CustomerRegisterForm next=\{next\} \/>/, "Customer 
 assert.doesNotMatch(registerPage, /action="\/api\/auth\/register-customer"/, "Register page must not post directly to the API.");
 assert.match(registerForm, /\/api\/auth\/register-customer/, "Register form must submit through fetch.");
 assert.match(registerForm, /\/api\/auth\/resend-verification/, "Register form must offer resend verification.");
+assert.match(registerForm, /role=\"dialog\"/, "Registration success must be shown in a dialog.");
+assert.match(registerForm, /aria-modal=\"true\"/, "Registration dialog must be announced as modal.");
 
 assert.match(verifyPage, /<VerifyEmailForm initialToken=\{params\.token \|\| ""\} \/>/, "Verify page must use the client form.");
 assert.doesNotMatch(verifyPage, /action="\/api\/auth\/verify-email"/, "Verify page must not post directly to the API.");
