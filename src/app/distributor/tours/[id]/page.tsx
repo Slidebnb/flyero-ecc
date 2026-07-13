@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth";
 import { TOUR_STATUS_LABELS, WAREHOUSE_INVENTORY_STATUS_LABELS } from "@/lib/constants";
 import { formatAddress, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { distributorInventorySelect, distributorOrderSelect } from "@/lib/distributorPrivacy";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -17,8 +18,8 @@ export default async function DistributorTourDetailPage({ params }: PageProps) {
   const tour = await prisma.distributionTour.findFirst({
     where: { id, distributorId: profile.id },
     include: {
-      order: { include: { customer: true } },
-      inventory: { include: { warehouseLocation: { include: { warehouse: true } } } },
+      order: { select: distributorOrderSelect },
+      inventory: { select: distributorInventorySelect },
       gpsPoints: { orderBy: { recordedAt: "desc" }, take: 5 },
       photoProofs: { orderBy: { createdAt: "desc" } },
     },
@@ -40,7 +41,8 @@ export default async function DistributorTourDetailPage({ params }: PageProps) {
       <section className="mobileCard">
         <h2 className="sectionTitle">Auftrag</h2>
         <div className="statusBox">
-          <span>Kunde: {tour.order.customer.companyName}</span>
+          <span>Gebiet: {tour.order.targetAreaName}</span>
+          <span>Ort: {tour.order.city}</span>
           <span>Flyer: {tour.inventory?.expectedFlyers ?? tour.order.flyerQuantity}</span>
           <span>Kartons: {tour.inventory?.cartonCount ?? "-"}</span>
           <span>QR-Code Status: {tour.inventory ? WAREHOUSE_INVENTORY_STATUS_LABELS[tour.inventory.status] : "-"}</span>

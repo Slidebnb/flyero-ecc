@@ -56,9 +56,9 @@ for (const path of [
 }
 
 await includes("src/app/admin/dispatch/page.tsx", [
-  "Nicht zugewiesene Auftraege",
-  "Kapazitaet ueberschritten",
-  "Zugewiesene Auftraege",
+  "Nicht zugewiesene Aufträge",
+  "Kapazität überschritten",
+  "Zugewiesene Aufträge",
   "Laufende Touren",
   "Abgeschlossene Touren",
 ]);

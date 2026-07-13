@@ -67,6 +67,14 @@ Rechnungen, Zahlungen und Reports gegen zwei echte Demo-Tenants. Der
 Warehouse-Scope-Smoke prueft QR, Check-in, Status, Lagerplatz und Inventur
 gegen ein fremdes Lager. Contract-Smokes decken die zentralen Pfadregeln ab.
 
+Die Verteileransicht verwendet fuer Auftraege und Lagerdaten explizite
+Privacy-Whitelists. Verteiler erhalten nur operative Angaben wie
+Auftragsnummer, Gebiet, Ort, Flyerzahl, Abholfach und QR-Status; Kundenobjekte,
+Kundenkontaktfelder und interne Lagerkontakte werden nicht serialisiert.
+Eigene Tourdetails sind ueber `distributorId` geschuetzt, fremde Tour-IDs
+liefern `404`. Der Contract-Smoke `npm run test:distributor-privacy` prueft
+API-Responses und gerenderte Verteilerseiten gegen echte Seed-Touren.
+
 ## Bewusst offene Punkte
 
 - Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch; die
@@ -77,5 +85,8 @@ gegen ein fremdes Lager. Contract-Smokes decken die zentralen Pfadregeln ab.
   Unternehmen. Erst danach ist eine `tenantId`-Migration fuer Leads sinnvoll.
 - Monitoring bleibt plattformweit, benoetigt aber externe Alarmierung,
   Aufbewahrungsregeln und ein manipulationsgeschuetztes Archiv.
+- Die Verteiler-Privacy-Pruefung deckt die aktuellen Tour-, Auftrags- und
+  Lageransichten ab; weitere interne Dispatch- und Support-Responses brauchen
+  weiterhin eine vollstaendige Laufzeitmatrix.
 - Plattformrollen sind noch nicht in Superadmin, Unternehmensadmin und
   Support-Organisation getrennt.

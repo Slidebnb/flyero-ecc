@@ -9,6 +9,7 @@ import {
 } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { distributorInventorySelect, distributorOrderSelect } from "@/lib/distributorPrivacy";
 
 function statusBadgeTone(status: DistributorReviewStatus): "success" | "danger" | "warning" {
   if (status === "APPROVED") return "success";
@@ -24,13 +25,13 @@ export default async function DistributorDashboardPage() {
       dispatchAssignments: {
         where: { status: "ASSIGNED" },
         include: {
-          order: { include: { customer: true } },
-          inventory: { include: { warehouseLocation: { include: { warehouse: true } } } },
+          order: { select: distributorOrderSelect },
+          inventory: { select: distributorInventorySelect },
         },
         orderBy: { assignedAt: "desc" },
       },
       tours: {
-        include: { order: true, inventory: { include: { warehouseLocation: { include: { warehouse: true } } } } },
+        include: { order: { select: distributorOrderSelect }, inventory: { select: distributorInventorySelect } },
         orderBy: { updatedAt: "desc" },
       },
     },
@@ -98,7 +99,7 @@ export default async function DistributorDashboardPage() {
             <div>
               <strong>{assignment.order.orderNumber}</strong>
               <p className="muted">
-                {assignment.order.customer.companyName} / {assignment.order.city} / {assignment.order.flyerQuantity} Flyer
+                {assignment.order.city} / {assignment.order.flyerQuantity} Flyer
               </p>
               <small>
                 {assignment.inventory?.warehouseLocation?.warehouse.name ?? "Lager"} /

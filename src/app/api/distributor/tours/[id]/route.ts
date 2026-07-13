@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { getDistributorProfileForUser } from "@/lib/tours";
+import { distributorInventorySelect, distributorOrderSelect } from "@/lib/distributorPrivacy";
 
 type RouteProps = {
   params: Promise<{ id: string }>;
@@ -16,8 +17,8 @@ export async function GET(_request: Request, { params }: RouteProps) {
     const tour = await prisma.distributionTour.findFirst({
       where: { id, distributorId: profile.id },
       include: {
-        order: { include: { customer: true } },
-        inventory: { include: { warehouseLocation: { include: { warehouse: true } } } },
+        order: { select: distributorOrderSelect },
+        inventory: { select: distributorInventorySelect },
         gpsPoints: { orderBy: { recordedAt: "asc" } },
         photoProofs: { orderBy: { createdAt: "desc" } },
       },

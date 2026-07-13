@@ -29,6 +29,7 @@ env:
   BETA_PORT: "3000"
   TENANT_AB_BASE_URL: http://127.0.0.1:3000
   WAREHOUSE_SCOPE_BASE_URL: http://127.0.0.1:3000
+  DISTRIBUTOR_PRIVACY_BASE_URL: http://127.0.0.1:3000
 
 jobs:
   quality:
@@ -198,6 +199,9 @@ jobs:
 
       - name: Support permission smoke
         run: npm run test:support-permission
+
+      - name: Distributor privacy smoke
+        run: npm run test:distributor-privacy
 
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe

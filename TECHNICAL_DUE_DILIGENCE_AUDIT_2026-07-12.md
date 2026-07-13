@@ -363,6 +363,22 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - `npm run test:support-permission` ist in CI eingebunden. Eine vollständige
   Laufzeitmatrix für alle internen Support-/Dispatch-Ressourcen bleibt offen.
 
+### Verteiler-Datensparsamkeit (13.07.2026)
+
+- Die Verteiler-API und die servergerenderten Touransichten laden nicht mehr
+  `customer: true`. Eine gemeinsame Privacy-Whitelist gibt nur operative
+  Auftragsfelder wie Auftragsnummer, Gebiet, Ort und Flyerzahl frei.
+- Auch Lagerdaten werden auf Abholort, Fach, Menge, QR-Code und Status
+  begrenzt; interne Lagerkontakte und nicht benoetigte Reservierungsfelder
+  werden nicht an Verteiler serialisiert.
+- Der Zugriff auf Tourdetails bleibt an die eigene `distributorId` gebunden;
+  eine fremde Tour-ID liefert `404`. Der neue
+  `npm run test:distributor-privacy`-Smoke prueft Response-Daten und HTML
+  gegen reale Seed-Touren.
+- Damit ist der konkrete Kunden-Daten-Leak in den Verteiler-Hauptansichten
+  geschlossen. Eine vollstaendige Laufzeitmatrix fuer alle internen
+  Dispatch-, Support- und Admin-Responses bleibt als Audit-Risiko offen.
+
 ### Rechnungs-PDF-Tenant-Scope (13.07.2026)
 
 - Der interne Rechnungs-PDF-Download verlangt jetzt `INVOICE_VIEW`; Admin bleibt global, Support benoetigt eine aktive Unternehmensmitgliedschaft.

@@ -2,6 +2,7 @@ import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
+import { distributorInventorySelect, distributorOrderSelect } from "@/lib/distributorPrivacy";
 import { getDistributorProfileForUser } from "@/lib/tours";
 
 export async function GET() {
@@ -11,8 +12,8 @@ export async function GET() {
     const tours = await prisma.distributionTour.findMany({
       where: { distributorId: profile.id },
       include: {
-        order: { include: { customer: true } },
-        inventory: { include: { warehouseLocation: { include: { warehouse: true } } } },
+        order: { select: distributorOrderSelect },
+        inventory: { select: distributorInventorySelect },
         gpsPoints: { orderBy: { recordedAt: "desc" }, take: 1 },
         photoProofs: true,
       },
