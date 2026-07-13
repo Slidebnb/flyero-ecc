@@ -752,8 +752,9 @@ Der Support-/Dispositionspfad validiert Auftragszugriffe jetzt gegen die aktive
 Tenant-ID. Dispatch-Dashboard, Empfehlungen, Auto-Zuweisung, Zuweisung und das
 Ignorieren von Empfehlungen reichen den Scope serverseitig bis in die Prisma-
 Abfragen durch. Plattform-Admins bleiben global; fehlende Tenant-Zuordnung bei
-Nicht-Admins fuehrt zu einem leeren, nicht zu einem globalen Scope. Die weitere
-Migration von Logistik-, CRM-, Monitoring- und Nebenressourcen bleibt offen.
+Nicht-Admins fuehrt zu einem leeren, nicht zu einem globalen Scope. Logistik und
+CRM sind inzwischen ebenfalls gescoped; globale Monitoring- und Notification-
+Operationen sind bis zu einer spaeteren Tenant-Modellierung Admin-only.
 
 ### Logistik-Tenant-Scope
 
