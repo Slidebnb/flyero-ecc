@@ -6,12 +6,12 @@ Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `ff3f6756905df801cde0950a5c3bb2da02ef80a7`
+Pruef-Commit: `962d4c32f2c6bdc2347d30dbfa34841f2fd62c3d`
 
 ## Aktueller Verifikationsnachtrag (13.07.2026)
 
 Der historische Audittext wird gegen den aktuell verifizierten Repository-Stand
-weitergefuehrt. Der gepruefte Commit ist `ff3f6756905df801cde0950a5c3bb2da02ef80a7`;
+weitergefuehrt. Der gepruefte Commit ist `962d4c32f2c6bdc2347d30dbfa34841f2fd62c3d`;
 `origin/main` zeigt auf denselben Commit. Die folgenden Checks liefen gegen den
 aktuellen lokalen Stand erfolgreich:
 
@@ -1191,3 +1191,20 @@ Detailantworten weiter. Der Privacy-Contract umfasst diese Services nun mit.
 - Externer Branch-Schutz, verpflichtende GitHub-Statuschecks und eine
   getrennte Staging-Umgebung bleiben Plattform-/Repository-Einstellungen und
   sind durch den Repo-Smoke nicht nachgewiesen.
+
+### P1 Verteiler-APIs auf zentrale Permissions migriert (13.07.2026)
+
+- Auftragssuche, Annahme/Ablehnung, Profil, Touren, Pickup, GPS, Fotos und
+  Tourabschluss verwenden jetzt `distributor.operations.view` bzw.
+  `distributor.operations.manage` statt direkter `requireRole`-Pruefungen.
+- Verteiler-Support verwendet eigene `distributor.support.view`- und
+  `distributor.support.manage`-Permissions. Kunden und Support/Disposition
+  erhalten diese Berechtigungen nicht.
+- Der MVP verwendet Verteiler als relation-gescopte Arbeitskraefte ohne
+  festen Kunden-Tenant. Deshalb ist die Membership-Pruefung nur fuer diese
+  vier explizit begrenzten Permissions ausgenommen; jede fachliche Abfrage
+  bleibt ueber das eigene Verteilerprofil oder die Tourzuweisung geschuetzt.
+- `test:role-permission-migration`, `test:distributor-privacy` und
+  `test:permissions` pruefen den Contract und die Laufzeit. Die A/B-Matrix
+  weiterer interner Support-/Admin-Ressourcen und die spaetere Trennung von
+  Plattform- und Unternehmensadmin bleiben offen.
