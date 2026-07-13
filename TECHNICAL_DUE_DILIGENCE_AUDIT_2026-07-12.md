@@ -338,6 +338,7 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - Der Proxy erzeugt oder validiert eine begrenzte `x-request-id` fuer API- und geschuetzte Portal-Aufrufe, reicht sie an die Route weiter und gibt sie in der Response zurueck.
 - `createAuditLog` liest den aktuellen Request-Kontext automatisch, wenn eine Route keinen expliziten Kontext uebergibt.
 - System-, Error- und Background-Job-Logs uebernehmen die Request-ID zusaetzlich in ihren Metadaten; sensible Headerwerte werden weiterhin begrenzt.
+- `RESOURCE_SCOPE_POLICY.md` dokumentiert jetzt explizit, warum CRM-Leads und Betriebslogs im MVP plattformweit bleiben und welche Ressourcen zwingend tenant-sensibel sind. Diese Dokumentation ersetzt keine spaetere A/B-IDOR-Testmatrix.
 - Der Contract-Smoke `npm run test:request-id-propagation` ist in CI eingebunden. Das behebt die Repository-seitige Basiskorrelation, ersetzt aber kein externes Error-/Performance-Monitoring und keine vollständige Korrelation von bereits bestehenden historischen Logs.
 
 ### Risiken
