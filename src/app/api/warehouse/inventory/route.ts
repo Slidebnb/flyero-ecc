@@ -1,14 +1,13 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { inventoryScopeForUser } from "@/lib/logistics";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
 import { warehouseLocationSelect, warehouseOrderSelect } from "@/lib/warehousePrivacy";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    const session = await requirePermission(Permission.WAREHOUSE_OPERATIONS_VIEW);
     const params = request.nextUrl.searchParams;
     const status = params.get("status") || undefined;
     const city = params.get("city") || undefined;

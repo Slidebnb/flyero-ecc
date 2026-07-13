@@ -1,11 +1,10 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    await requirePermission(Permission.WAREHOUSE_OPERATIONS_VIEW);
     const [expectedToday, receivedToday, readyForPickup, pickedUp, remainingStock] =
       await Promise.all([
         prisma.warehouseInventory.count({ where: { status: "FLYERS_EXPECTED" } }),

@@ -1,11 +1,10 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { inventoryScopeForUser } from "@/lib/logistics";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { warehouseStatusSchema } from "@/lib/validators";
 import {
@@ -16,7 +15,7 @@ import {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    const session = await requirePermission(Permission.WAREHOUSE_OPERATIONS_MANAGE);
     const parsed = warehouseStatusSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     const inventory = await prisma.warehouseInventory.findFirst({

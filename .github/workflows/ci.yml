@@ -176,6 +176,8 @@ jobs:
 
       - name: Role permission migration smoke
         run: npm run test:role-permission-migration
+      - name: Warehouse permission migration smoke
+        run: npm run test:warehouse-permission-migration
 
       - name: Audit log context smoke
         run: npm run test:audit-log-v2

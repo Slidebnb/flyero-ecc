@@ -1208,3 +1208,19 @@ Detailantworten weiter. Der Privacy-Contract umfasst diese Services nun mit.
   `test:permissions` pruefen den Contract und die Laufzeit. Die A/B-Matrix
   weiterer interner Support-/Admin-Ressourcen und die spaetere Trennung von
   Plattform- und Unternehmensadmin bleiben offen.
+
+### P1 Warehouse-APIs auf zentrale Permissions migriert (13.07.2026)
+
+- Dashboard, Inventur, Check-in, Lagerplatz, QR, Status, Sendungen und
+  Umlagerungen verwenden jetzt `warehouse.operations.view` bzw.
+  `warehouse.operations.manage` statt direkter Rollenpruefungen.
+- Lagerpersonal und Support/Disposition behalten ihre bisherigen operativen
+  Rechte. Die neue Permissiongruppe erbt bewusst nicht die Admin-only-
+  Stammdatenrechte `warehouse.manage`.
+- Bestehende Lager-, Auftrags- und Tenant-Scopes wurden nicht entfernt. Der
+  Warehouse-Scope-Smoke prueft weiterhin fremde Bestands-, QR-, Check-in-,
+  Status-, Lagerplatz- und Inventurzugriffe.
+- Neu: `test:warehouse-permission-migration` als Contract im Package und in
+  GitHub CI. Verifiziert mit `test:warehouse-scope`, `test:warehouse-privacy`,
+  `test:permissions`, `test:ci-config`, `npx tsc --noEmit`, `npm run lint` und
+  `npm run build`.

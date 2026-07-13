@@ -43,6 +43,8 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `support.ticket.manage` | Ja | Ja | Nein | Nein | Nein |
 | `warehouse.view` | Ja | Ja | Nein | Nein | Nein |
 | `warehouse.manage` | Ja | Nein | Nein | Nein | Nein |
+| `warehouse.operations.view` | Ja | Ja | Ja | Nein | Nein |
+| `warehouse.operations.manage` | Ja | Ja | Ja | Nein | Nein |
 | `monitoring.view` | Ja | Nein | Nein | Nein | Nein |
 | `monitoring.manage` | Ja | Nein | Nein | Nein | Nein |
 | `notification-operations.view` | Ja | Nein | Nein | Nein | Nein |
@@ -61,7 +63,11 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 - Globale Auftrags-, Rechnungs- und Zahlungslisten bleiben Admin-only. Support erhält keinen globalen Zugriff auf diese Ressourcen.
 - Die operative Verteilerzuweisung nutzt `dispatch.assign` und bleibt für Support auf den aktiven Tenant-Scope begrenzt.
 
-- Logistik-Lesezugriffe nutzen `warehouse.view`; Sendungen, Umlagerungen und Bestandsmutationen nutzen `warehouse.manage` und bleiben Admin-only.
+- Admin-Logistik und Lager-Stammdaten nutzen `warehouse.view`/`warehouse.manage`.
+- Operative Warehouse-APIs nutzen `warehouse.operations.view` bzw.
+  `warehouse.operations.manage`. Diese Rechte erhalten Lagerpersonal und
+  Support/Disposition nur innerhalb ihrer aktiven Unternehmensmitgliedschaft;
+  der bestehende Lager- und Tenant-Scope bleibt zusätzlich verpflichtend.
 - Eine Permission wird nur in der serverseitigen API als wirksam betrachtet.
 - Kritische Finanz-, Preis-, Nutzer- und Veröffentlichungsaktionen sind auf `ADMIN` begrenzt.
 - Support/Disposition darf operative Prüfungen durchführen, aber keine Zahlungen erstatten, Preise ändern, Nutzer sperren, Exporte laden oder Berichte veröffentlichen.

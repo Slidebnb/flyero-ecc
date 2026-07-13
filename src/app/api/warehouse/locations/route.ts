@@ -1,15 +1,15 @@
 import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { warehouseScopeForUser } from "@/lib/logistics";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { warehouseLocationCreateSchema } from "@/lib/validators";
 
 export async function GET() {
   try {
-    const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    const session = await requirePermission(Permission.WAREHOUSE_OPERATIONS_VIEW);
     const locations = await prisma.warehouseLocation.findMany({
       where: { warehouse: warehouseScopeForUser(session) },
       include: { warehouse: true },
@@ -23,7 +23,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    const session = await requirePermission(Permission.WAREHOUSE_OPERATIONS_MANAGE);
     const parsed = warehouseLocationCreateSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     if (session.role === UserRole.WAREHOUSE_STAFF && session.warehouseId !== parsed.data.warehouseId) {

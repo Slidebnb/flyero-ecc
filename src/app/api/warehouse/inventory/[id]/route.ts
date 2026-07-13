@@ -1,7 +1,6 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { inventoryScopeForUser } from "@/lib/logistics";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { warehouseLocationSelect, warehouseOrderSelect } from "@/lib/warehousePrivacy";
@@ -10,7 +9,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    const session = await requirePermission(Permission.WAREHOUSE_OPERATIONS_VIEW);
     const { id } = await context.params;
     const inventory = await prisma.warehouseInventory.findFirst({
       where: { id, ...inventoryScopeForUser(session) },

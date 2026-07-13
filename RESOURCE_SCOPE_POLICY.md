@@ -156,6 +156,13 @@ Unternehmensmitgliedschaft; die bestehende Support-Sicht bleibt auf
 
 ## Bewusst offene Punkte
 
+Die direkten `/api/warehouse/**`-Routen verwenden fuer operative Arbeit die
+zentralen Permissions `warehouse.operations.view` und
+`warehouse.operations.manage`. Damit bleiben die bisherigen Rollenrechte fuer
+Lagerpersonal und Support erhalten, ohne ihnen automatisch die Admin-only
+Lager-Stammdatenrechte `warehouse.manage` zu geben. Der Contract
+`npm run test:warehouse-permission-migration` schuetzt diese Trennung.
+
 - Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch; die
   aktuelle Matrix umfasst die Customer-Kernkette und ersetzt keine Tests fuer
   Support-, Lager-, Dispatch- und Admin-Ressourcen.

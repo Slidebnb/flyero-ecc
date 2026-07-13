@@ -1,11 +1,11 @@
 import { ErrorSeverity, Prisma, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { inventoryScopeForUser, updateLogisticsShipment } from "@/lib/logistics";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
 import { warehouseCheckinSchema } from "@/lib/validators";
@@ -17,7 +17,7 @@ import {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    const session = await requirePermission(Permission.WAREHOUSE_OPERATIONS_MANAGE);
     if (session.role !== UserRole.ADMIN) await requireActiveTenantMembership(session);
     const parsed = warehouseCheckinSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
