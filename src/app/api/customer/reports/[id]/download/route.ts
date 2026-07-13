@@ -1,5 +1,6 @@
 import { requireTenantSession } from "@/lib/tenant";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
+import { privateDownloadHeaders } from "@/lib/downloadHeaders";
 import { markReportDownloaded } from "@/lib/reports";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
@@ -22,10 +23,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const file = await readGeneratedAsset(report.pdfUrl);
     await markReportDownloaded({ reportId: report.id, userId: session.id });
     return new Response(file.buffer, {
-      headers: {
-        "content-type": "application/pdf",
-        "content-disposition": `attachment; filename="${report.reportNumber}.pdf"`,
-      },
+      headers: privateDownloadHeaders({ contentType: "application/pdf", filename: `${report.reportNumber}.pdf` }),
     });
   } catch (error) {
     return routeErrorResponse(error);

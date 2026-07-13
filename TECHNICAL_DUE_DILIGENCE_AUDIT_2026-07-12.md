@@ -931,6 +931,15 @@ vor dem Launch offen.
 
 Lead-Formular und öffentlicher Report-Verifikationscode verwenden jetzt persistente, gehashte IP-Buckets in `PublicRateLimitBucket`. Damit bleibt der Schutz über Prozessneustarts und mehrere App-Instanzen hinweg wirksam. Die konfigurierbaren Grenzwerte stehen in `.env.example` und `.env.production.example`; die Retention berücksichtigt beide Bucket-Typen.
 
+### P1 Geschuetzte Datei-Auslieferung (13.07.2026)
+
+- Geschuetzte Kunden-, Nachweis-, Rechnungs-, Report- und Export-Downloads verwenden jetzt eine gemeinsame Header-Policy mit `private, no-store`, `X-Content-Type-Options: nosniff` und bereinigten Download-Dateinamen.
+- Dokument-Downloads leiten den ausgelieferten MIME-Typ aus der validierten Dateiendung ab, nicht aus frei gespeicherten Uploaddaten. Nachweisdateien bleiben `attachment`, auch wenn SVG-, Office- oder Archivformate im Uploadprozess erlaubt sind.
+- Foto-Nachweise werden inline ausschliesslich als PNG, JPEG oder WEBP ausgeliefert. Andere oder manipulierte MIME-Metadaten fallen auf PNG zurueck; der Zugriff bleibt rollen-, Eigentums- und Freigabepruefungen unterworfen.
+- Der neue Contract-Smoke `npm run test:protected-download-headers` deckt die zentralen privaten Download-Routen und die Header-Policy ab.
+
+Offen bleiben der produktive ClamAV-Betrieb mit `FILE_SCAN_MODE=required`, die S3-/Hetzner-Konfiguration, Altbestandsmigration und ein isolierter Restore-Nachweis. Die Code-Haertung ersetzt diese operativen Nachweise nicht.
+
 ### P1 Preisquelle und Produktionskonfiguration (13.07.2026)
 
 - Die Preis-Settings-Seite und die Pricing-API verwenden beide `pricing.manage`.

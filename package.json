@@ -64,6 +64,7 @@
     "test:public-artifact-privacy": "node tests/public-artifact-privacy-smoke.mjs",
     "test:security-headers": "node tests/security-headers-smoke.mjs",
     "test:upload-security": "node tests/upload-security-smoke.mjs",
+    "test:protected-download-headers": "node tests/protected-download-headers-smoke.mjs",
     "test:ci-config": "node tests/ci-config-smoke.mjs",
     "backup:config": "node tests/backup-config-smoke.mjs",
     "backup:verify": "bash scripts/verify-backup.sh",

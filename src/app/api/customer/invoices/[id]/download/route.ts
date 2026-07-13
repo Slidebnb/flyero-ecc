@@ -1,5 +1,6 @@
 import { requireTenantSession } from "@/lib/tenant";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
+import { privateDownloadHeaders } from "@/lib/downloadHeaders";
 import { markInvoiceDownloaded } from "@/lib/invoices";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
@@ -17,10 +18,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const pdf = await readGeneratedAsset(invoice.pdfUrl);
     await markInvoiceDownloaded({ invoiceId: invoice.id, userId: session.id });
     return new Response(pdf.buffer, {
-      headers: {
-        "content-type": "application/pdf",
-        "content-disposition": `attachment; filename="${invoice.invoiceNumber}.pdf"`,
-      },
+      headers: privateDownloadHeaders({ contentType: "application/pdf", filename: `${invoice.invoiceNumber}.pdf` }),
     });
   } catch (error) {
     return routeErrorResponse(error);

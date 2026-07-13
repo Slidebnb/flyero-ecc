@@ -39,6 +39,28 @@ export type UploadableDocumentFile = {
   buffer: Buffer;
 };
 
+const MIME_TYPES: Record<string, string> = {
+  pdf: "application/pdf",
+  zip: "application/zip",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  webp: "image/webp",
+  svg: "image/svg+xml",
+  ai: "application/postscript",
+  indd: "application/octet-stream",
+  gpx: "application/gpx+xml",
+  kml: "application/vnd.google-earth.kml+xml",
+  kmz: "application/vnd.google-earth.kmz",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+};
+
+export function documentMimeTypeForExtension(extension: string) {
+  return MIME_TYPES[extension.toLowerCase()] || "application/octet-stream";
+}
+
 function storageRoot() {
   return process.env.DOCUMENT_STORAGE_ROOT || path.join(/*turbopackIgnore: true*/ process.cwd(), "storage", "documents");
 }
@@ -78,24 +100,7 @@ export function detectDocumentMimeType(extension: string, buffer: Buffer) {
   if (extension === "kml" && !textStartsWith(buffer, /<(?:\?xml[\s>]|kml[\s>])/i)) throw new Error("Die KML-Datei enthält kein gültiges XML-Dokument.");
   if (extension === "ai" && !isPdf && !isPostScript) throw new Error("Die Illustrator-Datei hat keine gültige PostScript-/PDF-Signatur.");
 
-  const mimeTypes: Record<string, string> = {
-    pdf: "application/pdf",
-    zip: "application/zip",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    webp: "image/webp",
-    svg: "image/svg+xml",
-    ai: "application/postscript",
-    indd: "application/octet-stream",
-    gpx: "application/gpx+xml",
-    kml: "application/vnd.google-earth.kml+xml",
-    kmz: "application/vnd.google-earth.kmz",
-    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  };
-  return mimeTypes[extension] || "application/octet-stream";
+  return documentMimeTypeForExtension(extension);
 }
 
 export function validateDocumentFile(input: UploadableDocumentFile) {

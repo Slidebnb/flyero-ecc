@@ -1,6 +1,7 @@
 import { createAuditLog } from "@/lib/audit";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
+import { privateDownloadHeaders } from "@/lib/downloadHeaders";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
 
@@ -13,10 +14,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     const file = await readGeneratedAsset(accountingExport.fileUrl);
     await createAuditLog({ userId: session.id, action: "accounting.export_downloaded", entityType: "AccountingExport", entityId: accountingExport.id });
     return new Response(file.buffer, {
-      headers: {
-        "content-type": "text/csv; charset=utf-8",
-        "content-disposition": `attachment; filename="flyero-accounting-export-${accountingExport.exportNumber}.csv"`,
-      },
+      headers: privateDownloadHeaders({ contentType: "text/csv; charset=utf-8", filename: `flyero-accounting-export-${accountingExport.exportNumber}.csv` }),
     });
   } catch (error) {
     return routeErrorResponse(error);

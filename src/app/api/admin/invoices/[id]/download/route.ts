@@ -1,4 +1,5 @@
 import { readGeneratedAsset } from "@/lib/generatedAssets";
+import { privateDownloadHeaders } from "@/lib/downloadHeaders";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
@@ -14,10 +15,7 @@ export async function GET(_request: Request, context: RouteContext) {
     if (!invoice?.pdfUrl) return errorResponse("PDF wurde nicht gefunden.", 404);
     const file = await readGeneratedAsset(invoice.pdfUrl);
     return new Response(file.buffer, {
-      headers: {
-        "content-type": "application/pdf",
-        "content-disposition": `attachment; filename="${invoice.invoiceNumber}.pdf"`,
-      },
+      headers: privateDownloadHeaders({ contentType: "application/pdf", filename: `${invoice.invoiceNumber}.pdf` }),
     });
   } catch (error) {
     return routeErrorResponse(error);

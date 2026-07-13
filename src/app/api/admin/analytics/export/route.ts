@@ -1,6 +1,7 @@
 import { analyticsRowsToCsv, getAnalyticsExportRows, parseAnalyticsFilters } from "@/lib/analytics";
 import { createAuditLog } from "@/lib/audit";
 import { Permission, requirePermission } from "@/lib/permissions";
+import { privateDownloadHeaders } from "@/lib/downloadHeaders";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET(request: Request) {
@@ -24,10 +25,7 @@ export async function GET(request: Request) {
       newValues: { filters, rowCount: rows.length },
     });
     return new Response(analyticsRowsToCsv(rows), {
-      headers: {
-        "content-type": "text/csv; charset=utf-8",
-        "content-disposition": `attachment; filename="flyero-analytics-${new Date().toISOString().slice(0, 10)}.csv"`,
-      },
+      headers: privateDownloadHeaders({ contentType: "text/csv; charset=utf-8", filename: `flyero-analytics-${new Date().toISOString().slice(0, 10)}.csv` }),
     });
   } catch (error) {
     return routeErrorResponse(error);

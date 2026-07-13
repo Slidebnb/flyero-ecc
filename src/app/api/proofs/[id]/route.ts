@@ -1,5 +1,6 @@
 import { ReviewStatus, UserRole } from "@prisma/client";
 import { requireSession } from "@/lib/auth";
+import { privateDownloadHeaders, rasterProofMimeType } from "@/lib/downloadHeaders";
 import { readGeneratedAsset } from "@/lib/generatedAssets";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
@@ -30,15 +31,12 @@ export async function GET(_request: Request, context: RouteContext) {
     if (!photo) return errorResponse("Nachweisfoto wurde nicht gefunden.", 404);
 
     const storagePath = metadataValue(photo.metadata, "storagePath");
-    const mimeType = metadataValue(photo.metadata, "mimeType") || "image/png";
+    const mimeType = rasterProofMimeType(metadataValue(photo.metadata, "mimeType"));
     if (!storagePath) return errorResponse("Legacy-Foto ohne privaten Speicherpfad kann nicht ausgeliefert werden.", 410);
 
     const asset = await readGeneratedAsset(storagePath);
     return new Response(asset.buffer, {
-      headers: {
-        "content-type": mimeType,
-        "cache-control": "private, max-age=60",
-      },
+      headers: privateDownloadHeaders({ contentType: mimeType, filename: asset.fileName, inline: true }),
     });
   } catch (error) {
     return routeErrorResponse(error);

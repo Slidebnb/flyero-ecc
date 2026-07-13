@@ -1,5 +1,6 @@
 import { requireTenantSession } from "@/lib/tenant";
-import { readStoredDocument } from "@/lib/documentStorage";
+import { documentMimeTypeForExtension, readStoredDocument } from "@/lib/documentStorage";
+import { privateDownloadHeaders } from "@/lib/downloadHeaders";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 
@@ -31,10 +32,7 @@ export async function GET(_request: Request, context: RouteContext) {
     if (!document) return errorResponse("Nachweis wurde nicht gefunden oder ist nicht freigegeben.", 404);
     const file = await readStoredDocument(document.storedFilename);
     return new Response(file.buffer, {
-      headers: {
-        "content-type": document.mimeType,
-        "content-disposition": `attachment; filename="${document.originalFilename}"`,
-      },
+      headers: privateDownloadHeaders({ contentType: documentMimeTypeForExtension(document.extension), filename: document.originalFilename }),
     });
   } catch (error) {
     return routeErrorResponse(error);

@@ -7,7 +7,7 @@ import { z } from "zod";
 import { AuthError, type SessionUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { approvalRequiresCleanScan, scanFileBuffer } from "@/lib/fileScanning";
-import { storeDocumentFile, promoteQuarantinedDocument, protectedDocumentUrl, type UploadableDocumentFile, readStoredDocument } from "@/lib/documentStorage";
+import { storeDocumentFile, promoteQuarantinedDocument, protectedDocumentUrl, type UploadableDocumentFile, readStoredDocument, documentMimeTypeForExtension } from "@/lib/documentStorage";
 import { assignWarehouseForOrder, createLogisticsShipment, updateLogisticsShipment, warehouseAddressJson } from "@/lib/logistics";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
@@ -470,7 +470,7 @@ export async function getDocumentDownload(actor: SessionUser, id: string, versio
   if (selected && !storageKey) throw new AuthError("Diese Dokumentversion ist nicht mehr verfügbar.", 404);
   const stored = await readStoredDocument(storageKey);
   await createAuditLog({ userId: actor.id, action: "document.downloaded", entityType: "Document", entityId: document.id, metadata: { version: version ?? document.version } });
-  return { ...stored, filename: document.originalFilename, mimeType: document.mimeType };
+  return { ...stored, filename: document.originalFilename, mimeType: documentMimeTypeForExtension(document.extension) };
 }
 
 function printScope(actor: SessionUser) {
