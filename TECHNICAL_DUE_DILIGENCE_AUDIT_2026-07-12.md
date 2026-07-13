@@ -59,6 +59,19 @@ Request oder Reload. Ein echter Push waere eine separate Polling-, SSE- oder
 WebSocket-Entscheidung und ist fuer die fachliche Preisrichtigkeit nicht
 erforderlich.
 
+### Aktualisierung: Scanner-Abhaengigkeit im Produktionsimage (13.07.2026)
+
+Der Produktions-Preflight verlangt bei `FILE_SCAN_MODE=required` einen
+ClamAV-Scanner. Das Produktions-Dockerfile installiert deshalb jetzt das
+`clamav`-Paket, und der Preflight soll nach dem Build zusaetzlich im App-
+Container ausgefuehrt werden. `test:production-preflight`, der File-Scan-
+Smoke und `backup:config` sind erfolgreich. Ein echter Docker-Image-Build
+konnte auf diesem Windows-Arbeitsplatz nicht ausgefuehrt werden, weil die
+Docker-CLI nicht installiert bzw. nicht erreichbar ist; der Container-Build
+auf Hetzner bleibt Teil der Deployment-Verifikation. Virensignatur-Updates,
+S3-/Backup-Einrichtung und ein isolierter Restore sind weiterhin externe
+Betriebsnachweise und durch den Repository-Test nicht bewiesen.
+
 ## 1. Auftrag und Pruefmethode
 
 Dieser Bericht bewertet den aktuellen FLYERO-Stand als SaaS-, Betriebs- und spaeteres Due-Diligence-Objekt. Er ersetzt keine externe Penetrationspruefung, Rechtsberatung, Datenschutz-Folgenabschaetzung oder steuerliche Freigabe.

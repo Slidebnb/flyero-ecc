@@ -112,6 +112,14 @@ ENV_FILE=.env.production npm run production:preflight
 
 Der Check gibt keine Secretwerte aus und lehnt Mock-Zahlungen, Mock-E-Mail, lokalen Storage, fehlenden Malware-Scan sowie fehlende Backup- und Provider-Konfiguration ab. Er wird bewusst manuell ausgefuehrt, damit lokale Beta- und Migrationsprozesse nicht automatisch blockiert werden.
 
+Das Produktionsimage installiert ClamAV. Nach dem Image-Build sollte der
+Preflight deshalb auch im App-Container ausgefuehrt werden, damit der
+konfigurierte Scannerpfad zur Laufzeit vorhanden ist:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml run --rm --no-deps app npm run production:preflight
+```
+
 ## Hinweise
 
 - Postgres ist nur im Docker-Netz erreichbar.

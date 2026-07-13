@@ -7,7 +7,7 @@ ARG NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=""
 ENV NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY=$NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && apt-get install -y --no-install-recommends openssl ca-certificates clamav \
   && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g npm@11.6.2

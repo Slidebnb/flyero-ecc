@@ -31,3 +31,6 @@ ueber eine kontrollierte Storage-Migration uebertragen werden.
 5. Erst danach lokale Volumes als Rückfallpfad archivieren und entfernen.
 
 Die aktuelle Codeänderung aktiviert S3 nicht automatisch und löscht keine lokalen Daten. Für den echten Betrieb fehlen weiterhin Bucket-Einrichtung, initiale Migration, Restore-Test und Anbieter-/DSGVO-Dokumentation.
+Der Produktionscontainer enthaelt ClamAV. Bei
+`FILE_SCAN_MODE=required` muss der Preflight im Container erfolgreich laufen,
+bevor Uploads fuer den Kundenbetrieb freigegeben werden.

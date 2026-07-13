@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 assert.ok(existsSync("scripts/production-preflight.mjs"), "Produktions-Preflight fehlt.");
+const dockerfile = readFileSync("Dockerfile", "utf8");
+assert.match(dockerfile, /clamav/, "Das Produktionsimage muss den erforderlichen ClamAV-Scanner enthalten.");
 
 const validEnvironment = {
   NODE_ENV: "production",
