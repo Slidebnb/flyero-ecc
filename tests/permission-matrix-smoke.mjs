@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload] = await Promise.all([
+const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments] = await Promise.all([
   readFile("src/lib/permissions.ts", "utf8"),
   readFile("PERMISSION_MATRIX.md", "utf8"),
   readFile("src/app/api/admin/settings/users/route.ts", "utf8"),
@@ -14,12 +14,28 @@ const [permissions, matrix, users, userStatus, refund, reportPublish, reportAppr
   readFile("src/app/api/admin/accounting/exports/route.ts", "utf8"),
   readFile("src/app/api/admin/settings/pricing/route.ts", "utf8"),
   readFile("src/app/api/admin/invoices/[id]/download/route.ts", "utf8"),
+  readFile("src/app/api/admin/orders/route.ts", "utf8"),
+  readFile("src/app/api/admin/orders/[id]/route.ts", "utf8"),
+  readFile("src/app/api/admin/orders/[id]/status/route.ts", "utf8"),
+  readFile("src/app/api/admin/orders/[id]/price/route.ts", "utf8"),
+  readFile("src/app/api/admin/orders/[id]/assign/route.ts", "utf8"),
+  readFile("src/app/api/admin/invoices/route.ts", "utf8"),
+  readFile("src/app/api/admin/invoices/[id]/route.ts", "utf8"),
+  readFile("src/app/api/admin/invoices/[id]/cancel/route.ts", "utf8"),
+  readFile("src/app/api/admin/invoices/[id]/regenerate-pdf/route.ts", "utf8"),
+  readFile("src/app/api/admin/payments/route.ts", "utf8"),
 ]);
 
 for (const permission of [
   "ACCOUNTING_EXPORT",
   "ANALYTICS_EXPORT",
+  "ORDER_VIEW",
+  "ORDER_MANAGE",
+  "DISPATCH_ASSIGN",
   "INTERNAL_USERS_MANAGE",
+  "INVOICE_ADMIN_VIEW",
+  "INVOICE_MANAGE",
+  "PAYMENT_VIEW",
   "PAYMENT_REFUND",
   "PRICING_MANAGE",
   "REPORT_PUBLISH",
@@ -44,6 +60,21 @@ for (const [source, permission] of [
   [accounting, "ACCOUNTING_EXPORT"],
   [pricing, "PRICING_MANAGE"],
   [invoiceDownload, "INVOICE_VIEW"],
+]) {
+  assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
+}
+
+for (const [source, permission] of [
+  [adminOrders, "ORDER_VIEW"],
+  [adminOrderDetail, "ORDER_VIEW"],
+  [adminOrderStatus, "ORDER_MANAGE"],
+  [adminOrderPrice, "ORDER_MANAGE"],
+  [adminOrderAssign, "DISPATCH_ASSIGN"],
+  [adminInvoices, "INVOICE_ADMIN_VIEW"],
+  [adminInvoiceDetail, "INVOICE_ADMIN_VIEW"],
+  [adminInvoiceCancel, "INVOICE_MANAGE"],
+  [adminInvoicePdf, "INVOICE_MANAGE"],
+  [adminPayments, "PAYMENT_VIEW"],
 ]) {
   assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
 }

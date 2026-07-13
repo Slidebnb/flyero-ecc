@@ -1,6 +1,5 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 
@@ -10,7 +9,7 @@ type RouteContext = {
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.ORDER_VIEW);
     const { id } = await context.params;
     const order = await prisma.order.findUnique({
       where: { id },

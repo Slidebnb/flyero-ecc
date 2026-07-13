@@ -1,6 +1,4 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { ORDER_STATUS_LABELS } from "@/lib/constants";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
@@ -8,6 +6,7 @@ import { assertOrderTransition, createOrderStatusEvent } from "@/lib/orders";
 import { createInvoiceForOrder } from "@/lib/invoices";
 import { ensureShipmentForCustomerFlyers } from "@/lib/logistics";
 import { refundPayment } from "@/lib/payments";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { adminOrderStatusSchema } from "@/lib/validators";
@@ -18,7 +17,7 @@ type RouteContext = {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.ORDER_MANAGE);
     const { id } = await context.params;
     const body = await readBody(request);
     const parsed = adminOrderStatusSchema.safeParse(body);

@@ -1,12 +1,12 @@
-import { OrderStatus, UserRole } from "@prisma/client";
+import { OrderStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET(request: NextRequest) {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.ORDER_VIEW);
     const params = request.nextUrl.searchParams;
     const status = params.get("status") as OrderStatus | null;
     const city = params.get("city") || undefined;

@@ -11,10 +11,16 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `accounting.export.archive` | Ja | Nein | Nein | Nein | Nein |
 | `analytics.view` | Ja | Ja | Nein | Nein | Nein |
 | `analytics.export` | Ja | Nein | Nein | Nein | Nein |
+| `order.view` | Ja | Nein | Nein | Nein | Nein |
+| `order.manage` | Ja | Nein | Nein | Nein | Nein |
+| `dispatch.assign` | Ja | Ja | Nein | Nein | Nein |
 | `document.review` | Ja | Ja | Nein | Nein | Nein |
 | `document.scan` | Ja | Nein | Nein | Nein | Nein |
 | `invoice.view` | Ja | Ja | Nein | Nein | Nein |
+| `invoice.admin.view` | Ja | Nein | Nein | Nein | Nein |
+| `invoice.manage` | Ja | Nein | Nein | Nein | Nein |
 | `internal-users.manage` | Ja | Nein | Nein | Nein | Nein |
+| `payment.view` | Ja | Nein | Nein | Nein | Nein |
 | `payment.refund` | Ja | Nein | Nein | Nein | Nein |
 | `payment.reconcile` | Ja | Nein | Nein | Nein | Nein |
 | `payment.dispute.manage` | Ja | Nein | Nein | Nein | Nein |
@@ -31,6 +37,9 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `print-order.manage` | Ja | Ja | Nein | Nein | Nein |
 
 ## Designregeln
+
+- Globale Auftrags-, Rechnungs- und Zahlungslisten bleiben Admin-only. Support erhält keinen globalen Zugriff auf diese Ressourcen.
+- Die operative Verteilerzuweisung nutzt `dispatch.assign` und bleibt für Support auf den aktiven Tenant-Scope begrenzt.
 
 - Eine Permission wird nur in der serverseitigen API als wirksam betrachtet.
 - Kritische Finanz-, Preis-, Nutzer- und Veröffentlichungsaktionen sind auf `ADMIN` begrenzt.

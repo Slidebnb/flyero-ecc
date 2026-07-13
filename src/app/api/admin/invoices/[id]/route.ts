@@ -1,5 +1,4 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 
@@ -7,7 +6,7 @@ type RouteContext = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, context: RouteContext) {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.INVOICE_ADMIN_VIEW);
     const { id } = await context.params;
     const invoice = await prisma.invoice.findUnique({
       where: { id },

@@ -1,10 +1,10 @@
-import { Prisma, UserRole } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { calculatePriceFromNet, getVatRate } from "@/lib/pricing";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { adminOrderPriceSchema } from "@/lib/validators";
@@ -15,7 +15,7 @@ type RouteContext = {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.ORDER_MANAGE);
     const { id } = await context.params;
     const parsed = adminOrderPriceSchema.safeParse(await readBody(request));
 

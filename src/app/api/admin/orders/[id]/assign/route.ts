@@ -1,7 +1,7 @@
 import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { assignOrderToDistributor } from "@/lib/dispatch";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { adminDispatchAssignSchema } from "@/lib/validators";
 
@@ -11,7 +11,7 @@ type RouteContext = {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.DISPATCH_ASSIGN);
     const { id } = await context.params;
     const parsed = adminDispatchAssignSchema.safeParse(await readBody(request));
 

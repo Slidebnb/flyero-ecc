@@ -156,6 +156,13 @@ Empfohlene Zielstruktur vor weiteren Enterprise-Funktionen:
 
 ### Luecken
 
+Fortschritt 13.07.2026: Die globalen Admin-APIs fuer Auftragslisten und -details,
+Auftragsstatus, Preisänderungen, Rechnungsverwaltung und Zahlungslisten verwenden
+jetzt explizite Admin-only-Permissions. Die operative Verteilerzuweisung verwendet
+`dispatch.assign` und bleibt fuer Support an den aktiven Tenant-Scope gebunden.
+Die vollstaendige Migration historischer Admin-/Support-/Dispatch-Pfade und die
+Trennung Plattform-Admin vs. Unternehmensadmin bleiben offen.
+
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
 | RBAC-01 | Zentrale Permission-Matrix und aktive Tenant-Membership-Prüfung sind für sensible Pfade vorhanden; vollständige CRUD-/Tenant-Abdeckung fehlt | P1 | Alle internen APIs auf Permission- und Tenant-Policy migrieren. |
