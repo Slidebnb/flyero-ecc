@@ -1,7 +1,8 @@
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { DataSection, EmptyState } from "@/app/PortalComponents";
+import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireTenantSession } from "@/lib/tenant";
-import { asObject } from "@/lib/format";
+import { asObject, formatDateTime } from "@/lib/format";
+import { listUserSessions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export default async function CustomerProfilePage() {
@@ -21,6 +22,7 @@ export default async function CustomerProfilePage() {
 
   const billing = asObject(profile.billingAddress);
   const delivery = asObject(profile.deliveryAddress);
+  const sessions = await listUserSessions(session.id, session.sessionId);
 
   return (
     <CustomerPortalShell active="/customer/profile" title="Profil" description="Daten für Kampagnen, Rechnungen und Rückfragen.">
@@ -131,6 +133,23 @@ export default async function CustomerProfilePage() {
           <button type="submit">Profil speichern</button>
         </div>
       </form>
+
+      <DataSection title="Sicherheit" description="Behalte den Überblick über aktive Anmeldungen in deinem Konto.">
+        <div className="stack">
+          {sessions.map((authSession) => (
+            <div className="mobileListItem" key={authSession.id}>
+              <strong>{authSession.isCurrent ? "Dieses Gerät" : "Aktive Anmeldung"}</strong>
+              <small>Anmeldung: {formatDateTime(authSession.createdAt)}</small>
+              <small>Zuletzt aktiv: {formatDateTime(authSession.lastSeenAt)}</small>
+              {authSession.isCurrent ? <StatusBadge tone="success">Aktuell</StatusBadge> : null}
+            </div>
+          ))}
+          <p className="muted">Wenn du ein anderes Gerät nicht mehr verwendest, kannst du alle anderen Anmeldungen sofort beenden.</p>
+          <form action="/api/auth/sessions" method="post">
+            <button type="submit">Alle anderen Sitzungen abmelden</button>
+          </form>
+        </div>
+      </DataSection>
     </CustomerPortalShell>
   );
 }

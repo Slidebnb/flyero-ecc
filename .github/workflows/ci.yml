@@ -212,6 +212,9 @@ jobs:
       - name: Maps abuse smoke
         run: npm run test:maps-abuse
 
+      - name: Auth session management smoke
+        run: npm run test:auth-session-management
+
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe
 

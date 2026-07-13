@@ -115,8 +115,8 @@ Positiv ist: Stripe-Webhook-Signaturen und Event-Idempotenz sind vorhanden, Mock
 
 | ID | Befund | Prioritaet | Massnahme |
 | --- | --- | --- | --- |
-| AUTH-01 | DB-autorisierte `AuthSession` ist vorhanden; JWT bleibt Identitaetstraeger und Device-/MFA-Funktionen fehlen | P2 | Sessionverwaltung, Logout aller Geraete und MFA ergaenzen. |
-| AUTH-02 | Session-Widerruf ist vorhanden, aber keine Geraeteverwaltung und kein zentraler Logout aller Geraete | P1 | Sessionliste, Device-Revoke und Rotation als kontrollierten Workflow ergaenzen. |
+| AUTH-01 | DB-autorisierte `AuthSession` ist vorhanden; JWT bleibt Identitaetstraeger und Device-/MFA-Funktionen fehlen | P2 | Einzelne Geraete, MFA und Session-Rotation als kontrollierten Workflow ergaenzen. |
+| AUTH-02 | Eigene aktive Sitzungen koennen angezeigt und alle anderen Sitzungen zentral widerrufen werden; einzelnes Device-Revoke fehlt | P2 | Einzelnen Geraetewiderruf, automatische Session-Bereinigung und erweiterte Sicherheits-UX ergaenzen. |
 | AUTH-03 | DB-Rate-Limit fuer Login/Register/Verifizierung ist vorhanden; CAPTCHA/WAF und Monitoring fehlen | P1 | CAPTCHA/WAF fuer oeffentliche Angriffsflächen sowie Alarmierung und Retention ergaenzen. |
 | AUTH-04 | Keine MFA-Unterstuetzung | P2 | TOTP/WebAuthn fuer Admin, Support, Buchhaltung und spaetere Enterprise-Kunden vorbereiten. |
 | AUTH-05 | Passwort-Reset war im urspruenglichen Stand nicht vorhanden | P1 erledigt als Basispaket | Einmal-Token, 30-Minuten-Ablauf, DB-Rate-Limit, Session-Revoke, generische Antwort, E-Mail und AuditLog umgesetzt; MFA, Passwort-Historie und kompromittierte-Passwort-Pruefung bleiben offen. |
@@ -710,6 +710,23 @@ Das zweite Auth-Haertungspaket wurde umgesetzt:
 - Die CI fuehrt den neuen Auth-Session-Smoke gegen eine frische PostgreSQL-Datenbank aus.
 
 Offen bleiben MFA, Geraeteverwaltung, „Logout aller Geraete“, zentrale Auth-Rate-Limits und eine automatische Bereinigung abgelaufener Sessions.
+
+### P1 Auth-Sitzungsverwaltung
+
+Die aktive Sitzungsverwaltung wurde als begrenztes Self-Service-Paket
+ergaenzt:
+
+- `GET /api/auth/sessions` liefert nur eigene, noch gueltige Sitzungen und
+  markiert die aktuelle Sitzung.
+- `POST /api/auth/sessions` widerruft alle anderen Sitzungen, ohne die
+  aktuelle Sitzung zu beenden.
+- Der Widerruf wird mit `auth.sessions_revoked` und Request-Kontext
+  auditiert. Die JSON-Antwort ist privat und `no-store`.
+- `tests/auth-session-management-smoke.mjs` prueft zwei echte Logins, die
+  Sitzungsanzeige und die Sperrwirkung auf die zweite Sitzung.
+
+Einzelnes Device-Revoke, MFA, Passwort-Historie und automatische Bereinigung
+abgelaufener Sitzungen bleiben bewusst nachgelagerte Haertung.
 
 ### P1 Passwort-Reset
 

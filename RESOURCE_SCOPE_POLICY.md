@@ -93,11 +93,23 @@ Order-Intelligence verwenden den Scope `maps`; die Grenzwerte werden ueber
 konfiguriert. Das begrenzt Google-Kostenmissbrauch, ersetzt aber keinen
 externen WAF- oder Edge-Limiter.
 
+Die Auth-Sitzungsverwaltung stellt dem eingeloggten Benutzer aktive eigene
+Sitzungen bereit und kann alle anderen noch gueltigen Sitzungen widerrufen.
+Die aktuelle Sitzung bleibt dabei aktiv. Die Antwort ist privat und wird nicht
+gecacht; der Vorgang wird als `auth.sessions_revoked` auditiert. Der Contract-
+Smoke `npm run test:auth-session-management` prueft zwei echte Logins,
+Sitzungsanzeige, Widerruf der zweiten Sitzung und die weitere Gueltigkeit der
+aktuellen Sitzung.
+
 ## Bewusst offene Punkte
 
 - Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch; die
   aktuelle Matrix umfasst die Customer-Kernkette und ersetzt keine Tests fuer
   Support-, Lager-, Dispatch- und Admin-Ressourcen.
+- Die Sitzungsverwaltung bietet aktuell die eigene Sitzungsliste und den
+  Widerruf aller anderen Sitzungen. Einzelnes Geraetewiderrufen, MFA,
+  Passwort-Historie und automatische Bereinigung abgelaufener Sitzungen sind
+  weiterhin offen.
 - Die globale CRM-Policy braucht fuer einen spaeteren Enterprise-Betrieb eine
   fachliche Entscheidung: zentrale FLYERO-Vertriebspipeline oder CRM je
   Unternehmen. Erst danach ist eine `tenantId`-Migration fuer Leads sinnvoll.

@@ -163,6 +163,30 @@ export async function revokeSession(sessionId: string) {
   });
 }
 
+export async function listUserSessions(userId: string, currentSessionId: string) {
+  const sessions = await prisma.authSession.findMany({
+    where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+    select: {
+      id: true,
+      createdAt: true,
+      lastSeenAt: true,
+      expiresAt: true,
+      ipAddress: true,
+      userAgent: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return sessions.map((session) => ({ ...session, isCurrent: session.id === currentSessionId }));
+}
+
+export async function revokeOtherSessions(userId: string, currentSessionId: string) {
+  return prisma.authSession.updateMany({
+    where: { userId, id: { not: currentSessionId }, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
 export function hasRole(session: SessionPayload | null, roles: UserRole[]) {
   return Boolean(session && roles.includes(session.role));
 }
