@@ -50,7 +50,10 @@ rollenbeschraenkt und duerfen keine Kunden- oder Verteileransicht erreichen.
   Trennung zwischen Plattform-Superadmin und Unternehmensadmin ist noch offen.
 - `SUPPORT_DISPATCHER` benoetigt fuer sensible tenant-sensible Aktionen eine
   aktive Mitgliedschaft und die passende Permission, zum Beispiel
-  `REPORT_REVIEW`, `DOCUMENT_REVIEW`, `INVOICE_VIEW` oder `ANALYTICS_VIEW`.
+  `REPORT_REVIEW`, `DOCUMENT_REVIEW`, `INVOICE_VIEW`, `ANALYTICS_VIEW` oder
+  `SUPPORT_TICKET_VIEW/MANAGE`. Support-Tickets bleiben als zentraler
+  Betriebsprozess plattformweit sichtbar, werden aber nicht mehr nur ueber die
+  Rollenbezeichnung freigeschaltet.
 - Kunden, Verteiler und Lagerrollen erhalten niemals CRM- oder Monitoringdaten.
 
 ## Aktueller Nachweis

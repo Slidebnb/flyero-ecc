@@ -352,6 +352,17 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   Warehouse-Login und einem Bestand aus einem fremden Seed-Lager. Die A/B-
   Matrix fuer Support-, Dispatch- und sonstige interne Ressourcen bleibt offen.
 
+### Support-Ticket-Permissions (13.07.2026)
+
+- Admin-/Support-Ticketlisten und Details verlangen jetzt getrennt
+  `SUPPORT_TICKET_VIEW`; Erstellen, Bearbeiten, Antworten und Schliessen
+  verlangen `SUPPORT_TICKET_MANAGE`.
+- `requirePermission()` prueft dabei die aktive Membership serverseitig.
+  Die zentrale Support-Sicht bleibt als plattformweiter Betriebsprozess
+  bestehen; Kunden- und Verteilerpfade bleiben weiterhin fachlich scoped.
+- `npm run test:support-permission` ist in CI eingebunden. Eine vollständige
+  Laufzeitmatrix für alle internen Support-/Dispatch-Ressourcen bleibt offen.
+
 ### Rechnungs-PDF-Tenant-Scope (13.07.2026)
 
 - Der interne Rechnungs-PDF-Download verlangt jetzt `INVOICE_VIEW`; Admin bleibt global, Support benoetigt eine aktive Unternehmensmitgliedschaft.

@@ -196,6 +196,9 @@ jobs:
       - name: Warehouse scope smoke
         run: npm run test:warehouse-scope
 
+      - name: Support permission smoke
+        run: npm run test:support-permission
+
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe
 

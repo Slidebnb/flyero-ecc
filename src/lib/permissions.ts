@@ -18,6 +18,8 @@ export const Permission = {
   PRICING_MANAGE: "pricing.manage",
   REPORT_REVIEW: "report.review",
   REPORT_PUBLISH: "report.publish",
+  SUPPORT_TICKET_VIEW: "support.ticket.view",
+  SUPPORT_TICKET_MANAGE: "support.ticket.manage",
 } as const;
 
 export type Permission = (typeof Permission)[keyof typeof Permission];
@@ -31,6 +33,8 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
     Permission.DOCUMENT_REVIEW,
     Permission.INVOICE_VIEW,
     Permission.REPORT_REVIEW,
+    Permission.SUPPORT_TICKET_VIEW,
+    Permission.SUPPORT_TICKET_MANAGE,
   ],
   [UserRole.WAREHOUSE_STAFF]: [],
   [UserRole.DISTRIBUTOR]: [],

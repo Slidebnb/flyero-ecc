@@ -115,18 +115,23 @@ async function nextTicketNumber(tx: Prisma.TransactionClient) {
     });
   }
 
-  const nextNumber = settings.ticketYear === currentYear ? settings.ticketNextNumber : 1;
-  const ticketNumber = `${settings.ticketPrefix}-${currentYear}-${String(nextNumber).padStart(6, "0")}`;
-
-  await tx.numberingSettings.update({
-    where: { id: settings.id },
-    data: {
-      ticketYear: currentYear,
-      ticketNextNumber: nextNumber + 1,
-    },
-  });
-
-  return ticketNumber;
+  let nextNumber = settings.ticketYear === currentYear ? settings.ticketNextNumber : 1;
+  for (let offset = 0; offset < 1000; offset += 1) {
+    const ticketNumber = `${settings.ticketPrefix}-${currentYear}-${String(nextNumber).padStart(6, "0")}`;
+    const existing = await tx.supportTicket.findUnique({ where: { ticketNumber }, select: { id: true } });
+    if (!existing) {
+      await tx.numberingSettings.update({
+        where: { id: settings.id },
+        data: {
+          ticketYear: currentYear,
+          ticketNextNumber: nextNumber + 1,
+        },
+      });
+      return ticketNumber;
+    }
+    nextNumber += 1;
+  }
+  throw new Error("Keine freie Ticketnummer verfuegbar.");
 }
 
 async function resolveCustomerId(actor: SessionUser, requestedCustomerId?: string | null) {
@@ -245,37 +250,44 @@ export async function createTicket(actor: SessionUser, input: unknown) {
     : null;
   const tenantId = actor.role === UserRole.CUSTOMER ? actor.tenantId : customerTenant?.tenantId ?? linkedOrder?.tenantId ?? null;
 
-  const ticket = await prisma.$transaction(async (tx) => {
-    const ticketNumber = await nextTicketNumber(tx);
-    const created = await tx.supportTicket.create({
-      data: {
-        ticketNumber,
-        type: data.type,
-        priority: data.priority,
-        customerId,
-        tenantId,
-        distributorId,
-        orderId: data.orderId ?? null,
-        tourId: data.tourId ?? null,
-        reportId: data.reportId ?? null,
-        warehouseInventoryId: data.warehouseInventoryId ?? null,
-        subject: data.subject,
-        description: data.description,
-        message: data.description,
-        createdById: actor.id,
-        messages: {
-          create: {
-            senderId: actor.id,
-            senderRole: actor.role,
-            visibility: TicketMessageVisibility.PUBLIC,
+  let ticket: Awaited<ReturnType<typeof prisma.supportTicket.create>> | null = null;
+  for (let attempt = 0; attempt < 4 && !ticket; attempt += 1) {
+    try {
+      ticket = await prisma.$transaction(async (tx) => {
+        const ticketNumber = await nextTicketNumber(tx);
+        return tx.supportTicket.create({
+          data: {
+            ticketNumber,
+            type: data.type,
+            priority: data.priority,
+            customerId,
+            tenantId,
+            distributorId,
+            orderId: data.orderId ?? null,
+            tourId: data.tourId ?? null,
+            reportId: data.reportId ?? null,
+            warehouseInventoryId: data.warehouseInventoryId ?? null,
+            subject: data.subject,
+            description: data.description,
             message: data.description,
+            createdById: actor.id,
+            messages: {
+              create: {
+                senderId: actor.id,
+                senderRole: actor.role,
+                visibility: TicketMessageVisibility.PUBLIC,
+                message: data.description,
+              },
+            },
           },
-        },
-      },
-      include: ticketInclude(false),
-    });
-    return created;
-  });
+          include: ticketInclude(false),
+        });
+      });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002" || attempt === 3) throw error;
+    }
+  }
+  if (!ticket) throw new Error("Ticket konnte nicht angelegt werden.");
 
   await createAuditLog({
     userId: actor.id,

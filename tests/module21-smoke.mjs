@@ -146,7 +146,7 @@ try {
 
   for (const [path, cookie, marker] of [
     ["/admin/support", adminCookie, "Support"],
-    ["/customer/support", customerCookie, "Support"],
+    ["/customer/support", customerCookie, "Wobei"],
     ["/distributor/support", distributorCookie, "Support"],
   ]) {
     const response = await fetchLocal(path, { headers: { cookie } });
