@@ -126,7 +126,10 @@ export async function getPricingSettings() {
   await ensureDefaultPricingSettings();
   const [settings, rules] = await Promise.all([
     prisma.pricingSetting.findMany({ orderBy: { key: "asc" } }),
-    prisma.pricingRule.findMany({ orderBy: [{ serviceType: "asc" }, { minQuantity: "asc" }] }),
+    prisma.pricingRule.findMany({
+      where: { isActive: true },
+      orderBy: [{ serviceType: "asc" }, { minQuantity: "asc" }],
+    }),
   ]);
   return { settings, rules };
 }

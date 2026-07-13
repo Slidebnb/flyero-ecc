@@ -5,6 +5,7 @@ import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { classifyStripeDisputeEvent, isRefundBlockedByDispute } from "@/lib/paymentDisputeLogic";
+import { calculateOrderPrice } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 const PROVIDER_CODE = "stripe";
@@ -171,8 +172,38 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
   if (existing?.status === "PAID") throw new Error("Dieser Auftrag wurde bereits bezahlt.");
   if (existing?.checkoutUrl) return existing;
 
+  const currentSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
+    ? order.priceRuleSnapshot as Record<string, unknown>
+    : {};
+  const currentPrice = order.manualPriceOverride === null
+    ? await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity })
+    : null;
+  const pricedOrder = currentPrice
+    ? await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          calculatedNetPrice: currentPrice.net,
+          calculatedVat: currentPrice.vat,
+          calculatedGrossPrice: currentPrice.gross,
+          priceRuleSnapshot: toJson({ ...currentSnapshot, ...currentPrice.snapshot }),
+        },
+      })
+    : order;
+
+  if (currentPrice) {
+    await createAuditLog({
+      userId: input.customerUserId,
+      tenantId: input.tenantId,
+      action: "order.price_recalculated_at_checkout",
+      entityType: "Order",
+      entityId: order.id,
+      oldValues: { calculatedGrossPrice: order.calculatedGrossPrice.toString() },
+      newValues: { calculatedGrossPrice: currentPrice.gross.toString(), pricingVersion: currentPrice.snapshot.pricingVersion },
+    });
+  }
+
   const provider = await ensureStripeProvider();
-  const amount = order.manualPriceOverride ?? order.calculatedGrossPrice;
+  const amount = pricedOrder.manualPriceOverride ?? pricedOrder.calculatedGrossPrice;
   const description = `Flyero Auftrag ${order.orderNumber}`;
   const metadata = {
     orderId: order.id,

@@ -214,6 +214,8 @@ jobs:
 
       - name: Auth session management smoke
         run: npm run test:auth-session-management
+      - name: Pricing admin propagation smoke
+        run: npm run test:pricing-admin-propagation
 
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe

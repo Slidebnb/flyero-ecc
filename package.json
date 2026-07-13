@@ -13,6 +13,8 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "node -r dotenv/config prisma/seed.mjs",
     "pricing:sync-premium": "node -r dotenv/config scripts/sync-premium-pricing.mjs",
+    "test:pricing-sync": "node tests/pricing-sync-smoke.mjs",
+    "test:pricing-admin-propagation": "node -r dotenv/config tests/pricing-admin-propagation-smoke.mjs",
     "test:module2": "node -r dotenv/config tests/module2-smoke.mjs",
     "test:module3": "node -r dotenv/config tests/module3-smoke.mjs",
     "test:module4": "node -r dotenv/config tests/module4-smoke.mjs",

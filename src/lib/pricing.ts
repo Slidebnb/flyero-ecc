@@ -53,6 +53,15 @@ export type PriceCalculation = {
   };
 };
 
+type PricingRuleLike = {
+  id: string;
+  minQuantity: number;
+  maxQuantity: number | null;
+  pricePerUnit: Prisma.Decimal;
+  basePrice: Prisma.Decimal;
+  minimumNetPrice: Prisma.Decimal;
+};
+
 export function calculatePremiumDistributionTierNetPrice(flyerQuantity: number) {
   const safeQuantity = Math.max(0, Math.floor(flyerQuantity));
   if (safeQuantity <= TIER_1_LIMIT) {
@@ -93,6 +102,34 @@ export async function getActivePricingRule(
   });
 }
 
+export async function getActivePricingRules(serviceType: ServiceType): Promise<PricingRuleLike[]> {
+  return prisma.pricingRule.findMany({
+    where: { serviceType, isActive: true },
+    orderBy: { minQuantity: "asc" },
+    select: {
+      id: true,
+      minQuantity: true,
+      maxQuantity: true,
+      pricePerUnit: true,
+      basePrice: true,
+      minimumNetPrice: true,
+    },
+  });
+}
+
+export function calculateConfiguredTierNetPrice(flyerQuantity: number, rules: PricingRuleLike[]) {
+  const safeQuantity = Math.max(0, Math.floor(flyerQuantity));
+  const rule = rules.find(
+    (candidate) => candidate.minQuantity <= safeQuantity && (candidate.maxQuantity === null || candidate.maxQuantity >= safeQuantity),
+  );
+  if (!rule) {
+    return calculatePremiumDistributionTierNetPrice(safeQuantity);
+  }
+
+  const unitsInTier = Math.max(0, safeQuantity - rule.minQuantity + 1);
+  return rule.basePrice.plus(rule.pricePerUnit.mul(unitsInTier)).toDecimalPlaces(2);
+}
+
 export async function getVatRate() {
   await ensureDefaultPricingSettings();
   const setting = await prisma.pricingSetting.findUnique({
@@ -107,21 +144,29 @@ export async function calculateOrderPrice(input: {
   serviceType: ServiceType;
   flyerQuantity: number;
 }): Promise<PriceCalculation> {
-  const [rule, vatRate] = await Promise.all([
-    getActivePricingRule(input.serviceType, input.flyerQuantity),
+  const [rules, vatRate] = await Promise.all([
+    getActivePricingRules(input.serviceType),
     getVatRate(),
   ]);
 
+  const rule = rules.find(
+    (candidate) => candidate.minQuantity <= input.flyerQuantity && (candidate.maxQuantity === null || candidate.maxQuantity >= input.flyerQuantity),
+  );
   const basePrice = rule?.basePrice ?? new Prisma.Decimal("0");
   const pricePerUnit = rule?.pricePerUnit ?? TIER_1_RATE;
   const minimumNetPrice = rule?.minimumNetPrice ?? MINIMUM_ORDER_VALUE_NET;
-  const baseDistributionNet = calculatePremiumDistributionTierNetPrice(input.flyerQuantity);
+  const baseDistributionNet = rules.length
+    ? calculateConfiguredTierNetPrice(input.flyerQuantity, rules)
+    : calculatePremiumDistributionTierNetPrice(input.flyerQuantity);
   const areaDifficulty = "NORMAL" as const;
   const areaDifficultyFactor = AREA_DIFFICULTY_FACTORS[areaDifficulty];
   const calculatedNet = baseDistributionNet.mul(areaDifficultyFactor).toDecimalPlaces(2);
-  const net = Prisma.Decimal.max(calculatedNet, MINIMUM_ORDER_VALUE_NET).toDecimalPlaces(2);
+  const net = Prisma.Decimal.max(calculatedNet, minimumNetPrice).toDecimalPlaces(2);
   const vat = net.mul(vatRate).toDecimalPlaces(2);
   const gross = net.plus(vat).toDecimalPlaces(2);
+  const tier1 = rules[0];
+  const tier2 = rules[1];
+  const tier3 = rules[2];
 
   return {
     net,
@@ -136,12 +181,12 @@ export async function calculateOrderPrice(input: {
       vatRate: vatRate.toString(),
       ruleId: rule?.id ?? null,
       pricingVersion: PREMIUM_PRICING_VERSION,
-      minimumOrderValueNet: MINIMUM_ORDER_VALUE_NET.toString(),
-      tier1Rate: TIER_1_RATE.toString(),
-      tier2Rate: TIER_2_RATE.toString(),
-      tier3Rate: TIER_3_RATE.toString(),
-      tier1Limit: TIER_1_LIMIT,
-      tier2Limit: TIER_2_LIMIT,
+      minimumOrderValueNet: minimumNetPrice.toString(),
+      tier1Rate: tier1?.pricePerUnit.toString() ?? TIER_1_RATE.toString(),
+      tier2Rate: tier2?.pricePerUnit.toString() ?? TIER_2_RATE.toString(),
+      tier3Rate: tier3?.pricePerUnit.toString() ?? TIER_3_RATE.toString(),
+      tier1Limit: tier1?.maxQuantity ?? TIER_1_LIMIT,
+      tier2Limit: tier2?.maxQuantity ?? TIER_2_LIMIT,
       baseDistributionNet: baseDistributionNet.toString(),
       areaDifficultyFactor: areaDifficultyFactor.toString(),
       areaDifficulty,
