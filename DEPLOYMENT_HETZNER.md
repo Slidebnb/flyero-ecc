@@ -31,7 +31,7 @@ git clone https://github.com/Slidebnb/flyero-ecc.git .
 cp .env.production.example .env.production
 nano .env.production
 ENV_FILE=.env.production npm run production:preflight
-docker compose -f docker-compose.production.yml build
+docker compose --env-file .env.production -f docker-compose.production.yml build
 docker compose -f docker-compose.production.yml up -d postgres
 docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy
 docker compose -f docker-compose.production.yml up -d
@@ -84,7 +84,7 @@ SMTP_FROM="FLYERO <noreply@flyero.org>"
 ```bash
 cd /opt/flyero
 git pull
-docker compose -f docker-compose.production.yml build app
+docker compose --env-file .env.production -f docker-compose.production.yml build app
 docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy
 docker compose -f docker-compose.production.yml up -d
 docker compose -f docker-compose.production.yml logs -f app
