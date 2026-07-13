@@ -1,17 +1,20 @@
-import { UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { logBackgroundJobFailure, logBackgroundJobStart, logBackgroundJobSuccess } from "@/lib/monitoring";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { createReportForTour } from "@/lib/reports";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
+import { prisma } from "@/lib/prisma";
+import { tenantWhereForSession } from "@/lib/tenantPolicy";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, context: RouteContext) {
   let jobId: string | null = null;
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.REPORT_REVIEW);
     const { id } = await context.params;
+    const scopedTour = await prisma.distributionTour.findFirst({ where: { id, order: tenantWhereForSession(session) }, select: { id: true } });
+    if (!scopedTour) return errorResponse("Tour wurde nicht gefunden.", 404);
     const job = await logBackgroundJobStart("REPORT_GENERATION", { tourId: id });
     jobId = job.id;
     const report = await createReportForTour({ tourId: id, adminUserId: session.id });

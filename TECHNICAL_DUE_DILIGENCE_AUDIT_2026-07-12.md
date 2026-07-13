@@ -316,6 +316,7 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - Der geschuetzte Admin-PDF-Download fuer Reports verlangt jetzt `REPORT_REVIEW` und prueft die Tenant-ID des Reports.
 - Foto-Pruefung und Foto-Scan verlangen die passende Permission und pruefen den Tenant ueber den verknuepften Auftrag, bevor sie lesen oder mutieren.
 - Externe GPS-/Foto-Nachweise und die Vorbereitung eines externen Reports verlangen jetzt `DOCUMENT_REVIEW` beziehungsweise `REPORT_REVIEW`; der Auftrag, die Tour und die manuelle Verteilerzuordnung werden im Service gegen den Tenant geprueft.
+- Report-Neuerzeugung, Korrekturanforderung und Report-Erzeugung aus einer Tour verwenden ebenfalls `REPORT_REVIEW` und einen vorgelagerten Tenant-Existenzcheck.
 - Report-Archivierung ist eine Admin-Publishing-Aktion und verlangt jetzt `REPORT_PUBLISH` statt einer reinen Rollenpruefung.
 - `npm run test:report-evidence-tenant-scope` ist als CI-Contract eingebunden. Eine vollstaendige A/B-IDOR-Matrix aller internen Ressourcen bleibt weiterhin offen.
 

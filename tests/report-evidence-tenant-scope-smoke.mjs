@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [reportDownload, photoReview, photoScan, archive, evidenceUpload, evidencePrepare, evidenceService] = await Promise.all([
+const [reportDownload, photoReview, photoScan, archive, evidenceUpload, evidencePrepare, evidenceService, regenerate, correction, generateFromTour] = await Promise.all([
   readFile("src/app/api/admin/reports/[id]/download/route.ts", "utf8"),
   readFile("src/app/api/admin/report-photos/[id]/route.ts", "utf8"),
   readFile("src/app/api/admin/report-photos/[id]/scan/route.ts", "utf8"),
@@ -9,6 +9,9 @@ const [reportDownload, photoReview, photoScan, archive, evidenceUpload, evidence
   readFile("src/app/api/admin/orders/[id]/evidence/route.ts", "utf8"),
   readFile("src/app/api/admin/orders/[id]/evidence/prepare-report/route.ts", "utf8"),
   readFile("src/lib/externalEvidence.ts", "utf8"),
+  readFile("src/app/api/admin/reports/[id]/regenerate/route.ts", "utf8"),
+  readFile("src/app/api/admin/reports/[id]/request-correction/route.ts", "utf8"),
+  readFile("src/app/api/admin/tours/[id]/generate-report/route.ts", "utf8"),
 ]);
 
 assert.match(reportDownload, /requirePermission\(Permission\.REPORT_REVIEW\)/);
@@ -28,5 +31,14 @@ assert.match(evidenceUpload, /requirePermission\(Permission\.DOCUMENT_REVIEW\)/)
 assert.match(evidencePrepare, /requirePermission\(Permission\.REPORT_REVIEW\)/);
 assert.match(evidenceService, /tenantWhereForSession/);
 assert.match(evidenceService, /prisma\.order\.findFirst\([\s\S]*input\.orderId/);
+
+for (const route of [regenerate, correction]) {
+  assert.match(route, /requirePermission\(Permission\.REPORT_REVIEW\)/);
+  assert.match(route, /tenantWhereForSession/);
+  assert.match(route, /findFirst\(/);
+}
+assert.match(generateFromTour, /requirePermission\(Permission\.REPORT_REVIEW\)/);
+assert.match(generateFromTour, /tenantWhereForSession/);
+assert.match(generateFromTour, /findFirst\(/);
 
 console.log("Report evidence tenant-scope smoke checks passed.");
