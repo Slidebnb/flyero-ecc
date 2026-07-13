@@ -807,6 +807,14 @@ Eine spaetere Enterprise-Ausbaustufe kann diese Daten bei Bedarf tenantbezogen
 modellieren; bis dahin bleibt die explizite Admin-only-Grenze die sichere
 Betriebsregel.
 
+Die verbliebenen Admin-Stammdatenpfade verwenden jetzt ebenfalls benannte
+Permissions: `platform-settings.manage` fuer Firmen-, Branding-, Maps-,
+Nummern- und Zahlungs-Konfiguration, `warehouse.view`/`warehouse.manage` fuer
+Lagerdaten, `distributor.manage` fuer Verteilerfreigaben und `template.manage`
+fuer Benachrichtigungsvorlagen. Dadurch sind diese APIs nicht mehr an eine
+verstreute direkte Rollenpruefung gekoppelt; die vollstaendige Migration aller
+internen Seiten und die A/B-IDOR-Matrix bleiben weiterhin offen.
+
 ### P0 Backup-Scheduler
 
 Der automatische Betriebsweg ist als Repository-Paket vorbereitet:

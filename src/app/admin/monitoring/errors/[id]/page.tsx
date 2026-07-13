@@ -1,12 +1,12 @@
-import { ErrorSeverity, ErrorStatus, UserRole } from "@prisma/client";
+import { ErrorSeverity, ErrorStatus } from "@prisma/client";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { ignoreErrorLog, markErrorLogInProgress, resolveErrorLog } from "@/lib/monitoring";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
@@ -23,7 +23,7 @@ function severityTone(severity: ErrorSeverity) {
 async function updateErrorAction(formData: FormData) {
   "use server";
 
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.MONITORING_MANAGE);
   const id = String(formData.get("id") || "");
   const action = String(formData.get("action") || "");
   const resolutionNote = String(formData.get("resolutionNote") || "");
@@ -42,7 +42,7 @@ async function updateErrorAction(formData: FormData) {
 }
 
 export default async function AdminMonitoringErrorDetailPage({ params }: PageProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  await requirePermission(Permission.MONITORING_VIEW);
   const { id } = await params;
   const error = await prisma.errorLog.findUnique({
     where: { id },

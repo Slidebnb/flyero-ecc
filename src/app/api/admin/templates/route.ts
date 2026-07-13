@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { NotificationAudience, NotificationChannel, UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { NotificationAudience, NotificationChannel } from "@prisma/client";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { extractPlaceholders, upsertNotificationTemplate } from "@/lib/notifications";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
 
@@ -10,7 +10,7 @@ function enumValue<T extends Record<string, string>>(source: T, value: unknown, 
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.TEMPLATE_MANAGE);
     const body = await readBody(request) as Record<string, unknown>;
     const subject = String(body.subject ?? "").trim();
     const templateBody = String(body.body ?? "").trim();

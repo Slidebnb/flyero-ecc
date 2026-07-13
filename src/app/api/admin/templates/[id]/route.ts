@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { NotificationAudience, NotificationChannel, UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { NotificationAudience, NotificationChannel } from "@prisma/client";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { extractPlaceholders } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
@@ -14,7 +14,7 @@ function enumValue<T extends Record<string, string>>(source: T, value: unknown, 
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.TEMPLATE_MANAGE);
     const { id } = await params;
     const body = await readBody(request) as Record<string, unknown>;
     const before = await prisma.notificationTemplate.findUnique({ where: { id } });

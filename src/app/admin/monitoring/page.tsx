@@ -1,10 +1,10 @@
-import { HealthStatus, UserRole } from "@prisma/client";
+import { HealthStatus } from "@prisma/client";
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { getMonitoringDashboard, runHealthCheck } from "@/lib/monitoring";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 function healthTone(status?: HealthStatus | null) {
@@ -16,13 +16,13 @@ function healthTone(status?: HealthStatus | null) {
 async function runHealthCheckAction() {
   "use server";
 
-  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requirePermission(Permission.MONITORING_MANAGE);
   await runHealthCheck(session.id);
   revalidatePath("/admin/monitoring");
 }
 
 export default async function AdminMonitoringPage() {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  await requirePermission(Permission.MONITORING_VIEW);
   const dashboard = await getMonitoringDashboard();
   const latest = dashboard.latestHealth;
   const failedQueue = dashboard.queueCounts.find((item) => item.status === "FAILED")?._count.status ?? 0;

@@ -1,14 +1,18 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { spawn, spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
-const baseUrl = process.env.MAPS_ABUSE_BASE_URL || "http://localhost:3000";
+const port = process.env.MAPS_ABUSE_PORT || "3044";
+const sharedBaseUrl = process.env.MAPS_ABUSE_BASE_URL || "";
+let baseUrl = sharedBaseUrl || `http://localhost:${port}`;
 const mapIp = "198.51.100.241";
 const bucketId = createHash("sha256").update(`flyero-public-rate-limit:maps:${mapIp}`).digest("hex");
+let server = null;
 
 function cookieHeaderFrom(response) {
   const setCookie = response.headers.get("set-cookie");
@@ -30,7 +34,30 @@ for (const route of [autocomplete, geocode, intelligence]) {
   assert.match(route, /publicRateLimitResponse/);
 }
 
+async function startServer() {
+  server = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
+    cwd: process.cwd(),
+    env: { ...process.env, EMAIL_PROVIDER: "mock", PORT: port },
+    stdio: "ignore",
+    shell: process.platform === "win32",
+  });
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const response = await fetch(`${baseUrl}/api/health`);
+      if (response.status < 500) return;
+    } catch {
+      // Server bootet noch.
+    }
+  }
+  if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/t", "/f"], { stdio: "ignore" });
+  else server.kill();
+  server = null;
+  throw new Error(`Maps-Abuse-Testserver auf ${baseUrl} konnte nicht gestartet werden.`);
+}
+
 try {
+  if (!sharedBaseUrl) await startServer();
   const login = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-forwarded-for": "127.0.0.234" },
@@ -51,6 +78,10 @@ try {
   assert.ok(await prisma.publicRateLimitBucket.findUnique({ where: { id: bucketId } }), "Maps-Rate-Limit-Bucket wurde nicht gespeichert.");
   console.log("Maps abuse smoke checks passed.");
 } finally {
+  if (server) {
+    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/t", "/f"], { stdio: "ignore" });
+    else server.kill();
+  }
   await prisma.publicRateLimitBucket.deleteMany({ where: { id: bucketId } });
   await prisma.$disconnect();
 }

@@ -1,6 +1,5 @@
 import { NextRequest } from "next/server";
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { getBrandingSettings, updateBrandingSettings } from "@/lib/settings";
 
@@ -8,7 +7,7 @@ const FIELDS = ["primaryColor", "secondaryColor", "accentColor", "logoUrl", "rep
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.PLATFORM_SETTINGS_MANAGE);
     return successResponse(await getBrandingSettings());
   } catch (error) {
     return routeErrorResponse(error);
@@ -17,7 +16,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.PLATFORM_SETTINGS_MANAGE);
     const body = await readBody(request) as Record<string, unknown>;
     const data = Object.fromEntries(FIELDS.map((field) => [field, String(body[field] ?? "").trim()]));
     return successResponse(await updateBrandingSettings(data, session.id));

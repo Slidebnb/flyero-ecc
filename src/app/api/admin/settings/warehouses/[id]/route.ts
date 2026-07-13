@@ -1,8 +1,7 @@
 import { NextRequest } from "next/server";
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
 
@@ -27,7 +26,7 @@ function warehouseUpdateData(body: Record<string, unknown>) {
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.WAREHOUSE_MANAGE);
     const { id } = await context.params;
     const body = await readBody(request) as Record<string, unknown>;
     const before = await prisma.warehouse.findUnique({ where: { id } });

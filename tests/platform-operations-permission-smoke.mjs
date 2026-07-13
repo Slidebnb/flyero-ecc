@@ -7,6 +7,9 @@ const viewRoutes = [
   "src/app/api/admin/monitoring/errors/[id]/route.ts",
   "src/app/api/admin/notifications/route.ts",
   "src/app/api/admin/notifications/queue/route.ts",
+  "src/app/admin/monitoring/page.tsx",
+  "src/app/admin/monitoring/errors/page.tsx",
+  "src/app/admin/monitoring/errors/[id]/page.tsx",
   "src/app/admin/notifications/page.tsx",
   "src/app/admin/notifications/queue/page.tsx",
 ];
@@ -17,6 +20,8 @@ const manageRoutes = [
   "src/app/api/admin/notifications/queue/process/route.ts",
   "src/app/api/admin/notifications/queue/[id]/retry/route.ts",
   "src/app/api/admin/notifications/test-email/route.ts",
+  "src/app/admin/monitoring/page.tsx",
+  "src/app/admin/monitoring/errors/[id]/page.tsx",
 ];
 
 async function assertPermission(filePath, permission) {

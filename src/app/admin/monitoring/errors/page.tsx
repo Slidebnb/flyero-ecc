@@ -1,8 +1,8 @@
-import { ErrorSeverity, ErrorStatus, UserRole } from "@prisma/client";
+import { ErrorSeverity, ErrorStatus } from "@prisma/client";
 import Link from "next/link";
 import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
-import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
@@ -19,7 +19,7 @@ function severityTone(severity: ErrorSeverity) {
 }
 
 export default async function AdminMonitoringErrorsPage({ searchParams }: { searchParams: SearchParams }) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  await requirePermission(Permission.MONITORING_VIEW);
   const params = await searchParams;
   const status = params.status && Object.values(ErrorStatus).includes(params.status as ErrorStatus) ? params.status as ErrorStatus : undefined;
   const severity = params.severity && Object.values(ErrorSeverity).includes(params.severity as ErrorSeverity) ? params.severity as ErrorSeverity : undefined;

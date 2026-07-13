@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { getNumberingSettings, updateNumberingSettings } from "@/lib/settings";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.PLATFORM_SETTINGS_MANAGE);
     return successResponse(await getNumberingSettings());
   } catch (error) {
     return routeErrorResponse(error);
@@ -15,7 +14,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.PLATFORM_SETTINGS_MANAGE);
     const body = await readBody(request) as Record<string, unknown>;
     const data = {
       invoicePrefix: String(body.invoicePrefix ?? "").trim(),

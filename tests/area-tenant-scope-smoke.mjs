@@ -1,12 +1,16 @@
 import assert from "node:assert/strict";
 import "dotenv/config";
+import { spawn, spawnSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
-const baseUrl = process.env.AREA_SCOPE_BASE_URL || "http://localhost:3000";
+const port = process.env.AREA_SCOPE_PORT || "3038";
+const sharedBaseUrl = process.env.AREA_SCOPE_BASE_URL || "";
+const baseUrl = sharedBaseUrl || `http://localhost:${port}`;
 const password = "DemoPasswort123!";
 const ip = `198.51.100.${Date.now() % 200 + 20}`;
+let server = null;
 
 function cookieHeaderFrom(response) {
   return (response.headers.get("set-cookie") || "")
@@ -25,6 +29,25 @@ async function login() {
   return cookieHeaderFrom(response);
 }
 
+async function startServer() {
+  server = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
+    cwd: process.cwd(),
+    env: { ...process.env, EMAIL_PROVIDER: "mock", PORT: port },
+    stdio: "ignore",
+    shell: process.platform === "win32",
+  });
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      const response = await fetch(`${baseUrl}/api/health`);
+      if (response.status < 500) return;
+    } catch {
+      // Server bootet noch.
+    }
+  }
+  throw new Error(`Area-Scope-Testserver auf ${baseUrl} konnte nicht gestartet werden.`);
+}
+
 let supportCookie = "";
 try {
   const support = await prisma.user.findUnique({
@@ -40,6 +63,7 @@ try {
   });
   assert.ok(foreignArea, "Smoke braucht ein kundengebundenes Gebiet eines fremden Tenants.");
 
+  if (!sharedBaseUrl) await startServer();
   supportCookie = await login();
   const listResponse = await fetch(`${baseUrl}/api/areas`, { headers: { cookie: supportCookie } });
   assert.equal(listResponse.status, 200, `Support-Gebietsliste fehlgeschlagen: ${listResponse.status}`);
@@ -57,5 +81,9 @@ try {
   assert.equal(deleteResponse.status, 404, "Support darf fremde Gebiete nicht deaktivieren.");
   console.log("Area tenant scope smoke passed.");
 } finally {
+  if (server) {
+    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(server.pid), "/t", "/f"], { stdio: "ignore" });
+    else server.kill();
+  }
   await prisma.$disconnect();
 }

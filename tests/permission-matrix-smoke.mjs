@@ -71,6 +71,9 @@ for (const permission of [
   "TOUR_VIEW",
   "TOUR_MANAGE",
   "INTERNAL_USERS_MANAGE",
+  "PLATFORM_SETTINGS_MANAGE",
+  "DISTRIBUTOR_MANAGE",
+  "TEMPLATE_MANAGE",
   "INVOICE_ADMIN_VIEW",
   "INVOICE_MANAGE",
   "PAYMENT_VIEW",
@@ -102,6 +105,25 @@ for (const [source, permission] of [
   [invoiceDownload, "INVOICE_VIEW"],
 ]) {
   assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
+}
+
+for (const [filePath, permission] of [
+  ["src/app/api/admin/settings/branding/route.ts", "PLATFORM_SETTINGS_MANAGE"],
+  ["src/app/api/admin/settings/company/route.ts", "PLATFORM_SETTINGS_MANAGE"],
+  ["src/app/api/admin/settings/maps/route.ts", "PLATFORM_SETTINGS_MANAGE"],
+  ["src/app/api/admin/settings/numbering/route.ts", "PLATFORM_SETTINGS_MANAGE"],
+  ["src/app/api/admin/settings/payments/route.ts", "PLATFORM_SETTINGS_MANAGE"],
+  ["src/app/api/admin/settings/warehouses/route.ts", "PLATFORM_SETTINGS_MANAGE"],
+  ["src/app/api/admin/settings/warehouses/[id]/route.ts", "WAREHOUSE_MANAGE"],
+  ["src/app/api/admin/warehouse/route.ts", "PLATFORM_SETTINGS_MANAGE"],
+  ["src/app/api/admin/distributors/[id]/status/route.ts", "DISTRIBUTOR_MANAGE"],
+  ["src/app/api/admin/templates/route.ts", "TEMPLATE_MANAGE"],
+  ["src/app/api/admin/templates/[id]/route.ts", "TEMPLATE_MANAGE"],
+  ["src/app/api/admin/templates/[id]/preview/route.ts", "TEMPLATE_MANAGE"],
+]) {
+  const source = await readFile(filePath, "utf8");
+  assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${filePath} ist nicht auf ${permission} geschuetzt.`);
+  assert.doesNotMatch(source, /requireRole\(/, `${filePath} verwendet weiterhin die alte Rollenpruefung.`);
 }
 
 for (const [source, permission] of [

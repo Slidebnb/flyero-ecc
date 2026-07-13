@@ -1,7 +1,7 @@
-import { DistributorReviewStatus, UserRole } from "@prisma/client";
+import { DistributorReviewStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
@@ -13,7 +13,7 @@ type RouteContext = {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-  const session = await requireRole([UserRole.ADMIN]);
+  const session = await requirePermission(Permission.DISTRIBUTOR_MANAGE);
   const { id } = await context.params;
   const parsed = adminDistributorUpdateSchema.safeParse(await readBody(request));
 

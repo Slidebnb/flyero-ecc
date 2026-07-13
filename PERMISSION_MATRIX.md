@@ -29,6 +29,9 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `invoice.admin.view` | Ja | Nein | Nein | Nein | Nein |
 | `invoice.manage` | Ja | Nein | Nein | Nein | Nein |
 | `internal-users.manage` | Ja | Nein | Nein | Nein | Nein |
+| `platform-settings.manage` | Ja | Nein | Nein | Nein | Nein |
+| `distributor.manage` | Ja | Nein | Nein | Nein | Nein |
+| `template.manage` | Ja | Nein | Nein | Nein | Nein |
 | `payment.view` | Ja | Nein | Nein | Nein | Nein |
 | `payment.refund` | Ja | Nein | Nein | Nein | Nein |
 | `payment.reconcile` | Ja | Nein | Nein | Nein | Nein |
