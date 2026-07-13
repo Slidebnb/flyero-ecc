@@ -320,6 +320,22 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 - Report-Archivierung ist eine Admin-Publishing-Aktion und verlangt jetzt `REPORT_PUBLISH` statt einer reinen Rollenpruefung.
 - `npm run test:report-evidence-tenant-scope` ist als CI-Contract eingebunden. Eine vollstaendige A/B-IDOR-Matrix aller internen Ressourcen bleibt weiterhin offen.
 
+### Customer-Tenant-A/B-Matrix (13.07.2026)
+
+- `tests/tenant-ab-idor-smoke.mjs` verwendet zwei echten, getrennten Tenants
+  zugeordnete Demo-Kunden und authentifiziert sie mit getrennten Request-IPs.
+- Die Customer-Listen fuer Auftraege, Reports, Rechnungen, Zahlungen und
+  Dokumente werden fuer beide Konten geladen und auf fremde Datensaetze geprueft.
+- Fremde Auftragsdetails, Auftragsdokumente, Rechnungsdetails/-downloads,
+  Zahlungsdetails, Dokumentdetails/-downloads sowie veroeffentlichte
+  Reportdetails/-downloads muessen `403` oder `404` liefern.
+- Die Dokumentbibliothek prueft `orderId` jetzt vor jeder gefilterten Liste
+  ueber `assertOrderAccess`; dadurch ist auch der Auftragsdokumentpfad gegen
+  fremde Tenant-IDs geschlossen.
+- `npm run test:tenant-ab-idor` laeuft lokal und ist im kritischen CI-Job gegen
+  den isolierten PostgreSQL-Testserver eingebunden. Die vollstaendige A/B-Matrix
+  fuer interne Support-, Lager-, Dispatch- und Admin-Ressourcen bleibt offen.
+
 ### Rechnungs-PDF-Tenant-Scope (13.07.2026)
 
 - Der interne Rechnungs-PDF-Download verlangt jetzt `INVOICE_VIEW`; Admin bleibt global, Support benoetigt eine aktive Unternehmensmitgliedschaft.

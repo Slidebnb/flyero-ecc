@@ -57,12 +57,16 @@ rollenbeschraenkt und duerfen keine Kunden- oder Verteileransicht erreichen.
 
 Tenant-Scopes und Permission-Vertraege sind fuer Customer-Kernobjekte,
 Analytics, Dispatch, Logistik, Reports, externe Evidence und interne
-Rechnungs-PDF-Downloads umgesetzt. Contract-Smokes decken die zentralen
-Pfadregeln ab.
+Rechnungs-PDF-Downloads umgesetzt. Die Customer-A/B-Matrix prueft zusaetzlich
+Listen, Details und geschuetzte Downloads fuer Auftraege, Dokumente,
+Rechnungen, Zahlungen und Reports gegen zwei echte Demo-Tenants. Contract-Smokes
+decken die zentralen Pfadregeln ab.
 
 ## Bewusst offene Punkte
 
-- Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch.
+- Vollstaendige A/B-IDOR-Tests fuer jede interne Ressource fehlen noch; die
+  aktuelle Matrix umfasst die Customer-Kernkette und ersetzt keine Tests fuer
+  Support-, Lager-, Dispatch- und Admin-Ressourcen.
 - Die globale CRM-Policy braucht fuer einen spaeteren Enterprise-Betrieb eine
   fachliche Entscheidung: zentrale FLYERO-Vertriebspipeline oder CRM je
   Unternehmen. Erst danach ist eine `tenantId`-Migration fuer Leads sinnvoll.

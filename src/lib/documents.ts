@@ -161,7 +161,7 @@ async function customerForActor(actor: SessionUser) {
   return customer;
 }
 
-async function assertOrderAccess(actor: SessionUser, orderId: string) {
+export async function assertOrderAccess(actor: SessionUser, orderId: string) {
   if (isPlatformAdmin(actor)) {
     const order = await prisma.order.findUnique({ where: { id: orderId }, select: { id: true, customerId: true, tenantId: true } });
     if (!order) throw new AuthError("Auftrag wurde nicht gefunden.", 404);
@@ -216,6 +216,9 @@ export function documentInclude(publicOnly: boolean) {
 export type DocumentListItem = Prisma.DocumentGetPayload<{ include: ReturnType<typeof documentInclude> }>;
 
 export async function listDocuments(actor: SessionUser, filters: Record<string, string | undefined> = {}): Promise<DocumentListItem[]> {
+  if (filters.orderId) {
+    await assertOrderAccess(actor, filters.orderId);
+  }
   const uploadedFrom = dateFilter(filters.uploadedFrom);
   const uploadedTo = dateFilter(filters.uploadedTo);
   if (uploadedTo) uploadedTo.setHours(23, 59, 59, 999);

@@ -27,6 +27,7 @@ env:
   CUSTOMER_ORDER_CHECKOUT_BASE_URL: http://127.0.0.1:3000
   BETA_BASE_URL: http://127.0.0.1:3000
   BETA_PORT: "3000"
+  TENANT_AB_BASE_URL: http://127.0.0.1:3000
 
 jobs:
   quality:
@@ -136,6 +137,9 @@ jobs:
 
       - name: Tenant foundation smoke
         run: npm run test:tenant-foundation
+
+      - name: Tenant A/B IDOR smoke
+        run: npm run test:tenant-ab-idor
 
       - name: Authentication abuse protection smoke
         run: npm run test:auth-abuse
