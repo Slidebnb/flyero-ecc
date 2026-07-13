@@ -42,6 +42,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     });
     await createAuditLog({
       userId: session.id,
+      tenantId: session.tenantId,
       action: "photo.reviewed",
       entityType: "PhotoProof",
       entityId: photo.id,

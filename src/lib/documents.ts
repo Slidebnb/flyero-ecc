@@ -325,7 +325,7 @@ export async function createDocument(actor: SessionUser, input: unknown, file?: 
     where: { documentId: document.id, version: 1 },
     data: { fileUrl: protectedDocumentUrl(document.id, 1) },
   });
-  await createAuditLog({ userId: actor.id, action: "document.uploaded", entityType: "Document", entityId: document.id, newValues: { type: document.documentType, status: document.status } });
+  await createAuditLog({ userId: actor.id, tenantId: document.tenantId, action: "document.uploaded", entityType: "Document", entityId: document.id, newValues: { type: document.documentType, status: document.status } });
   await notifyAdmins({ type: "DOCUMENT_UPLOADED", title: "Neue Druckdatei", message: `${document.title} wurde hochgeladen.`, data: { documentId: document.id } });
   await createNotification({ userId: actor.id, type: "DOCUMENT_UPLOADED", title: "Dokument hochgeladen", message: `${document.title} wurde gespeichert.`, data: { documentId: document.id } });
   return getDocument(actor, document.id);
@@ -379,7 +379,7 @@ export async function addDocumentVersion(actor: SessionUser, id: string, input: 
     include: documentInclude(false),
   });
 
-  await createAuditLog({ userId: actor.id, action: "document.version_uploaded", entityType: "Document", entityId: document.id, newValues: { version: nextVersion } });
+  await createAuditLog({ userId: actor.id, tenantId: document.tenantId, action: "document.version_uploaded", entityType: "Document", entityId: document.id, newValues: { version: nextVersion } });
   await notifyAdmins({ type: "DOCUMENT_VERSION_UPLOADED", title: "Neue Dokumentversion", message: `${updated.title} Version ${nextVersion} wartet auf Prüfung.`, data: { documentId: document.id } });
   return updated;
 }
@@ -387,19 +387,19 @@ export async function addDocumentVersion(actor: SessionUser, id: string, input: 
 export async function updateDocument(actor: SessionUser, id: string, input: unknown) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dokumente bearbeiten.", 403);
   const data = documentUpdateSchema.parse(input);
-  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { scanStatus: true } });
+  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { scanStatus: true, tenantId: true } });
   if (!current) throw new AuthError("Dokument wurde nicht gefunden.", 404);
   if (data.status === "APPROVED" && approvalRequiresCleanScan({ status: current.scanStatus })) {
     throw new AuthError("Dokumente dürfen erst nach erfolgreicher Dateiprüfung freigegeben werden.", 409);
   }
   const updated = await prisma.document.update({ where: { id }, data, include: documentInclude(false) });
-  await createAuditLog({ userId: actor.id, action: "document.updated", entityType: "Document", entityId: id, newValues: data });
+  await createAuditLog({ userId: actor.id, tenantId: current.tenantId, action: "document.updated", entityType: "Document", entityId: id, newValues: data });
   return updated;
 }
 
 export async function approveDocument(actor: SessionUser, id: string, message?: string) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dokumente freigeben.", 403);
-  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { scanStatus: true } });
+  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { scanStatus: true, tenantId: true } });
   if (!current) throw new AuthError("Dokument wurde nicht gefunden.", 404);
   if (approvalRequiresCleanScan({ status: current.scanStatus })) {
     throw new AuthError("Dokumente dürfen erst nach erfolgreicher Dateiprüfung freigegeben werden.", 409);
@@ -410,7 +410,7 @@ export async function approveDocument(actor: SessionUser, id: string, message?: 
     include: documentInclude(false),
   });
   if (message) await addDocumentComment(actor, id, { message, visibility: "PUBLIC" });
-  await createAuditLog({ userId: actor.id, action: "document.approved", entityType: "Document", entityId: id, newValues: { status: document.status } });
+  await createAuditLog({ userId: actor.id, tenantId: document.tenantId, action: "document.approved", entityType: "Document", entityId: id, newValues: { status: document.status } });
   await createNotification({ userId: document.customer.userId, type: "DOCUMENT_APPROVED", title: "Dokument freigegeben", message: `${document.title} wurde freigegeben.`, data: { documentId: id } });
   return document;
 }
@@ -438,13 +438,13 @@ export async function rescanDocument(actor: SessionUser, id: string) {
     },
     include: documentInclude(false),
   });
-  await createAuditLog({ userId: actor.id, action: "document.scan_completed", entityType: "Document", entityId: document.id, newValues: { status: scan.status, provider: scan.provider, quarantined: storageKey.startsWith("quarantine/") } });
+  await createAuditLog({ userId: actor.id, tenantId: document.tenantId, action: "document.scan_completed", entityType: "Document", entityId: document.id, newValues: { status: scan.status, provider: scan.provider, quarantined: storageKey.startsWith("quarantine/") } });
   return updated;
 }
 
 export async function rejectDocument(actor: SessionUser, id: string, rejectedReason: string) {
   if (!isAdmin(actor)) throw new AuthError("Nur Admin/Support darf Dokumente ablehnen.", 403);
-  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { id: true } });
+  const current = await prisma.document.findFirst({ where: { id, ...documentWhere(actor) }, select: { id: true, tenantId: true } });
   if (!current) throw new AuthError("Dokument wurde nicht gefunden.", 404);
   const document = await prisma.document.update({
     where: { id },
@@ -452,7 +452,7 @@ export async function rejectDocument(actor: SessionUser, id: string, rejectedRea
     include: documentInclude(false),
   });
   await addDocumentComment(actor, id, { message: rejectedReason, visibility: "PUBLIC" });
-  await createAuditLog({ userId: actor.id, action: "document.rejected", entityType: "Document", entityId: id, newValues: { rejectedReason } });
+  await createAuditLog({ userId: actor.id, tenantId: document.tenantId, action: "document.rejected", entityType: "Document", entityId: id, newValues: { rejectedReason } });
   await createNotification({ userId: document.customer.userId, type: "DOCUMENT_REJECTED", title: "Dokument abgelehnt", message: rejectedReason, data: { documentId: id } });
   return document;
 }
@@ -471,7 +471,7 @@ export async function getDocumentDownload(actor: SessionUser, id: string, versio
   const storageKey = selected?.storageKey ?? document.storedFilename;
   if (selected && !storageKey) throw new AuthError("Diese Dokumentversion ist nicht mehr verfügbar.", 404);
   const stored = await readStoredDocument(storageKey);
-  await createAuditLog({ userId: actor.id, action: "document.downloaded", entityType: "Document", entityId: document.id, metadata: { version: version ?? document.version } });
+  await createAuditLog({ userId: actor.id, tenantId: document.tenantId, action: "document.downloaded", entityType: "Document", entityId: document.id, metadata: { version: version ?? document.version } });
   return { ...stored, filename: document.originalFilename, mimeType: documentMimeTypeForExtension(document.extension) };
 }
 
@@ -543,7 +543,7 @@ export async function createPrintOrder(actor: SessionUser, input: unknown) {
     });
   }
   await prisma.order.update({ where: { id: order.id }, data: { needsPrintService: true, customerOwnFlyers: false } });
-  await createAuditLog({ userId: actor.id, action: "print.requested", entityType: "PrintOrder", entityId: printOrder.id, newValues: { status: printOrder.status, quantity: printOrder.quantity } });
+  await createAuditLog({ userId: actor.id, tenantId: printOrder.tenantId, action: "print.requested", entityType: "PrintOrder", entityId: printOrder.id, newValues: { status: printOrder.status, quantity: printOrder.quantity } });
   await notifyAdmins({ type: "PRINT_ORDER_REQUESTED", title: "Druckauftrag", message: `${printOrder.order.orderNumber}: Druckauftrag wurde angefragt.`, data: { printOrderId: printOrder.id } });
   await createNotification({ userId: actor.id, type: "PRINT_ORDER_REQUESTED", title: "Druckauftrag angefragt", message: "Dein Druckauftrag wurde gespeichert.", data: { printOrderId: printOrder.id } });
   return printOrder;
@@ -580,7 +580,7 @@ async function ensureWarehouseInventoryForPrint(printOrderId: string, actor: Ses
       notes: "Automatisch durch Druckstatus RECEIVED_IN_WAREHOUSE angelegt.",
     },
   });
-  await createAuditLog({ userId: actor.id, action: "print.received", entityType: "WarehouseInventory", entityId: inventory.id, newValues: { printOrderId } });
+  await createAuditLog({ userId: actor.id, tenantId: printOrder.tenantId, action: "print.received", entityType: "WarehouseInventory", entityId: inventory.id, newValues: { printOrderId } });
   return inventory;
 }
 
@@ -621,7 +621,7 @@ export async function updatePrintOrder(actor: SessionUser, id: string, input: un
       : data.status === "RECEIVED_IN_WAREHOUSE" || data.status === "READY_FOR_DISTRIBUTION"
         ? "print.received"
         : "print.updated";
-  await createAuditLog({ userId: actor.id, action, entityType: "PrintOrder", entityId: id, oldValues: { status: current.status }, newValues: { status: updated.status } });
+  await createAuditLog({ userId: actor.id, tenantId: current.tenantId, action, entityType: "PrintOrder", entityId: id, oldValues: { status: current.status }, newValues: { status: updated.status } });
   const notification = printStatusNotification(updated.status, current.order.orderNumber);
   await createNotification({ userId: current.customer.userId, ...notification, data: { printOrderId: id } });
   const shipment = await prisma.logisticsShipment.findFirst({ where: { printOrderId: id, shipmentType: "PRINTER_TO_WAREHOUSE" } });

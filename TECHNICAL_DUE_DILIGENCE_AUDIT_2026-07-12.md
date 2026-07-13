@@ -952,6 +952,12 @@ Der Codepfad ist damit korrigiert; der operative Nachweis der Migration und ein 
 - Vor der Ablehnung wird das Dokument jetzt mit `documentWhere(actor)` geladen. Fremde oder nicht vorhandene Dokumente werden mit `404` abgewiesen; erst danach erfolgt die Mutation.
 - `tests/document-review-tenant-scope-smoke.mjs` ist als CI-Contract eingebunden. Die vollstaendige A/B-Laufzeitmatrix aller internen Ressourcen bleibt weiterhin offen.
 
+### P1 Tenant-Kontext in Nachweis-AuditLogs (13.07.2026)
+
+- Dokument- und Druckaktionen sowie die Foto-Freigabe schreiben jetzt neben dem Benutzer auch die zugehörige `tenantId` in den AuditLog.
+- Die fachliche Scope-Prüfung bleibt unverändert; der zusätzliche Kontext verbessert forensische Auswertung und tenantbezogene Betriebsreports.
+- `npm run test:tenant-audit-context` schützt die wichtigsten Dokument-/Druck-/Fotoaktionen gegen einen späteren Verlust dieses Kontexts.
+
 ### P1 Geschuetzte Datei-Auslieferung (13.07.2026)
 
 - Geschuetzte Kunden-, Nachweis-, Rechnungs-, Report- und Export-Downloads verwenden jetzt eine gemeinsame Header-Policy mit `private, no-store`, `X-Content-Type-Options: nosniff` und bereinigten Download-Dateinamen.
