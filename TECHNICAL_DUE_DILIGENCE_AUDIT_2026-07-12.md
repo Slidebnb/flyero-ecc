@@ -782,6 +782,14 @@ globale Rollenpruefung geschuetzt. Der Modul-20-Smoke prueft Schema, Migration,
 Scope-Helper und den Laufzeit-Konvertierungspfad. Eine vollstaendige A/B-IDOR-
 Matrix fuer alle verbleibenden internen Ressourcen bleibt weiterhin offen.
 
+### Accounting-Export-Permission (13.07.2026)
+
+Der Accounting-Export-Detailpfad verwendet jetzt wie Liste, Download und
+Archivierung die Permission `accounting.export` und nicht mehr nur eine
+direkte Rollenpruefung. Damit ist der Endpunkt an den zentralen Permission-
+Contract und die aktuelle Membership-Pruefung angebunden; der Permission-
+Matrix-Smoke deckt den Detailpfad mit ab.
+
 ### P0 Backup-Scheduler
 
 Der automatische Betriebsweg ist als Repository-Paket vorbereitet:

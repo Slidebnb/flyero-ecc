@@ -1,11 +1,10 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.ACCOUNTING_EXPORT);
     const { id } = await context.params;
     const accountingExport = await prisma.accountingExport.findUnique({
       where: { id },

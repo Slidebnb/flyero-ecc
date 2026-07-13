@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments, dispatchView, dispatchCombinations, dispatchRecommend, dispatchRecommendations, dispatchDismiss, dispatchAutoAssign, tours, tourDetail, tourApprove, tourClarify, tourNote, tourReject, logisticsDashboard, logisticsShipments, logisticsShipmentDetail, logisticsStockCounts, logisticsTransfers, logisticsTransferDetail, crmList, crmDetail, crmStatus, crmNote, crmAssign, crmConvert, crmFollowups, legacyLeadList, legacyLeadDetail] = await Promise.all([
+const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, accountingDetail, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments, dispatchView, dispatchCombinations, dispatchRecommend, dispatchRecommendations, dispatchDismiss, dispatchAutoAssign, tours, tourDetail, tourApprove, tourClarify, tourNote, tourReject, logisticsDashboard, logisticsShipments, logisticsShipmentDetail, logisticsStockCounts, logisticsTransfers, logisticsTransferDetail, crmList, crmDetail, crmStatus, crmNote, crmAssign, crmConvert, crmFollowups, legacyLeadList, legacyLeadDetail] = await Promise.all([
   readFile("src/lib/permissions.ts", "utf8"),
   readFile("PERMISSION_MATRIX.md", "utf8"),
   readFile("src/app/api/admin/settings/users/route.ts", "utf8"),
@@ -12,6 +12,7 @@ const [permissions, matrix, users, userStatus, refund, reportPublish, reportAppr
   readFile("src/app/api/admin/analytics/route.ts", "utf8"),
   readFile("src/app/api/admin/analytics/export/route.ts", "utf8"),
   readFile("src/app/api/admin/accounting/exports/route.ts", "utf8"),
+  readFile("src/app/api/admin/accounting/exports/[id]/route.ts", "utf8"),
   readFile("src/app/api/admin/settings/pricing/route.ts", "utf8"),
   readFile("src/app/api/admin/invoices/[id]/download/route.ts", "utf8"),
   readFile("src/app/api/admin/orders/route.ts", "utf8"),
@@ -94,6 +95,7 @@ for (const [source, permission] of [
   [analytics, "ANALYTICS_VIEW"],
   [analyticsExport, "ANALYTICS_EXPORT"],
   [accounting, "ACCOUNTING_EXPORT"],
+  [accountingDetail, "ACCOUNTING_EXPORT"],
   [pricing, "PRICING_MANAGE"],
   [invoiceDownload, "INVOICE_VIEW"],
 ]) {
