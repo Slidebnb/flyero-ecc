@@ -1,20 +1,22 @@
 import { UserRole } from "@prisma/client";
-import { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
+import { inventoryScopeForUser } from "@/lib/logistics";
 import { createAuditLog } from "@/lib/audit";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
+import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
 import { warehouseQrSchema } from "@/lib/validators";
 import { createQrPayload, createQrPngDataUrl, logWarehouseHistory } from "@/lib/warehouse";
 
 export async function POST(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    if (session.role !== UserRole.ADMIN) await requireActiveTenantMembership(session);
     const parsed = warehouseQrSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
-    const inventory = await prisma.warehouseInventory.findUnique({
-      where: { id: parsed.data.inventoryId },
+    const inventory = await prisma.warehouseInventory.findFirst({
+      where: { id: parsed.data.inventoryId, ...inventoryScopeForUser(session) },
       include: { order: true, warehouseLocation: true },
     });
     if (!inventory) return errorResponse("Lagerbestand wurde nicht gefunden.", 404);

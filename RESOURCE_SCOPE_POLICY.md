@@ -57,10 +57,12 @@ rollenbeschraenkt und duerfen keine Kunden- oder Verteileransicht erreichen.
 
 Tenant-Scopes und Permission-Vertraege sind fuer Customer-Kernobjekte,
 Analytics, Dispatch, Logistik, Reports, externe Evidence und interne
-Rechnungs-PDF-Downloads umgesetzt. Die Customer-A/B-Matrix prueft zusaetzlich
+Rechnungs-PDF-Downloads sowie Lagerbestand-/Inventur-Schutz fuer zugewiesene
+Lager umgesetzt. Die Customer-A/B-Matrix prueft zusaetzlich
 Listen, Details und geschuetzte Downloads fuer Auftraege, Dokumente,
-Rechnungen, Zahlungen und Reports gegen zwei echte Demo-Tenants. Contract-Smokes
-decken die zentralen Pfadregeln ab.
+Rechnungen, Zahlungen und Reports gegen zwei echte Demo-Tenants. Der
+Warehouse-Scope-Smoke prueft QR, Check-in, Status, Lagerplatz und Inventur
+gegen ein fremdes Lager. Contract-Smokes decken die zentralen Pfadregeln ab.
 
 ## Bewusst offene Punkte
 

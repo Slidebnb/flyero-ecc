@@ -28,6 +28,7 @@ env:
   BETA_BASE_URL: http://127.0.0.1:3000
   BETA_PORT: "3000"
   TENANT_AB_BASE_URL: http://127.0.0.1:3000
+  WAREHOUSE_SCOPE_BASE_URL: http://127.0.0.1:3000
 
 jobs:
   quality:
@@ -191,6 +192,9 @@ jobs:
 
       - name: Logistics tenant scope smoke
         run: npm run test:logistics-tenant-scope
+
+      - name: Warehouse scope smoke
+        run: npm run test:warehouse-scope
 
       - name: Health fail-safe contract smoke
         run: npm run test:health-fail-safe

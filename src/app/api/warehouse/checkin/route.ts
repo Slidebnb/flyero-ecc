@@ -2,11 +2,12 @@ import { ErrorSeverity, Prisma, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
-import { updateLogisticsShipment } from "@/lib/logistics";
+import { inventoryScopeForUser, updateLogisticsShipment } from "@/lib/logistics";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
+import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
 import { warehouseCheckinSchema } from "@/lib/validators";
 import {
   ensureInventoryForApprovedOrder,
@@ -17,17 +18,24 @@ import {
 export async function POST(request: NextRequest) {
   try {
     const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN]);
+    if (session.role !== UserRole.ADMIN) await requireActiveTenantMembership(session);
     const parsed = warehouseCheckinSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     const data = parsed.data;
     if (session.role === UserRole.WAREHOUSE_STAFF && session.warehouseId !== data.warehouseId) {
       return errorResponse("Dieses Lager ist deinem Zugang nicht zugeordnet.", 403);
     }
-    const order = await prisma.order.findUnique({
-      where: { id: data.orderId },
-      include: { customer: true },
+    const order = await prisma.order.findFirst({
+      where: {
+        id: data.orderId,
+        ...(session.role === UserRole.WAREHOUSE_STAFF ? { assignedWarehouseId: data.warehouseId } : {}),
+      },
+      include: { customer: true, warehouseInventory: true },
     });
     if (!order) return errorResponse("Auftrag wurde nicht gefunden.", 404);
+    if (session.role === UserRole.WAREHOUSE_STAFF && order.warehouseInventory && order.warehouseInventory.warehouseId !== data.warehouseId) {
+      return errorResponse("Dieser Bestand ist deinem Lager nicht zugeordnet.", 404);
+    }
     if (order.status !== "APPROVED" && order.status !== "READY_FOR_FLYERS" && order.status !== "FLYERS_EXPECTED") {
       return errorResponse("Nur genehmigte Aufträge dürfen in den Lagerprozess.", 409);
     }
@@ -36,6 +44,11 @@ export async function POST(request: NextRequest) {
       warehouseId: data.warehouseId,
       userId: session.id,
     });
+    const scopedInventory = await prisma.warehouseInventory.findFirst({
+      where: { id: inventory.id, ...inventoryScopeForUser(session) },
+      select: { id: true },
+    });
+    if (!scopedInventory) return errorResponse("Dieser Bestand ist deinem Lager nicht zugeordnet.", 404);
     const currentOrder = await prisma.order.findUnique({ where: { id: order.id } });
     if (currentOrder?.status === "APPROVED") {
       await syncOrderStatusForInventory({

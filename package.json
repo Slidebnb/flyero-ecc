@@ -71,6 +71,7 @@
     "test:production-preflight": "node tests/production-preflight-smoke.mjs",
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",
     "test:tenant-ab-idor": "node -r dotenv/config tests/tenant-ab-idor-smoke.mjs",
+    "test:warehouse-scope": "node -r dotenv/config tests/warehouse-scope-smoke.mjs",
     "test:backup-scheduler": "node tests/backup-scheduler-smoke.mjs",
     "test:tenant-foundation": "node tests/tenant-foundation-smoke.mjs",
     "test:public-url": "node --experimental-strip-types tests/public-url-smoke.mjs",

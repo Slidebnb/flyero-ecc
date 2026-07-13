@@ -451,9 +451,12 @@ export async function createWarehouseStockCount(input: {
 }) {
   const inventory = await prisma.warehouseInventory.findFirst({
     where: { id: input.inventoryId, ...(input.tenantId === undefined ? {} : { order: { tenantId: input.tenantId ?? "__no_tenant__" } }) },
-    select: { id: true },
+    select: { id: true, warehouseId: true },
   });
   if (!inventory) throw new Error("Bestand wurde nicht gefunden oder ist nicht berechtigt.");
+  if (!inventory.warehouseId || inventory.warehouseId !== input.warehouseId) {
+    throw new Error("Bestand und Lager gehoeren nicht zusammen.");
+  }
   const count = await prisma.warehouseStockCount.create({
     data: {
       warehouseId: input.warehouseId,

@@ -336,6 +336,22 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   den isolierten PostgreSQL-Testserver eingebunden. Die vollstaendige A/B-Matrix
   fuer interne Support-, Lager-, Dispatch- und Admin-Ressourcen bleibt offen.
 
+### Warehouse-Ressourcen-Scope (13.07.2026)
+
+- Lagerpersonal benoetigt fuer sensible Warehouse-Mutationen weiterhin eine
+  aktive interne Membership und darf nur das zugewiesene Lager bearbeiten.
+- Check-in prueft den dem Auftrag zugewiesenen Lagerstandort und den Bestand
+  erneut gegen `inventoryScopeForUser`, bevor Status, Mengen oder Lagerplatz
+  mutiert werden.
+- QR-Erzeugung, Lagerplatzzuweisung und Statusaenderung laden den Bestand jetzt
+  mit derselben Lagergrenze; Inventurlisten filtern zusaetzlich ueber den
+  zugeordneten Bestand und Support ueber den aktiven Tenant.
+- Inventur-Erstellung akzeptiert nur das tatsaechliche Lager des Bestands und
+  validiert diese Beziehung nochmals im Logistics-Service.
+- `npm run test:warehouse-scope` prueft diese Grenzen mit einem echten
+  Warehouse-Login und einem Bestand aus einem fremden Seed-Lager. Die A/B-
+  Matrix fuer Support-, Dispatch- und sonstige interne Ressourcen bleibt offen.
+
 ### Rechnungs-PDF-Tenant-Scope (13.07.2026)
 
 - Der interne Rechnungs-PDF-Download verlangt jetzt `INVOICE_VIEW`; Admin bleibt global, Support benoetigt eine aktive Unternehmensmitgliedschaft.
