@@ -313,8 +313,10 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
   return area;
 }
 
-export async function updateDistributionArea(input: AreaInput & { id: string; userId?: string | null }) {
-  const existing = await prisma.distributionArea.findUnique({ where: { id: input.id } });
+export async function updateDistributionArea(input: AreaInput & { id: string; userId?: string | null; tenantId?: string | null }) {
+  const existing = await prisma.distributionArea.findFirst({
+    where: { id: input.id, ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }) },
+  });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
   const geoJson = normalizeAreaGeoJson(input.geometryGeoJson ?? input.geoJson);
   const coverageAreaSqm = estimateCoverageAreaSqm({
@@ -400,8 +402,10 @@ export async function updateDistributionArea(input: AreaInput & { id: string; us
   return area;
 }
 
-export async function deleteDistributionArea(input: { id: string; userId?: string | null }) {
-  const existing = await prisma.distributionArea.findUnique({ where: { id: input.id } });
+export async function deleteDistributionArea(input: { id: string; userId?: string | null; tenantId?: string | null }) {
+  const existing = await prisma.distributionArea.findFirst({
+    where: { id: input.id, ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }) },
+  });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
   const area = await prisma.distributionArea.update({
     where: { id: input.id },
@@ -426,12 +430,15 @@ export async function deleteDistributionArea(input: { id: string; userId?: strin
   return area;
 }
 
-export async function copyDistributionArea(input: { id: string; userId?: string | null }) {
+export async function copyDistributionArea(input: { id: string; userId?: string | null; tenantId?: string | null }) {
   const existing = await prisma.distributionArea.findUnique({
     where: { id: input.id },
     include: { polygons: { orderBy: { sortOrder: "asc" } } },
   });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
+  if (input.tenantId !== undefined && existing.tenantId !== null && existing.tenantId !== input.tenantId) {
+    throw new Error("Gebiet wurde nicht gefunden.");
+  }
 
   return createDistributionArea({
     userId: input.userId,
@@ -461,8 +468,8 @@ export async function copyDistributionArea(input: { id: string; userId?: string 
     dataUpdatedAt: existing.dataUpdatedAt,
     confidence: existing.confidence ? Number(existing.confidence) : null,
     reusable: existing.reusable,
-    customerId: existing.customerId,
-    tenantId: existing.tenantId,
+    customerId: input.tenantId === undefined ? existing.customerId : null,
+    tenantId: input.tenantId === undefined ? existing.tenantId : input.tenantId,
   });
 }
 
@@ -545,6 +552,7 @@ export async function listAreas(filters: {
     include: {
       polygons: { orderBy: { sortOrder: "asc" } },
       estimates: { orderBy: { createdAt: "desc" }, take: 1 },
+      orders: { select: { id: true } },
     },
     orderBy: [{ status: "asc" }, { city: "asc" }, { name: "asc" }],
   });

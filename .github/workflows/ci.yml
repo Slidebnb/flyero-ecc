@@ -140,6 +140,9 @@ jobs:
       - name: Tenant foundation smoke
         run: npm run test:tenant-foundation
 
+      - name: Area tenant scope smoke
+        run: npm run test:area-tenant-scope
+
       - name: Tenant A/B IDOR smoke
         run: npm run test:tenant-ab-idor
 

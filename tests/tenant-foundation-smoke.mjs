@@ -17,6 +17,9 @@ const customerOrderDetail = await readFile("src/app/api/customer/orders/[id]/rou
 const customerReportDownload = await readFile("src/app/api/customer/reports/[id]/download/route.ts", "utf8");
 const customerDocumentDownload = await readFile("src/app/api/customer/documents/[id]/download/route.ts", "utf8");
 const customerAreas = await readFile("src/app/api/areas/route.ts", "utf8");
+const areaManagement = await readFile("src/app/api/areas/[id]/route.ts", "utf8");
+const areaLibrary = await readFile("src/lib/areas.ts", "utf8");
+const areaPage = await readFile("src/app/admin/areas/page.tsx", "utf8");
 const customerSupport = await readFile("src/lib/support.ts", "utf8");
 
 assert.match(schema, /model Tenant\s*\{/);
@@ -34,6 +37,12 @@ assert.match(customerOrderDetail, /tenantId/);
 assert.match(customerReportDownload, /tenantId/);
 assert.match(customerDocumentDownload, /getDocumentDownload\(session/);
 assert.match(customerAreas, /tenantId/);
+assert.match(customerAreas, /requireActiveTenantMembership/);
+assert.match(areaManagement, /requireActiveTenantMembership/);
+assert.match(areaManagement, /tenantId: session\.role === UserRole\.ADMIN \? undefined : session\.tenantId/);
+assert.match(areaLibrary, /tenantId === undefined/);
+assert.match(areaPage, /listAreas/);
+assert.match(areaPage, /session\.role === UserRole\.ADMIN \? undefined : session\.tenantId/);
 assert.match(customerSupport, /tenantId/);
 
 try {

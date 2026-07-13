@@ -2,6 +2,7 @@ import { DistributionAreaType, UserRole } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { requireTenantSession } from "@/lib/tenant";
+import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
 import { createDistributionArea, listAreas } from "@/lib/areas";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
       city: url.searchParams.get("city") || undefined,
       type: type || undefined,
       includeDeleted: url.searchParams.get("includeDeleted") === "true",
-      tenantId: session.role === UserRole.CUSTOMER ? session.tenantId : undefined,
+      tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId,
     });
 
     return Response.json({ ok: true, data: areas });
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       userId: session.id,
       customerId: customer?.id ?? null,
-      tenantId: session.role === UserRole.CUSTOMER ? session.tenantId : null,
+      tenantId: session.role === UserRole.ADMIN ? null : session.tenantId,
       reusable: session.role === "CUSTOMER" ? false : parsed.data.reusable ?? true,
     });
 
@@ -62,5 +63,7 @@ export async function POST(request: NextRequest) {
 
 async function requireAreaSession() {
   const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER, UserRole.CUSTOMER]);
-  return session.role === UserRole.CUSTOMER ? requireTenantSession() : session;
+  if (session.role === UserRole.CUSTOMER) return requireTenantSession();
+  if (session.role === UserRole.SUPPORT_DISPATCHER) await requireActiveTenantMembership(session);
+  return session;
 }

@@ -3,7 +3,8 @@ import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 import { DistributionAreaEditor } from "@/app/components/DistributionAreaEditor";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { requireRole } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
+import { listAreas } from "@/lib/areas";
 
 const AREA_TYPE_LABELS: Record<DistributionAreaType, string> = {
   POSTAL_CODE: "PLZ",
@@ -35,30 +36,15 @@ type PageProps = {
 };
 
 export default async function AdminAreasPage({ searchParams }: PageProps) {
-  await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+  if (session.role === UserRole.SUPPORT_DISPATCHER) await requireActiveTenantMembership(session);
   const params = await searchParams;
   const type = Object.keys(AREA_TYPE_LABELS).includes(params.type ?? "") ? params.type : undefined;
-  const areas = await prisma.distributionArea.findMany({
-    where: {
-      status: { not: "DELETED" },
-      ...(type ? { type } : {}),
-      ...(params.city ? { city: { contains: params.city, mode: "insensitive" } } : {}),
-      ...(params.search
-        ? {
-            OR: [
-              { name: { contains: params.search, mode: "insensitive" } },
-              { postalCode: { contains: params.search, mode: "insensitive" } },
-              { district: { contains: params.search, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-    },
-    include: {
-      polygons: { orderBy: { sortOrder: "asc" } },
-      estimates: { orderBy: { createdAt: "desc" }, take: 1 },
-      orders: { select: { id: true } },
-    },
-    orderBy: [{ city: "asc" }, { name: "asc" }],
+  const areas = await listAreas({
+    search: params.search,
+    city: params.city,
+    type,
+    tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId,
   });
   const areaOptions = areas.map((area) => ({
     id: area.id,
@@ -194,7 +180,8 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
               <span className="badge">{area.orders.length} Aufträge</span>
             </div>
             <DistributionAreaPreviewMap geoJson={area.geoJson} height={260} />
-            <form action={`/api/areas/${area.id}`} method="post" className="form grid">
+            {session.role === UserRole.ADMIN || area.tenantId === session.tenantId ? (
+              <form action={`/api/areas/${area.id}`} method="post" className="form grid">
               <input type="hidden" name="_method" value="PUT" />
               <input type="hidden" name="type" value={area.type} />
               <input type="hidden" name="geoJson" value={JSON.stringify(area.geoJson ?? "")} />
@@ -259,16 +246,19 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
                 <textarea name="licenseNote" defaultValue={area.licenseNote ?? ""} />
               </label>
               <button type="submit">Aenderungen speichern</button>
-            </form>
+              </form>
+            ) : <p className="muted">Globale Gebiets-Vorlage: Nur ansehen oder in den eigenen Unternehmensbereich kopieren.</p>}
             <div className="actions">
               <form action={`/api/areas/${area.id}`} method="post">
                 <input type="hidden" name="action" value="copy" />
                 <button type="submit">Kopieren</button>
               </form>
-              <form action={`/api/areas/${area.id}`} method="post">
-                <input type="hidden" name="_method" value="DELETE" />
-                <button type="submit">Deaktivieren</button>
-              </form>
+              {session.role === UserRole.ADMIN || area.tenantId === session.tenantId ? (
+                <form action={`/api/areas/${area.id}`} method="post">
+                  <input type="hidden" name="_method" value="DELETE" />
+                  <button type="submit">Deaktivieren</button>
+                </form>
+              ) : null}
             </div>
             <details>
               <summary>Export</summary>
@@ -296,4 +286,3 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
     </AdminPortalShell>
   );
 }
-
