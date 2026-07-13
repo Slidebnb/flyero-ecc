@@ -6,12 +6,12 @@ Pruefobjekt: `C:\Users\Administrator\ecc`
 
 Branch: `main`
 
-Pruef-Commit: `962d4c32f2c6bdc2347d30dbfa34841f2fd62c3d`
+Pruef-Commit: `1e9e7ee519af38ca402fcec9571750aa2bf2a88d`
 
 ## Aktueller Verifikationsnachtrag (13.07.2026)
 
 Der historische Audittext wird gegen den aktuell verifizierten Repository-Stand
-weitergefuehrt. Der gepruefte Commit ist `962d4c32f2c6bdc2347d30dbfa34841f2fd62c3d`;
+weitergefuehrt. Der gepruefte Commit ist `1e9e7ee519af38ca402fcec9571750aa2bf2a88d`;
 `origin/main` zeigt auf denselben Commit. Die folgenden Checks liefen gegen den
 aktuellen lokalen Stand erfolgreich:
 
