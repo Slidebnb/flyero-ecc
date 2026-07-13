@@ -8,6 +8,39 @@ Branch: `main`
 
 Pruef-Commit: `3874c6def95b903d22ad4e948f1c07076efe6b47`
 
+## Aktueller Verifikationsnachtrag (13.07.2026)
+
+Der historische Audittext wird gegen den aktuell verifizierten Repository-Stand
+weitergefuehrt. Der gepruefte Commit ist `d747c34190dbfecd4dc826588697628c29d95eb4`;
+`origin/main` zeigt auf denselben Commit. Die folgenden Checks liefen gegen den
+aktuellen lokalen Stand erfolgreich:
+
+- `npm run test:pricing-sync`
+- `npm run test:pricing-system-linkage`
+- `npm run test:pricing-admin-propagation`
+- `npm run test:customer-order-area`
+- `npm run test:customer-order-checkout`
+- `npm run test:module24`
+- `npm run test:module16-landing`
+- `npm run test:permissions`
+- `npm run test:payment-production-guard`
+- `npm run lint`
+- `npx tsc --noEmit`
+- `npm run build`
+
+Damit ist die Preisquelle fuer Admin-Settings, offene Kundenauftraege,
+Gebietsvorschau, neue Auftraege, Checkout, Dashboard und Rechnungs-Snapshot
+im Codepfad konsistent verifiziert. Die serverseitige Weitergabe erfolgt sofort;
+eine bereits geoeffnete Browserseite bekommt ohne Polling, SSE oder WebSocket
+keinen Push. Die vollstaendige Auditbewertung bleibt davon unberuehrt: externe
+Hetzner-Backup-/Restore-Nachweise, Produktions-Scannerbetrieb, die A/B-Matrix
+aller internen Ressourcen sowie die Trennung Plattform-Admin gegen
+Unternehmensadmin sind weiterhin offen.
+
+Die Zaehldaten und der Pruef-Commit im historischen Kopfbereich beziehen sich
+auf den urspruenglichen Auditlauf. Fuer den aktuellen Stand ist dieser Nachtrag
+die verbindliche Verifikationsreferenz.
+
 ## 1. Auftrag und Pruefmethode
 
 Dieser Bericht bewertet den aktuellen FLYERO-Stand als SaaS-, Betriebs- und spaeteres Due-Diligence-Objekt. Er ersetzt keine externe Penetrationspruefung, Rechtsberatung, Datenschutz-Folgenabschaetzung oder steuerliche Freigabe.
