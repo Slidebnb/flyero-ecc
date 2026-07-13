@@ -44,6 +44,10 @@ const valid = run(validEnvironment);
 assert.equal(valid.status, 0, `Gueltige Konfiguration wurde abgelehnt: ${valid.stdout}\n${valid.stderr}`);
 assert.match(valid.stdout, /Production preflight passed/);
 
+const validRestrictedKey = run({ ...validEnvironment, STRIPE_SECRET_KEY: "rk_test_synthetic_123456" });
+assert.equal(validRestrictedKey.status, 0, `Gueltiger eingeschraenkter Stripe-Schluessel wurde abgelehnt: ${validRestrictedKey.stdout}\n${validRestrictedKey.stderr}`);
+assert.match(validRestrictedKey.stdout, /Production preflight passed/);
+
 const invalid = run({ ...validEnvironment, EMAIL_PROVIDER: "mock" });
 assert.notEqual(invalid.status, 0, "Mock-E-Mail darf den Produktions-Preflight nicht bestehen.");
 assert.match(`${invalid.stdout}\n${invalid.stderr}`, /EMAIL_PROVIDER/);
