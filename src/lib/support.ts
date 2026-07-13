@@ -308,6 +308,7 @@ export async function createTicket(actor: SessionUser, input: unknown) {
 
   await createAuditLog({
     userId: actor.id,
+    tenantId: ticket.tenantId,
     action: data.type === TicketType.COMPLAINT ? "ticket.complaint_created" : "ticket.created",
     entityType: "SupportTicket",
     entityId: ticket.id,
@@ -368,6 +369,7 @@ export async function updateTicket(actor: SessionUser, id: string, input: unknow
       .map(([, action, oldValue, newValue]) =>
         createAuditLog({
           userId: actor.id,
+          tenantId: current.tenantId,
           action,
           entityType: "SupportTicket",
           entityId: id,
@@ -402,6 +404,7 @@ export async function addTicketMessage(actor: SessionUser, id: string, input: un
 
   await createAuditLog({
     userId: actor.id,
+    tenantId: ticket.tenantId,
     action: "ticket.message_added",
     entityType: "SupportTicket",
     entityId: ticket.id,

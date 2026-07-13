@@ -957,6 +957,7 @@ Der Codepfad ist damit korrigiert; der operative Nachweis der Migration und ein 
 - Dokument- und Druckaktionen sowie die Foto-Freigabe schreiben jetzt neben dem Benutzer auch die zugehörige `tenantId` in den AuditLog.
 - Die fachliche Scope-Prüfung bleibt unverändert; der zusätzliche Kontext verbessert forensische Auswertung und tenantbezogene Betriebsreports.
 - Auch die tenant-gescopten Analytics-Ansichten und -Exporte schreiben diesen Kontext jetzt bei Zugriff und Export.
+- Support-Tickets und Antworten schreiben den Tenant-Kontext ebenfalls bei Erstellung, Statusänderung und Kommunikation.
 - `npm run test:tenant-audit-context` schützt die wichtigsten Dokument-/Druck-/Fotoaktionen gegen einen späteren Verlust dieses Kontexts.
 
 ### P1 Geschuetzte Datei-Auslieferung (13.07.2026)
