@@ -157,6 +157,7 @@ export async function assignTour(input: {
   });
   await createAuditLog({
     userId: input.adminUserId,
+    tenantId: inventory.order.tenantId,
     action: "tour.assigned",
     entityType: "DistributionTour",
     entityId: tour.id,
@@ -212,6 +213,7 @@ export async function confirmPickup(input: {
   });
   await createAuditLog({
     userId: input.userId,
+    tenantId: tour.inventory.order.tenantId,
     action: "tour.pickup",
     entityType: "DistributionTour",
     entityId: tour.id,
@@ -227,7 +229,10 @@ export async function confirmPickup(input: {
 
 export async function startTour(input: { tourId: string; userId: string; firstPoint?: GpsPointInput }) {
   const profile = await getDistributorProfileForUser(input.userId);
-  const tour = await prisma.distributionTour.findFirst({ where: { id: input.tourId, distributorId: profile.id } });
+  const tour = await prisma.distributionTour.findFirst({
+    where: { id: input.tourId, distributorId: profile.id },
+    include: { order: { select: { tenantId: true } } },
+  });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
   if (tour.status !== "PICKED_UP" && tour.status !== "RESUMED") {
     throw new Error("Tour kann erst nach Abholung gestartet werden.");
@@ -243,27 +248,33 @@ export async function startTour(input: { tourId: string; userId: string; firstPo
     },
   });
   if (input.firstPoint) await uploadGpsPoints({ tourId: tour.id, userId: input.userId, points: [input.firstPoint] });
-  await createAuditLog({ userId: input.userId, action: "tour.started", entityType: "DistributionTour", entityId: tour.id });
+  await createAuditLog({ userId: input.userId, tenantId: tour.order.tenantId, action: "tour.started", entityType: "DistributionTour", entityId: tour.id });
   await notifyAdmins({ type: "TOUR_STARTED", title: "Tour gestartet", message: `Tour ${tour.id} wurde gestartet.` });
   return updated;
 }
 
 export async function pauseTour(input: { tourId: string; userId: string }) {
   const profile = await getDistributorProfileForUser(input.userId);
-  const tour = await prisma.distributionTour.findFirst({ where: { id: input.tourId, distributorId: profile.id } });
+  const tour = await prisma.distributionTour.findFirst({
+    where: { id: input.tourId, distributorId: profile.id },
+    include: { order: { select: { tenantId: true } } },
+  });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
   if (tour.status !== "STARTED" && tour.status !== "RESUMED") throw new Error("Nur laufende Touren können pausiert werden.");
   const updated = await prisma.distributionTour.update({
     where: { id: tour.id },
     data: { status: "PAUSED", pauseTime: new Date(), pausedAt: new Date() },
   });
-  await createAuditLog({ userId: input.userId, action: "tour.paused", entityType: "DistributionTour", entityId: tour.id });
+  await createAuditLog({ userId: input.userId, tenantId: tour.order.tenantId, action: "tour.paused", entityType: "DistributionTour", entityId: tour.id });
   return updated;
 }
 
 export async function resumeTour(input: { tourId: string; userId: string }) {
   const profile = await getDistributorProfileForUser(input.userId);
-  const tour = await prisma.distributionTour.findFirst({ where: { id: input.tourId, distributorId: profile.id } });
+  const tour = await prisma.distributionTour.findFirst({
+    where: { id: input.tourId, distributorId: profile.id },
+    include: { order: { select: { tenantId: true } } },
+  });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
   if (tour.status !== "PAUSED") throw new Error("Nur pausierte Touren können fortgesetzt werden.");
   const pauseSeconds = tour.pauseTime ? Math.max(Math.floor((Date.now() - tour.pauseTime.getTime()) / 1000), 0) : 0;
@@ -275,7 +286,7 @@ export async function resumeTour(input: { tourId: string; userId: string }) {
       pauseTime: null,
     },
   });
-  await createAuditLog({ userId: input.userId, action: "tour.resumed", entityType: "DistributionTour", entityId: tour.id });
+  await createAuditLog({ userId: input.userId, tenantId: tour.order.tenantId, action: "tour.resumed", entityType: "DistributionTour", entityId: tour.id });
   return updated;
 }
 
@@ -283,7 +294,10 @@ export async function uploadGpsPoints(input: { tourId: string; userId: string; p
   const profile = await getDistributorProfileForUser(input.userId);
   const tour = await prisma.distributionTour.findFirst({
     where: { id: input.tourId, distributorId: profile.id },
-    include: { gpsPoints: { orderBy: { recordedAt: "desc" }, take: 50 } },
+    include: {
+      order: { select: { tenantId: true } },
+      gpsPoints: { orderBy: { recordedAt: "desc" }, take: 50 },
+    },
   });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
 
@@ -366,6 +380,7 @@ export async function uploadGpsPoints(input: { tourId: string; userId: string; p
   });
   await createAuditLog({
     userId: input.userId,
+    tenantId: tour.order.tenantId,
     action: "gps.uploaded",
     entityType: "DistributionTour",
     entityId: tour.id,
@@ -384,7 +399,10 @@ export async function uploadTourPhoto(input: {
   takenAt?: Date;
 }) {
   const profile = await getDistributorProfileForUser(input.userId);
-  const tour = await prisma.distributionTour.findFirst({ where: { id: input.tourId, distributorId: profile.id } });
+  const tour = await prisma.distributionTour.findFirst({
+    where: { id: input.tourId, distributorId: profile.id },
+    include: { order: { select: { tenantId: true } } },
+  });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
   const decodedPhoto = decodeImageDataUrl(input.imageDataUrl);
   const photoId = randomUUID();
@@ -426,7 +444,7 @@ export async function uploadTourPhoto(input: {
       },
     },
   });
-  await createAuditLog({ userId: input.userId, action: "photo.uploaded", entityType: "PhotoProof", entityId: photo.id });
+  await createAuditLog({ userId: input.userId, tenantId: tour.order.tenantId, action: "photo.uploaded", entityType: "PhotoProof", entityId: photo.id });
   return photo;
 }
 
@@ -439,7 +457,12 @@ export async function completeTour(input: {
   const profile = await getDistributorProfileForUser(input.userId);
   const tour = await prisma.distributionTour.findFirst({
     where: { id: input.tourId, distributorId: profile.id },
-    include: { inventory: true, gpsPoints: { orderBy: { recordedAt: "desc" }, take: 1 }, photoProofs: true },
+    include: {
+      order: { select: { tenantId: true } },
+      inventory: true,
+      gpsPoints: { orderBy: { recordedAt: "desc" }, take: 1 },
+      photoProofs: true,
+    },
   });
   if (!tour) throw new Error("Tour wurde nicht gefunden.");
   if (tour.status !== "STARTED" && tour.status !== "RESUMED" && tour.status !== "PAUSED") {
@@ -477,7 +500,7 @@ export async function completeTour(input: {
       },
     });
   }
-  await createAuditLog({ userId: input.userId, action: "tour.completed", entityType: "DistributionTour", entityId: tour.id });
+  await createAuditLog({ userId: input.userId, tenantId: tour.order.tenantId, action: "tour.completed", entityType: "DistributionTour", entityId: tour.id });
   await notifyAdmins({ type: "TOUR_UNDER_REVIEW", title: "Tour wartet auf Prüfung", message: `Tour ${tour.id} wurde abgeschlossen.` });
   return updated;
 }
@@ -505,6 +528,7 @@ export async function openTourReview(input: { tourId: string; adminUserId: strin
   });
   await createAuditLog({
     userId: input.adminUserId,
+    tenantId: tour.order.tenantId,
     action: "tour.review_opened",
     entityType: "DistributionTour",
     entityId: tour.id,
@@ -600,6 +624,7 @@ export async function approveTour(input: {
   }
   await createAuditLog({
     userId: input.adminUserId,
+    tenantId: tour.order.tenantId,
     action: "tour.approved",
     entityType: "DistributionTour",
     entityId: tour.id,
@@ -645,6 +670,7 @@ export async function rejectTour(input: {
   });
   await createAuditLog({
     userId: input.adminUserId,
+    tenantId: tour.order.tenantId,
     action: "tour.rejected",
     entityType: "DistributionTour",
     entityId: tour.id,
@@ -687,6 +713,7 @@ export async function clarifyTour(input: {
   });
   await createAuditLog({
     userId: input.adminUserId,
+    tenantId: tour.order.tenantId,
     action: "tour.needs_clarification",
     entityType: "DistributionTour",
     entityId: tour.id,
@@ -707,6 +734,11 @@ export async function saveTourAdminNote(input: {
   adminInternalNote?: string;
   adminCustomerMessage?: string;
 }) {
+  const current = await prisma.distributionTour.findUnique({
+    where: { id: input.tourId },
+    select: { order: { select: { tenantId: true } } },
+  });
+  if (!current) throw new Error("Tour wurde nicht gefunden.");
   const updated = await prisma.distributionTour.update({
     where: { id: input.tourId },
     data: {
@@ -716,6 +748,7 @@ export async function saveTourAdminNote(input: {
   });
   await createAuditLog({
     userId: input.adminUserId,
+    tenantId: current.order.tenantId,
     action: "tour.admin_note_added",
     entityType: "DistributionTour",
     entityId: input.tourId,

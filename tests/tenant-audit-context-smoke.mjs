@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const documents = await readFile("src/lib/documents.ts", "utf8");
+const tours = await readFile("src/lib/tours.ts", "utf8");
 const photoReview = await readFile("src/app/api/admin/report-photos/[id]/route.ts", "utf8");
 const support = await readFile("src/lib/support.ts", "utf8");
 const analyticsRoutes = await Promise.all([
@@ -37,5 +38,26 @@ for (const route of analyticsRoutes) {
 assert.match(support, /tenantId:\s*ticket\.tenantId,[\s\S]{0,180}action:\s*data\.type/, "Support-Ticket-Erstellung muss Tenant-Kontext auditieren.");
 assert.match(support, /tenantId:\s*current\.tenantId,[\s\S]{0,180}action,/, "Support-Ticket-Änderungen müssen Tenant-Kontext auditieren.");
 assert.match(support, /tenantId:\s*ticket\.tenantId,[\s\S]{0,180}action: "ticket\.message_added"/, "Support-Ticket-Antworten müssen Tenant-Kontext auditieren.");
+
+for (const action of [
+  "tour.assigned",
+  "tour.pickup",
+  "tour.started",
+  "tour.paused",
+  "tour.resumed",
+  "gps.uploaded",
+  "photo.uploaded",
+  "tour.completed",
+  "tour.review_opened",
+  "tour.approved",
+  "tour.rejected",
+  "tour.needs_clarification",
+  "tour.admin_note_added",
+]) {
+  const actionIndex = tours.indexOf(`action: "${action}"`);
+  assert.notEqual(actionIndex, -1, `Tour-Audit-Aktion fehlt: ${action}`);
+  const block = tours.slice(Math.max(0, actionIndex - 220), actionIndex + 280);
+  assert.match(block, /tenantId:/, `Tour-Audit-Aktion ${action} muss Tenant-Kontext schreiben.`);
+}
 
 console.log("Tenant audit context smoke checks passed.");

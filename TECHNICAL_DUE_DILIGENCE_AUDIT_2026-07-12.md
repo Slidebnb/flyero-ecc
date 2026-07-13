@@ -993,6 +993,19 @@ Der Codepfad ist damit korrigiert; der operative Nachweis der Migration und ein 
 - Support-Tickets und Antworten schreiben den Tenant-Kontext ebenfalls bei Erstellung, Statusänderung und Kommunikation.
 - `npm run test:tenant-audit-context` schützt die wichtigsten Dokument-/Druck-/Fotoaktionen gegen einen späteren Verlust dieses Kontexts.
 
+### P1 Tenant-Kontext in Tour- und GPS-AuditLogs (13.07.2026)
+
+- Tourzuweisung, Abholung, Start/Pause/Fortsetzung, GPS-Batch-Upload,
+  Foto-Upload und Tourabschluss schreiben jetzt die `tenantId` des verknuepften
+  Auftrags in den AuditLog.
+- Auch das Oeffnen der Tourpruefung, Freigabe, Ablehnung, Rueckfrage und
+  administrative Tournotizen werden tenantbezogen protokolliert.
+- Fuer die Verteileraktionen wird der Tenant aus der bereits autorisierten
+  Tour-/Auftragsbeziehung geladen; es wird kein Tenant aus dem Client uebernommen.
+- Der bestehende `test:tenant-audit-context`-Contract deckt diese 13 Tour-/GPS-/
+  Foto-Aktionen jetzt mit ab. Die externe manipulationsgeschuetzte Archivierung
+  und vollstaendige A/B-Laufzeitmatrix bleiben offene Betriebs-/Auditpunkte.
+
 ### P1 Geschuetzte Datei-Auslieferung (13.07.2026)
 
 - Geschuetzte Kunden-, Nachweis-, Rechnungs-, Report- und Export-Downloads verwenden jetzt eine gemeinsame Header-Policy mit `private, no-store`, `X-Content-Type-Options: nosniff` und bereinigten Download-Dateinamen.
