@@ -2,6 +2,10 @@
   "name": "ecc",
   "version": "0.1.0",
   "private": true,
+  "overrides": {
+    "@hono/node-server": "1.19.13",
+    "postcss": "8.5.19"
+  },
   "packageManager": "npm@11.6.2",
   "scripts": {
     "dev": "next dev",
@@ -54,6 +58,7 @@
     "test:permissions": "node tests/permission-matrix-smoke.mjs && node tests/platform-operations-permission-smoke.mjs",
     "test:role-permission-migration": "node tests/role-permission-migration-smoke.mjs",
     "test:warehouse-permission-migration": "node tests/warehouse-permission-migration-smoke.mjs",
+    "test:dependency-security": "node tests/dependency-security-smoke.mjs",
     "test:audit-log-v2": "node tests/audit-log-v2-smoke.mjs",
     "retention:report": "node -r dotenv/config scripts/retention.mjs",
     "retention:purge": "node -r dotenv/config scripts/retention.mjs --apply",

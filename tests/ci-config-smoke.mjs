@@ -53,6 +53,7 @@ for (const script of [
   "test:permissions",
   "test:role-permission-migration",
   "test:warehouse-permission-migration",
+  "test:dependency-security",
   "test:retention",
   "test:retention-hold",
   "test:retention-hold-runtime",

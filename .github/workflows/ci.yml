@@ -68,6 +68,9 @@ jobs:
       - name: Audit production dependencies
         run: npm audit --omit=dev --audit-level=high
 
+      - name: Dependency security contract
+        run: npm run test:dependency-security
+
       - name: Validate CI configuration
         run: npm run test:ci-config
 
