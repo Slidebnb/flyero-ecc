@@ -30,6 +30,7 @@ env:
   TENANT_AB_BASE_URL: http://127.0.0.1:3000
   WAREHOUSE_SCOPE_BASE_URL: http://127.0.0.1:3000
   DISTRIBUTOR_PRIVACY_BASE_URL: http://127.0.0.1:3000
+  RETENTION_HOLD_BASE_URL: http://127.0.0.1:3000
 
 jobs:
   quality:
@@ -178,6 +179,21 @@ jobs:
 
       - name: Retention policy smoke
         run: npm run test:retention
+
+      - name: Retention hold contract smoke
+        run: npm run test:retention-hold
+
+      - name: Retention hold runtime smoke
+        run: npm run test:retention-hold-runtime
+
+      - name: Upload security smoke
+        run: npm run test:upload-security
+
+      - name: Protected download headers smoke
+        run: npm run test:protected-download-headers
+
+      - name: Public artifact privacy smoke
+        run: npm run test:public-artifact-privacy
 
       - name: Private object storage smoke
         run: npm run test:private-storage
