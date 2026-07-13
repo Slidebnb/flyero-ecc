@@ -51,7 +51,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      customer: { include: { user: true } },
+      customer: { include: { user: { select: { id: true, email: true, role: true, status: true } } } },
       assignedWarehouse: true,
       warehouseInventory: {
         include: {
@@ -65,7 +65,10 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
       payments: { include: { refunds: true }, orderBy: { createdAt: "desc" } },
       documents: { orderBy: { uploadedAt: "desc" } },
       reports: { orderBy: { updatedAt: "desc" } },
-      statusEvents: { orderBy: { createdAt: "asc" }, include: { user: true } },
+      statusEvents: {
+        orderBy: { createdAt: "asc" },
+        include: { user: { select: { id: true, email: true, role: true } } },
+      },
     },
   });
 

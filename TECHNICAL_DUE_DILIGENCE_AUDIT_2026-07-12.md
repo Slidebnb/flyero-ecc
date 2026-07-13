@@ -1066,3 +1066,21 @@ Offen bleiben der produktive ClamAV-Betrieb mit `FILE_SCAN_MODE=required`, die S
 - `ENABLE_MOCK_PAYMENTS=false` ist im Produktions-Preflight jetzt ausdrücklich erforderlich. Ein fehlender Wert gilt nicht mehr als sichere Produktionskonfiguration.
 
 Offen bleibt die Laufzeitprüfung der tatsächlichen Hetzner-Umgebungsvariablen und Stripe-/Webhook-Konfiguration; diese kann nur auf dem Produktionsserver mit den dort gesetzten Secrets nachgewiesen werden.
+
+### P1 Interne Response-Datenminimierung (13.07.2026)
+
+- Die Admin-Order-API und die Admin-Report-API haben User-Beziehungen zuvor mit
+  `include: { user: true }` geladen. Für interne Detailansichten war dadurch
+  mehr Identitätsdatenumfang als benötigt angefordert; sensible User-Felder
+  wie `passwordHash` dürfen nicht Teil einer API-Response sein.
+- Beide APIs verwenden jetzt explizite User-Allowlists mit ID, E-Mail, Rolle
+  und Status. Die Admin-Order-Seite nutzt dieselbe Allowlist auch serverseitig
+  für Kunden- und Statusereignisse.
+- `tests/internal-response-privacy-smoke.mjs` prüft die Order- und Report-APIs
+  zusätzlich gegen vollständige User-Includes und sichert die Allowlist als
+  Regression ab.
+
+Die globale Plattform-Admin-Berechtigung und die vollständige A/B-Laufzeitmatrix
+für interne Ressourcen bleiben als Architektur-/Launchpunkt offen. Diese
+Änderung reduziert den Response-Datenumfang, ersetzt aber keine spätere
+Trennung von Plattform- und Unternehmensadministration.

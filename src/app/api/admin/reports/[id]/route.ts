@@ -14,7 +14,13 @@ export async function GET(_request: Request, context: RouteContext) {
       where: { id, ...tenantWhereForSession(session) },
       include: {
         order: { include: { customer: true } },
-        tour: { include: { distributor: { include: { user: true } }, gpsPoints: true, photoProofs: true } },
+        tour: {
+          include: {
+            distributor: { include: { user: { select: { id: true, email: true, role: true, status: true } } } },
+            gpsPoints: true,
+            photoProofs: true,
+          },
+        },
         customer: true,
       },
     });
