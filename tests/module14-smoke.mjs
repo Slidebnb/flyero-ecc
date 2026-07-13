@@ -48,7 +48,9 @@ for (const filePath of [
   assert(existsSync(filePath), `${filePath} fehlt.`);
 }
 
-await includes("src/app/admin/dispatch/page.tsx", ["Top Empfehlung", "Score", "Gruende", "Warnungen", "Empfehlung ignorieren"]);
+await includes("src/app/admin/dispatch/page.tsx", ["Top Empfehlung", "Score", "Warnungen", "Empfehlung ignorieren"]);
+const dispatchPage = await readFile("src/app/admin/dispatch/page.tsx", "utf8");
+assert(dispatchPage.includes("Gründe") || dispatchPage.includes("Gruende"), "Dispatch-Seite enthaelt keine Gruende-Spalte.");
 await includes("README.md", ["Modul 14", "Auto-Dispatch", "MinScore", "regelbasiert"]);
 await includes("ARCHITECTURE_DECISIONS.md", ["Auto-Dispatch", "regelbasiert", "nicht KI"]);
 

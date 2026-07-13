@@ -1,14 +1,13 @@
-import { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { adminTourAssignSchema } from "@/lib/validators";
 import { assignTour } from "@/lib/tours";
 import { prisma } from "@/lib/prisma";
+import { Permission, requirePermission } from "@/lib/permissions";
 
 export async function GET() {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.TOUR_VIEW);
     const tours = await prisma.distributionTour.findMany({
       include: {
         distributor: {
@@ -33,7 +32,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.TOUR_MANAGE);
     const parsed = adminTourAssignSchema.safeParse(await readBody(request as never));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     const tour = await assignTour({ ...parsed.data, adminUserId: session.id });

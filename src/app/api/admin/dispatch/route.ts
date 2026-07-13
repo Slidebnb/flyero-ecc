@@ -1,11 +1,11 @@
 import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
 import { getDispatchDashboard } from "@/lib/dispatch";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET(request: Request) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.DISPATCH_VIEW);
     const url = new URL(request.url);
     const dashboard = await getDispatchDashboard({
       city: url.searchParams.get("city") || undefined,

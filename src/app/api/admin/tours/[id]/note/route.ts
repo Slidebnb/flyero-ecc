@@ -1,15 +1,14 @@
-import { UserRole } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/auth";
 import { errorResponse, readBody } from "@/lib/request";
 import { saveTourAdminNote } from "@/lib/tours";
 import { adminTourNoteSchema } from "@/lib/validators";
+import { Permission, requirePermission } from "@/lib/permissions";
 
 type RouteProps = { params: Promise<{ id: string }> };
 
 export async function PATCH(request: Request, { params }: RouteProps) {
   try {
-    const session = await requireRole([UserRole.ADMIN]);
+    const session = await requirePermission(Permission.TOUR_MANAGE);
     const parsed = adminTourNoteSchema.safeParse(await readBody(request as never));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     const { id } = await params;

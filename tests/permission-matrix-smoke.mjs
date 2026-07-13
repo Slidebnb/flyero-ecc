@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments] = await Promise.all([
+const [permissions, matrix, users, userStatus, refund, reportPublish, reportApprove, analytics, analyticsExport, accounting, pricing, invoiceDownload, adminOrders, adminOrderDetail, adminOrderStatus, adminOrderPrice, adminOrderAssign, adminInvoices, adminInvoiceDetail, adminInvoiceCancel, adminInvoicePdf, adminPayments, dispatchView, dispatchCombinations, dispatchRecommend, dispatchRecommendations, dispatchDismiss, dispatchAutoAssign, tours, tourDetail, tourApprove, tourClarify, tourNote, tourReject] = await Promise.all([
   readFile("src/lib/permissions.ts", "utf8"),
   readFile("PERMISSION_MATRIX.md", "utf8"),
   readFile("src/app/api/admin/settings/users/route.ts", "utf8"),
@@ -24,6 +24,18 @@ const [permissions, matrix, users, userStatus, refund, reportPublish, reportAppr
   readFile("src/app/api/admin/invoices/[id]/cancel/route.ts", "utf8"),
   readFile("src/app/api/admin/invoices/[id]/regenerate-pdf/route.ts", "utf8"),
   readFile("src/app/api/admin/payments/route.ts", "utf8"),
+  readFile("src/app/api/admin/dispatch/route.ts", "utf8"),
+  readFile("src/app/api/admin/dispatch/combinations/route.ts", "utf8"),
+  readFile("src/app/api/admin/dispatch/recommend/[orderId]/route.ts", "utf8"),
+  readFile("src/app/api/admin/dispatch/recommendations/route.ts", "utf8"),
+  readFile("src/app/api/admin/dispatch/recommendations/[id]/dismiss/route.ts", "utf8"),
+  readFile("src/app/api/admin/dispatch/auto-assign/[orderId]/route.ts", "utf8"),
+  readFile("src/app/api/admin/tours/route.ts", "utf8"),
+  readFile("src/app/api/admin/tours/[id]/route.ts", "utf8"),
+  readFile("src/app/api/admin/tours/[id]/approve/route.ts", "utf8"),
+  readFile("src/app/api/admin/tours/[id]/clarify/route.ts", "utf8"),
+  readFile("src/app/api/admin/tours/[id]/note/route.ts", "utf8"),
+  readFile("src/app/api/admin/tours/[id]/reject/route.ts", "utf8"),
 ]);
 
 for (const permission of [
@@ -32,6 +44,11 @@ for (const permission of [
   "ORDER_VIEW",
   "ORDER_MANAGE",
   "DISPATCH_ASSIGN",
+  "DISPATCH_VIEW",
+  "DISPATCH_MANAGE",
+  "DISPATCH_AUTO_ASSIGN",
+  "TOUR_VIEW",
+  "TOUR_MANAGE",
   "INTERNAL_USERS_MANAGE",
   "INVOICE_ADMIN_VIEW",
   "INVOICE_MANAGE",
@@ -75,6 +92,19 @@ for (const [source, permission] of [
   [adminInvoiceCancel, "INVOICE_MANAGE"],
   [adminInvoicePdf, "INVOICE_MANAGE"],
   [adminPayments, "PAYMENT_VIEW"],
+  [dispatchView, "DISPATCH_VIEW"],
+  [dispatchCombinations, "DISPATCH_VIEW"],
+  [dispatchRecommend, "DISPATCH_MANAGE"],
+  [dispatchRecommendations, "DISPATCH_VIEW"],
+  [dispatchDismiss, "DISPATCH_MANAGE"],
+  [dispatchAutoAssign, "DISPATCH_AUTO_ASSIGN"],
+  [tours, "TOUR_VIEW"],
+  [tours, "TOUR_MANAGE"],
+  [tourDetail, "TOUR_VIEW"],
+  [tourApprove, "TOUR_MANAGE"],
+  [tourClarify, "TOUR_MANAGE"],
+  [tourNote, "TOUR_MANAGE"],
+  [tourReject, "TOUR_MANAGE"],
 ]) {
   assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${permission} ist nicht serverseitig integriert.`);
 }

@@ -160,6 +160,10 @@ Fortschritt 13.07.2026: Die globalen Admin-APIs fuer Auftragslisten und -details
 Auftragsstatus, Preisänderungen, Rechnungsverwaltung und Zahlungslisten verwenden
 jetzt explizite Admin-only-Permissions. Die operative Verteilerzuweisung verwendet
 `dispatch.assign` und bleibt fuer Support an den aktiven Tenant-Scope gebunden.
+Dispatch-Ansichten und Empfehlungen verwenden jetzt `dispatch.view` bzw.
+`dispatch.manage`; automatisches Zuweisen bleibt mit `dispatch.auto-assign`
+Admin-only. Tourlisten und Tourmutationen verwenden `tour.view` bzw.
+`tour.manage` und bleiben Admin-only.
 Die vollstaendige Migration historischer Admin-/Support-/Dispatch-Pfade und die
 Trennung Plattform-Admin vs. Unternehmensadmin bleiben offen.
 

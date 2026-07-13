@@ -1,11 +1,11 @@
 import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
 import { combineOrders } from "@/lib/routing";
+import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET(request: Request) {
   try {
-    const session = await requireRole([UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
+    const session = await requirePermission(Permission.DISPATCH_VIEW);
     const params = new URL(request.url).searchParams;
     const data = await combineOrders({
       city: params.get("city"),

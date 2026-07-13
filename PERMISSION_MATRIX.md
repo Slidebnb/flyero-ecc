@@ -14,6 +14,11 @@ Die API prüft Berechtigungen serverseitig. Die Navigation darf Funktionen ausbl
 | `order.view` | Ja | Nein | Nein | Nein | Nein |
 | `order.manage` | Ja | Nein | Nein | Nein | Nein |
 | `dispatch.assign` | Ja | Ja | Nein | Nein | Nein |
+| `dispatch.view` | Ja | Ja | Nein | Nein | Nein |
+| `dispatch.manage` | Ja | Ja | Nein | Nein | Nein |
+| `dispatch.auto-assign` | Ja | Nein | Nein | Nein | Nein |
+| `tour.view` | Ja | Nein | Nein | Nein | Nein |
+| `tour.manage` | Ja | Nein | Nein | Nein | Nein |
 | `document.review` | Ja | Ja | Nein | Nein | Nein |
 | `document.scan` | Ja | Nein | Nein | Nein | Nein |
 | `invoice.view` | Ja | Ja | Nein | Nein | Nein |

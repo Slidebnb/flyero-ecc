@@ -1,13 +1,12 @@
-import { UserRole } from "@prisma/client";
-import { requireRole } from "@/lib/auth";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
+import { Permission, requirePermission } from "@/lib/permissions";
 
 type RouteProps = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: RouteProps) {
   try {
-    await requireRole([UserRole.ADMIN]);
+    await requirePermission(Permission.TOUR_VIEW);
     const { id } = await params;
     const tour = await prisma.distributionTour.findUnique({
       where: { id },
