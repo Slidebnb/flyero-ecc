@@ -29,6 +29,17 @@ Login und Logout schreiben den Request-Kontext bereits mit. Die übrigen bestehe
 - Kunden erhalten niemals direkten Zugriff auf Audit-Logs.
 - Audit-Zugriffe und Exporte müssen weiterhin über die Admin-Berechtigungen laufen.
 
+## Nachtrag 13.07.2026
+
+- Der Proxy setzt fuer alle gematchten API-Routen eine validierte Request-ID und
+  gibt sie in der Response zurueck.
+- `createAuditLog()` liest den aktuellen Request-Kontext serverseitig automatisch
+  ueber `next/headers`; kritische Spezialpfade wie der Stripe-Webhook uebergeben
+  den Kontext zusaetzlich explizit.
+- Offen bleiben ein externes manipulationsgeschuetztes Logziel, verbindliche
+  Aufbewahrung, historische Logmigration und die vollstaendige fachliche
+  Anbindung aller Hintergrundprozesse.
+
 ## Offener Ausbau
 
 Für eine vollständige zentrale Korrelation sollten später Webhooks, Zahlungsaktionen, Dokumentfreigaben und Berichtspublikationen ebenfalls `auditRequestContext(request)` übergeben. Für revisionsrelevante Produktion ist zusätzlich ein externes, manipulationsgeschütztes Logziel mit geprüfter Aufbewahrung erforderlich.

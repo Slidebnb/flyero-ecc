@@ -540,7 +540,7 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
 
 - `BETA_RELEASE_CHECKLIST.md` und `KNOWN_ISSUES.md` sollten nach jedem Sicherheits-/Betriebspaket gegen den aktuellen Stand gespiegelt werden; einzelne historische Aussagen koennen noch veraltet sein.
 - Mehrere Dokumente und UI-Strings zeigen Encoding-Fehler wie `fÃ¼r` statt `fuer`/`für`.
-- Systemarchitektur, Permission-Matrix, Backup-/Restore-Runbook, Incident-Response, Security-Policy, Datenklassifikation, Vendor-Matrix und Retention-Policy sind jetzt als Repository-Artefakte vorhanden. Eine vollstaendige API-Spezifikation, ein extern nachgewiesener Release-Prozess und die operative Freigabe der Lieferanten-/Datenschutzvertraege bleiben offen.
+- Systemarchitektur, Permission-Matrix, Backup-/Restore-Runbook, Incident-Response, Security-Policy, Datenklassifikation, Vendor-Matrix, API-Vertragsbaseline und Retention-Policy sind jetzt als Repository-Artefakte vorhanden. Eine vollstaendige OpenAPI-Spezifikation, ein extern nachgewiesener Release-Prozess und die operative Freigabe der Lieferanten-/Datenschutzvertraege bleiben offen.
 - Dokumentation nennt ISO 27001/SOC 2 als Ziel, aber es gibt noch kein Control-Mapping oder Evidenzregister.
 
 Prioritaet: `P1` fuer Betriebs- und Sicherheitsrunbooks, `P2` fuer vollstaendige Due-Diligence-Dokumentation.
