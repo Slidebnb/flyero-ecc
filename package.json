@@ -76,6 +76,7 @@
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",
     "test:tenant-ab-idor": "node -r dotenv/config tests/tenant-ab-idor-smoke.mjs",
     "test:warehouse-scope": "node -r dotenv/config tests/warehouse-scope-smoke.mjs",
+    "test:warehouse-privacy": "node tests/warehouse-privacy-smoke.mjs",
     "test:support-permission": "node tests/support-permission-smoke.mjs",
     "test:distributor-privacy": "node -r dotenv/config tests/distributor-privacy-smoke.mjs",
     "test:proof-download-privacy": "node -r dotenv/config tests/proof-download-privacy-smoke.mjs",

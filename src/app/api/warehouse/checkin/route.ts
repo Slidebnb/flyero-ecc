@@ -30,7 +30,13 @@ export async function POST(request: NextRequest) {
         id: data.orderId,
         ...(session.role === UserRole.WAREHOUSE_STAFF ? { assignedWarehouseId: data.warehouseId } : {}),
       },
-      include: { customer: true, warehouseInventory: true },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        customer: { select: { userId: true } },
+        warehouseInventory: { select: { warehouseId: true } },
+      },
     });
     if (!order) return errorResponse("Auftrag wurde nicht gefunden.", 404);
     if (session.role === UserRole.WAREHOUSE_STAFF && order.warehouseInventory && order.warehouseInventory.warehouseId !== data.warehouseId) {

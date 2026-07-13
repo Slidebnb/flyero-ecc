@@ -3,12 +3,20 @@ import { DataSection, EmptyState, PortalShell, StatusBadge } from "@/app/PortalC
 import { requireRole } from "@/lib/auth";
 import { shipmentScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
+import { warehouseOrderSelect, warehouseSelect } from "@/lib/warehousePrivacy";
 
 export default async function WarehouseShipmentsPage() {
   const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const shipments = await prisma.logisticsShipment.findMany({
     where: shipmentScopeForUser(session),
-    include: { order: { include: { customer: true } }, warehouse: true },
+    select: {
+      id: true,
+      shipmentType: true,
+      status: true,
+      trackingNumber: true,
+      order: { select: warehouseOrderSelect },
+      warehouse: { select: warehouseSelect },
+    },
     orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }],
     take: 200,
   });
@@ -25,12 +33,12 @@ export default async function WarehouseShipmentsPage() {
       <DataSection title="Erwartete Lieferungen">
         <div className="tableWrap">
           <table>
-            <thead><tr><th>Auftrag</th><th>Kunde</th><th>Typ</th><th>Status</th><th>Tracking</th><th>Aktion</th></tr></thead>
+            <thead><tr><th>Auftrag</th><th>Ort</th><th>Typ</th><th>Status</th><th>Tracking</th><th>Aktion</th></tr></thead>
             <tbody>
               {shipments.map((shipment) => (
                 <tr key={shipment.id}>
                   <td>{shipment.order.orderNumber}</td>
-                  <td>{shipment.order.customer.companyName}</td>
+                  <td>{shipment.order.city}</td>
                   <td>{shipment.shipmentType}</td>
                   <td><StatusBadge tone={shipment.status === "DAMAGED" ? "danger" : shipment.status === "RECEIVED" ? "success" : "warning"}>{shipment.status}</StatusBadge></td>
                   <td>{shipment.trackingNumber ?? "-"}</td>

@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { inventoryScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
+import { warehouseLocationSelect, warehouseOrderSelect } from "@/lib/warehousePrivacy";
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,9 +31,18 @@ export async function GET(request: NextRequest) {
             }
           : {}),
       },
-      include: {
-        order: { include: { customer: true } },
-        warehouseLocation: { include: { warehouse: true } },
+      select: {
+        id: true,
+        status: true,
+        remainingStockStatus: true,
+        remainingFlyers: true,
+        expectedFlyers: true,
+        receivedFlyers: true,
+        damagedFlyers: true,
+        warehouseId: true,
+        warehouseLocationId: true,
+        order: { select: warehouseOrderSelect },
+        warehouseLocation: { select: warehouseLocationSelect },
       },
       orderBy: { createdAt: "desc" },
     });

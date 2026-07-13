@@ -3,12 +3,20 @@ import { DataSection, EmptyState, PortalShell, StatusBadge } from "@/app/PortalC
 import { requireRole } from "@/lib/auth";
 import { transferScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
+import { warehouseOrderSelect, warehouseSelect } from "@/lib/warehousePrivacy";
 
 export default async function WarehouseTransfersPage() {
   const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const transfers = await prisma.warehouseTransfer.findMany({
     where: transferScopeForUser(session),
-    include: { fromWarehouse: true, toWarehouse: true, inventory: { include: { order: true } } },
+    select: {
+      id: true,
+      status: true,
+      quantity: true,
+      fromWarehouse: { select: warehouseSelect },
+      toWarehouse: { select: warehouseSelect },
+      inventory: { select: { order: { select: warehouseOrderSelect } } },
+    },
     orderBy: { createdAt: "desc" },
     take: 200,
   });

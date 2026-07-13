@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { WAREHOUSE_INVENTORY_STATUS_LABELS } from "@/lib/constants";
 import { inventoryScopeForUser, shipmentScopeForUser, transferScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
+import { warehouseLocationSelect, warehouseOrderSelect } from "@/lib/warehousePrivacy";
 
 const warehouseNav = [
   { href: "/warehouse/dashboard", label: "Dashboard" },
@@ -31,9 +32,13 @@ export default async function WarehouseDashboardPage() {
     prisma.warehouseInventory.findMany({
       where: inventoryScope,
       take: 8,
-      include: {
-        order: { include: { customer: true } },
-        warehouseLocation: { include: { warehouse: true } },
+      select: {
+        id: true,
+        status: true,
+        expectedFlyers: true,
+        remainingFlyers: true,
+        order: { select: warehouseOrderSelect },
+        warehouseLocation: { select: warehouseLocationSelect },
       },
       orderBy: { updatedAt: "desc" },
     }),
@@ -77,7 +82,6 @@ export default async function WarehouseDashboardPage() {
             <thead>
               <tr>
                 <th>Auftrag</th>
-                <th>Kunde</th>
                 <th>Status</th>
                 <th>Platz</th>
                 <th>Flyer</th>
@@ -88,7 +92,6 @@ export default async function WarehouseDashboardPage() {
               {recent.map((item) => (
                 <tr key={item.id}>
                   <td>{item.order.orderNumber}</td>
-                  <td>{item.order.customer.companyName}</td>
                   <td>{WAREHOUSE_INVENTORY_STATUS_LABELS[item.status]}</td>
                   <td>{item.warehouseLocation?.fullLabel ?? "-"}</td>
                   <td>{item.remainingFlyers ?? item.expectedFlyers}</td>
@@ -97,7 +100,7 @@ export default async function WarehouseDashboardPage() {
               ))}
               {recent.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>
+                  <td colSpan={5}>
                     <EmptyState
                       title="Noch keine Lagerbestände vorhanden."
                       description="Sobald Flyer im Wareneingang eingecheckt werden, erscheinen sie hier mit Lagerplatz und Status."

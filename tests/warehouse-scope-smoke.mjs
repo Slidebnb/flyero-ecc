@@ -14,6 +14,14 @@ function assertStatus(response, allowed, label) {
   assert(allowed.includes(response.status), `${label}: erwartete ${allowed.join("/")}, bekam ${response.status}`);
 }
 
+function assertWarehousePrivacy(value, label) {
+  const serialized = JSON.stringify(value);
+  assert(!serialized.includes('"customer"'), `${label} serialisiert weiterhin ein Kundenobjekt.`);
+  assert(!serialized.includes('"companyName"'), `${label} serialisiert weiterhin einen Firmennamen.`);
+  assert(!serialized.includes('"requestedBy"'), `${label} serialisiert weiterhin einen Antragsteller.`);
+  assert(!serialized.includes('"approvedBy"'), `${label} serialisiert weiterhin einen Freigeber.`);
+}
+
 async function wait(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -94,7 +102,14 @@ try {
   const inventoryResponse = await request("/api/warehouse/inventory", { headers: { cookie } });
   assertStatus(inventoryResponse, [200], "Lagerbestandliste");
   const inventoryBody = await inventoryResponse.json();
+  assertWarehousePrivacy(inventoryBody, "Lagerbestandliste");
   assert(!inventoryBody.data.some((item) => item.id === foreignInventory.id), "Lagerpersonal sieht fremden Lagerbestand.");
+
+  for (const path of ["/api/warehouse/shipments", "/api/warehouse/transfers", "/api/warehouse/stock-counts"]) {
+    const response = await request(path, { headers: { cookie } });
+    assertStatus(response, [200], `Lager-Response ${path}`);
+    assertWarehousePrivacy(await response.json(), path);
+  }
 
   const qrResponse = await jsonRequest("/api/warehouse/qrcode", cookie, { inventoryId: foreignInventory.id });
   assertStatus(qrResponse, [404], "QR fuer fremden Bestand");

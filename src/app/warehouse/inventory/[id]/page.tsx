@@ -7,6 +7,7 @@ import { REMAINING_STOCK_STATUS_LABELS, WAREHOUSE_INVENTORY_STATUS_LABELS } from
 import { formatDateTime } from "@/lib/format";
 import { inventoryScopeForUser, warehouseScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
+import { warehouseLocationSelect, warehouseOrderSelect } from "@/lib/warehousePrivacy";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -18,13 +19,30 @@ export default async function WarehouseInventoryDetailPage({ params }: PageProps
   const [inventory, locations] = await Promise.all([
     prisma.warehouseInventory.findFirst({
       where: { id, ...inventoryScopeForUser(session) },
-      include: {
-        order: { include: { customer: true } },
-        warehouseLocation: { include: { warehouse: true } },
-        history: { include: { user: true }, orderBy: { createdAt: "desc" } },
+      select: {
+        id: true,
+        status: true,
+        qrCodePngDataUrl: true,
+        warehouseLocationId: true,
+        expectedFlyers: true,
+        receivedFlyers: true,
+        remainingFlyers: true,
+        remainingStockStatus: true,
+        pickupStatus: true,
+        notes: true,
+        order: { select: warehouseOrderSelect },
+        warehouseLocation: { select: warehouseLocationSelect },
+        history: {
+          select: { id: true, action: true, createdAt: true, user: { select: { role: true } } },
+          orderBy: { createdAt: "desc" },
+        },
       },
     }),
-    prisma.warehouseLocation.findMany({ where: { warehouse: warehouseScopeForUser(session) }, include: { warehouse: true }, orderBy: { fullLabel: "asc" } }),
+    prisma.warehouseLocation.findMany({
+      where: { warehouse: warehouseScopeForUser(session) },
+      select: warehouseLocationSelect,
+      orderBy: { fullLabel: "asc" },
+    }),
   ]);
 
   if (!inventory) {
@@ -73,7 +91,7 @@ export default async function WarehouseInventoryDetailPage({ params }: PageProps
           <div className="tableWrap">
             <table>
               <tbody>
-                <tr><th>Kunde</th><td>{inventory.order.customer.companyName}</td></tr>
+                <tr><th>Ort</th><td>{inventory.order.city}</td></tr>
                 <tr><th>Stadt</th><td>{inventory.order.city}</td></tr>
                 <tr><th>Lagerplatz</th><td>{inventory.warehouseLocation ? `${inventory.warehouseLocation.warehouse.name} / ${inventory.warehouseLocation.fullLabel}` : "-"}</td></tr>
                 <tr><th>Erwartet</th><td>{inventory.expectedFlyers}</td></tr>
@@ -140,7 +158,7 @@ export default async function WarehouseInventoryDetailPage({ params }: PageProps
                 <tr key={entry.id}>
                   <td>{formatDateTime(entry.createdAt)}</td>
                   <td>{entry.action}</td>
-                  <td>{entry.user?.email ?? "System"}</td>
+                  <td>{entry.user?.role ?? "System"}</td>
                 </tr>
               ))}
             </tbody>

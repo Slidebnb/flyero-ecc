@@ -19,7 +19,7 @@ export default async function WarehouseCheckinPage() {
           { warehouseInventory: { status: "FLYERS_EXPECTED" } },
         ],
       },
-      include: { customer: true, warehouseInventory: true },
+      select: { id: true, orderNumber: true, city: true, status: true },
       orderBy: { createdAt: "desc" },
       take: 50,
     }),
@@ -50,7 +50,7 @@ export default async function WarehouseCheckinPage() {
             <select name="orderId" required>
               {orders.map((order) => (
                 <option key={order.id} value={order.id}>
-                  {order.orderNumber} - {order.customer.companyName} - {ORDER_STATUS_LABELS[order.status]}
+                  {order.orderNumber} - {order.city} - {ORDER_STATUS_LABELS[order.status]}
                 </option>
               ))}
             </select>

@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { REMAINING_STOCK_STATUS_LABELS, WAREHOUSE_INVENTORY_STATUS_LABELS } from "@/lib/constants";
 import { inventoryScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
+import { warehouseLocationSelect, warehouseOrderSelect } from "@/lib/warehousePrivacy";
 
 type PageProps = {
   searchParams: Promise<{ status?: string; search?: string; city?: string; location?: string }>;
@@ -25,15 +26,22 @@ export default async function WarehouseInventoryPage({ searchParams }: PageProps
       ...(params.location ? { warehouseLocation: { fullLabel: { contains: params.location, mode: "insensitive" } } } : {}),
       ...(params.search
         ? {
-            OR: [
-              { order: { orderNumber: { contains: params.search, mode: "insensitive" } } },
-              { order: { customer: { companyName: { contains: params.search, mode: "insensitive" } } } },
+              OR: [
+                { order: { orderNumber: { contains: params.search, mode: "insensitive" } } },
               { qrCode: { contains: params.search, mode: "insensitive" } },
             ],
           }
         : {}),
     },
-    include: { order: { include: { customer: true } }, warehouseLocation: { include: { warehouse: true } } },
+    select: {
+      id: true,
+      status: true,
+      remainingStockStatus: true,
+      remainingFlyers: true,
+      expectedFlyers: true,
+      order: { select: warehouseOrderSelect },
+      warehouseLocation: { select: warehouseLocationSelect },
+    },
     orderBy: { updatedAt: "desc" },
   });
 
@@ -83,13 +91,12 @@ export default async function WarehouseInventoryPage({ searchParams }: PageProps
         <div className="tableWrap">
           <table>
             <thead>
-              <tr><th>Auftrag</th><th>Kunde</th><th>Stadt</th><th>Status</th><th>Platz</th><th>Rest</th><th></th></tr>
+              <tr><th>Auftrag</th><th>Ort</th><th>Status</th><th>Platz</th><th>Rest</th><th></th></tr>
             </thead>
             <tbody>
               {inventory.map((item) => (
                 <tr key={item.id}>
                   <td>{item.order.orderNumber}</td>
-                  <td>{item.order.customer.companyName}</td>
                   <td>{item.order.city}</td>
                   <td>{WAREHOUSE_INVENTORY_STATUS_LABELS[item.status]}</td>
                   <td>{item.warehouseLocation?.fullLabel ?? "-"}</td>
@@ -99,7 +106,7 @@ export default async function WarehouseInventoryPage({ searchParams }: PageProps
               ))}
               {inventory.length === 0 ? (
                 <tr>
-                  <td colSpan={7}>
+                  <td colSpan={6}>
                     <EmptyState
                       title="Keine passenden Lagerbestände gefunden."
                       description="Passe die Filter an oder öffne den Wareneingang, wenn neue Flyer angekommen sind."

@@ -75,6 +75,12 @@ Eigene Tourdetails sind ueber `distributorId` geschuetzt, fremde Tour-IDs
 liefern `404`. Der Contract-Smoke `npm run test:distributor-privacy` prueft
 API-Responses und gerenderte Verteilerseiten gegen echte Seed-Touren.
 
+Lageransichten verwenden ebenfalls eine explizite Privacy-Whitelist. Lagerrollen
+sehen Auftragsnummer, Ort, Gebiet, Mengen, Status und notwendige Lagerdaten,
+aber keine vollstaendigen Kundenobjekte, Firmennamen oder Antragsteller-/Freigabe-
+Benutzerobjekte aus Umlagerungen. Der Contract-Smoke
+`npm run test:warehouse-privacy` prueft diese sichtbaren Lagerpfade.
+
 Der geschuetzte Foto-Download prueft bei Kunden zusaetzlich Auftragseigentum,
 `customerVisible` und den Status `APPROVED`. Interne oder noch nicht
 freigegebene Fotos liefern auch dann `404`, wenn der Kunde die eigene

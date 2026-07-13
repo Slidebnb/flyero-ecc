@@ -3,13 +3,22 @@ import { requireRole } from "@/lib/auth";
 import { shipmentScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
+import { warehouseOrderSelect, warehouseSelect } from "@/lib/warehousePrivacy";
 
 export async function GET() {
   try {
     const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const shipments = await prisma.logisticsShipment.findMany({
       where: shipmentScopeForUser(session),
-      include: { order: { include: { customer: true } }, warehouse: true },
+      select: {
+        id: true,
+        shipmentType: true,
+        status: true,
+        trackingNumber: true,
+        expectedDeliveryDate: true,
+        order: { select: warehouseOrderSelect },
+        warehouse: { select: warehouseSelect },
+      },
       orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }],
       take: 200,
     });

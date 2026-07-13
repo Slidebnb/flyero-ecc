@@ -200,6 +200,9 @@ jobs:
       - name: Warehouse scope smoke
         run: npm run test:warehouse-scope
 
+      - name: Warehouse privacy smoke
+        run: npm run test:warehouse-privacy
+
       - name: Support permission smoke
         run: npm run test:support-permission
 

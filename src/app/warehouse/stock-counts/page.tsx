@@ -3,19 +3,27 @@ import { DataSection, EmptyState, PortalShell, StatusBadge } from "@/app/PortalC
 import { requireRole } from "@/lib/auth";
 import { inventoryScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
+import { warehouseOrderSelect, warehouseSelect } from "@/lib/warehousePrivacy";
 
 export default async function WarehouseStockCountsPage() {
   const session = await requireRole([UserRole.WAREHOUSE_STAFF, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
   const [inventory, counts, warehouses] = await Promise.all([
     prisma.warehouseInventory.findMany({
       where: inventoryScopeForUser(session),
-      include: { order: true, warehouse: true },
+      select: { id: true, expectedFlyers: true, remainingFlyers: true, order: { select: warehouseOrderSelect }, warehouse: { select: warehouseSelect } },
       orderBy: { updatedAt: "desc" },
       take: 100,
     }),
     prisma.warehouseStockCount.findMany({
       where: session.role === UserRole.WAREHOUSE_STAFF ? { warehouseId: session.warehouseId || "__none__" } : {},
-      include: { warehouse: true, inventory: { include: { order: true } }, countedBy: true },
+      select: {
+        id: true,
+        expectedQuantity: true,
+        countedQuantity: true,
+        difference: true,
+        warehouse: { select: warehouseSelect },
+        inventory: { select: { order: { select: warehouseOrderSelect } } },
+      },
       orderBy: { countedAt: "desc" },
       take: 100,
     }),

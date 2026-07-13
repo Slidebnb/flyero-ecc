@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
 import { warehouseStockCountCreateSchema } from "@/lib/validators";
+import { warehouseOrderSelect, warehouseSelect } from "@/lib/warehousePrivacy";
 
 export async function GET() {
   try {
@@ -18,7 +19,15 @@ export async function GET() {
             inventory: inventoryScopeForUser(session),
             ...(session.role === UserRole.WAREHOUSE_STAFF ? { warehouseId: session.warehouseId || "__none__" } : {}),
           },
-      include: { warehouse: true, inventory: { include: { order: true } }, countedBy: true },
+      select: {
+        id: true,
+        expectedQuantity: true,
+        countedQuantity: true,
+        difference: true,
+        countedAt: true,
+        warehouse: { select: warehouseSelect },
+        inventory: { select: { id: true, order: { select: warehouseOrderSelect } } },
+      },
       orderBy: { countedAt: "desc" },
       take: 200,
     });

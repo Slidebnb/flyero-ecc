@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/auth";
 import { inventoryScopeForUser } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
+import { warehouseLocationSelect, warehouseOrderSelect } from "@/lib/warehousePrivacy";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -13,10 +14,22 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const inventory = await prisma.warehouseInventory.findFirst({
       where: { id, ...inventoryScopeForUser(session) },
-      include: {
-        order: { include: { customer: true } },
-        warehouseLocation: { include: { warehouse: true } },
-        history: { orderBy: { createdAt: "asc" }, include: { user: true } },
+      select: {
+        id: true,
+        status: true,
+        qrCodePngDataUrl: true,
+        warehouseId: true,
+        warehouseLocationId: true,
+        expectedFlyers: true,
+        receivedFlyers: true,
+        remainingFlyers: true,
+        damagedFlyers: true,
+        remainingStockStatus: true,
+        pickupStatus: true,
+        notes: true,
+        order: { select: warehouseOrderSelect },
+        warehouseLocation: { select: warehouseLocationSelect },
+        history: { orderBy: { createdAt: "asc" }, select: { id: true, action: true, createdAt: true, user: { select: { role: true } } } },
       },
     });
     if (!inventory) return errorResponse("Lagerbestand wurde nicht gefunden.", 404);

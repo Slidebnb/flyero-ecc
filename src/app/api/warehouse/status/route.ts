@@ -21,7 +21,17 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     const inventory = await prisma.warehouseInventory.findFirst({
       where: { id: parsed.data.inventoryId, ...inventoryScopeForUser(session) },
-      include: { order: { include: { customer: true } } },
+      select: {
+        id: true,
+        orderId: true,
+        status: true,
+        remainingFlyers: true,
+        remainingStockStatus: true,
+        notes: true,
+        preparedAt: true,
+        pickupStatus: true,
+        order: { select: { orderNumber: true, status: true, customer: { select: { userId: true } } } },
+      },
     });
     if (!inventory) return errorResponse("Lagerbestand wurde nicht gefunden.", 404);
     const updated = await prisma.warehouseInventory.update({

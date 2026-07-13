@@ -379,6 +379,20 @@ Die Testlandschaft ist fuer eine kontrollierte Beta wertvoll, ist aber kein voll
   geschlossen. Eine vollstaendige Laufzeitmatrix fuer alle internen
   Dispatch-, Support- und Admin-Responses bleibt als Audit-Risiko offen.
 
+### Lager-Datensparsamkeit (13.07.2026)
+
+- Lageransichten und Lager-GET-Endpunkte verwenden jetzt die zentrale
+  `warehousePrivacy`-Whitelist. Sie geben nur Auftragsnummer, Ort, Status,
+  Gebiet und Mengen sowie die fuer den Lagerprozess notwendigen Standortdaten
+  aus.
+- Firmennamen, vollstaendige Kundenobjekte und Antragsteller-/Freigabeobjekte
+  aus Umlagerungen werden nicht mehr an Lagerrollen serialisiert.
+- Lagerhistorien zeigen nur noch die interne Rollenbezeichnung statt
+  Benutzer-E-Mail-Adressen. Die Lagerlogik selbst bleibt unveraendert.
+- `npm run test:warehouse-privacy` prueft die sichtbaren Lagerseiten und
+  Warehouse-GET-Responses statisch auf die Privacy-Grenze. Eine erweiterte
+  Laufzeitmatrix fuer jede interne Admin-/Support-Ansicht bleibt offen.
+
 ### Proof-Download-Freigabe (13.07.2026)
 
 - Der Foto-Download fuer Kunden prueft neben dem eigenen Auftrag jetzt auch
