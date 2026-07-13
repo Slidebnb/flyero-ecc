@@ -93,6 +93,11 @@ Order-Intelligence verwenden den Scope `maps`; die Grenzwerte werden ueber
 konfiguriert. Das begrenzt Google-Kostenmissbrauch, ersetzt aber keinen
 externen WAF- oder Edge-Limiter.
 
+Der oeffentliche Client-Error-Endpunkt verwendet ebenfalls einen persistenten
+IP-Limiter (`client-error`). Er darf nur gekuerzte, nicht-sensitive
+Fehlerhinweise ins plattformweite Monitoring schreiben; ein externer
+Edge-Limiter und Alarmierung bleiben zusaetzliche Produktionsaufgaben.
+
 Die Auth-Sitzungsverwaltung stellt dem eingeloggten Benutzer aktive eigene
 Sitzungen bereit und kann alle anderen noch gueltigen Sitzungen widerrufen.
 Die aktuelle Sitzung bleibt dabei aktiv. Die Antwort ist privat und wird nicht

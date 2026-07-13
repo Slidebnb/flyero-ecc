@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 
-export type PublicRateLimitScope = "lead" | "report-verify" | "maps";
+export type PublicRateLimitScope = "lead" | "report-verify" | "maps" | "client-error";
 
 type PublicRateLimitDecision =
   | { allowed: true }
@@ -11,6 +11,7 @@ const defaults: Record<PublicRateLimitScope, { maxAttempts: number; windowMs: nu
   lead: { maxAttempts: 5, windowMs: 10 * 60 * 1000 },
   "report-verify": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
   maps: { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
+  "client-error": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
 };
 
 function positiveEnv(name: string, fallback: number) {
@@ -33,7 +34,13 @@ function bucketId(scope: PublicRateLimitScope, request: Request) {
 }
 
 function settingsFor(scope: PublicRateLimitScope) {
-  const envPrefix = scope === "lead" ? "PUBLIC_LEAD" : scope === "report-verify" ? "PUBLIC_REPORT_VERIFY" : "PUBLIC_MAPS";
+  const envPrefix = scope === "lead"
+    ? "PUBLIC_LEAD"
+    : scope === "report-verify"
+      ? "PUBLIC_REPORT_VERIFY"
+      : scope === "maps"
+        ? "PUBLIC_MAPS"
+        : "PUBLIC_CLIENT_ERROR";
   const fallback = defaults[scope];
   return {
     maxAttempts: positiveEnv(`${envPrefix}_RATE_LIMIT_MAX`, fallback.maxAttempts),

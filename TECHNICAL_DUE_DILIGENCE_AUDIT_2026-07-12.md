@@ -770,6 +770,11 @@ Das zentrale Auth-Abuse-Paket wurde anschließend ergänzt:
 
 Offen bleiben CAPTCHA/WAF, externe IP-Reputation und alarmiertes Rate-Limit-Monitoring.
 
+Der oeffentliche Client-Error-Endpunkt verwendet ebenfalls den Scope
+`client-error` mit persistentem IP-Limit. Er akzeptiert nur gekuerzte
+Fehlerdaten; externe Alarmierung und ein vorgeschalteter Edge-Limiter bleiben
+vor dem Launch offen.
+
 ### P1 Öffentliche Abuse-Schutzschicht
 
 Lead-Formular und öffentlicher Report-Verifikationscode verwenden jetzt persistente, gehashte IP-Buckets in `PublicRateLimitBucket`. Damit bleibt der Schutz über Prozessneustarts und mehrere App-Instanzen hinweg wirksam. Die konfigurierbaren Grenzwerte stehen in `.env.example` und `.env.production.example`; die Retention berücksichtigt beide Bucket-Typen.
