@@ -1,20 +1,18 @@
 import {
-  AudienceCard,
-  CTAChoiceCard,
   FAQItem,
-  FeatureCard,
   HeroVisual,
   MarketingButton,
   MarketingContainer,
   MarketingPage,
   MarketingSection,
-  ProofMockup,
+  ProofStatusPanel,
   PremiumFlyerField,
   SectionHeader,
-  StepCard,
   TrustBadge,
+  audienceIconMap,
   defaultProofIcons,
 } from "@/app/components/marketing";
+import { BriefcaseBusiness } from "lucide-react";
 import { createSeoMetadata } from "@/app/seo";
 
 export const metadata = createSeoMetadata({
@@ -93,17 +91,17 @@ export default function HomePage() {
               <label htmlFor="public-planner-query">Adresse, Ort oder PLZ</label>
               <div>
                 <input id="public-planner-query" name="query" placeholder="z. B. 56068 Koblenz" autoComplete="street-address" />
-                <button type="submit">Gebiet und Preis prüfen</button>
+                <button type="submit">Gebiet ansehen</button>
               </div>
             </form>
             <div className="mkHeroActions">
-              <MarketingButton href="/verteilung-planen">Gebiet und Preis prüfen</MarketingButton>
-              <MarketingButton href="/verteilung-anfragen" variant="ghost">Unverbindlich anfragen</MarketingButton>
+              <MarketingButton href="/verteilung-anfragen">Verteilung anfragen</MarketingButton>
+              <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="ghost">Online buchen</MarketingButton>
             </div>
             <div className="mkTrustRow" aria-label="FLYERO Nachweise">
-              <TrustBadge icon={defaultProofIcons.gps}>GPS-verifiziert</TrustBadge>
-              <TrustBadge icon={defaultProofIcons.camera}>Foto-Nachweise</TrustBadge>
-              <TrustBadge icon={defaultProofIcons.report}>PDF-Bericht</TrustBadge>
+              <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweis</TrustBadge>
+              <TrustBadge icon={defaultProofIcons.camera}>Foto-Dokumentation</TrustBadge>
+              <TrustBadge icon={defaultProofIcons.report}>PDF-Verteilbericht</TrustBadge>
             </div>
           </div>
           <HeroVisual />
@@ -115,9 +113,16 @@ export default function HomePage() {
         title="Flyer verteilt - aber wirklich?"
         intro="Ohne saubere Nachweise bleibt Flyerverteilung schwer prüfbar. FLYERO macht die operative Arbeit sichtbar."
       >
-        <div className="mkGrid mkGrid-4">
+        <div className="mkEditorialList">
           {problems.map(([title, text, Icon], index) => (
-            <FeatureCard key={title} title={title} text={text} icon={Icon} index={index} />
+            <article className="mkEditorialRow" key={title}>
+              <span className="mkEditorialIndex">0{index + 1}</span>
+              <span className="mkEditorialIcon" aria-hidden="true"><Icon /></span>
+              <div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            </article>
           ))}
         </div>
       </MarketingSection>
@@ -128,9 +133,16 @@ export default function HomePage() {
         intro="Jeder Schritt bekommt einen Status, einen Ort im Prozess und am Ende einen prüfbaren Bericht."
         tone="green"
       >
-        <div className="mkGrid">
+        <div className="mkEditorialList mkSolutionList">
           {solutions.map(([title, text, Icon], index) => (
-            <FeatureCard key={title} title={title} text={text} icon={Icon} index={index} />
+            <article className="mkEditorialRow" key={title}>
+              <span className="mkEditorialIndex">0{index + 1}</span>
+              <span className="mkEditorialIcon" aria-hidden="true"><Icon /></span>
+              <div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            </article>
           ))}
         </div>
       </MarketingSection>
@@ -141,10 +153,21 @@ export default function HomePage() {
         title="Für jede Branche der passende Verteilerweg."
         intro="Kurze Wege, klare Gebiete und ein Bericht, der auch nach der Kampagne noch belastbar bleibt."
       >
-        <div className="mkGrid">
-          {audiences.map(([title, text, signal]) => (
-            <AudienceCard key={title} title={title} text={text} signal={signal} />
-          ))}
+        <div className="mkAudienceList">
+          {audiences.map(([title, text, signal], index) => {
+            const Icon = audienceIconMap[title] ?? BriefcaseBusiness;
+            return (
+              <article className="mkAudienceRow" key={title}>
+                <span className="mkEditorialIndex">0{index + 1}</span>
+                <span className="mkEditorialIcon" aria-hidden="true"><Icon /></span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </div>
+                <small>{signal}</small>
+              </article>
+            );
+          })}
         </div>
       </MarketingSection>
 
@@ -153,10 +176,19 @@ export default function HomePage() {
         title="In fünf Schritten zur dokumentierten Verteilung."
         intro="Einfach genug für Kunden. Strukturiert genug für Lager, Verteiler und Admin-Prüfung."
       >
-        <ol className="mkSteps">
-          {steps.map(([title, text], index) => (
-            <StepCard key={title} title={title} text={text} index={index} />
-          ))}
+        <ol className="mkProcessList">
+          {steps.map(([title, text], index) => {
+            const icons = [defaultProofIcons.gps, defaultProofIcons.report, defaultProofIcons.report, defaultProofIcons.gps, defaultProofIcons.shield];
+            const Icon = icons[index];
+            return (
+              <li className="mkProcessRow" key={title}>
+                <span className="mkProcessNumber">0{index + 1}</span>
+                <Icon aria-hidden="true" />
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </li>
+            );
+          })}
         </ol>
       </MarketingSection>
 
@@ -164,18 +196,18 @@ export default function HomePage() {
         <div className="mkProofLayout">
           <div className="mkProofText">
             <p className="mkEyebrow">Nachweis</p>
-            <h2>GPS-Spur, Fotos und Bericht statt Bauchgefühl.</h2>
+            <h2>Nachweise, die am Ende wirklich zählen.</h2>
             <p>
-              Der Kunde sieht nicht nur, dass verteilt wurde. Er sieht GPS-Nachweise, Fotobelege,
-              Statusschritte und den freigegebenen PDF-Bericht im Portal.
+              Keine vorweggenommenen Ergebnisse und keine Demo-Karte. Der Kunde sieht genau dann etwas,
+              wenn die Verteilung abgeschlossen, geprüft und freigegeben ist.
             </p>
             <div className="mkProofMetrics">
-              <span><strong>GPS</strong>Tourspur</span>
-              <span><strong>Foto</strong>Nachweis</span>
-              <span><strong>PDF</strong>Bericht</span>
+              <span><strong>01</strong>GPS-Nachweis</span>
+              <span><strong>02</strong>Foto-Dokumentation</span>
+              <span><strong>03</strong>PDF-Bericht</span>
             </div>
           </div>
-          <ProofMockup area="Koblenz Süd" />
+          <ProofStatusPanel />
         </div>
       </MarketingSection>
 
@@ -184,9 +216,10 @@ export default function HomePage() {
         title="Eine Plattform für den ganzen Kernprozess."
         intro="FLYERO bleibt bewusst auf den Ablauf fokussiert, der für Kunden wirklich zählt: Auftrag, Verteilung, Nachweis."
       >
-        <div className="mkAdvantageRail">
-          {advantages.map(([title, text]) => (
-            <article key={title}>
+        <div className="mkAdvantageList">
+          {advantages.map(([title, text], index) => (
+            <article className="mkAdvantageRow" key={title}>
+              <span className="mkEditorialIndex">0{index + 1}</span>
               <h3>{title}</h3>
               <p>{text}</p>
             </article>
@@ -199,24 +232,23 @@ export default function HomePage() {
         title="Beratung oder direkte Buchung."
         intro="Unverbindlich anfragen bleibt öffentlich. Die direkte Buchung läuft geschützt über das Kundenkonto."
       >
-        <div className="mkChoiceGrid">
-          <CTAChoiceCard
-            title="Unverbindlich anfragen"
-            text="Für Kampagnen, bei denen Gebiet, Auflage oder Timing noch geklärt werden sollen."
-            bullets={["Persönliche Beratung", "Individuelles Angebot", "Keine Registrierung nötig"]}
-            href="/verteilung-planen"
-            buttonLabel="Anfrage starten"
-            icon={defaultProofIcons.shield}
-          />
-          <CTAChoiceCard
-            title="Online Buchung ansehen"
-            text="Für konkrete Kampagnen mit Kundenkonto, Gebietsauswahl, Preisprüfung und Auftrag."
-            bullets={["Verteilgebiet wählen", "Preis vorab sehen", "Nachweis im Portal erhalten"]}
-            href="/verteilung-planen"
-            buttonLabel="Buchung starten"
-            tone="dark"
-            icon={defaultProofIcons.gps}
-          />
+        <div className="mkStartRail">
+          <article className="mkStartRow">
+            <span className="mkEditorialIndex">01</span>
+            <div>
+              <h3>Unverbindlich anfragen</h3>
+              <p>Für Kampagnen, bei denen Gebiet, Auflage oder Timing noch geklärt werden sollen.</p>
+            </div>
+            <MarketingButton href="/verteilung-anfragen">Anfrage starten</MarketingButton>
+          </article>
+          <article className="mkStartRow">
+            <span className="mkEditorialIndex">02</span>
+            <div>
+              <h3>Online buchen</h3>
+              <p>Gebiet wählen, Preis prüfen und den Auftrag geschützt über dein Kundenkonto abschließen.</p>
+            </div>
+            <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="dark">Buchung starten</MarketingButton>
+          </article>
         </div>
       </MarketingSection>
 

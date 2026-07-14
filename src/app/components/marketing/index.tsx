@@ -302,6 +302,40 @@ export function ProofMockup({ area = "Koblenz Süd" }: { area?: string }) {
   );
 }
 
+export function ProofStatusPanel() {
+  const proofItems = [
+    ["GPS-Nachweis", "wird nach der Verteilung hochgeladen"],
+    ["Foto-Dokumentation", "wird geprüft und freigegeben"],
+    ["PDF-Verteilbericht", "wird nach der Prüfung erstellt"],
+  ] as const;
+
+  return (
+    <div className="mkProofStatusPanel" aria-label="Nachweisablauf bei FLYERO">
+      <div className="mkProofStatusHeader">
+        <FlyeroLogo dark />
+        <span>Nachweisablauf</span>
+      </div>
+      <div className="mkProofStatusIntro">
+        <span className="mkProofStatusKicker">Noch kein Nachweis</span>
+        <strong>Die Dokumentation entsteht nach der Verteilung.</strong>
+        <p>FLYERO veröffentlicht nur Nachweise, die tatsächlich vorliegen und geprüft wurden.</p>
+      </div>
+      <div className="mkProofStatusList">
+        {proofItems.map(([label, status], index) => (
+          <div className="mkProofStatusRow" key={label}>
+            <span className="mkProofStatusIndex">0{index + 1}</span>
+            <span>
+              <strong>{label}</strong>
+              <small>{status}</small>
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="mkProofStatusNote">Keine Demo-Daten. Keine vorweggenommenen Ergebnisse.</p>
+    </div>
+  );
+}
+
 export function FeatureCard({
   title,
   text,

@@ -1833,3 +1833,332 @@
     font-size: 0.62rem;
   }
 }
+
+/* Homepage editorial system: open rows instead of public card grids. */
+.mkEditorialList,
+.mkAudienceList,
+.mkAdvantageList,
+.mkStartRail {
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkEditorialRow,
+.mkAudienceRow,
+.mkAdvantageRow,
+.mkStartRow {
+  display: grid;
+  align-items: center;
+  gap: 22px;
+  padding: 25px 0;
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+.mkEditorialRow {
+  grid-template-columns: 44px 44px minmax(0, 1fr);
+}
+
+.mkEditorialIndex,
+.mkProcessNumber {
+  color: #5e8500;
+  font-size: 0.78rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+}
+
+.mkEditorialIcon {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--flyero-green-soft);
+  color: var(--flyero-text);
+}
+
+.mkEditorialIcon svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2.15;
+}
+
+.mkEditorialRow h3,
+.mkAudienceRow h3,
+.mkAdvantageRow h3,
+.mkStartRow h3 {
+  margin: 0 0 6px;
+  color: var(--flyero-text);
+  font-size: 1.22rem;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.mkEditorialRow p,
+.mkAudienceRow p,
+.mkAdvantageRow p,
+.mkStartRow p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--flyero-muted);
+  line-height: 1.6;
+}
+
+.mkSolutionList .mkEditorialRow {
+  padding-block: 21px;
+}
+
+.mkAudienceRow {
+  grid-template-columns: 44px 44px minmax(0, 1fr) minmax(220px, 0.36fr);
+}
+
+.mkAudienceRow small {
+  color: #4f6f00;
+  font-size: 0.9rem;
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.mkProcessList {
+  display: flex;
+  gap: 28px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mkProcessRow {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 20px 0 0;
+  border-top: 2px solid var(--flyero-text);
+}
+
+.mkProcessRow > svg {
+  width: 20px;
+  height: 20px;
+  margin: 18px 0 24px;
+  color: #83bd00;
+}
+
+.mkProcessRow h3 {
+  margin: 0 0 8px;
+  color: var(--flyero-text);
+  font-size: 1.06rem;
+  line-height: 1.2;
+}
+
+.mkProcessRow p {
+  margin: 0;
+  color: var(--flyero-muted);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+.mkProofStatusPanel {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--flyero-radius-media);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.035));
+  box-shadow: var(--flyero-shadow-dark);
+}
+
+.mkProofStatusHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.mkProofStatusHeader .mkLogo {
+  font-size: 1.1rem;
+}
+
+.mkProofStatusHeader span {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mkProofStatusIntro {
+  display: grid;
+  gap: 9px;
+  padding: 32px 0 26px;
+}
+
+.mkProofStatusKicker {
+  color: var(--flyero-green);
+  font-size: 0.73rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mkProofStatusIntro strong {
+  max-width: 390px;
+  color: #ffffff;
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.mkProofStatusIntro p,
+.mkProofStatusNote {
+  max-width: 440px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.64);
+  line-height: 1.55;
+}
+
+.mkProofStatusList {
+  display: grid;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.mkProofStatusRow {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.mkProofStatusIndex {
+  color: var(--flyero-green);
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.mkProofStatusRow span:last-child {
+  display: grid;
+  gap: 4px;
+}
+
+.mkProofStatusRow strong {
+  color: #ffffff;
+  font-size: 0.98rem;
+}
+
+.mkProofStatusRow small {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.87rem;
+}
+
+.mkProofStatusNote {
+  margin-top: auto;
+  padding-top: 22px;
+  font-size: 0.84rem;
+}
+
+.mkAdvantageList {
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+.mkAdvantageRow {
+  grid-template-columns: 44px minmax(180px, 0.35fr) minmax(0, 1fr);
+}
+
+.mkAdvantageRow p {
+  max-width: 600px;
+}
+
+.mkStartRail {
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+.mkStartRow {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 28px;
+}
+
+.mkStartRow .mkButton {
+  min-width: 178px;
+}
+
+.mkStartRow:last-child {
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+@media (max-width: 820px) {
+  .mkAudienceRow,
+  .mkAdvantageRow,
+  .mkStartRow {
+    grid-template-columns: 38px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .mkAudienceRow .mkEditorialIcon {
+    display: none;
+  }
+
+  .mkAudienceRow small,
+  .mkStartRow .mkButton {
+    grid-column: 2;
+  }
+
+  .mkStartRow .mkButton {
+    justify-self: start;
+  }
+
+  .mkProcessList {
+    display: grid;
+    gap: 0;
+  }
+
+  .mkProcessRow {
+    display: grid;
+    grid-template-columns: 42px 26px minmax(0, 1fr);
+    column-gap: 12px;
+    padding: 20px 0;
+    border-top: 1px solid var(--flyero-border);
+  }
+
+  .mkProcessRow > svg {
+    margin: 0;
+  }
+
+  .mkProcessRow h3,
+  .mkProcessRow p {
+    grid-column: 3;
+  }
+
+  .mkProcessRow h3 {
+    margin-top: 12px;
+  }
+
+  .mkProcessRow p {
+    margin-top: -2px;
+  }
+
+  .mkProofStatusPanel {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 460px) {
+  .mkEditorialRow {
+    grid-template-columns: 34px 38px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .mkEditorialIcon {
+    width: 38px;
+    height: 38px;
+  }
+
+  .mkProofStatusPanel {
+    padding: 22px;
+  }
+
+  .mkProofStatusHeader span {
+    font-size: 0.6rem;
+  }
+}

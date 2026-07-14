@@ -146,6 +146,9 @@ await includes("src/app/verify-email/page.tsx", ["noIndexMetadata"]);
 const landingSource = await readFile("src/app/page.tsx", "utf8");
 assert(!landingSource.includes("Lokale Kampagnen mit messbarem Gebietsfokus"), "Zielgruppen enthalten noch den wiederholten Fülltext.");
 assert(!landingSource.includes("FLYERO Startup Unternehmen"), "Unprofessionelle Startup-Platzhalter-Sprache ist noch sichtbar.");
+assert(landingSource.includes("ProofStatusPanel"), "Die Startseite verwendet noch keine ehrliche Nachweisvorschau.");
+assert(!landingSource.includes("ProofMockup"), "Die Startseite darf kein Fake-Nachweis-Mockup rendern.");
+assert(!landingSource.includes("Gebiet und Preis prüfen"), "Die Startseite enthält die alte doppelte Preis-CTA.");
 
 for (const filePath of [
   "src/app/page.tsx",
