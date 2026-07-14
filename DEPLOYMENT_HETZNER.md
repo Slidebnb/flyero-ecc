@@ -82,6 +82,13 @@ SMTP_FROM="FLYERO <noreply@flyero.org>"
 
 ## Updates
 
+Wichtig: `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` wird von Next.js beim Image-Build
+in den Browser-Bundle eingebaut. Deshalb muss `--env-file .env.production` beim
+`build`-Befehl stehen. Ohne diese Option kann der laufende Container den Key zwar
+als Runtime-ENV sehen, die Browserkarte bleibt aber im bereits gebauten Bundle
+leer und fällt auf den Fallback zurück. Der Docker-Build bricht bei fehlendem Key
+jetzt absichtlich ab.
+
 ```bash
 cd /opt/flyero
 git pull

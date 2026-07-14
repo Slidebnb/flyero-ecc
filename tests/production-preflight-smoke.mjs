@@ -6,6 +6,17 @@ import { spawnSync } from "node:child_process";
 assert.ok(existsSync("scripts/production-preflight.mjs"), "Produktions-Preflight fehlt.");
 const dockerfile = readFileSync("Dockerfile", "utf8");
 assert.match(dockerfile, /clamav/, "Das Produktionsimage muss den erforderlichen ClamAV-Scanner enthalten.");
+assert.match(
+  dockerfile,
+  /RUN test -n "\$NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY"/,
+  "Der Produktions-Build muss den Browser-Key bereits beim Image-Build erzwingen, damit keine leere Maps-Konfiguration ausgeliefert wird.",
+);
+const deployment = readFileSync("DEPLOYMENT_HETZNER.md", "utf8");
+assert.match(
+  deployment,
+  /docker compose --env-file \.env\.production -f docker-compose\.production\.yml build app/,
+  "Die Hetzner-Update-Anleitung muss die Production-ENV auch beim Build laden.",
+);
 
 const validEnvironment = {
   NODE_ENV: "production",
