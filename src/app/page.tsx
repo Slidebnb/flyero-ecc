@@ -89,6 +89,13 @@ export default function HomePage() {
               FLYERO verbindet Gebietsauswahl, Zahlung, Lager, GPS-Nachweis, Foto-Dokumentation und Kundenbericht
               in einem professionellen Ablauf für lokale Kampagnen.
             </p>
+            <form className="mkPlannerSearch" action="/verteilung-planen" method="get">
+              <label htmlFor="public-planner-query">Adresse, Ort oder PLZ</label>
+              <div>
+                <input id="public-planner-query" name="query" placeholder="z. B. 56068 Koblenz" autoComplete="street-address" />
+                <button type="submit">Gebiet und Preis prüfen</button>
+              </div>
+            </form>
             <div className="mkHeroActions">
               <MarketingButton href="/verteilung-planen">Gebiet und Preis prüfen</MarketingButton>
               <MarketingButton href="/verteilung-anfragen" variant="ghost">Unverbindlich anfragen</MarketingButton>

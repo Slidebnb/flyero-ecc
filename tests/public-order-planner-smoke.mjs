@@ -7,6 +7,7 @@ function read(path) {
 }
 
 const page = read("src/app/verteilung-planen/page.tsx");
+const home = read("src/app/page.tsx");
 const wizard = read("src/app/customer/orders/new/SmartOrderWizard.tsx");
 const publicQuote = read("src/app/api/public/planner/quote/route.ts");
 const publicAutocomplete = read("src/app/api/public/planner/autocomplete/route.ts");
@@ -16,7 +17,11 @@ const smartMaps = read("src/lib/smartMaps.ts");
 
 assert.match(page, /SmartOrderWizard/);
 assert.match(page, /mode=["']public_quote["']/);
+assert.match(home, /action="\/verteilung-planen"/);
+assert.match(home, /name="query"/);
 assert.match(wizard, /mode\?: "public_quote" \| "authenticated_order"/);
+assert.match(wizard, /isPublicPlanner \? "" : "Koblenz, Deutschland"/);
+assert.match(wizard, /PUBLIC_PLANNER_STARTED/);
 assert.match(wizard, /flyero:order-planner:draft:v2/);
 assert.match(wizard, /flyero:order-planner:public-draft:v2/);
 assert.match(wizard, /contactPerson.*contactPhone.*notes/);

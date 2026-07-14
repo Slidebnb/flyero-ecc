@@ -350,6 +350,53 @@
   margin: 34px 0 0;
 }
 
+.mkPlannerSearch {
+  max-width: 590px;
+  margin-top: 28px;
+}
+
+.mkPlannerSearch label {
+  display: block;
+  margin-bottom: 9px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.86rem;
+  font-weight: 850;
+}
+
+.mkPlannerSearch > div {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.mkPlannerSearch input {
+  min-width: 0;
+  flex: 1;
+  min-height: 52px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 14px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  font: inherit;
+}
+
+.mkPlannerSearch input::placeholder {
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.mkPlannerSearch button {
+  min-height: 52px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  color: #10160b;
+  background: var(--flyero-green);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .mkTrustRow {
   display: flex;
   flex-wrap: wrap;
@@ -1458,8 +1505,13 @@
   }
 
   .mkHeroActions,
-  .mkTrustRow {
+  .mkTrustRow,
+  .mkPlannerSearch {
     max-width: 348px;
+  }
+
+  .mkPlannerSearch > div {
+    display: grid;
   }
 
   .mkHeroActions .mkButton,

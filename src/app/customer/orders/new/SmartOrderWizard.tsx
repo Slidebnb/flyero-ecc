@@ -203,6 +203,7 @@ declare global {
 }
 
 const DEFAULT_CENTER = { lat: 50.3569, lng: 7.589 };
+const PUBLIC_DEFAULT_CENTER: LatLng = { lat: 51.1657, lng: 10.4515 };
 const DEFAULT_POLYGON: LatLng[] = [
   { lat: 50.3602, lng: 7.5852 },
   { lat: 50.3618, lng: 7.5934 },
@@ -452,25 +453,28 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const polygonRef = useRef<GooglePolygon | null>(null);
   const drawingManagerRef = useRef<GoogleDrawingManager | null>(null);
   const overviewDragRef = useRef<OverviewDragState | null>(null);
+  const initialSearchRef = useRef<string | null>(null);
+  const trackedPublicStepsRef = useRef(new Set<number>());
   const [isPending, startTransition] = useTransition();
   const [mapsReady, setMapsReady] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
-  const [query, setQuery] = useState("Koblenz, Deutschland");
+  const [query, setQuery] = useState(isPublicPlanner ? "" : "Koblenz, Deutschland");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState("");
-  const [city, setCity] = useState("Koblenz");
-  const [postalCode, setPostalCode] = useState("56068");
+  const [city, setCity] = useState(isPublicPlanner ? "" : "Koblenz");
+  const [postalCode, setPostalCode] = useState(isPublicPlanner ? "" : "56068");
   const [street, setStreet] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
-  const [targetAreaName, setTargetAreaName] = useState("Koblenz Zentrum");
-  const [center, setCenter] = useState<LatLng>(DEFAULT_CENTER);
-  const [polygon, setPolygon] = useState<LatLng[]>(DEFAULT_POLYGON);
+  const [targetAreaName, setTargetAreaName] = useState(isPublicPlanner ? "" : "Koblenz Zentrum");
+  const [center, setCenter] = useState<LatLng>(isPublicPlanner ? PUBLIC_DEFAULT_CENTER : DEFAULT_CENTER);
+  const [polygon, setPolygon] = useState<LatLng[]>(isPublicPlanner ? [] : DEFAULT_POLYGON);
   const [polygonSource, setPolygonSource] = useState<PolygonSource>("postal_code");
   const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
-  const [, setHistory] = useState<LatLng[][]>([DEFAULT_POLYGON]);
+  const [, setHistory] = useState<LatLng[][]>(isPublicPlanner ? [] : [DEFAULT_POLYGON]);
   const [historyIndex, setHistoryIndex] = useState(0);
-  const [flyerQuantity, setFlyerQuantity] = useState(10_000);
+  const [flyerQuantity, setFlyerQuantity] = useState(isPublicPlanner ? 500 : 10_000);
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
   const [productFormat, setProductFormat] = useState(productOptions[0].value);
   const [flyerSource, setFlyerSource] = useState("CUSTOMER_OWN");
@@ -511,6 +515,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const routeDistanceMeters = intelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
   const routeDurationMinutes = intelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
   const netPrice = intelligence?.metrics.netPrice ?? "0";
+  const vatAmount = intelligence?.metrics.vatAmount ?? "0";
+  const grossPrice = intelligence?.metrics.grossPrice ?? "0";
   const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
   const recommendedFlyerQuantity = recommendedFlyersForHouseholds(households);
   const deliverabilityScore = intelligence?.metrics.score ?? null;
@@ -525,6 +531,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     houseNumber,
     distributionAreaId: selectedAreaId,
     flyerQuantity: String(flyerQuantity),
+    flyerSource,
+    printDataStatus,
     coverageAreaSqm: String(coverageAreaSqm),
     distanceMeters: String(localRouteDistanceMeters),
     perimeterMeters: String(perimeterMeters),
@@ -532,11 +540,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     city,
     coverageAreaSqm,
     flyerQuantity,
+    flyerSource,
     houseNumber,
     localRouteDistanceMeters,
     perimeterMeters,
     postalCode,
     selectedAreaId,
+    printDataStatus,
     street,
   ]);
   const geoJson = useMemo(() => polygonToGeoJson(polygon), [polygon]);
@@ -638,10 +648,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   // Restore customer draft once from localStorage before the user continues editing.
   useEffect(() => {
     try {
+      const queryParameter = isPublicPlanner ? new URLSearchParams(window.location.search).get("query") : null;
+      if (queryParameter) initialSearchRef.current = queryParameter;
       const rawDraft = window.localStorage.getItem(draftStorageKey) ?? (!isPublicPlanner ? window.localStorage.getItem(LEGACY_ORDER_DRAFT_KEY) : null);
       if (!rawDraft) {
         draftRestoredRef.current = true;
         setDraftStatus("Entwurf wird automatisch gespeichert");
+        setDraftRestored(true);
         return;
       }
       const draft = JSON.parse(rawDraft) as OrderDraft;
@@ -673,13 +686,17 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       if (draft.contactPhone) setContactPhone(draft.contactPhone);
       if (draft.notes) setNotes(draft.notes);
       setDraftStatus("Entwurf geladen");
+      if (isPublicPlanner) {
+        navigator.sendBeacon?.(experienceEndpoint, new Blob([JSON.stringify({ eventType: "DRAFT_RESTORED", city: draft.city, postalCode: draft.postalCode })], { type: "application/json" }));
+      }
     } catch {
       window.localStorage.removeItem(draftStorageKey);
       setDraftStatus("Entwurf wird automatisch gespeichert");
     } finally {
       draftRestoredRef.current = true;
+      setDraftRestored(true);
     }
-  }, [draftStorageKey, isPublicPlanner]);
+  }, [draftStorageKey, experienceEndpoint, isPublicPlanner]);
 
   useEffect(() => {
     if (isPublicPlanner || repeatLoadedRef.current) return;
@@ -715,6 +732,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           if (draft.contactPerson) setContactPerson(draft.contactPerson);
           if (draft.contactPhone) setContactPhone(draft.contactPhone);
           if (draft.notes) setNotes(draft.notes);
+          void fetch("/api/maps/experience", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ eventType: "ORDER_REPEATED", orderId: repeatFrom, source: "customer-order-repeat" }),
+          });
           setActiveStep(1);
           setDraftStatus("Kampagne übernommen");
         })
@@ -840,10 +862,26 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       .then((payload) => {
         const result = payload?.data;
         if (!result) return;
+        if (isPublicPlanner) {
+          void fetch(experienceEndpoint, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ eventType: "LOCATION_SEARCH_COMPLETED", city: result.city, postalCode: result.postalCode, usedAutocomplete }),
+          });
+        }
         applyLocationResult(result, { forceReplace: forceLocationReplaceRef.current });
       })
       .catch(() => undefined);
-  }, [applyLocationResult, city, geocodeEndpoint, houseNumber, postalCode, query, street]);
+  }, [applyLocationResult, city, experienceEndpoint, geocodeEndpoint, houseNumber, isPublicPlanner, postalCode, query, street, usedAutocomplete]);
+
+  useEffect(() => {
+    if (!isPublicPlanner || !draftRestored || !draftRestoredRef.current || !initialSearchRef.current) return;
+    const initialQuery = initialSearchRef.current;
+    initialSearchRef.current = null;
+    setQuery(initialQuery);
+    const timer = window.setTimeout(() => geocodeAddress(initialQuery), 0);
+    return () => window.clearTimeout(timer);
+  }, [draftRestored, geocodeAddress, isPublicPlanner]);
 
   const fetchSuggestions = useMemo(() => debounce((value: string) => {
     if (value.trim().length < 2) {
@@ -889,14 +927,36 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   useEffect(() => {
     startedAtRef.current = Date.now();
     const startedPayload = JSON.stringify({
-      eventType: "WIZARD_STARTED",
+      eventType: isPublicPlanner ? "PUBLIC_PLANNER_STARTED" : "WIZARD_STARTED",
       city,
       postalCode,
       source: "order-wizard-reference-redesign",
     });
     navigator.sendBeacon?.(experienceEndpoint, new Blob([startedPayload], { type: "application/json" }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [experienceEndpoint]);
+  }, [experienceEndpoint, isPublicPlanner]);
+
+  useEffect(() => {
+    if (!isPublicPlanner || trackedPublicStepsRef.current.has(activeStep)) return;
+    const eventType = activeStep === 2
+      ? "AREA_SELECTED"
+      : activeStep === 3
+        ? "FLYER_STEP_COMPLETED"
+        : activeStep === 4
+          ? "SCHEDULE_STEP_COMPLETED"
+          : activeStep === 5
+            ? "QUOTE_VIEWED"
+            : activeStep === 6
+              ? "AUTH_GATE_VIEWED"
+              : null;
+    if (!eventType) return;
+    trackedPublicStepsRef.current.add(activeStep);
+    void fetch(experienceEndpoint, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventType, city, postalCode, areaName: targetAreaName, flyerQuantity, coverageAreaSqm }),
+    });
+  }, [activeStep, city, coverageAreaSqm, experienceEndpoint, flyerQuantity, isPublicPlanner, postalCode, targetAreaName]);
 
   useEffect(() => {
     let isMounted = true;
@@ -920,6 +980,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     };
     const attachPolygonListeners = (target: GooglePolygon) => {
       const path = target.getPath();
+      if (!path) return;
       maps.event.addListener(path, "set_at", syncPath);
       maps.event.addListener(path, "insert_at", syncPath);
       maps.event.addListener(path, "remove_at", syncPath);
@@ -941,7 +1002,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         ] : undefined,
       });
     }
-    if (!polygonRef.current) {
+    if (!polygonRef.current && polygon.length >= 3) {
       polygonRef.current = new maps.Polygon({
         paths: polygon,
         strokeColor: "#4a90ff",
@@ -992,6 +1053,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     mapRef.current.setCenter(center);
     mapRef.current.setZoom(street ? 16 : 14);
     polygonRef.current.setPath(polygon);
+    if (polygon.length === 0) return;
     const bounds = new window.google.maps.LatLngBounds();
     polygon.forEach((point) => bounds.extend(point));
     mapRef.current.fitBounds(bounds);
@@ -1076,7 +1138,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     drawingManagerRef.current.setDrawingMode(drawing.OverlayType.POLYGON);
   }
 
-  function trackSubmit(options?: { clearDraft?: boolean; handoffToCustomer?: boolean }) {
+  function trackSubmit(options?: { clearDraft?: boolean; handoffToCustomer?: boolean; eventType?: string }) {
     if (options?.clearDraft !== false) window.localStorage.removeItem(draftStorageKey);
     if (isPublicPlanner && options?.handoffToCustomer) {
       const publicDraft = window.localStorage.getItem(PUBLIC_ORDER_DRAFT_KEY);
@@ -1087,7 +1149,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        eventType: "ORDER_CREATED",
+        eventType: options?.eventType ?? (isPublicPlanner ? "INQUIRY_SUBMITTED" : "ORDER_CREATED"),
         city,
         postalCode,
         areaName: targetAreaName,
@@ -1144,7 +1206,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (isFinishing) return;
     setIsFinishing(true);
     if (isPublicPlanner) {
-      trackSubmit({ clearDraft: false, handoffToCustomer: completionPath === "direct_payment" });
+      trackSubmit({
+        clearDraft: false,
+        handoffToCustomer: completionPath === "direct_payment",
+        eventType: completionPath === "direct_payment" ? "CHECKOUT_STARTED" : "INQUIRY_SUBMITTED",
+      });
       if (completionPath === "direct_payment") {
         window.location.href = `/register/customer?next=${encodeURIComponent("/customer/orders/new")}`;
       } else {
@@ -1406,7 +1472,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             <span><strong>{formatNumber(households)}</strong>Haushalte geschätzt</span>
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
             <span><strong>{formatNumber(flyerQuantity)}</strong>Flyer</span>
-            <span><strong>{formatCurrency(netPrice)}</strong>Preis netto zzgl. MwSt.</span>
+            <span><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
+            <span><strong>{intelligence ? formatCurrency(vatAmount) : "wird berechnet"}</strong>Umsatzsteuer</span>
+            <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : "wird berechnet"}</strong>Gesamt brutto</span>
             <span><strong>{areaStats.warehouseSuggestion ?? "wird geprüft"}</strong>Lager</span>
           </div>
           <p className="orderReviewNotice">Die Buchung wird nach Zahlung durch FLYERO geprüft. Gebiet, Druckdaten und Zustellbarkeit werden final bestätigt.</p>

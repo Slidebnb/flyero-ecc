@@ -10,6 +10,10 @@ for (const field of ["net", "vat", "gross", "vatRate", "pricingVersion", "calcul
 }
 assert.match(route, /includeOperationalData: false/);
 assert.match(route, /publicOnly: true/);
+assert.match(route, /export async function POST/);
+assert.match(route, /lineItems/);
+assert.match(route, /requires_review/);
+assert.match(route, /z\.object/);
 assert.match(smartMaps, /calculateOrderPrice/);
 assert.match(smartMaps, /vatAmount/);
 assert.match(pricing, /minimumNetPrice/);

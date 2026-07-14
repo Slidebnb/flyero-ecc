@@ -13,6 +13,7 @@ export default function PublicDistributionPlannerPage() {
     <main className="orderExperienceShell publicPlannerShell">
       <header className="orderExperienceTopbar publicPlannerTopbar">
         <h1>Verteilung planen</h1>
+        <p>Adresse, Ort oder PLZ eingeben und Gebiet sowie Preis prüfen.</p>
         <span>Preisvorschau ohne Registrierung</span>
         <div className="orderTopActions" aria-label="Planeraktionen">
           <a href="/verteilung-anfragen">Anfrage senden</a>
