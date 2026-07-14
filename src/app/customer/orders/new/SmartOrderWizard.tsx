@@ -250,6 +250,24 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("de-DE").format(Math.round(value || 0));
 }
 
+function addDaysToIsoDate(value: string, days: number) {
+  const date = new Date(`${value}T00:00:00Z`);
+  if (!Number.isFinite(date.getTime())) return value;
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function clampIsoDate(value: string | undefined, minimum: string) {
+  return value && value >= minimum ? value : minimum;
+}
+
+function formatShortDate(value: string) {
+  const date = new Date(`${value}T00:00:00Z`);
+  return Number.isFinite(date.getTime())
+    ? new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit" }).format(date)
+    : "offen";
+}
+
 function debounce<T extends (...args: never[]) => void>(callback: T, delay: number) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   return (...args: Parameters<T>) => {
@@ -410,6 +428,7 @@ function MiniMapFallback() {
 
 export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }: Props) {
   const isPublicPlanner = mode === "public_quote";
+  const minimumStartDate = useMemo(() => addDaysToIsoDate(today, 7), [today]);
   const draftStorageKey = isPublicPlanner ? PUBLIC_ORDER_DRAFT_KEY : ORDER_DRAFT_KEY;
   const mapsApiPrefix = isPublicPlanner ? "/api/public/planner" : "/api/maps";
   const autocompleteEndpoint = isPublicPlanner ? `${mapsApiPrefix}/autocomplete` : "/api/maps/autocomplete";
@@ -456,8 +475,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [printDataStatus, setPrintDataStatus] = useState("UPLOAD_LATER");
   const [targetGroup, setTargetGroup] = useState("Alle Haushalte");
   const [distributionType, setDistributionType] = useState("Haushaltsverteilung");
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  const [startDate, setStartDate] = useState(() => addDaysToIsoDate(today, 7));
+  const [endDate, setEndDate] = useState(() => addDaysToIsoDate(today, 7));
   const [flexibleScheduling, setFlexibleScheduling] = useState(true);
   const [contactPerson, setContactPerson] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -581,16 +600,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     targetAreaName,
   ]);
 
-  const smartAreas = useMemo(() => {
-    const intelligenceAreas = intelligence?.suggestions?.length ? intelligence.suggestions : [];
-    const needle = `${city} ${postalCode} ${query}`.toLowerCase();
-    const local = areas.filter((area) => {
-      const haystack = `${area.name} ${area.city ?? ""} ${area.postalCode ?? ""} ${area.district ?? ""}`.toLowerCase();
-      return haystack.includes(city.toLowerCase()) || haystack.includes(postalCode.slice(0, 3)) || needle.includes((area.city ?? "").toLowerCase());
-    });
-    return [...intelligenceAreas, ...local].filter((area, index, list) => list.findIndex((item) => item.id === area.id) === index).slice(0, 4);
-  }, [areas, city, intelligence, postalCode, query]);
-
   const findAreaForLocation = useCallback((result: LocationResult) => {
     const resultCity = normalizeLocationPart(result.city);
     const resultPostalCode = (result.postalCode ?? "").trim();
@@ -653,8 +662,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
       if (draft.targetGroup) setTargetGroup(draft.targetGroup);
       if (draft.distributionType) setDistributionType(draft.distributionType);
-      if (draft.startDate) setStartDate(draft.startDate);
-      if (draft.endDate) setEndDate(draft.endDate);
+      const restoredStartDate = clampIsoDate(draft.startDate, minimumStartDate);
+      const restoredEndDate = clampIsoDate(draft.endDate, restoredStartDate);
+      setStartDate(restoredStartDate);
+      setEndDate(restoredEndDate);
       if (typeof draft.flexibleScheduling === "boolean") setFlexibleScheduling(draft.flexibleScheduling);
       if (draft.contactPerson) setContactPerson(draft.contactPerson);
       if (draft.contactPhone) setContactPhone(draft.contactPhone);
@@ -670,7 +681,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       draftRestoredRef.current = true;
       setDraftRestored(true);
     }
-  }, [draftStorageKey, experienceEndpoint, isPublicPlanner]);
+  }, [draftStorageKey, experienceEndpoint, isPublicPlanner, minimumStartDate]);
 
   useEffect(() => {
     if (isPublicPlanner || repeatLoadedRef.current) return;
@@ -700,8 +711,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           setFlyerQuantityTouched(true);
           if (draft.flyerSource) setFlyerSource(draft.flyerSource);
           if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
-          if (draft.startDate) setStartDate(draft.startDate);
-          if (draft.endDate) setEndDate(draft.endDate);
+          const repeatedStartDate = clampIsoDate(draft.startDate, minimumStartDate);
+          const repeatedEndDate = clampIsoDate(draft.endDate, repeatedStartDate);
+          setStartDate(repeatedStartDate);
+          setEndDate(repeatedEndDate);
           if (typeof draft.flexibleScheduling === "boolean") setFlexibleScheduling(draft.flexibleScheduling);
           if (draft.contactPerson) setContactPerson(draft.contactPerson);
           if (draft.contactPhone) setContactPhone(draft.contactPhone);
@@ -717,7 +730,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         .catch(() => undefined);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [isPublicPlanner]);
+  }, [isPublicPlanner, minimumStartDate]);
 
   useEffect(() => {
     if (!draftRestoredRef.current) return;
@@ -1088,19 +1101,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     }, 140);
   }
 
-  function applyArea(area: ReusableAreaOption) {
-    setIntelligence(null);
-    setIntelligenceStatus("updating");
-    setSelectedAreaId(area.id);
-    setTargetAreaName(area.name);
-    if (area.city) setCity(area.city);
-    if (area.postalCode) setPostalCode(area.postalCode);
-    if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
-    const nextPoints = featurePoints(area.geoJson);
-    if (nextPoints.length >= 3) pushPolygon(nextPoints, "saved_area");
-    if (!flyerQuantityTouched && area.estimatedFlyers) setFlyerQuantity(area.estimatedFlyers);
-  }
-
   function moveQuantity(delta: number) {
     setFlyerQuantityTouched(true);
     setFlyerQuantity((value) => Math.max(500, Math.min(250_000, value + delta)));
@@ -1253,12 +1253,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   }
 
   const stepState = [
-    { id: 1, title: "Gebiet wählen", detail: "Dieses markierte Gebiet wird für deine Verteilung verwendet", value: `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` },
-    { id: 2, title: "Flyer & Druck", detail: "Flyer, Druckdaten und Menge festlegen", value: `${formatNumber(flyerQuantity)} Stück` },
-    { id: 3, title: "Verteilung & Hinweise", detail: "Verteilart, Zielgruppe und Hinweise", value: distributionType },
-    { id: 4, title: "Zeitraum & Auslieferung", detail: "Bestimme Zeitraum und Auslieferung", value: startDate },
-    { id: 5, title: "Zusammenfassung", detail: "Prüfe Gebiet, Preis und Nachweise", value: formatCurrency(netPrice) },
-    { id: 6, title: "Abschluss", detail: "Buchen, anfragen oder klassisch senden", value: "3 Wege" },
+    { id: 1, title: "Gebiet", detail: "Wo soll verteilt werden?", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Noch offen" },
+    { id: 2, title: "Flyer", detail: "Format, Menge und Druck", value: `${formatNumber(flyerQuantity)} Stück` },
+    { id: 3, title: "Verteilung", detail: "Art und wichtige Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
+    { id: 4, title: "Zeitraum", detail: `Frühester Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
+    { id: 5, title: "Prüfen", detail: "Gebiet, Preis und Leistungen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Offen" },
+    { id: 6, title: "Abschluss", detail: "Buchen oder unverbindlich anfragen", value: "3 Optionen" },
   ];
   const activeNavItems = isPublicPlanner ? publicPlannerNavItems : orderNavItems;
   const orderNavGroups = Array.from(new Set(activeNavItems.map((item) => item.group)));
@@ -1297,7 +1297,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (stepId === 1) {
       return (
         <section className="orderPanelBlock primary inlineStepBlock">
-          <p className="orderStepHint">Dieses markierte Gebiet wird für deine Verteilung verwendet. Du kannst es auf der Karte jederzeit anpassen.</p>
+          <p className="orderStepHint">Suche deine Adresse oder zeichne das gewünschte Gebiet direkt auf der Karte.</p>
           <label>
             PLZ, Ort oder Adresse
             <div className="searchInputShell">
@@ -1324,8 +1324,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             </div>
           </label>
           <div className="selectedLocationBar">
-            <strong>{postalCode} {city}</strong>
-            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : "Gebiet wird direkt auf der Karte aktualisiert"}</span>
+            <strong>{city ? `${postalCode} ${city}` : "Noch kein Gebiet gewählt"}</strong>
+            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : "Du kannst das Gebiet anschließend auf der Karte anpassen."}</span>
           </div>
           {pendingLocation ? (
             <div className="replaceAreaNotice" role="alert">
@@ -1348,11 +1348,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             </div>
           ) : null}
           <div className="modeTabs">
-            <button type="button" className="selected" onClick={startDrawingArea}>Gebiet zeichnen</button>
+            <button type="button" className="selected" onClick={startDrawingArea}>Gebiet auf Karte zeichnen</button>
           </div>
           <div className="savedAreaMini">
             <div>
-              <span>Gewähltes Gebiet</span>
+              <span>Dein Verteilgebiet</span>
               <strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>
               <small>{polygonSourceLabel()}</small>
             </div>
@@ -1365,6 +1365,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (stepId === 2) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
+          <p className="orderStepHint">Wie sollen deine Flyer vorbereitet werden?</p>
           <label>
             Flyerformat
             <select value={productFormat} onChange={(event) => setProductFormat(event.target.value)}>
@@ -1375,15 +1376,20 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             <button type="button" className={flyerSource === "CUSTOMER_OWN" ? "selected" : ""} onClick={() => {
               setFlyerSource("CUSTOMER_OWN");
               setPrintDataStatus("UPLOAD_LATER");
-            }}>Flyer vorhanden</button>
+            }}>Flyer sind vorhanden</button>
             <button type="button" className={flyerSource === "PRINT_SERVICE" ? "selected" : ""} onClick={() => {
               setFlyerSource("PRINT_SERVICE");
               setPrintDataStatus("PRINT_REQUESTED");
             }}>Druck über FLYERO</button>
           </div>
           <div className="modeTabs flyerSourceTabs">
-            <button type="button" className={printDataStatus === "UPLOADED" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOADED")}>Datei ist bereit</button>
-            <button type="button" className={printDataStatus === "UPLOAD_LATER" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOAD_LATER")}>Datei später hochladen</button>
+            <button type="button" className={printDataStatus === "UPLOADED" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOADED")}>Druckdaten sind bereit</button>
+            <button type="button" className={printDataStatus === "UPLOAD_LATER" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOAD_LATER")}>Druckdaten später senden</button>
+          </div>
+          <div className="flyerRecommendation">
+            <span>Empfehlung</span>
+            <strong>{formatNumber(recommendedFlyerQuantity)} Flyer inklusive 10 % Reserve</strong>
+            <small>Du kannst die Menge jederzeit anpassen.</small>
           </div>
           <div className="quantityControl">
             <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
@@ -1405,21 +1411,22 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (stepId === 3) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
+          <p className="orderStepHint">Lege fest, wo und wie verteilt werden soll. Dein Gebiet bleibt in Schritt 1 gespeichert.</p>
           <label className="selectLine">
             <span>Verteilart</span>
             <select value={distributionType} onChange={(event) => setDistributionType(event.target.value)}>
-              <option>Haushaltsverteilung</option>
-              <option>Gewerbegebiet</option>
-              <option>Eventgebiet</option>
+              <option value="Haushaltsverteilung">Haushalte</option>
+              <option value="Gewerbegebiet">Gewerbe</option>
+              <option value="Eventgebiet">Event- oder Aktionsgebiet</option>
             </select>
           </label>
           <label className="selectLine">
             <span>Zielgruppe</span>
             <select value={targetGroup} onChange={(event) => setTargetGroup(event.target.value)}>
               <option>Alle Haushalte</option>
-              <option>Familienhaushalte</option>
+              <option value="Familienhaushalte">Familien und Haushalte</option>
               <option>Innenstadt & Laufkundschaft</option>
-              <option>Lokale Gewerbe</option>
+              <option value="Lokale Gewerbe">Lokale Gewerbebetriebe</option>
             </select>
           </label>
           <label>
@@ -1430,15 +1437,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
               placeholder="z. B. bestimmte Straßen auslassen, Gewerbegebiet bevorzugen, Zugangshinweise, wichtige Bemerkungen"
             />
           </label>
-          {smartAreas.length > 0 ? (
-            <div className="areaQuickList">
-              {smartAreas.map((area) => (
-                <button type="button" key={area.id} className={selectedAreaId === area.id ? "selected" : ""} onClick={() => applyArea(area)}>
-                  {area.name}
-                </button>
-              ))}
-            </div>
-          ) : null}
         </section>
       );
     }
@@ -1446,9 +1444,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (stepId === 4) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
+          <p className="orderStepHint">Eine Verteilung startet frühestens sieben Tage nach deiner Buchung.</p>
           <div className="dateGrid">
-            <label>Frühestmöglicher Start<input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} /></label>
-            <label>Spätestes Zustelldatum<input type="date" value={endDate} onChange={(event) => setEndDate(event.target.value)} /></label>
+            <label>Frühester Start<input type="date" min={minimumStartDate} value={startDate} onChange={(event) => {
+              const nextStartDate = clampIsoDate(event.target.value, minimumStartDate);
+              setStartDate(nextStartDate);
+              if (endDate < nextStartDate) setEndDate(nextStartDate);
+            }} /></label>
+            <label>Spätestes Zustelldatum<input type="date" min={startDate} value={endDate} onChange={(event) => setEndDate(clampIsoDate(event.target.value, startDate))} /></label>
           </div>
           <label className="checkLine">
             <input type="checkbox" checked={flexibleScheduling} onChange={(event) => setFlexibleScheduling(event.target.checked)} />

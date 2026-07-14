@@ -151,6 +151,11 @@ export const adminDistributorUpdateSchema = z.object({
   adminNotes: optionalText,
 });
 
+function earliestOrderStartDate() {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7));
+}
+
 export const orderCreateSchema = z
   .object({
     serviceType: z.enum([
@@ -185,6 +190,10 @@ export const orderCreateSchema = z
     notes: optionalText,
     contactPerson: optionalText,
     contactPhone: optionalText,
+  })
+  .refine((data) => data.preferredStartDate >= earliestOrderStartDate(), {
+    message: "Der früheste Start ist sieben Tage nach heute möglich.",
+    path: ["preferredStartDate"],
   })
   .refine((data) => data.preferredEndDate >= data.preferredStartDate, {
     message: "Bis-spaetestens-Datum muss nach dem Wunschtermin liegen.",

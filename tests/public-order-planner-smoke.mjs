@@ -9,6 +9,7 @@ function read(path) {
 const page = read("src/app/verteilung-planen/page.tsx");
 const home = read("src/app/page.tsx");
 const wizard = read("src/app/customer/orders/new/SmartOrderWizard.tsx");
+const validators = read("src/lib/validators.ts");
 const publicQuote = read("src/app/api/public/planner/quote/route.ts");
 const publicAutocomplete = read("src/app/api/public/planner/autocomplete/route.ts");
 const publicGeocode = read("src/app/api/public/planner/geocode/route.ts");
@@ -50,6 +51,14 @@ assert.doesNotMatch(wizard, /orderPolygonSvg/);
 assert.doesNotMatch(wizard, />Heatmap</);
 assert.match(wizard, /listenerTarget\.addListener/);
 assert.match(wizard, /if \(!overlay\) return/);
+assert.match(wizard, /minimumStartDate/);
+assert.match(wizard, /addDaysToIsoDate/);
+assert.match(wizard, /min=\{minimumStartDate\}/);
+assert.doesNotMatch(wizard, /areaQuickList/);
+assert.match(wizard, /Gebiet auf Karte zeichnen/);
+assert.match(wizard, /Druckdaten sp\u00e4ter senden/);
+assert.match(validators, /earliestOrderStartDate/);
+assert.match(validators, /sieben Tage nach heute/);
 
 for (const route of [publicQuote, publicAutocomplete, publicGeocode]) {
   assert.match(route, /publicRateLimitResponse/);
