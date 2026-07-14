@@ -4,6 +4,7 @@ import { findBestWarehouseForArea } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
 import { calculateOrderPrice } from "@/lib/pricing";
 import { aggregateOrderAreaSegments, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
+import { buildAuthoritativePlanningQuote, buildPlanningInputFingerprint, planningGeometry } from "@/lib/planningQuote";
 
 export type SmartPlaceSuggestion = {
   id: string;
@@ -122,7 +123,7 @@ export async function geocodeSmartAddress(input: {
   const local = LOCAL_PLACES.find((place) => needle.includes(normalize(place.postalCode)) || needle.includes(normalize(place.city)));
   return local
     ? { ...local, houseNumber: "", source: "local" as const }
-    : { label: query, city: input.city ?? "", postalCode: input.postalCode ?? "", street: input.street ?? "", houseNumber: input.houseNumber ?? "", lat: 50.3569, lng: 7.589, source: "local" as const };
+    : null;
 }
 
 function compactArea(area: {
@@ -239,16 +240,49 @@ export async function getOrderIntelligence(input: {
   coverageAreaSqm?: number | null;
   distanceMeters?: number | null;
   perimeterMeters?: number | null;
+  targetAreaGeoJson?: unknown;
+  flyerSource?: "CUSTOMER_OWN" | "PRINT_SERVICE";
+  printDataStatus?: "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED";
+  preferredStartDate?: string | Date | null;
+  preferredEndDate?: string | Date | null;
   segments?: unknown;
   includeOperationalData?: boolean;
   publicOnly?: boolean;
 }) {
   const parsedAreaSelection = input.segments ? aggregateOrderAreaSegments(input.segments) : null;
   const areaSelection = parsedAreaSelection?.segments.length ? parsedAreaSelection : null;
+  const planning = planningGeometry({
+    flyerQuantity: input.flyerQuantity ?? 0,
+    city: input.city,
+    postalCode: input.postalCode,
+    targetAreaGeoJson: input.targetAreaGeoJson,
+    areaSegments: input.segments,
+    coverageAreaSqm: input.coverageAreaSqm,
+    perimeterMeters: input.perimeterMeters,
+    flyerSource: input.flyerSource,
+    printDataStatus: input.printDataStatus,
+    preferredStartDate: input.preferredStartDate,
+    preferredEndDate: input.preferredEndDate,
+  });
+  const quoteFingerprint = buildPlanningInputFingerprint({
+    flyerQuantity: input.flyerQuantity ?? 0,
+    city: input.city,
+    postalCode: input.postalCode,
+    street: input.street,
+    houseNumber: input.houseNumber,
+    targetAreaGeoJson: input.targetAreaGeoJson,
+    areaSegments: input.segments,
+    coverageAreaSqm: planning.coverageAreaSqm ?? input.coverageAreaSqm,
+    perimeterMeters: planning.perimeterMeters,
+    flyerSource: input.flyerSource,
+    printDataStatus: input.printDataStatus,
+    preferredStartDate: input.preferredStartDate,
+    preferredEndDate: input.preferredEndDate,
+  });
   const primarySegment = areaSelection?.primarySegment ?? null;
   const effectiveCity = primarySegment?.city ?? input.city;
   const effectivePostalCode = primarySegment?.postalCode ?? input.postalCode;
-  const effectiveCoverageAreaSqm = areaSelection?.totalAreaSqm ?? input.coverageAreaSqm;
+  const effectiveCoverageAreaSqm = planning.coverageAreaSqm ?? areaSelection?.totalAreaSqm ?? input.coverageAreaSqm;
   const areaFilters = [
     input.distributionAreaId ? { id: input.distributionAreaId } : null,
     effectiveCity ? { city: { equals: effectiveCity, mode: "insensitive" as const } } : null,
@@ -325,17 +359,13 @@ export async function getOrderIntelligence(input: {
     : estimateHouseholds({ coverageAreaSqm: effectiveCoverageAreaSqm, cityDensityFactor: densityFactor });
   const recommendedFlyerQuantity = Math.max(500, Math.ceil((households * 1.1) / 100) * 100);
   const flyerQuantity = input.flyerQuantity ?? recommendedFlyerQuantity;
-  const routeDistanceMeters = areaSelection
+  const routeDistanceMeters = effectiveCoverageAreaSqm
     ? estimateRouteDistanceMeters({
         coverageAreaSqm: effectiveCoverageAreaSqm,
-        perimeterMeters: input.perimeterMeters,
+        perimeterMeters: planning.perimeterMeters,
         households,
       })
-    : input.distanceMeters ?? estimateRouteDistanceMeters({
-        coverageAreaSqm: effectiveCoverageAreaSqm,
-        perimeterMeters: input.perimeterMeters,
-        households,
-      });
+    : null;
   const singleDistributorMinutes = calculateDistributionTime({
     distanceMeters: routeDistanceMeters,
     flyerQuantity,
@@ -381,6 +411,36 @@ export async function getOrderIntelligence(input: {
   const needsManualReview = Boolean(areaSelection && (
     !segmentWarehouseData.length || segmentWarehouseData.some((item) => !item.matchedRegion)
   ));
+  const areaConfidence = referenceArea?.dataSourceType === "OFFICIAL" || referenceArea?.dataSourceType === "LICENSED"
+    ? "verified" as const
+    : effectiveCoverageAreaSqm ? "estimated" as const : "unavailable" as const;
+  const householdConfidence = confidence === "high" ? "verified" as const : households ? "estimated" as const : "unavailable" as const;
+  const authoritativeQuote = buildAuthoritativePlanningQuote({
+    fingerprint: quoteFingerprint,
+    flyerQuantity,
+    netPrice: price.net.toString(),
+    vatAmount: price.vat.toString(),
+    grossPrice: price.gross.toString(),
+    households: households || null,
+    coverageAreaSqm: effectiveCoverageAreaSqm ?? 0,
+    routeDistanceMeters,
+    routeDurationMinutes,
+    pricingVersion: price.snapshot.pricingVersion,
+    pricingRuleSignature: price.snapshot.pricingRuleSignature,
+    calculationVersion: areaSelection ? "order-area-v2-multi-segment" : "order-area-v1",
+    calculatedAt: new Date().toISOString(),
+    sources: {
+      area: referenceArea?.dataSourceName ?? (effectiveCoverageAreaSqm ? "polygon-estimate" : "unavailable"),
+      households: householdCountSource,
+      route: routeDistanceMeters === null ? "unavailable" : "polygon-estimate",
+      pricing: `pricing:${price.snapshot.pricingVersion}`,
+    },
+    confidence: {
+      area: areaConfidence,
+      households: householdConfidence,
+      route: routeDistanceMeters === null ? "unavailable" : "estimated",
+    },
+  });
 
   return {
     suggestions: matchingAreas.map(compactArea),
@@ -389,7 +449,7 @@ export async function getOrderIntelligence(input: {
       flyerQuantity,
       routeDistanceMeters,
       routeDurationMinutes,
-      coverageAreaSqm: effectiveCoverageAreaSqm ?? Math.round(households * 92),
+      coverageAreaSqm: effectiveCoverageAreaSqm ?? 0,
       grossPrice: price.gross.toString(),
       netPrice: price.net.toString(),
       vatAmount: price.vat.toString(),
@@ -400,6 +460,10 @@ export async function getOrderIntelligence(input: {
       confidence,
       calculatedAt: new Date().toISOString(),
       calculationVersion: areaSelection ? "order-area-v2-multi-segment" : "order-area-v1",
+      fingerprint: authoritativeQuote.fingerprint,
+      polygonHash: authoritativeQuote.polygonHash,
+      pricingRuleSignature: authoritativeQuote.pricingRuleSignature,
+      quote: authoritativeQuote,
       householdCountSource,
       pricingVersion: price.snapshot.pricingVersion,
       areaReference: referenceArea

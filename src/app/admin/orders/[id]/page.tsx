@@ -158,6 +158,36 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         </section>
       ) : null}
 
+      {order.status === "SUBMITTED" || order.status === "UNDER_REVIEW" ? (
+        <section className="panel stack widePanel" style={{ marginTop: 18 }}>
+          <div className="splitHeader">
+            <div>
+              <p className="eyebrow">Unverbindliche Anfrage</p>
+              <h2 className="sectionTitle">Prüfung und Entscheidung</h2>
+              <p className="muted">Gebiet, Preis, Druckdaten und Lieferbarkeit sind serverseitig gespeichert. Entscheide jetzt über den nächsten Kundenschritt.</p>
+            </div>
+            <span className="badge warning">Prüfung offen</span>
+          </div>
+          <div className="reviewActions">
+            <form action={`/api/admin/orders/${order.id}/status`} method="post" className="form">
+              <input type="hidden" name="status" value="APPROVED" />
+              <textarea name="adminCustomerMessage" placeholder="Optionaler Kundenhinweis" />
+              <button type="submit">Anfrage annehmen</button>
+            </form>
+            <form action={`/api/admin/orders/${order.id}/status`} method="post" className="form">
+              <input type="hidden" name="status" value="WAITING_FOR_CUSTOMER" />
+              <textarea name="adminCustomerMessage" required placeholder="Welche Angabe fehlt noch?" />
+              <button type="submit">Rückfrage senden</button>
+            </form>
+            <form action={`/api/admin/orders/${order.id}/status`} method="post" className="form">
+              <input type="hidden" name="status" value="REJECTED" />
+              <textarea name="adminCustomerMessage" required placeholder="Begründung für den Kunden" />
+              <button type="submit">Anfrage ablehnen</button>
+            </form>
+          </div>
+        </section>
+      ) : null}
+
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
         <div className="splitHeader">
           <div>
@@ -364,13 +394,14 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                   <tr key={recommendation.distributorId}>
                     <td>{recommendation.name}</td>
                     <td>{recommendation.city || "-"}</td>
-                    <td>{recommendation.distanceKm.toFixed(0)} km</td>
+                    <td>ca. {recommendation.distanceKm.toFixed(0)} km<br /><small>regionale Schätzung</small></td>
                     <td>{recommendation.openTours}</td>
                     <td>{recommendation.capacityWarning ? "Kapazität überschritten" : "OK"}</td>
                     <td>{recommendation.rating.toFixed(1)}</td>
                     <td>
                       <form action={`/api/admin/orders/${order.id}/assign`} method="post">
                         <input type="hidden" name="distributorId" value={recommendation.distributorId} />
+                        <input type="hidden" name="returnTo" value={`/admin/orders/${order.id}?assignment=success`} />
                         <button type="submit">Zuweisen</button>
                       </form>
                     </td>

@@ -15,6 +15,8 @@ const quoteInputSchema = z.object({
   perimeterMeters: z.union([z.string(), z.number()]).optional(),
   flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]).optional(),
   printDataStatus: z.enum(["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"]).optional(),
+  preferredStartDate: z.string().optional(),
+  preferredEndDate: z.string().optional(),
   segments: z.preprocess((value) => {
     if (Array.isArray(value)) return value;
     if (typeof value !== "string" || !value.trim()) return undefined;
@@ -48,6 +50,8 @@ function safeQueryInput(request: Request) {
     perimeterMeters: params.get("perimeterMeters") ?? undefined,
     flyerSource: params.get("flyerSource") ?? undefined,
     printDataStatus: params.get("printDataStatus") ?? undefined,
+    preferredStartDate: params.get("preferredStartDate") ?? undefined,
+    preferredEndDate: params.get("preferredEndDate") ?? undefined,
     segments: params.get("segments") ?? undefined,
   };
 }
@@ -68,6 +72,10 @@ async function createPublicQuote(input: unknown) {
     street: value.street || null,
     houseNumber: value.houseNumber || null,
     flyerQuantity: Math.round(boundedNumber(value.flyerQuantity, 200_000) ?? 0) || null,
+    flyerSource: value.flyerSource,
+    printDataStatus: value.printDataStatus,
+    preferredStartDate: value.preferredStartDate,
+    preferredEndDate: value.preferredEndDate,
     coverageAreaSqm,
     distanceMeters: Math.round(boundedNumber(value.distanceMeters, 10_000_000) ?? 0) || null,
     perimeterMeters: Math.round(boundedNumber(value.perimeterMeters, 10_000_000) ?? 0) || null,
@@ -97,6 +105,11 @@ async function createPublicQuote(input: unknown) {
     calculationVersion: safeData.metrics.calculationVersion,
     householdCountSource: safeData.metrics.householdCountSource,
     pricingVersion: safeData.metrics.pricingVersion,
+    pricingRuleSignature: safeData.metrics.pricingRuleSignature,
+    fingerprint: safeData.metrics.fingerprint,
+    polygonHash: safeData.metrics.polygonHash,
+    sources: safeData.metrics.quote?.sources,
+    quoteConfidence: safeData.metrics.quote?.confidence,
     segments: safeData.metrics.segments,
     needsManualReview: safeData.metrics.needsManualReview,
     warehouseMatches: safeData.metrics.warehouseMatches,
@@ -135,7 +148,12 @@ async function createPublicQuote(input: unknown) {
         vatRate: safeMetrics.vatRate,
         confidence: safeMetrics.confidence,
         pricingVersion: safeMetrics.pricingVersion,
+        pricingRuleSignature: safeMetrics.pricingRuleSignature,
+        fingerprint: safeMetrics.fingerprint,
+        polygonHash: safeMetrics.polygonHash,
         calculatedAt: safeMetrics.calculatedAt,
+        sources: safeMetrics.sources,
+        confidenceByMetric: safeMetrics.quoteConfidence,
         currency: "EUR",
         lineItems,
       },

@@ -5,6 +5,7 @@ import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { assertOrderTransition, createOrderStatusEvent } from "@/lib/orders";
 import { createInvoiceForOrder } from "@/lib/invoices";
 import { ensureShipmentForCustomerFlyers } from "@/lib/logistics";
+import { reviewOrder } from "@/lib/orderReviewWorkflow";
 import { refundPayment } from "@/lib/payments";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
@@ -33,6 +34,42 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (!order) {
       return errorResponse("Auftrag wurde nicht gefunden.", 404);
+    }
+
+    if (parsed.data.status === "APPROVED" && ["SUBMITTED", "UNDER_REVIEW", "PAID_WAITING_FOR_ADMIN_REVIEW"].includes(order.status)) {
+      const approved = await reviewOrder({
+        orderId: order.id,
+        adminUserId: session.id,
+        action: "approve",
+        note: parsed.data.note,
+        customerMessage: parsed.data.adminCustomerMessage,
+      });
+      if (request.headers.get("accept")?.includes("text/html")) return NextResponse.redirect(new URL(`/admin/orders/${id}`, request.url), { status: 303 });
+      return Response.json({ ok: true, data: approved });
+    }
+
+    if (parsed.data.status === "WAITING_FOR_CUSTOMER") {
+      const clarification = await reviewOrder({
+        orderId: order.id,
+        adminUserId: session.id,
+        action: "clarification",
+        note: parsed.data.note,
+        customerMessage: parsed.data.adminCustomerMessage,
+      });
+      if (request.headers.get("accept")?.includes("text/html")) return NextResponse.redirect(new URL(`/admin/orders/${id}`, request.url), { status: 303 });
+      return Response.json({ ok: true, data: clarification });
+    }
+
+    if (parsed.data.status === "REJECTED" && order.status !== "PAID_WAITING_FOR_ADMIN_REVIEW") {
+      const rejected = await reviewOrder({
+        orderId: order.id,
+        adminUserId: session.id,
+        action: "reject",
+        note: parsed.data.note,
+        customerMessage: parsed.data.adminCustomerMessage,
+      });
+      if (request.headers.get("accept")?.includes("text/html")) return NextResponse.redirect(new URL(`/admin/orders/${id}`, request.url), { status: 303 });
+      return Response.json({ ok: true, data: rejected });
     }
 
     try {

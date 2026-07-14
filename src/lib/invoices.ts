@@ -209,6 +209,15 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
   await createNotification({
     userId: order.customer.userId,
     type: "INVOICE_AVAILABLE",
+    data: {
+      orderNumber: order.orderNumber,
+      invoiceNumber: updated.invoiceNumber,
+      netAmount: updated.amountNet.toString(),
+      vatAmount: updated.vatAmount.toString(),
+      grossAmount: updated.amountGross.toString(),
+      invoiceUrl: `${process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? ""}/customer/invoices`,
+      nextStep: "Oeffne dein Kundenportal.",
+    },
     title: "Rechnung verfügbar",
     message: `Rechnung ${updated.invoiceNumber} für Auftrag ${order.orderNumber} ist verfügbar.`,
   });

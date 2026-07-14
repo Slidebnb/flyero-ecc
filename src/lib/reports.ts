@@ -543,17 +543,44 @@ export async function regenerateReport(input: { reportId: string; adminUserId: s
 }
 
 export async function approveReport(input: { reportId: string; adminUserId: string }) {
-  const report = await prisma.report.update({
-    where: { id: input.reportId },
+  const current = await prisma.report.findUnique({ where: { id: input.reportId } });
+  if (!current) throw new Error("Report wurde nicht gefunden.");
+  if (current.status === "APPROVED" || current.status === "PUBLISHED") return current;
+  if (!["READY_FOR_REVIEW", "IN_REVIEW", "CHANGES_REQUIRED"].includes(current.status)) {
+    throw new Error("Bericht kann in diesem Status nicht freigegeben werden.");
+  }
+  if (!current.reportSnapshot) throw new Error("Bericht kann erst nach vollständiger Vorbereitung freigegeben werden.");
+  const evidenceDocumentIds = current.reportSource === "EXTERNAL_GPS_REPORT" || current.reportSource === "MANUAL_EVIDENCE"
+    ? evidenceDocumentIdsFromSnapshot(current.reportSnapshot)
+    : [];
+  if ((current.reportSource === "EXTERNAL_GPS_REPORT" || current.reportSource === "MANUAL_EVIDENCE") && evidenceDocumentIds.length === 0) {
+    throw new Error("Für die Freigabe müssen echte Nachweise im Bericht hinterlegt sein.");
+  }
+  if (evidenceDocumentIds.length > 0) {
+    const evidenceCount = await prisma.document.count({
+      where: {
+        id: { in: evidenceDocumentIds },
+        orderId: current.orderId,
+        documentType: { in: ["REPORT", "IMAGE"] },
+        scanStatus: { notIn: ["INFECTED", "ERROR"] },
+      },
+    });
+    if (evidenceCount !== evidenceDocumentIds.length) throw new Error("Mindestens ein Nachweis ist nicht sicher prüfbar.");
+  }
+  const now = new Date();
+  const changed = await prisma.report.updateMany({
+    where: { id: input.reportId, status: { in: ["READY_FOR_REVIEW", "IN_REVIEW", "CHANGES_REQUIRED"] } },
     data: {
       status: "APPROVED",
       internalReviewStatus: "APPROVED",
       reviewedById: input.adminUserId,
-      reviewedAt: new Date(),
+      reviewedAt: now,
       approvedById: input.adminUserId,
-      approvedAt: new Date(),
+      approvedAt: now,
     },
   });
+  if (changed.count === 0) return prisma.report.findUniqueOrThrow({ where: { id: input.reportId } });
+  const report = await prisma.report.findUniqueOrThrow({ where: { id: input.reportId } });
   await createAuditLog({ userId: input.adminUserId, action: "report.approved", entityType: "Report", entityId: report.id });
   return report;
 }
@@ -593,6 +620,7 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
   });
   if (!current) throw new Error("Report wurde nicht gefunden.");
   if (current.status === "PUBLISHED") return current;
+  if (current.status !== "APPROVED") throw new Error("Bericht muss vor der Veröffentlichung freigegeben werden.");
   if (!current.reportSnapshot) throw new Error("Bericht kann erst nach Snapshot-Erzeugung veröffentlicht werden.");
   const evidenceDocumentIds = current.reportSource === "EXTERNAL_GPS_REPORT" || current.reportSource === "MANUAL_EVIDENCE"
     ? evidenceDocumentIdsFromSnapshot(current.reportSnapshot)
@@ -606,7 +634,8 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
         id: { in: evidenceDocumentIds },
         orderId: current.orderId,
         documentType: { in: ["REPORT", "IMAGE"] },
-        status: { in: ["UPLOADED", "UNDER_REVIEW", "APPROVED"] },
+        status: "APPROVED",
+        reviewStatus: "APPROVED",
       },
     });
     if (evidenceCount !== evidenceDocumentIds.length) {
@@ -632,8 +661,8 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
       throw new Error("Bericht kann erst veröffentlicht werden, wenn freizugebende Nachweise im Snapshot hinterlegt sind.");
     }
     await prisma.document.updateMany({
-      where: { id: { in: evidenceDocumentIds }, orderId: report.orderId, documentType: { in: ["REPORT", "IMAGE"] }, status: { in: ["UPLOADED", "UNDER_REVIEW", "APPROVED"] } },
-      data: { status: "APPROVED", customerVisible: true, reviewStatus: "APPROVED", approvedById: input.adminUserId, approvedAt: new Date() },
+      where: { id: { in: evidenceDocumentIds }, orderId: report.orderId, documentType: { in: ["REPORT", "IMAGE"] }, status: "APPROVED", reviewStatus: "APPROVED" },
+      data: { status: "APPROVED", reviewStatus: "APPROVED", approvedById: input.adminUserId, approvedAt: new Date() },
     });
   }
   await createAuditLog({ userId: input.adminUserId, action: "report.published", entityType: "Report", entityId: report.id });

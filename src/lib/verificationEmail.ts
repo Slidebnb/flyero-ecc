@@ -2,18 +2,21 @@ import { createVerificationToken, hashVerificationToken } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
 import { publicUrl } from "@/lib/publicUrl";
 import { prisma } from "@/lib/prisma";
+import { safeInternalRedirectPath } from "@/lib/redirects";
 
 const VERIFICATION_TOKEN_TTL_MS = 1000 * 60 * 60 * 24;
 
-export async function createEmailVerificationToken(userId: string) {
+export async function createEmailVerificationToken(userId: string, redirectPath?: string) {
   const verificationToken = createVerificationToken();
   const expiresAt = new Date(Date.now() + VERIFICATION_TOKEN_TTL_MS);
+  const safeRedirectPath = safeInternalRedirectPath(redirectPath, "");
 
   await prisma.emailVerificationToken.create({
     data: {
       userId,
       tokenHash: hashVerificationToken(verificationToken),
       expiresAt,
+      redirectPath: safeRedirectPath || null,
     },
   });
 

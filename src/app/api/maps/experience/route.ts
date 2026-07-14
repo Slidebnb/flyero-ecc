@@ -25,13 +25,17 @@ export async function POST(request: NextRequest) {
           select: { id: true, tenantId: true },
         })
       : null;
+    const eventType = typeof body.eventType === "string" ? body.eventType : "WIZARD_INTERACTION";
+    if (eventType === "CHECKOUT_STARTED" && !linkedOrder) {
+      return Response.json({ ok: false, error: "Checkout-Ereignis benötigt einen eigenen Auftrag." }, { status: 400 });
+    }
     const event = await prisma.orderExperienceEvent.create({
       data: {
         orderId: linkedOrder?.id ?? null,
         customerId: customer?.id ?? (typeof body.customerId === "string" ? body.customerId : null),
         tenantId: customer?.tenantId ?? linkedOrder?.tenantId ?? null,
         userId: session.id,
-        eventType: typeof body.eventType === "string" ? body.eventType : "WIZARD_INTERACTION",
+        eventType,
         source: typeof body.source === "string" ? body.source : "order-wizard",
         city: typeof body.city === "string" ? body.city : null,
         postalCode: typeof body.postalCode === "string" ? body.postalCode : null,

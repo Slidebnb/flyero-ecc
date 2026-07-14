@@ -113,3 +113,23 @@ Der automatisierte Beta-Smoke prueft technisch:
 - Kunden-PDF-Downloads sind auf eigene Rechnungen/Berichte begrenzt.
 - Kundenbericht-API enthaelt keine offensichtlichen Verteiler-Privatfelder wie `birthDate`, `taxNumber` oder `bankAccount`.
 - Ungueltiger Order-Statuswechsel wird mit `409` blockiert.
+
+## Modul-27-Aktivierung und Checkout
+
+- [x] Gastplanung bleibt ohne Konto moeglich und wird bei direkter Buchung an
+      Registrierung/Login uebergeben.
+- [x] Verifizierungslinks und erneute Verifizierungslinks behalten den sicheren
+      internen Weiterleitungspfad.
+- [x] Pflichtprofil wird vor dem Checkout fokussiert ergaenzt.
+- [x] Fehlende Stammdaten erzeugen keinen irrefuehrenden Stripe-Fehler; die
+      Order wird zur Profilergänzung fortgesetzt.
+- [x] Offene Zahlungen werden bei der Fortsetzung wiederverwendet.
+- [x] Authentifizierte Funnel-Ereignisse entstehen serverseitig und enthalten
+      keine PII.
+- [x] Entwuerfe werden erst nach erfolgreicher Auftragserstellung geloescht.
+
+Vor einem echten Kundenbetrieb bleiben erforderlich: produktiver Stripe-
+Checkout inklusive Webhook-Replay, echte E-Mail-Zustellung und Bounce-
+Monitoring, Browserpruefung auf Produktionsdomains, Restore-Test des Backups,
+Datenschutz-/Rechtsfreigabe und ein kontrollierter Test mit realen
+Zahlungsmitteln.

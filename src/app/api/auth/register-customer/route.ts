@@ -14,18 +14,19 @@ import { publicUrl } from "@/lib/publicUrl";
 import { sendVerificationEmail } from "@/lib/verificationEmail";
 import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
 import { createCustomerTenant } from "@/lib/tenant";
-
-function safeNext(value: unknown) {
-  if (typeof value !== "string") return "";
-  return value.startsWith("/") && !value.startsWith("//") ? value : "";
-}
+import { safeInternalRedirectPath } from "@/lib/redirects";
 
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
   const abuseDecision = await enforceAuthRateLimit(request, "register");
   if (!abuseDecision.allowed) return authRateLimitResponse(abuseDecision);
   const parsed = customerRegisterSchema.safeParse(body);
-  const next = safeNext((body as Record<string, unknown>).next || request.nextUrl.searchParams.get("next"));
+  const next = safeInternalRedirectPath(
+    body && typeof body === "object" && !Array.isArray(body)
+      ? (body as Record<string, unknown>).next || request.nextUrl.searchParams.get("next")
+      : request.nextUrl.searchParams.get("next"),
+    "/customer/dashboard",
+  );
 
   if (!parsed.success) {
     return errorResponse(parsed.error.issues[0]?.message || "Ungültige Eingabe.");
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
             create: {
               tokenHash: hashVerificationToken(verificationToken),
               expiresAt: verificationExpiresAt,
+              redirectPath: next,
             },
           },
         },
@@ -115,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     if (request.headers.get("accept")?.includes("text/html")) {
       const loginUrl = publicUrl("/login", request.url);
-      if (next) loginUrl.searchParams.set("next", next);
+      loginUrl.searchParams.set("next", next);
       return NextResponse.redirect(loginUrl, { status: 303 });
     }
 
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
         data: {
           userId: user.id,
           role: user.role,
-          redirectTo: next ? `/login?next=${encodeURIComponent(next)}` : "/login",
+          redirectTo: `/login?next=${encodeURIComponent(next)}`,
           verificationEmailSent: verificationDelivery.sent,
           verificationEmailError: verificationDelivery.sent ? undefined : verificationDelivery.error,
           verificationToken:

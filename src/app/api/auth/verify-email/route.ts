@@ -7,6 +7,7 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
 import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
+import { roleContinuationFallback, safeInternalRedirectPath } from "@/lib/redirects";
 
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
@@ -44,7 +45,7 @@ export async function POST(request: NextRequest) {
         status: UserStatus.ACTIVE,
         emailVerified: new Date(),
       },
-      include: { distributorProfile: true },
+      include: { distributorProfile: true, customerProfile: { select: { id: true, tenantId: true } } },
     });
 
     if (updatedUser.distributorProfile) {
@@ -65,6 +66,16 @@ export async function POST(request: NextRequest) {
     oldValues: { status: verificationToken.user.status },
     newValues: { status: user.status, emailVerified: user.emailVerified },
   });
+  await prisma.orderExperienceEvent.create({
+    data: {
+      customerId: user.customerProfile?.id ?? null,
+      tenantId: user.customerProfile?.tenantId ?? user.tenantId,
+      userId: user.id,
+      eventType: "EMAIL_VERIFIED",
+      source: "auth.email-verification",
+      metadata: { role: user.role },
+    },
+  });
   await createNotification({
     userId: user.id,
     type: "EMAIL_VERIFIED",
@@ -83,8 +94,16 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  const continuationPath = safeInternalRedirectPath(
+    verificationToken.redirectPath,
+    roleContinuationFallback(user.role),
+  );
+  const redirectTo = `/login?next=${encodeURIComponent(continuationPath)}`;
+
   if (request.headers.get("accept")?.includes("text/html")) {
-    return NextResponse.redirect(publicUrl("/login", request.url), { status: 303 });
+    const loginUrl = publicUrl("/login", request.url);
+    loginUrl.searchParams.set("next", continuationPath);
+    return NextResponse.redirect(loginUrl, { status: 303 });
   }
 
   return Response.json({
@@ -94,6 +113,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       role: user.role,
       status: user.status,
+      redirectTo,
     },
   });
 }

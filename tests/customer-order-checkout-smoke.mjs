@@ -14,7 +14,7 @@ function assert(condition, message) {
 const checkoutRouteSource = readFileSync("src/app/api/payments/checkout/route.ts", "utf8");
 const paymentsSource = readFileSync("src/lib/payments.ts", "utf8");
 assert(checkoutRouteSource.includes("CustomerProfileIncompleteError"), "Checkout muss unvollständige Kundenprofile verständlich blockieren.");
-assert(paymentsSource.includes("billingAddress"), "Checkout muss Rechnungsdaten prüfen.");
+assert(paymentsSource.includes("getCustomerProfileCompleteness"), "Checkout muss die zentrale Rechnungsdatenpruefung verwenden.");
 
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -94,24 +94,34 @@ function includes(filePath, snippets) {
   return content;
 }
 
-function orderPayload(suffix, completionPath) {
+const smokeSegment = {
+  name: "Koblenz Checkout Smoke",
+  city: "Koblenz",
+  postalCode: "56068",
+  district: "",
+  country: "DE",
+  geometryGeoJson: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Polygon",
+        coordinates: [[[7.58, 50.35], [7.59, 50.35], [7.59, 50.36], [7.58, 50.36], [7.58, 50.35]]],
+      },
+    }],
+  },
+};
+
+function orderPayload(suffix, completionPath, quoteFingerprint) {
   return {
     serviceType: "FLYER_DISTRIBUTION",
     city: "Koblenz",
     postalCode: "56068",
     targetAreaName: `Checkout Smoke ${suffix}`,
     areaType: "POLYGON",
-    targetAreaGeoJson: JSON.stringify({
-      type: "FeatureCollection",
-      features: [{
-        type: "Feature",
-        properties: {},
-        geometry: {
-          type: "Polygon",
-          coordinates: [[[7.58, 50.35], [7.59, 50.35], [7.59, 50.36], [7.58, 50.36], [7.58, 50.35]]],
-        },
-      }],
-    }),
+    targetAreaGeoJson: JSON.stringify(smokeSegment.geometryGeoJson),
+    areaSegments: JSON.stringify([smokeSegment]),
     coverageAreaSqm: 640000,
     estimatedHouseholds: 2400,
     estimatedFlyers: 2700,
@@ -137,7 +147,30 @@ function orderPayload(suffix, completionPath) {
     contactPerson: "Smoke Kunde",
     contactPhone: "+49 261 123456",
     notes: "Smoke-Test Anfrage ohne Fake-Daten.",
+    quoteFingerprint,
   };
+}
+
+async function planningQuote(completionPath) {
+  const response = await fetchWithTimeout(`${baseUrl}/api/public/planner/quote`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      city: "Koblenz",
+      postalCode: "56068",
+      flyerQuantity: 2700,
+      coverageAreaSqm: 640000,
+      flyerSource: "CUSTOMER_OWN",
+      printDataStatus: "UPLOAD_LATER",
+      preferredStartDate: "2026-08-03",
+      preferredEndDate: "2026-08-10",
+      segments: [smokeSegment],
+      completionPath,
+    }),
+  });
+  const data = await response.json();
+  assert(response.ok && data?.data?.metrics?.fingerprint, `Planungsquote fehlte: ${response.status} ${JSON.stringify(data)}`);
+  return data.data.metrics.fingerprint;
 }
 
 const server = await ensureServer();
@@ -168,7 +201,7 @@ try {
 
   const customerCookie = await login("kunde.immobilien@example.com");
   const adminCookie = await login("admin@example.com");
-  const direct = await postJson("/api/customer/orders", orderPayload("Direct", "direct_payment"), customerCookie);
+  const direct = await postJson("/api/customer/orders", orderPayload("Direct", "direct_payment", await planningQuote("direct_payment")), customerCookie);
   assert(direct.data.id, "Direktbuchung hat keine Order-ID geliefert.");
   assert(direct.data.status === "PAYMENT_PENDING", `Direktbuchung Status falsch: ${direct.data.status}`);
 
@@ -189,14 +222,14 @@ try {
   assert(directOrder?.priceRuleSnapshot?.calculatedNet === directOrder?.calculatedNetPrice.toString(), "Netto-Snapshot stimmt nicht mit Order-Preis ueberein.");
   assert(directOrder.payments.length >= 1, "Payment wurde nicht angelegt.");
 
-  const inquiry = await postJson("/api/customer/orders", orderPayload("Inquiry", "inquiry"), customerCookie);
+  const inquiry = await postJson("/api/customer/orders", orderPayload("Inquiry", "inquiry", await planningQuote("inquiry")), customerCookie);
   assert(inquiry.data.id, "Anfrage hat keine Order-ID geliefert.");
   assert(inquiry.data.status === "SUBMITTED", `Anfrage Status falsch: ${inquiry.data.status}`);
   const inquiryOrder = await prisma.order.findUnique({ where: { id: inquiry.data.id }, include: { payments: true } });
   assert(inquiryOrder?.payments.length === 0, "Anfrage darf keine Zahlung erzwingen.");
   assert(inquiryOrder?.priceRuleSnapshot?.completionPath === "inquiry", "Abschlussweg inquiry fehlt.");
 
-  const manual = await postJson("/api/customer/orders", orderPayload("Manual", "inquiry"), customerCookie);
+  const manual = await postJson("/api/customer/orders", orderPayload("Manual", "inquiry", await planningQuote("inquiry")), customerCookie);
   await postJson(`/api/admin/orders/${manual.data.id}/price`, { manualPriceOverride: "1000", note: "Manual pricing smoke." }, adminCookie);
   const manualCheckout = await postJson("/api/payments/checkout", { orderId: manual.data.id }, customerCookie);
   assert(manualCheckout.data.checkoutUrl, "Checkout fuer individuellen Nettopreis fehlt.");

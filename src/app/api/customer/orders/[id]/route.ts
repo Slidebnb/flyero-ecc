@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
-import { assignAreaToOrder, createDistributionArea } from "@/lib/areas";
+import { createDistributionArea, linkAreaReferenceToOrder } from "@/lib/areas";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
+import { getOrderIntelligence } from "@/lib/smartMaps";
+import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderUpdateSchema } from "@/lib/validators";
@@ -55,6 +57,39 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     const data = parsed.data;
+    let areaSelection = null;
+    try {
+      areaSelection = data.areaSegments ? aggregateOrderAreaSegments(data.areaSegments) : null;
+    } catch (error) {
+      return errorResponse(error instanceof Error ? error.message : "Das Verteilgebiet konnte nicht verarbeitet werden.", 400);
+    }
+    const targetAreaGeoJson = areaSelection?.targetAreaGeoJson ?? data.targetAreaGeoJson;
+    const primarySegment = areaSelection?.primarySegment ?? null;
+    const intelligence = await getOrderIntelligence({
+      tenantId: session.tenantId,
+      city: primarySegment?.city ?? data.city,
+      postalCode: primarySegment?.postalCode ?? data.postalCode,
+      street: data.street,
+      houseNumber: data.houseNumber,
+      distributionAreaId: data.distributionAreaId,
+      flyerQuantity: data.flyerQuantity,
+      targetAreaGeoJson,
+      segments: data.areaSegments,
+      coverageAreaSqm: data.coverageAreaSqm,
+      flyerSource: data.flyerSource,
+      printDataStatus: data.printDataStatus,
+      preferredStartDate: data.preferredStartDate,
+      preferredEndDate: data.preferredEndDate,
+      includeOperationalData: true,
+    });
+    if (data.quoteFingerprint !== intelligence.metrics.fingerprint) {
+      return Response.json({
+        ok: false,
+        code: "PLANNING_QUOTE_CHANGED",
+        error: "Die Preis- und Gebietsberechnung hat sich geändert. Bitte aktualisiere die Planung und bestätige sie erneut.",
+        data: { quote: intelligence.metrics.quote },
+      }, { status: 409 });
+    }
     let distributionAreaId = data.distributionAreaId ?? order.distributionAreaId ?? null;
     const customer = await prisma.customerProfile.findUnique({
       where: { userId: session.id, tenantId: session.tenantId },
@@ -74,11 +109,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         centerLat: data.centerLat,
         centerLng: data.centerLng,
         radiusMeters: data.radiusMeters,
-        geoJson: data.targetAreaGeoJson,
-        coverageAreaSqm: data.coverageAreaSqm,
-        estimatedHouseholds: data.estimatedHouseholds,
-        estimatedFlyers: data.estimatedFlyers ?? data.flyerQuantity,
-        estimatedDistanceMeters: data.estimatedDistanceMeters,
+        geoJson: targetAreaGeoJson,
+        coverageAreaSqm: intelligence.metrics.coverageAreaSqm,
+        estimatedHouseholds: intelligence.metrics.households,
+        estimatedFlyers: data.flyerQuantity,
+        estimatedDistanceMeters: intelligence.metrics.routeDistanceMeters,
         reusable: false,
       });
       distributionAreaId = area.id;
@@ -95,22 +130,24 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       data: {
         status: nextStatus,
         serviceType: data.serviceType,
-        city: data.city,
-        postalCode: data.postalCode,
+        city: primarySegment?.city ?? data.city,
+        postalCode: primarySegment?.postalCode ?? data.postalCode,
         targetAddress: {
           street: data.street ?? data.targetAreaName,
           houseNumber: data.houseNumber || null,
-          postalCode: data.postalCode,
-          city: data.city,
-          country: "DE",
-        },
+        postalCode: data.postalCode,
+        city: data.city,
+        country: "DE",
+      },
+        targetLat: data.centerLat ?? undefined,
+        targetLng: data.centerLng ?? undefined,
         distributionAreaId,
         targetAreaName: data.targetAreaName,
-        targetAreaGeoJson: data.targetAreaGeoJson ?? undefined,
-        estimatedHouseholds: data.estimatedHouseholds || null,
-        estimatedFlyers: data.estimatedFlyers ?? data.flyerQuantity,
-        estimatedDistanceMeters: data.estimatedDistanceMeters ?? null,
-        coverageAreaSqm: data.coverageAreaSqm ?? null,
+        targetAreaGeoJson: targetAreaGeoJson ?? undefined,
+        estimatedHouseholds: intelligence.metrics.households ?? null,
+        estimatedFlyers: data.flyerQuantity,
+        estimatedDistanceMeters: intelligence.metrics.routeDistanceMeters ?? null,
+        coverageAreaSqm: intelligence.metrics.coverageAreaSqm ? intelligence.metrics.coverageAreaSqm : null,
         flyerQuantity: data.flyerQuantity,
         customerOwnFlyers: data.flyerSource === "CUSTOMER_OWN",
         needsPrintService: data.flyerSource === "PRINT_SERVICE",
@@ -125,7 +162,15 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         calculatedGrossPrice: price.gross,
         priceRuleSnapshot: withCurrentPricingSnapshot({
           price,
-          areaCalculationSnapshot: data.areaCalculationSnapshot,
+          areaCalculationSnapshot: {
+            ...(data.areaCalculationSnapshot && typeof data.areaCalculationSnapshot === "object" && !Array.isArray(data.areaCalculationSnapshot) ? data.areaCalculationSnapshot : {}),
+            ...intelligence.metrics,
+            quote: intelligence.metrics.quote,
+            planningInput: intelligence.metrics.quote?.input ?? null,
+            quoteFingerprint: intelligence.metrics.fingerprint,
+            polygonHash: intelligence.metrics.polygonHash,
+            calculationVersion: intelligence.metrics.calculationVersion,
+          },
           snapshot: order.priceRuleSnapshot,
         }),
       },
@@ -150,7 +195,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       tenantId: session.tenantId,
     });
     if (distributionAreaId) {
-      await assignAreaToOrder({ orderId: updated.id, areaId: distributionAreaId, userId: session.id });
+      await linkAreaReferenceToOrder({ orderId: updated.id, areaId: distributionAreaId, userId: session.id });
     }
 
     if (request.headers.get("accept")?.includes("text/html")) {

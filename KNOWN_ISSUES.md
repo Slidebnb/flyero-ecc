@@ -42,3 +42,17 @@ Stand: Modul 15.5
 - Verteiler-Abrechnung und Auszahlungen.
 - Erweiterte Karten-/Routing-/Haushaltsdaten.
 - Kunden-Live-Tracking und externe Statuskommunikation.
+
+## Modul-27-Risiken und bewusste Grenzen
+
+- Der Aktivierungshandoff ist serverseitig abgesichert, ersetzt aber keine
+  produktive E-Mail-Zustellbarkeits- und Bounce-Ueberwachung.
+- Die Profilergänzung ist auf die vorhandenen Rechnungsdaten ausgelegt. Eine
+  vollstaendige steuerliche Plausibilitaetspruefung bleibt offen.
+- Die Wiederverwendung offener Zahlungen muss im produktiven Stripe-Betrieb
+  mit parallelen Browserfenstern, Webhook-Replays und Abbruch-/Rueckkehrpfaden
+  getestet werden.
+- Die Funnel-Events messen technische Zustandsuebergaenge, nicht automatisch
+  vollstaendige Marketing-Attribution oder Einwilligungsverwaltung.
+- Der Entwurf liegt bis zur Order-Erstellung lokal im Browser. Ein
+  Browserwechsel oder geloeschte Website-Daten koennen ihn verlieren.

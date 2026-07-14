@@ -13,6 +13,21 @@ export const TEMPLATE_PLACEHOLDERS = [
   "trackingUrl",
   "dashboardUrl",
   "supportEmail",
+  "flyerQuantity",
+  "areaName",
+  "city",
+  "postalCode",
+  "netAmount",
+  "vatAmount",
+  "grossAmount",
+  "paymentUrl",
+  "invoiceUrl",
+  "warehouseName",
+  "warehouseAddress",
+  "packageReference",
+  "campaignUrl",
+  "rejectionReason",
+  "nextStep",
 ] as const;
 
 type PlaceholderData = Record<string, string | number | null | undefined>;

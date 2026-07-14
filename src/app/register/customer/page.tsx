@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CustomerRegisterForm } from "@/app/register/customer/CustomerRegisterForm";
 import { noIndexMetadata } from "@/app/seo";
+import { safeInternalRedirectPath } from "@/lib/redirects";
 
 export const metadata: Metadata = {
   title: "Kundenkonto erstellen",
@@ -13,13 +14,9 @@ type CustomerRegisterPageProps = {
   searchParams?: Promise<{ next?: string }>;
 };
 
-function safeNext(next?: string) {
-  return next?.startsWith("/") && !next.startsWith("//") ? next : "";
-}
-
 export default async function CustomerRegisterPage({ searchParams }: CustomerRegisterPageProps) {
   const params = await searchParams;
-  const next = safeNext(params?.next);
+  const next = safeInternalRedirectPath(params?.next, "");
   const loginHref = next ? `/login?next=${encodeURIComponent(next)}` : "/login";
 
   return (

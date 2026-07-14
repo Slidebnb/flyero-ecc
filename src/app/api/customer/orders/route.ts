@@ -2,8 +2,8 @@ import { OrderStatus, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
-import { assignAreaToOrder, createDistributionArea } from "@/lib/areas";
-import { createNotification } from "@/lib/notifications";
+import { createDistributionArea, linkAreaReferenceToOrder } from "@/lib/areas";
+import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { assignWarehouseForOrder } from "@/lib/logistics";
 import { generateOrderNumber, createOrderStatusEvent } from "@/lib/orders";
 import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
@@ -18,7 +18,7 @@ export async function GET() {
     const session = await requireTenantSession();
     const customer = await prisma.customerProfile.findFirst({
       where: { userId: session.id, tenantId: session.tenantId },
-      select: { id: true },
+      select: { id: true, companyName: true },
     });
 
     if (!customer) {
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
     const customer = await prisma.customerProfile.findFirst({
       where: { userId: session.id, tenantId: session.tenantId },
-      select: { id: true },
+      select: { id: true, companyName: true },
     });
 
     if (!customer) {
@@ -77,28 +77,47 @@ export async function POST(request: NextRequest) {
     const targetAreaGeoJson = areaSelection?.targetAreaGeoJson ?? data.targetAreaGeoJson;
     const orderCity = primarySegment?.city ?? data.city;
     const orderPostalCode = primarySegment?.postalCode ?? data.postalCode;
-    const intelligence = areaSelection
-      ? await getOrderIntelligence({
-          tenantId: session.tenantId,
-          city: orderCity,
-          postalCode: orderPostalCode,
-          flyerQuantity: data.flyerQuantity,
-          segments: data.areaSegments,
-          includeOperationalData: true,
-        })
-      : null;
-    const serverCoverageAreaSqm = intelligence?.metrics.coverageAreaSqm ?? areaSelection?.totalAreaSqm ?? data.coverageAreaSqm;
-    const serverHouseholds = intelligence?.metrics.households ?? data.estimatedHouseholds;
-    const serverDistanceMeters = intelligence?.metrics.routeDistanceMeters ?? data.estimatedDistanceMeters;
+    const intelligence = await getOrderIntelligence({
+      tenantId: session.tenantId,
+      city: orderCity,
+      postalCode: orderPostalCode,
+      street: data.street,
+      houseNumber: data.houseNumber,
+      distributionAreaId: data.distributionAreaId,
+      flyerQuantity: data.flyerQuantity,
+      targetAreaGeoJson,
+      segments: data.areaSegments,
+      coverageAreaSqm: data.coverageAreaSqm,
+      flyerSource: data.flyerSource,
+      printDataStatus: data.printDataStatus,
+      preferredStartDate: data.preferredStartDate,
+      preferredEndDate: data.preferredEndDate,
+      includeOperationalData: true,
+    });
+    if (data.quoteFingerprint !== intelligence.metrics.fingerprint) {
+      return Response.json({
+        ok: false,
+        code: "PLANNING_QUOTE_CHANGED",
+        error: "Die Preis- und Gebietsberechnung hat sich geändert. Bitte aktualisiere die Planung und bestätige sie erneut.",
+        data: { quote: intelligence.metrics.quote },
+      }, { status: 409 });
+    }
+    const serverCoverageAreaSqm = intelligence.metrics.coverageAreaSqm ?? areaSelection?.totalAreaSqm ?? null;
+    const serverHouseholds = intelligence.metrics.households ?? null;
+    const serverDistanceMeters = intelligence.metrics.routeDistanceMeters ?? null;
     const serverAreaSnapshot = {
       ...(data.areaCalculationSnapshot && typeof data.areaCalculationSnapshot === "object" && !Array.isArray(data.areaCalculationSnapshot)
         ? data.areaCalculationSnapshot as Record<string, unknown>
         : {}),
-      ...(intelligence?.metrics ?? {}),
-      segments: intelligence?.metrics.segments ?? areaSelection?.segments ?? [],
-      calculationVersion: intelligence?.metrics.calculationVersion ?? "order-area-v2-multi-segment",
+      ...(intelligence.metrics ?? {}),
+      quote: intelligence.metrics.quote,
+      planningInput: intelligence.metrics.quote?.input ?? null,
+      quoteFingerprint: intelligence.metrics.fingerprint,
+      polygonHash: intelligence.metrics.polygonHash,
+      segments: intelligence.metrics.segments ?? areaSelection?.segments ?? [],
+      calculationVersion: intelligence.metrics.calculationVersion ?? "order-area-v2-multi-segment",
     };
-    const requiresManualReview = Boolean(intelligence?.needsManualReview);
+    const requiresManualReview = Boolean(intelligence.metrics.needsManualReview);
     let distributionAreaId = areaSelection ? null : data.distributionAreaId ?? null;
 
     if (!distributionAreaId) {
@@ -117,7 +136,7 @@ export async function POST(request: NextRequest) {
         geoJson: targetAreaGeoJson,
         coverageAreaSqm: serverCoverageAreaSqm,
         estimatedHouseholds: serverHouseholds,
-        estimatedFlyers: data.estimatedFlyers ?? data.flyerQuantity,
+        estimatedFlyers: data.flyerQuantity,
         estimatedDistanceMeters: serverDistanceMeters,
         reusable: false,
       });
@@ -161,11 +180,13 @@ export async function POST(request: NextRequest) {
               city: orderCity,
               country: "DE",
             },
+            targetLat: data.centerLat ?? undefined,
+            targetLng: data.centerLng ?? undefined,
             distributionAreaId,
             targetAreaName: data.targetAreaName,
             targetAreaGeoJson: targetAreaGeoJson ?? undefined,
             estimatedHouseholds: serverHouseholds || null,
-            estimatedFlyers: data.estimatedFlyers ?? data.flyerQuantity,
+            estimatedFlyers: data.flyerQuantity,
             estimatedDistanceMeters: serverDistanceMeters ?? null,
             coverageAreaSqm: serverCoverageAreaSqm ? new Prisma.Decimal(serverCoverageAreaSqm) : null,
             flyerQuantity: data.flyerQuantity,
@@ -197,8 +218,8 @@ export async function POST(request: NextRequest) {
             }),
             distributionSegments: areaSelection ? {
               create: areaSelection.segments.map((segment, index) => {
-                const intelligenceSegment = intelligence?.metrics.segments?.[index];
-                const warehouseMatch = intelligence?.warehouseMatches?.[index];
+                const intelligenceSegment = intelligence.metrics.segments?.[index];
+                const warehouseMatch = intelligence.metrics.warehouseMatches?.[index];
                 return {
                   sortOrder: segment.sortOrder,
                   name: segment.name,
@@ -222,7 +243,7 @@ export async function POST(request: NextRequest) {
                   warehouseMatchStatus: warehouseMatch?.matchedRegion ? "MATCHED" : "MANUAL_REVIEW",
                   warehouseAssignmentReason: warehouseMatch?.reason ?? null,
                   assignedWarehouseId: warehouseMatch?.matchedRegion ? warehouseMatch.warehouse?.id ?? null : null,
-                  distributionAreaId: intelligence ? intelligenceSegment?.distributionAreaId ?? null : segment.distributionAreaId,
+                  distributionAreaId: intelligenceSegment?.distributionAreaId ?? segment.distributionAreaId,
                   notes: segment.notes,
                 };
               }),
@@ -266,7 +287,7 @@ export async function POST(request: NextRequest) {
       },
     });
     if (distributionAreaId) {
-      await assignAreaToOrder({
+      await linkAreaReferenceToOrder({
         orderId: order.id,
         areaId: distributionAreaId,
         userId: session.id,
@@ -281,7 +302,16 @@ export async function POST(request: NextRequest) {
     }
     await createNotification({
       userId: session.id,
-      type: "ORDER_CREATED",
+      type: requiresManualReview ? "ORDER_UNDER_REVIEW" : "ORDER_SUBMITTED",
+      data: {
+        orderNumber: order.orderNumber,
+        flyerQuantity: order.flyerQuantity,
+        areaName: order.targetAreaName,
+        city: order.city,
+        postalCode: order.postalCode,
+        grossAmount: order.calculatedGrossPrice.toString(),
+        nextStep: requiresManualReview ? "FLYERO prueft das Gebiet vor der Buchung." : data.completionPath === "direct_payment" ? "Zahlung starten." : "FLYERO meldet sich nach der Pruefung.",
+      },
       title: "Auftrag erstellt",
       message: requiresManualReview
         ? `Auftrag ${order.orderNumber} wurde erstellt. Das Gebiet wird vor der Buchung manuell geprüft.`
@@ -317,6 +347,19 @@ export async function POST(request: NextRequest) {
           segmentCount: areaSelection?.segments.length ?? 0,
           needsManualReview: requiresManualReview,
         },
+      },
+    });
+    await notifyAdmins({
+      type: "ADMIN_NEW_ORDER",
+      title: requiresManualReview ? "Neue Kampagne zur manuellen Prüfung" : "Neue Kampagne eingegangen",
+      message: `${order.orderNumber}: ${order.targetAreaName}, ${order.flyerQuantity} Flyer.`,
+      data: {
+        orderNumber: order.orderNumber,
+        flyerQuantity: order.flyerQuantity,
+        areaName: order.targetAreaName,
+        city: order.city,
+        postalCode: order.postalCode,
+        companyName: customer.companyName,
       },
     });
 

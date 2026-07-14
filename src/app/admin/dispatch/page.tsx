@@ -126,6 +126,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                             <div className="inlineActions">
                               <form action={`/api/admin/orders/${inventory.orderId}/assign`} method="post">
                                 <input type="hidden" name="distributorId" value={item.distributorId} />
+                                <input type="hidden" name="returnTo" value="/admin/dispatch?assignment=success" />
                                 <button type="submit">Empfohlenen Verteiler zuweisen</button>
                               </form>
                               <form action={`/api/admin/dispatch/recommendations/${item.id}/dismiss`} method="post">
@@ -164,7 +165,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                         <td>{recommendation.reasons.join(", ")}</td>
                         <td>{recommendation.warnings.length ? recommendation.warnings.join(", ") : "-"}</td>
                         <td>{recommendation.city || "-"}</td>
-                        <td>{recommendation.distanceKm.toFixed(0)} km</td>
+                        <td>ca. {recommendation.distanceKm.toFixed(0)} km<br /><small>regionale Schätzung</small></td>
                         <td>{recommendation.openTours}</td>
                         <td>
                           <span className={recommendation.capacityWarning ? "badge warning" : "badge success"}>
@@ -181,6 +182,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                         <td>
                           <form action={`/api/admin/orders/${inventory.orderId}/assign`} method="post">
                             <input type="hidden" name="distributorId" value={recommendation.distributorId} />
+                            <input type="hidden" name="returnTo" value="/admin/dispatch?assignment=success" />
                             <button type="submit">Zuweisen</button>
                           </form>
                         </td>

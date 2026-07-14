@@ -85,6 +85,15 @@ type Intelligence = {
     calculationVersion?: string;
     householdCountSource?: string;
     pricingVersion?: string;
+    fingerprint?: string;
+    polygonHash?: string;
+    pricingRuleSignature?: string;
+    quote?: {
+      fingerprint: string;
+      polygonHash: string;
+      pricingVersion: string;
+      pricingRuleSignature: string;
+    };
     areaReference?: {
       distributionAreaId: string | null;
       name: string | null;
@@ -484,6 +493,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const forceLocationReplaceRef = useRef(false);
   const lastIntelligenceRequestRef = useRef<string | null>(null);
+  const intelligenceAbortRef = useRef<AbortController | null>(null);
+  const confirmedIntelligenceRequestRef = useRef<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
@@ -606,6 +617,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     flyerQuantity: String(flyerQuantity),
     flyerSource,
     printDataStatus,
+    preferredStartDate: startDate,
+    preferredEndDate: endDate,
     coverageAreaSqm: String(coverageAreaSqm),
     distanceMeters: String(localRouteDistanceMeters),
     perimeterMeters: String(perimeterMeters),
@@ -633,6 +646,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     selectedAreaId,
     printDataStatus,
     street,
+    startDate,
+    endDate,
   ]);
   const geoJson = useMemo(() => segmentsToGeoJson(areaSegmentsPayload), [areaSegmentsPayload]);
   const areaStats = useMemo(() => ({
@@ -862,9 +877,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       if (draft.contactPhone) setContactPhone(draft.contactPhone);
       if (draft.notes) setNotes(draft.notes);
       setDraftStatus("Entwurf geladen");
-      if (isPublicPlanner) {
-        navigator.sendBeacon?.(experienceEndpoint, new Blob([JSON.stringify({ eventType: "DRAFT_RESTORED", city: draft.city, postalCode: draft.postalCode })], { type: "application/json" }));
-      }
+      const restoredPayload = JSON.stringify({ eventType: "DRAFT_RESTORED", city: draft.city, postalCode: draft.postalCode, source: isPublicPlanner ? "public-planner" : "customer-planner" });
+      navigator.sendBeacon?.(experienceEndpoint, new Blob([restoredPayload], { type: "application/json" }));
     } catch {
       window.localStorage.removeItem(draftStorageKey);
       setDraftStatus("Entwurf wird automatisch gespeichert");
@@ -1112,14 +1126,20 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       return;
     }
     lastIntelligenceRequestRef.current = intelligenceRequestQuery;
+    confirmedIntelligenceRequestRef.current = null;
+    intelligenceAbortRef.current?.abort();
+    const controller = new AbortController();
+    intelligenceAbortRef.current = controller;
+    setIntelligence(null);
     setIntelligenceStatus("updating");
     startTransition(() => {
-      fetch(`${intelligenceEndpoint}?${intelligenceRequestQuery}`)
+      fetch(`${intelligenceEndpoint}?${intelligenceRequestQuery}`, { signal: controller.signal })
         .then((response) => response.ok ? response.json() : null)
         .then((payload) => {
           if (lastIntelligenceRequestRef.current !== intelligenceRequestQuery) return;
           if (payload?.data) {
             setIntelligence(payload.data);
+            confirmedIntelligenceRequestRef.current = intelligenceRequestQuery;
             setIntelligenceStatus("live");
           } else {
             setIntelligenceStatus("error");
@@ -1131,6 +1151,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           }
         });
     });
+    return () => controller.abort();
   }, [intelligenceEndpoint, intelligenceRequestQuery]);
 
   useEffect(() => {
@@ -1390,7 +1411,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     drawingManagerRef.current.setDrawingMode(drawing.OverlayType.POLYGON);
   }
 
-  function trackSubmit(options?: { clearDraft?: boolean; handoffToCustomer?: boolean; eventType?: string }) {
+  function trackSubmit(options?: { clearDraft?: boolean; handoffToCustomer?: boolean; eventType?: string; orderId?: string }) {
     if (options?.clearDraft !== false) window.localStorage.removeItem(draftStorageKey);
     if (isPublicPlanner && options?.handoffToCustomer) {
       const publicDraft = window.localStorage.getItem(PUBLIC_ORDER_DRAFT_KEY);
@@ -1402,6 +1423,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         eventType: options?.eventType ?? (isPublicPlanner ? "INQUIRY_SUBMITTED" : "ORDER_CREATED"),
+        orderId: options?.orderId,
         city,
         postalCode,
         areaName: targetAreaName,
@@ -1462,17 +1484,26 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       contactPerson,
       contactPhone,
       notes: `${notes}${notes ? "\n" : ""}Produkt: ${productFormat}. Zielgruppe: ${targetGroup}. Verteilung: ${distributionType}.`,
+      quoteFingerprint: intelligence?.metrics.fingerprint ?? "",
     };
   }
 
   async function finishOrder(completionPath: "direct_payment" | "inquiry") {
     if (isFinishing) return;
+    if (!isPublicPlanner && (
+      intelligenceStatus !== "live" ||
+      confirmedIntelligenceRequestRef.current !== intelligenceRequestQuery ||
+      !intelligence?.metrics.fingerprint
+    )) {
+      setFinishStatus("Preis wird aktualisiert. Bitte bestätige die aktuelle Planung erneut.");
+      return;
+    }
     setIsFinishing(true);
     if (isPublicPlanner) {
       trackSubmit({
         clearDraft: false,
         handoffToCustomer: completionPath === "direct_payment",
-        eventType: completionPath === "direct_payment" ? "CHECKOUT_STARTED" : "INQUIRY_SUBMITTED",
+        eventType: completionPath === "direct_payment" ? "AUTH_GATE_VIEWED" : "INQUIRY_SUBMITTED",
       });
       if (completionPath === "direct_payment") {
         window.location.href = `/register/customer?next=${encodeURIComponent("/customer/orders/new")}`;
@@ -1507,6 +1538,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           body: JSON.stringify({ orderId: orderResult.data.id }),
         });
         const checkoutResult = await checkoutResponse.json();
+        if (checkoutResponse.status === 422 && checkoutResult?.code === "CUSTOMER_PROFILE_INCOMPLETE" && checkoutResult?.data?.redirectTo) {
+          window.location.href = checkoutResult.data.redirectTo;
+          return;
+        }
         if (!checkoutResponse.ok || !checkoutResult?.data?.checkoutUrl) {
           setFinishStatus("Zahlung konnte nicht abgeschlossen werden. Du kannst die Zahlung erneut versuchen oder die Kampagne als Anfrage senden.");
           window.location.href = `/customer/orders/${orderResult.data.id}?payment=retry`;

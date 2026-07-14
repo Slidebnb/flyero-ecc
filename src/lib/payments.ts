@@ -8,32 +8,21 @@ import { classifyStripeDisputeEvent, isRefundBlockedByDispute } from "@/lib/paym
 import { calculateOrderPrice, calculatePriceFromNet, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getVatRate } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { getCustomerProfileCompleteness, type BillingProfileField } from "@/lib/customerProfileCompleteness";
 
 const PROVIDER_CODE = "stripe";
 
 export class CustomerProfileIncompleteError extends Error {
-  readonly code = "CUSTOMER_PROFILE_INCOMPLETE";
+  readonly code = "CUSTOMER_PROFILE_INCOMPLETE" as const;
+  readonly missingFields: BillingProfileField[];
+  readonly orderId: string;
 
-  constructor() {
+  constructor(orderId: string, missingFields: BillingProfileField[]) {
     super("Bitte vervollständige Firma, Ansprechpartner, Telefon und Rechnungsadresse, bevor du bezahlst.");
     this.name = "CustomerProfileIncompleteError";
+    this.orderId = orderId;
+    this.missingFields = missingFields;
   }
-}
-
-function hasText(value: unknown) {
-  return typeof value === "string" && value.trim().length > 0;
-}
-
-function hasCompleteBillingProfile(customer: { companyName: string; contactName: string; phone: string; billingAddress: Prisma.JsonValue }) {
-  const billing = customer.billingAddress && typeof customer.billingAddress === "object" && !Array.isArray(customer.billingAddress)
-    ? customer.billingAddress as Record<string, unknown>
-    : {};
-  return hasText(customer.companyName)
-    && hasText(customer.contactName)
-    && hasText(customer.phone)
-    && hasText(billing.street)
-    && hasText(billing.postalCode)
-    && hasText(billing.city);
 }
 
 function appUrl() {
@@ -194,12 +183,15 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
-  if (!hasCompleteBillingProfile(order.customer)) throw new CustomerProfileIncompleteError();
+  const profileCompleteness = getCustomerProfileCompleteness(order.customer);
+  if (!profileCompleteness.complete) {
+    throw new CustomerProfileIncompleteError(order.id, profileCompleteness.missingFields);
+  }
   if (!["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "SUBMITTED"].includes(order.status)) {
     throw new Error("Fuer diesen Auftrag kann kein neuer Checkout gestartet werden.");
   }
 
-  const existing = order.payments.find((payment) => ["CHECKOUT_CREATED", "PENDING", "PAID"].includes(payment.status));
+  const existing = order.payments.find((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING", "PAID"].includes(payment.status));
   if (existing?.status === "PAID") throw new Error("Dieser Auftrag wurde bereits bezahlt.");
   if (existing?.checkoutUrl) return existing;
 
@@ -263,7 +255,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     customerId: order.customerId,
     report: "prepared_for_module_11",
   };
-  const payment = await prisma.payment.create({
+  const payment = existing ?? await prisma.payment.create({
     data: {
       orderId: order.id,
       customerId: order.customerId,
@@ -276,7 +268,13 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
       metadata,
     },
   });
-  await addPaymentHistory({ paymentId: payment.id, toStatus: "CREATED", reason: "checkout_requested" });
+  if (!existing) await addPaymentHistory({ paymentId: payment.id, toStatus: "CREATED", reason: "checkout_requested" });
+  if (existing) {
+    await prisma.payment.update({
+      where: { id: existing.id },
+      data: { amount, description, metadata },
+    });
+  }
 
   const successUrl = `${appUrl()}/customer/orders/${order.id}?payment=success`;
   const cancelUrl = `${appUrl()}/customer/orders/${order.id}?payment=cancelled`;
@@ -321,7 +319,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
       stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null,
     },
   });
-  await addPaymentHistory({ paymentId: payment.id, fromStatus: "CREATED", toStatus: "CHECKOUT_CREATED", reason: "stripe_checkout_created" });
+  await addPaymentHistory({ paymentId: payment.id, fromStatus: payment.status, toStatus: "CHECKOUT_CREATED", reason: "stripe_checkout_created" });
 
   if (order.status !== "PAYMENT_PENDING") {
     await prisma.order.update({ where: { id: order.id }, data: { status: "PAYMENT_PENDING" } });
@@ -614,6 +612,11 @@ export async function refundPayment(input: {
   await createNotification({
     userId: payment.order.customer.userId,
     type: "PAYMENT_REFUNDED",
+    data: {
+      orderNumber: payment.order.orderNumber,
+      grossAmount: amount.toString(),
+      nextStep: "Bitte pruefe dein Kundenportal oder kontaktiere den Support.",
+    },
     title: "Rueckerstattung erfolgt",
     message: `Die Zahlung für ${payment.order.orderNumber} wurde ${refundType === "PARTIAL" ? "teilweise " : ""}erstattet.`,
   });

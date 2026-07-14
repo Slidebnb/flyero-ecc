@@ -38,6 +38,12 @@ export async function GET(request: Request) {
       distanceMeters: numberParam(params.get("distanceMeters")),
       perimeterMeters: numberParam(params.get("perimeterMeters")),
       segments: jsonParam(params.get("segments")),
+      flyerSource: params.get("flyerSource") === "PRINT_SERVICE" ? "PRINT_SERVICE" : "CUSTOMER_OWN",
+      printDataStatus: ["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"].includes(params.get("printDataStatus") ?? "")
+        ? params.get("printDataStatus") as "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED"
+        : "UPLOAD_LATER",
+      preferredStartDate: params.get("preferredStartDate"),
+      preferredEndDate: params.get("preferredEndDate"),
     });
     return Response.json({ ok: true, data });
   } catch (error) {

@@ -1242,3 +1242,25 @@ Detailantworten weiter. Der Privacy-Contract umfasst diese Services nun mit.
   GitHub CI. Verifiziert mit `test:warehouse-scope`, `test:warehouse-privacy`,
   `test:permissions`, `test:ci-config`, `npx tsc --noEmit`, `npm run lint` und
   `npm run build`.
+
+### Modul 27: Aktivierungs- und Zahlungsstrecke (14.07.2026)
+
+- Der Gastplanner bleibt ein vorgelagerter Planungs- und Aktivierungsbereich.
+  Ein Gast kann keinen authentifizierten Checkout-Funnel-Status vortaeuschen.
+- `CHECKOUT_STARTED` und `PAYMENT_REDIRECTED` werden ausschliesslich im
+  serverseitigen Checkout-Kontext mit vorhandener Order geschrieben.
+- Registrierung und E-Mail-Verifizierung bewahren einen validierten internen
+  Weiterleitungspfad. Externe URLs, Protokollwechsel und offene Redirects
+  werden verworfen.
+- Eine unvollstaendige Kundenrechnung wird vor dem Zahlungsanbieter abgefangen.
+  Die eigene Order wird zur Profilergänzung weitergefuehrt; nach dem Speichern
+  wird die vorhandene offene Zahlung wiederverwendet.
+- Die Pflichtfelder fuer die Aktivierung sind Firma, Ansprechpartner, Telefon,
+  Rechnungsstrasse, Rechnungs-PLZ und Rechnungsort. Die Pruefung liegt zentral
+  in `src/lib/customerProfileCompleteness.ts`.
+- `EmailVerificationToken.redirectPath` wurde mit einer additiven Migration
+  ergaenzt. Es wurden keine vorhandenen Migrationen entfernt oder veraendert.
+- Die Contract-Smokes `test:module27` pruefen progressive Registrierung,
+  Verifizierung, Aktivierungshandoff, Profilergänzung/Checkout und Funnel-
+  Ereignisse. Laufzeitnachweise fuer produktive Stripe-, SMTP- und
+  Browser-Mobilumgebungen bleiben Betriebsaufgaben.

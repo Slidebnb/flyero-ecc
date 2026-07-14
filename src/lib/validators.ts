@@ -123,6 +123,18 @@ export const customerProfileUpdateSchema = z.object({
   newPassword: optionalText,
 });
 
+export const customerProfileCompletionSchema = z.object({
+  orderId: z.string().min(1),
+  companyName: z.string().min(2),
+  contactName: z.string().min(2),
+  phone: z.string().min(6),
+  billingStreet: z.string().min(1),
+  billingHouseNumber: optionalText,
+  billingPostalCode: z.string().min(3),
+  billingCity: z.string().min(1),
+  vatId: optionalText,
+});
+
 export const distributorRegisterSchema = z.object({
   firstName: z.string().min(2),
   lastName: z.string().min(2),
@@ -190,8 +202,9 @@ export const orderCreateSchema = z
     estimatedDistanceMeters: optionalNonNegativeInt,
     coverageAreaSqm: optionalPositiveNumber,
     areaCalculationSnapshot: optionalJson,
-    areaSegments: optionalOrderAreaSegments,
-    centerLat: z.coerce.number().optional(),
+      areaSegments: optionalOrderAreaSegments,
+      quoteFingerprint: z.string().regex(/^[a-f0-9]{64}$/, "Die Preisvorschau ist abgelaufen. Bitte aktualisiere die Planung."),
+      centerLat: z.coerce.number().optional(),
     centerLng: z.coerce.number().optional(),
     radiusMeters: optionalNonNegativeInt,
     flyerQuantity: z.coerce.number().int().positive(),
@@ -347,6 +360,7 @@ export const adminTourAssignSchema = z.object({
 export const adminDispatchAssignSchema = z.object({
   distributorId: z.string().min(1),
   segmentId: z.string().min(1).optional(),
+  returnTo: z.string().regex(/^\/admin\/(orders\/[^/?]+|dispatch)(\?.*)?$/).optional(),
 });
 
 export const distributorDispatchRejectSchema = z.object({

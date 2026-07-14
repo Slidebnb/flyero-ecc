@@ -31,6 +31,7 @@ export function VerifyEmailForm({ initialToken }: VerifyEmailFormProps) {
   const [token, setToken] = useState(initialToken);
   const [email, setEmail] = useState("");
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [continueHref, setContinueHref] = useState("/login");
   const [isPending, startTransition] = useTransition();
   const [isResending, startResendTransition] = useTransition();
   const autoSubmitted = useRef(false);
@@ -59,11 +60,17 @@ export function VerifyEmailForm({ initialToken }: VerifyEmailFormProps) {
       const payload = await readApiResponse(response);
 
       if (response.ok && payload.ok === true) {
+        const data = payload.data && typeof payload.data === "object" ? (payload.data as Record<string, unknown>) : {};
+        const redirectTo = readString(data.redirectTo) || "/login";
+        setContinueHref(redirectTo);
         setNotice({
           tone: "success",
           title: "E-Mail bestätigt",
-          text: "Dein Konto ist jetzt aktiviert. Du kannst dich einloggen.",
+          text: "Dein Konto ist jetzt aktiviert. Wir bringen dich direkt zum Login für deinen nächsten Schritt. Ein lokal gespeicherter Entwurf ist nur auf dem Gerät verfügbar, auf dem du geplant hast.",
         });
+        window.setTimeout(() => {
+          window.location.href = redirectTo;
+        }, 900);
         return;
       }
 
@@ -109,7 +116,7 @@ export function VerifyEmailForm({ initialToken }: VerifyEmailFormProps) {
           accept: "application/json",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ email: targetEmail }),
+        body: JSON.stringify({ email: targetEmail, token }),
       });
       const payload = await readApiResponse(response);
       const data = payload.data && typeof payload.data === "object" ? (payload.data as Record<string, unknown>) : {};
@@ -169,7 +176,7 @@ export function VerifyEmailForm({ initialToken }: VerifyEmailFormProps) {
         </button>
       </form>
       <p className="muted">
-        Bereits bestätigt? <Link href="/login">Zum Login</Link>
+        Bereits bestätigt? <Link href={continueHref}>Zum Login</Link>
       </p>
     </>
   );

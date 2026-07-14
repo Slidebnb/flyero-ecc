@@ -60,6 +60,27 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
   const action = customerOrderAction(order.status, order.id);
   const warehouseLabel = order.assignedWarehouse ? `${order.assignedWarehouse.name}, ${warehouseAddressText(order.assignedWarehouse)}` : "Wird von FLYERO zugewiesen";
 
+  if (query.payment === "success" || query.payment === "cancelled") {
+    const eventType = query.payment === "success" ? "PAYMENT_RETURNED_SUCCESS" : "PAYMENT_RETURNED_CANCELLED";
+    const existingEvent = await prisma.orderExperienceEvent.findFirst({
+      where: { orderId: order.id, userId: session.id, eventType },
+      select: { id: true },
+    });
+    if (!existingEvent) {
+      await prisma.orderExperienceEvent.create({
+        data: {
+          orderId: order.id,
+          customerId: order.customerId,
+          tenantId: session.tenantId,
+          userId: session.id,
+          eventType,
+          source: "stripe-return",
+          metadata: { paymentStatus: query.payment },
+        },
+      });
+    }
+  }
+
   return (
     <CustomerPortalShell
       active="/customer/orders"

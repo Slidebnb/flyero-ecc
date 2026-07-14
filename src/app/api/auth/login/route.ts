@@ -9,11 +9,7 @@ import { ROLE_HOME } from "@/lib/constants";
 import { publicUrl } from "@/lib/publicUrl";
 import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
 import { auditRequestContext } from "@/lib/auditRequestContext";
-
-function safeNext(value: unknown) {
-  if (typeof value !== "string") return "";
-  return value.startsWith("/") && !value.startsWith("//") ? value : "";
-}
+import { safeInternalRedirectPath } from "@/lib/redirects";
 
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
@@ -23,7 +19,12 @@ export async function POST(request: NextRequest) {
   const abuseDecision = await enforceAuthRateLimit(request, "login", loginEmail);
   if (!abuseDecision.allowed) return authRateLimitResponse(abuseDecision);
   const parsed = loginSchema.safeParse(body);
-  const next = safeNext((body as Record<string, unknown>).next || request.nextUrl.searchParams.get("next"));
+  const next = safeInternalRedirectPath(
+    body && typeof body === "object" && !Array.isArray(body)
+      ? (body as Record<string, unknown>).next || request.nextUrl.searchParams.get("next")
+      : request.nextUrl.searchParams.get("next"),
+    "",
+  );
 
   if (!parsed.success) {
     return errorResponse("E-Mail oder Passwort ist ungültig.");

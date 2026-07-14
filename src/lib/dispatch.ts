@@ -47,6 +47,7 @@ export type DistributorRecommendation = {
   name: string;
   city: string;
   distanceKm: number;
+  distanceSource: "address-geodesic-estimate" | "regional-estimate";
   openTours: number;
   currentAssignedTours: number;
   currentAssignedFlyers: number;
@@ -86,6 +87,22 @@ function cityDistanceKm(from?: string | null, to?: string | null) {
   }
 
   return 55;
+}
+
+function addressCoordinates(address: unknown) {
+  const value = asObject(address);
+  const lat = Number(value.lat ?? value.latitude);
+  const lng = Number(value.lng ?? value.longitude);
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function haversineKm(from: { lat: number; lng: number }, to: { lat: number; lng: number }) {
+  const earthKm = 6371;
+  const toRad = (value: number) => value * Math.PI / 180;
+  const dLat = toRad(to.lat - from.lat);
+  const dLng = toRad(to.lng - from.lng);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(from.lat)) * Math.cos(toRad(to.lat)) * Math.sin(dLng / 2) ** 2;
+  return Math.max(0.1, Number((earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(1)));
 }
 
 function targetCity(inventory: ReadyInventory) {
@@ -128,7 +145,14 @@ async function syncDistributorCapacity(distributorId: string) {
 async function distributorSnapshot(distributor: DistributorWithUser, inventory: ReadyInventory) {
   const capacity = await syncDistributorCapacity(distributor.id);
   const city = addressCity(distributor.address);
-  const distanceKm = cityDistanceKm(city, warehouseCity(inventory));
+  const distributorCoordinates = addressCoordinates(distributor.address);
+  const warehouseCoordinates = inventory.warehouseLocation?.warehouse.latitude && inventory.warehouseLocation?.warehouse.longitude
+    ? { lat: Number(inventory.warehouseLocation.warehouse.latitude), lng: Number(inventory.warehouseLocation.warehouse.longitude) }
+    : null;
+  const distanceKm = distributorCoordinates && warehouseCoordinates
+    ? haversineKm(distributorCoordinates, warehouseCoordinates)
+    : cityDistanceKm(city, warehouseCity(inventory));
+  const distanceSource = distributorCoordinates && warehouseCoordinates ? "address-geodesic-estimate" : "regional-estimate";
   const futureFlyers = capacity.currentAssignedFlyers + inventory.order.flyerQuantity;
   const futureTours = capacity.currentAssignedTours + 1;
   const rejectedAssignments = await prisma.dispatchAssignment.count({ where: { distributorId: distributor.id, status: "REJECTED" } });
@@ -175,6 +199,7 @@ async function distributorSnapshot(distributor: DistributorWithUser, inventory: 
     name: `${distributor.firstName} ${distributor.lastName}`,
     city,
     distanceKm,
+    distanceSource,
     openTours: capacity.currentAssignedTours,
     currentAssignedTours: capacity.currentAssignedTours,
     currentAssignedFlyers: capacity.currentAssignedFlyers,
@@ -463,6 +488,8 @@ export async function assignOrderToDistributor(input: {
       inventoryId: inventory.id,
       tourId: tour.id,
       capacityWarning: recommendation.capacityWarning,
+      distanceMeters: assignment.distanceMeters,
+      distanceSource: recommendation.distanceSource,
     },
   });
 
@@ -471,6 +498,14 @@ export async function assignOrderToDistributor(input: {
     type: "DISPATCH_NEW_ORDER",
     title: "Neuer Auftrag",
     message: `Auftrag ${inventory.order.orderNumber} wartet auf deine Annahme.`,
+    data: {
+      orderNumber: inventory.order.orderNumber,
+      flyerQuantity: inventory.order.flyerQuantity,
+      areaName: inventory.order.targetAreaName,
+      city: inventory.order.city,
+      postalCode: inventory.order.postalCode,
+      nextStep: "Bitte pruefe den Auftrag im Verteilerbereich.",
+    },
   });
 
   if (recommendation.capacityWarning) {

@@ -2574,6 +2574,33 @@ for (const [key, audience, name, subject, body] of module15Templates) {
   });
 }
 
+// Module 27 order-integrity workflow templates. These keys are intentionally
+// aligned with createNotification() types so review, payment and fulfilment
+// messages never fall back to opaque technical text.
+const module27Templates = [
+  ["ORDER_SUBMITTED", "CUSTOMER", "Anfrage eingegangen", "Deine Anfrage {{orderNumber}} ist eingegangen", "Hallo {{customerName}}, deine Anfrage fuer {{areaName}} ({{postalCode}} {{city}}) mit {{flyerQuantity}} Flyern ist eingegangen. Naechster Schritt: {{nextStep}}"],
+  ["ORDER_UNDER_REVIEW", "CUSTOMER", "Anfrage wird geprueft", "Deine Anfrage {{orderNumber}} wird geprueft", "Wir pruefen Gebiet, Druckdaten und Zustellbarkeit fuer {{orderNumber}}. {{nextStep}}"],
+  ["ORDER_CLARIFICATION_REQUESTED", "CUSTOMER", "Rueckfrage zur Anfrage", "Rueckfrage zu {{orderNumber}}", "Bitte beantworte die Rueckfrage zu {{orderNumber}} im Kundenportal: {{nextStep}}"],
+  ["ORDER_ACCEPTED_PAYMENT_REQUIRED", "CUSTOMER", "Zahlung erforderlich", "Deine Anfrage {{orderNumber}} wurde angenommen", "Deine Kampagne wurde geprueft. Bitte schliesse jetzt die Zahlung ab: {{paymentUrl}}"],
+  ["ORDER_APPROVED_CUSTOMER_FLYERS", "CUSTOMER", "Kampagne angenommen", "Deine Kampagne {{orderNumber}} wurde angenommen", "Deine Kampagne wurde angenommen. Bitte sende deine Flyer an das zugewiesene Lager. {{nextStep}}"],
+  ["ORDER_APPROVED_PRINT_SERVICE", "CUSTOMER", "Druck wird vorbereitet", "Deine Kampagne {{orderNumber}} wurde angenommen", "FLYERO bereitet den Druck fuer {{flyerQuantity}} Flyer vor. Du erhaeltst die naechsten Informationen im Kundenportal."],
+  ["ORDER_REJECTED", "CUSTOMER", "Anfrage nicht angenommen", "Rueckmeldung zu {{orderNumber}}", "Wir koennen {{orderNumber}} aktuell nicht annehmen. Grund: {{rejectionReason}}"],
+  ["ORDER_REFUND_STARTED", "CUSTOMER", "Rueckerstattung gestartet", "Rueckerstattung zu {{orderNumber}}", "Die Rueckerstattung ueber {{grossAmount}} fuer {{orderNumber}} wurde gestartet. {{nextStep}}"],
+  ["INVOICE_AVAILABLE", "CUSTOMER", "Rechnung verfuegbar", "Rechnung {{invoiceNumber}} ist verfuegbar", "Deine Rechnung {{invoiceNumber}} fuer {{orderNumber}} ist im Kundenportal verfuegbar: {{invoiceUrl}}"],
+  ["LOGISTICS_CUSTOMER_DELIVERY_EXPECTED", "CUSTOMER", "Lieferung erwartet", "Flyer fuer {{orderNumber}} angekuendigt", "Die Flyer fuer {{orderNumber}} werden voraussichtlich am {{nextStep}} im Lager erwartet. Referenz: {{packageReference}}"],
+  ["DISPATCH_NEW_ORDER", "ADMIN", "Neue Verteilung vorbereiten", "Neue Kampagne fuer die Disposition: {{orderNumber}}", "{{companyName}}: {{flyerQuantity}} Flyer in {{areaName}}. Bitte Lager und Verteiler einplanen."],
+  ["PAYMENT_REFUNDED", "CUSTOMER", "Rueckerstattung erfolgt", "Rueckerstattung zu {{orderNumber}}", "Die Rueckerstattung ueber {{grossAmount}} fuer {{orderNumber}} wurde abgeschlossen."],
+];
+
+for (const [key, audience, name, subject, body] of module27Templates) {
+  const placeholders = [...new Set([...subject.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g), ...body.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)].map((match) => match[1]))];
+  await prisma.notificationTemplate.upsert({
+    where: { key },
+    update: { audience, channel: "EMAIL", name, description: `Seed-Vorlage fuer Modul 27: ${name}`, subject, body, placeholders, isActive: true },
+    create: { key, audience, channel: "EMAIL", name, description: `Seed-Vorlage fuer Modul 27: ${name}`, subject, body, placeholders, isActive: true },
+  });
+}
+
 const module15Users = await prisma.user.findMany({
   where: { role: { in: ["CUSTOMER", "DISTRIBUTOR", "ADMIN", "SUPPORT_DISPATCHER"] } },
   orderBy: { createdAt: "asc" },

@@ -7,7 +7,7 @@ export type WalkingRouteEstimate = {
   distanceMeters: number;
   durationMinutes: number;
   path: RoutePoint[];
-  provider: "haversine-fallback" | "google-directions-prepared";
+  provider: "haversine-estimate" | "google-routes";
 };
 
 export type AreaScoreInput = {
@@ -58,7 +58,9 @@ export function calculateWalkingRoute(points: RoutePoint[]): WalkingRouteEstimat
     distanceMeters: Math.round(adjustedDistance),
     durationMinutes: calculateDistributionTime({ distanceMeters: adjustedDistance }),
     path: clean,
-    provider: process.env.GOOGLE_MAPS_SERVER_KEY ? "google-directions-prepared" : "haversine-fallback",
+    // This function only computes a local estimate. It must not claim a
+    // provider result when no Google request was actually executed.
+    provider: "haversine-estimate",
   };
 }
 

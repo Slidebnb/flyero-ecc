@@ -116,7 +116,7 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
           accept: "application/json",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ email: targetEmail }),
+        body: JSON.stringify({ email: targetEmail, next }),
       });
       const payload = await readApiResponse(response);
       const data = payload.data && typeof payload.data === "object" ? (payload.data as Record<string, unknown>) : {};
@@ -198,46 +198,6 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
         <label>
           Telefon optional
           <input name="phone" type="tel" />
-        </label>
-        <label>
-          Rechnungsstraße optional
-          <input name="billingStreet" />
-        </label>
-        <label>
-          Hausnummer
-          <input name="billingHouseNumber" />
-        </label>
-        <label>
-          PLZ optional
-          <input name="billingPostalCode" />
-        </label>
-        <label>
-          Stadt optional
-          <input name="billingCity" />
-        </label>
-        <label>
-          Lieferstraße optional
-          <input name="deliveryStreet" />
-        </label>
-        <label>
-          Liefer-Hausnummer optional
-          <input name="deliveryHouseNumber" />
-        </label>
-        <label>
-          Liefer-PLZ optional
-          <input name="deliveryPostalCode" />
-        </label>
-        <label>
-          Lieferstadt optional
-          <input name="deliveryCity" />
-        </label>
-        <label>
-          USt-ID optional
-          <input name="vatId" />
-        </label>
-        <label>
-          Logo-URL optional
-          <input name="logoUrl" type="url" />
         </label>
         <label>
           Passwort

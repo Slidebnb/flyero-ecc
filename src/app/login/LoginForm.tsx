@@ -99,7 +99,7 @@ export function LoginForm({ next }: LoginFormProps) {
           accept: "application/json",
           "content-type": "application/json",
         },
-        body: JSON.stringify({ email: targetEmail }),
+        body: JSON.stringify({ email: targetEmail, next }),
       });
       const payload = await readApiResponse(response);
       const data = payload.data && typeof payload.data === "object" ? (payload.data as Record<string, unknown>) : {};

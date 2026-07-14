@@ -478,9 +478,20 @@ export async function assignAreaToOrder(input: {
   areaId: string;
   userId?: string | null;
 }) {
+  // Keep this legacy entry point safe for older callers. The quote and order
+  // snapshot are authoritative; linking a reusable area must not overwrite them.
+  return linkAreaReferenceToOrder(input);
+}
+
+/** Links a reusable area without replacing the order's authoritative snapshot. */
+export async function linkAreaReferenceToOrder(input: {
+  orderId: string;
+  areaId: string;
+  userId?: string | null;
+}) {
   const order = await prisma.order.findUnique({
     where: { id: input.orderId },
-    select: { id: true, tenantId: true },
+    select: { id: true, tenantId: true, orderNumber: true },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
   const area = await prisma.distributionArea.findFirst({
@@ -489,33 +500,24 @@ export async function assignAreaToOrder(input: {
       status: { not: "DELETED" },
       OR: [{ tenantId: null }, { tenantId: order.tenantId }],
     },
+    select: { id: true, name: true },
   });
   if (!area) throw new Error("Gebiet wurde nicht gefunden.");
 
   const updatedOrder = await prisma.order.update({
     where: { id: input.orderId },
-    data: {
-      distributionAreaId: area.id,
-      city: area.city ?? undefined,
-      postalCode: area.postalCode ?? undefined,
-      targetAreaName: area.name,
-      targetAreaGeoJson: area.geoJson ?? undefined,
-      estimatedHouseholds: area.estimatedHouseholds,
-      estimatedFlyers: area.estimatedFlyers,
-      estimatedDistanceMeters: area.estimatedDistanceMeters,
-      coverageAreaSqm: area.coverageAreaSqm,
-    },
+    data: { distributionAreaId: area.id },
   });
 
   await logAreaHistory({
     areaId: area.id,
     userId: input.userId,
-    action: "area.assigned",
-    newValue: { orderId: updatedOrder.id, orderNumber: updatedOrder.orderNumber },
+    action: "area.reference_linked",
+    newValue: { orderId: updatedOrder.id, orderNumber: order.orderNumber },
   });
   await createAuditLog({
     userId: input.userId,
-    action: "area.assigned",
+    action: "area.reference_linked",
     entityType: "Order",
     entityId: updatedOrder.id,
     newValues: { areaId: area.id, areaName: area.name },

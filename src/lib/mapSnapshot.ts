@@ -22,7 +22,7 @@ export async function createMapSnapshotPlaceholder(input: MapSnapshotInput) {
 
   return {
     ready: Boolean(url),
-    provider: hasServerKey ? "google-static-maps-prepared" : "fallback",
+    provider: url ? "google-static-maps" : "fallback",
     url,
     message: url
       ? "Static-Maps-URL für den PDF-Bericht vorbereitet."

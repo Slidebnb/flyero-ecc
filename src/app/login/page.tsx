@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { FlyeroLogo, PremiumFlyerField } from "@/app/components/marketing";
 import { LoginForm } from "@/app/login/LoginForm";
 import { noIndexMetadata } from "@/app/seo";
+import { safeInternalRedirectPath } from "@/lib/redirects";
 
 export const metadata: Metadata = {
   title: "Login",
@@ -14,13 +15,9 @@ type LoginPageProps = {
   searchParams?: Promise<{ next?: string }>;
 };
 
-function safeNext(next?: string) {
-  return next?.startsWith("/") && !next.startsWith("//") ? next : "";
-}
-
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
-  const next = safeNext(params?.next);
+  const next = safeInternalRedirectPath(params?.next, "");
   const customerRegisterHref = next
     ? `/register/customer?next=${encodeURIComponent(next)}`
     : "/register/customer";
