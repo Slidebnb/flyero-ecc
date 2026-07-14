@@ -1,8 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
+import { z } from "zod";
 import { enforcePublicRateLimit, publicRateLimitResponse } from "@/lib/publicAbuseProtection";
 import { prisma } from "@/lib/prisma";
-import { readBody, routeErrorResponse } from "@/lib/request";
+import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 
 function boundedInteger(value: unknown, maximum: number) {
   const parsed = Number(value);
@@ -30,6 +31,24 @@ const PUBLIC_EVENT_TYPES = new Set([
   "WIZARD_INTERACTION",
 ]);
 
+const publicExperienceSchema = z.object({
+  eventType: z.string().trim().max(50).optional(),
+  city: z.string().trim().max(80).optional(),
+  postalCode: z.string().trim().max(10).optional(),
+  areaName: z.string().trim().max(120).optional(),
+  durationMs: z.coerce.number().int().nonnegative().max(86_400_000).optional(),
+  clickCount: z.coerce.number().int().nonnegative().max(10_000).optional(),
+  fieldCount: z.coerce.number().int().nonnegative().max(1_000).optional(),
+  usedAutocomplete: z.boolean().optional(),
+  usedSavedArea: z.boolean().optional(),
+  polygonPoints: z.coerce.number().int().nonnegative().max(500).optional(),
+  households: z.coerce.number().int().nonnegative().max(10_000_000).optional(),
+  flyerQuantity: z.coerce.number().int().nonnegative().max(1_000_000).optional(),
+  coverageAreaSqm: z.coerce.number().nonnegative().max(100_000_000).optional(),
+  routeDistanceMeters: z.coerce.number().int().nonnegative().max(100_000_000).optional(),
+  routeDurationMinutes: z.coerce.number().int().nonnegative().max(10_000).optional(),
+});
+
 function safeDecimal(value: unknown, maximum: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed >= 0 && parsed <= maximum ? new Prisma.Decimal(parsed) : null;
@@ -39,7 +58,9 @@ export async function POST(request: NextRequest) {
   try {
     const abuseDecision = await enforcePublicRateLimit(request, "public-planner");
     if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
-    const body = await readBody(request) as Record<string, unknown>;
+    const parsed = publicExperienceSchema.safeParse(await readBody(request));
+    if (!parsed.success) return errorResponse("Ungültige Planungsdaten.", 400);
+    const body = parsed.data;
     const requestedEventType = typeof body.eventType === "string" ? body.eventType : "WIZARD_INTERACTION";
     const eventType = PUBLIC_EVENT_TYPES.has(requestedEventType) ? requestedEventType : "WIZARD_INTERACTION";
     const event = await prisma.orderExperienceEvent.create({

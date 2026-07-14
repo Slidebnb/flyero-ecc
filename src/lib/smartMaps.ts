@@ -58,12 +58,14 @@ async function googleAutocomplete(query: string): Promise<SmartPlaceSuggestion[]
   }));
 }
 
-export async function getPlaceAutocomplete(query: string) {
+export async function getPlaceAutocomplete(query: string, options?: { publicOnly?: boolean }) {
   const needle = normalize(query);
-  const local = LOCAL_PLACES.filter((place) => {
-    const haystack = normalize(`${place.label} ${place.description} ${place.city} ${place.postalCode}`);
-    return haystack.includes(needle) || needle.includes(normalize(place.postalCode));
-  }).slice(0, 6);
+  const local = options?.publicOnly
+    ? []
+    : LOCAL_PLACES.filter((place) => {
+        const haystack = normalize(`${place.label} ${place.description} ${place.city} ${place.postalCode}`);
+        return haystack.includes(needle) || needle.includes(normalize(place.postalCode));
+      }).slice(0, 6);
   const google = await googleAutocomplete(query).catch(() => []);
   return [...local, ...google].slice(0, 8);
 }
@@ -85,7 +87,11 @@ async function googleGeocode(query: string) {
       address_components: Array<{ long_name: string; short_name: string; types: string[] }>;
     }>;
   };
-  const first = payload.results?.[0];
+  const results = payload.results ?? [];
+  const first = results.find((item) => {
+    const types = item.address_components.flatMap((component) => component.types);
+    return types.includes("postal_code") || types.includes("locality") || types.includes("postal_town") || types.includes("route");
+  });
   if (!first) return null;
   const component = (type: string) => first.address_components.find((item) => item.types.includes(type));
   return {
@@ -106,12 +112,13 @@ export async function geocodeSmartAddress(input: {
   city?: string;
   street?: string;
   houseNumber?: string;
-}) {
+}, options?: { publicOnly?: boolean }) {
   const query = input.query || [input.street, input.houseNumber, input.postalCode, input.city, "Deutschland"].filter(Boolean).join(" ");
   const needle = normalize(query);
-  const local = LOCAL_PLACES.find((place) => needle.includes(normalize(place.postalCode)) || needle.includes(normalize(place.city)));
   const google = await googleGeocode(query).catch(() => null);
   if (google) return google;
+  if (options?.publicOnly) return null;
+  const local = LOCAL_PLACES.find((place) => needle.includes(normalize(place.postalCode)) || needle.includes(normalize(place.city)));
   return local
     ? { ...local, houseNumber: "", source: "local" as const }
     : { label: query, city: input.city ?? "", postalCode: input.postalCode ?? "", street: input.street ?? "", houseNumber: input.houseNumber ?? "", lat: 50.3569, lng: 7.589, source: "local" as const };

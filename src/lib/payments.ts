@@ -11,6 +11,31 @@ import { prisma } from "@/lib/prisma";
 
 const PROVIDER_CODE = "stripe";
 
+export class CustomerProfileIncompleteError extends Error {
+  readonly code = "CUSTOMER_PROFILE_INCOMPLETE";
+
+  constructor() {
+    super("Bitte vervollständige Firma, Ansprechpartner, Telefon und Rechnungsadresse, bevor du bezahlst.");
+    this.name = "CustomerProfileIncompleteError";
+  }
+}
+
+function hasText(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasCompleteBillingProfile(customer: { companyName: string; contactName: string; phone: string; billingAddress: Prisma.JsonValue }) {
+  const billing = customer.billingAddress && typeof customer.billingAddress === "object" && !Array.isArray(customer.billingAddress)
+    ? customer.billingAddress as Record<string, unknown>
+    : {};
+  return hasText(customer.companyName)
+    && hasText(customer.contactName)
+    && hasText(customer.phone)
+    && hasText(billing.street)
+    && hasText(billing.postalCode)
+    && hasText(billing.city);
+}
+
 function appUrl() {
   return process.env.APP_URL || "http://localhost:3000";
 }
@@ -169,6 +194,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
+  if (!hasCompleteBillingProfile(order.customer)) throw new CustomerProfileIncompleteError();
   if (!["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "SUBMITTED"].includes(order.status)) {
     throw new Error("Fuer diesen Auftrag kann kein neuer Checkout gestartet werden.");
   }

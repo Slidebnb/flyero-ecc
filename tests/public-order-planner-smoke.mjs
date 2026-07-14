@@ -36,8 +36,20 @@ assert.match(publicGeocode, /geocodeSmartAddress/);
 assert.match(publicGeocode, /public-planner/);
 assert.match(protection, /"public-planner"/);
 assert.match(smartMaps, /publicOnly\?: boolean/);
+assert.match(smartMaps, /results\.find/);
 assert.match(publicQuote, /publicOnly: true/);
 assert.match(smartMaps, /\{ tenantId: null \}/);
+assert.match(publicAutocomplete, /publicOnly: true/);
+assert.match(publicGeocode, /publicOnly: true/);
+assert.match(publicAutocomplete, /z\.string/);
+assert.match(publicGeocode, /z\.object/);
+assert.match(publicGeocode, /query: query\.data\.q/);
+assert.match(read("src/app/api/public/planner/experience/route.ts"), /z\.object/);
+assert.doesNotMatch(wizard, /mapDistrict/);
+assert.doesNotMatch(wizard, /orderPolygonSvg/);
+assert.doesNotMatch(wizard, />Heatmap</);
+assert.match(wizard, /listenerTarget\.addListener/);
+assert.match(wizard, /if \(!overlay\) return/);
 
 for (const route of [publicQuote, publicAutocomplete, publicGeocode]) {
   assert.match(route, /publicRateLimitResponse/);

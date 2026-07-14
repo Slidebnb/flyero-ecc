@@ -51,16 +51,16 @@ export async function POST(request: NextRequest) {
               tenantId: tenant.id,
             companyName: data.companyName,
             contactName: data.contactName,
-            phone: data.phone,
+            phone: data.phone || "",
             vatId: data.vatId || null,
             logoUrl: data.logoUrl || null,
-            billingAddress: {
-              street: data.billingStreet,
+            billingAddress: data.billingStreet || data.billingPostalCode || data.billingCity ? {
+              street: data.billingStreet || "",
               houseNumber: data.billingHouseNumber || null,
-              postalCode: data.billingPostalCode,
-              city: data.billingCity,
+              postalCode: data.billingPostalCode || "",
+              city: data.billingCity || "",
               country: "DE",
-            },
+            } : {},
             deliveryAddress: data.deliveryStreet
               ? {
                   street: data.deliveryStreet,

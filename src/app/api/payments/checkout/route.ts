@@ -2,7 +2,7 @@ import { ErrorSeverity } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { requireTenantSession } from "@/lib/tenant";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
-import { createCheckoutForOrder } from "@/lib/payments";
+import { createCheckoutForOrder, CustomerProfileIncompleteError } from "@/lib/payments";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 
 export async function POST(request: NextRequest) {
@@ -20,6 +20,9 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ ok: true, data: payment });
   } catch (error) {
+    if (error instanceof CustomerProfileIncompleteError) {
+      return errorResponse(error.message, 422);
+    }
     await createErrorLogFromUnknown(error, {
       severity: ErrorSeverity.HIGH,
       source: "payment.checkout",

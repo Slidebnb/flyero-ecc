@@ -28,6 +28,9 @@ assert.match(registerForm, /\/api\/auth\/register-customer/, "Register form must
 assert.match(registerForm, /\/api\/auth\/resend-verification/, "Register form must offer resend verification.");
 assert.match(registerForm, /role=\"dialog\"/, "Registration success must be shown in a dialog.");
 assert.match(registerForm, /aria-modal=\"true\"/, "Registration dialog must be announced as modal.");
+assert.doesNotMatch(registerForm, /name=\"billingStreet\" required/, "Billing address must be completable after the first quote.");
+assert.doesNotMatch(registerForm, /name=\"billingPostalCode\" required/, "Billing address must be completable after the first quote.");
+assert.doesNotMatch(registerForm, /name=\"billingCity\" required/, "Billing address must be completable after the first quote.");
 
 assert.match(verifyPage, /<VerifyEmailForm initialToken=\{params\.token \|\| ""\} \/>/, "Verify page must use the client form.");
 assert.doesNotMatch(verifyPage, /action="\/api\/auth\/verify-email"/, "Verify page must not post directly to the API.");

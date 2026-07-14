@@ -30,7 +30,7 @@ export default async function CustomerRegisterPage({ searchParams }: CustomerReg
         </Link>
         <h1>Kundenregistrierung</h1>
         <p className="muted">
-          Erstellen Sie ein Konto, um Verteilungen online zu buchen und Nachweise zentral zu sehen.
+          Erstellen Sie zuerst Ihr Konto. Rechnungsdaten können Sie vor der kostenpflichtigen Buchung ergänzen.
         </p>
         <CustomerRegisterForm next={next} />
         <p className="muted">

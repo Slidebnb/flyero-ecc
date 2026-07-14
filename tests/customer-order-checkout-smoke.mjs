@@ -11,6 +11,11 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+const checkoutRouteSource = readFileSync("src/app/api/payments/checkout/route.ts", "utf8");
+const paymentsSource = readFileSync("src/lib/payments.ts", "utf8");
+assert(checkoutRouteSource.includes("CustomerProfileIncompleteError"), "Checkout muss unvollständige Kundenprofile verständlich blockieren.");
+assert(paymentsSource.includes("billingAddress"), "Checkout muss Rechnungsdaten prüfen.");
+
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }

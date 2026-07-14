@@ -113,7 +113,7 @@ try {
     "findAreaForLocation",
     "setIntelligence(null)",
     "areaCalculationSnapshot",
-    "Heatmap f\u00fcr dieses Gebiet noch nicht verf\u00fcgbar.",
+    "mapNotice",
     "setMapTypeId",
     "Du hast dein Gebiet manuell angepasst.",
     "Neues Gebiet \u00fcbernehmen",

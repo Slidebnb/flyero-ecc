@@ -166,6 +166,7 @@ type GooglePath = {
   getLength: () => number;
   getAt: (index: number) => GoogleLatLng;
   forEach: (callback: (point: GoogleLatLng) => void) => void;
+  addListener?: (eventName: string, callback: () => void) => void;
 };
 type GoogleMap = {
   setCenter: (center: LatLng) => void;
@@ -177,10 +178,12 @@ type GooglePolygon = {
   setMap: (map: GoogleMap | null) => void;
   setPath: (path: LatLng[]) => void;
   getPath: () => GooglePath;
+  addListener?: (eventName: string, callback: () => void) => void;
 };
 type GoogleDrawingManager = {
   setMap: (map: GoogleMap | null) => void;
   setDrawingMode: (mode: string | null) => void;
+  addListener?: (eventName: string, callback: (overlay?: unknown) => void) => void;
 };
 type GoogleNamespace = {
   maps: {
@@ -321,15 +324,6 @@ function syncStateLabel(status: "local" | "updating" | "live" | "error", confide
   return "Geschätzt";
 }
 
-function polygonToSvg(points: LatLng[], center: LatLng) {
-  const scale = 11_000;
-  return points.map((point) => {
-    const x = 50 + (point.lng - center.lng) * scale;
-    const y = 50 - (point.lat - center.lat) * scale;
-    return `${Math.max(5, Math.min(95, x))},${Math.max(5, Math.min(95, y))}`;
-  }).join(" ");
-}
-
 function pathToPoints(path: GooglePath) {
   const points: LatLng[] = [];
   path.forEach((point) => points.push({ lat: point.lat(), lng: point.lng() }));
@@ -405,30 +399,11 @@ function loadGoogleMaps() {
   return window.__flyeroMapsLoading.then(() => Boolean(window.google?.maps)).catch(() => false);
 }
 
-function MiniMapFallback({
-  center,
-  polygon,
-  showHeatmap,
-}: {
-  center: LatLng;
-  polygon: LatLng[];
-  showHeatmap: boolean;
-}) {
-  const points = polygonToSvg(polygon, center);
+function MiniMapFallback() {
   return (
-    <div className="orderMapFallback" aria-label="Kartenfallback">
-      <span className="mapDistrict districtOne">ALTSTADT</span>
-      <span className="mapDistrict districtTwo">SÜDLICHE VORSTADT</span>
-      <span className="mapDistrict districtThree">RHEIN</span>
-      {showHeatmap ? <span className="mapHeat" /> : null}
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="orderPolygonSvg">
-        <polygon points={points} />
-        <polyline points="46,38 52,46 58,52 63,58" />
-        {polygon.map((point, index) => {
-          const [x, y] = polygonToSvg([point], center).split(",").map(Number);
-          return <circle key={`${point.lat}-${point.lng}-${index}`} cx={x} cy={y} r="2" />;
-        })}
-      </svg>
+    <div className="orderMapFallback" role="status" aria-label="Live-Karte nicht verfügbar">
+      <strong>Live-Karte nicht verfügbar</strong>
+      <span>Die Gebietsdaten bleiben erhalten. Du kannst die Anfrage trotzdem vorbereiten.</span>
     </div>
   );
 }
@@ -488,8 +463,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [contactPhone, setContactPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [mapMode, setMapMode] = useState<"map" | "satellite">("map");
-  const [showHeatmap, setShowHeatmap] = useState(false);
-  const [heatmapNotice, setHeatmapNotice] = useState("");
+  const [mapNotice, setMapNotice] = useState("");
   const [usedAutocomplete, setUsedAutocomplete] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
@@ -841,12 +815,20 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         setCenter(nextCenter);
         setSelectedAreaId("");
         setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
-        pushPolygon(polygonAroundCenter(nextCenter), "postal_code");
+        if (isPublicPlanner) {
+          setPolygon([]);
+          setPolygonSource("postal_code");
+          setHistory([]);
+          setHistoryIndex(0);
+          setMapNotice("Gebiet gefunden. Zeichne jetzt den gewünschten Bereich direkt auf der Karte.");
+        } else {
+          pushPolygon(polygonAroundCenter(nextCenter), "postal_code");
+        }
         setFlyerQuantityTouched(false);
       }
     }
     setPendingLocation(null);
-  }, [findAreaForLocation, flyerQuantityTouched, polygonSource, pushPolygon]);
+  }, [findAreaForLocation, flyerQuantityTouched, isPublicPlanner, polygonSource, pushPolygon]);
 
   const geocodeAddress = useCallback((input?: string) => {
     const currentQuery = input ?? searchInputRef.current?.value ?? query;
@@ -861,7 +843,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => {
         const result = payload?.data;
-        if (!result) return;
+        if (!result) {
+          setMapNotice("Diese Adresse wurde nicht gefunden. Bitte prüfe die Eingabe oder zeichne das Gebiet direkt auf der Karte.");
+          return;
+        }
         if (isPublicPlanner) {
           void fetch(experienceEndpoint, {
             method: "POST",
@@ -981,11 +966,18 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     const attachPolygonListeners = (target: GooglePolygon) => {
       const path = target.getPath();
       if (!path) return;
-      maps.event.addListener(path, "set_at", syncPath);
-      maps.event.addListener(path, "insert_at", syncPath);
-      maps.event.addListener(path, "remove_at", syncPath);
-      maps.event.addListener(target, "drag", syncPath);
-      maps.event.addListener(target, "dragend", syncPath);
+      const addListener = (listenerTarget: GooglePath | GooglePolygon, eventName: string, callback: () => void) => {
+        if (typeof listenerTarget.addListener === "function") {
+          listenerTarget.addListener(eventName, callback);
+          return;
+        }
+        maps.event.addListener(listenerTarget, eventName, callback);
+      };
+      addListener(path, "set_at", syncPath);
+      addListener(path, "insert_at", syncPath);
+      addListener(path, "remove_at", syncPath);
+      addListener(target, "drag", syncPath);
+      addListener(target, "dragend", syncPath);
     };
     if (!mapRef.current) {
       mapRef.current = new maps.Map(mapElementRef.current, {
@@ -1031,7 +1023,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         },
       });
       drawingManagerRef.current.setMap(mapRef.current);
-      maps.event.addListener(drawingManagerRef.current, "polygoncomplete", (overlay) => {
+      const drawingManager = drawingManagerRef.current;
+      const onPolygonComplete = (overlay?: unknown) => {
+        if (!overlay) return;
         const nextPolygon = overlay as GooglePolygon;
         polygonRef.current?.setMap(null);
         polygonRef.current = nextPolygon;
@@ -1043,7 +1037,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           setPolygonSource("drawn");
         }
         attachPolygonListeners(nextPolygon);
-      });
+      };
+      if (typeof drawingManager.addListener === "function") {
+        drawingManager.addListener("polygoncomplete", onPolygonComplete);
+      } else {
+        maps.event.addListener(drawingManager, "polygoncomplete", onPolygonComplete);
+      }
     }
   }, [center, mapMode, mapsReady, polygon]);
 
@@ -1119,22 +1118,17 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     setQuery(street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}, ${postalCode} ${city}` : `${postalCode} ${city}`);
   }
 
-  function requestHeatmap() {
-    setShowHeatmap(false);
-    setHeatmapNotice("Heatmap für dieses Gebiet noch nicht verfügbar.");
-  }
-
   function startDrawingArea() {
     const drawing = window.google?.maps.drawing;
     if (!mapsReady || !drawingManagerRef.current || !drawing) {
-      setHeatmapNotice(
+      setMapNotice(
         mapsBrowserKeyConfigured
           ? "Die Zeichenfunktion lädt noch. Bitte kurz warten und erneut versuchen."
           : "Die Live-Karte ist gerade nicht verfügbar. Sie können die Anfrage trotzdem senden oder FLYERO hilft bei der Gebietsauswahl.",
       );
       return;
     }
-    setHeatmapNotice("Klicken Sie auf der Karte die Eckpunkte Ihres Gebiets. Zum Abschließen den ersten Punkt wieder anklicken.");
+    setMapNotice("Klicke auf der Karte die Eckpunkte deines Gebiets. Zum Abschließen den ersten Punkt wieder anklicken.");
     drawingManagerRef.current.setDrawingMode(drawing.OverlayType.POLYGON);
   }
 
@@ -1165,7 +1159,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         coverageAreaSqm,
         routeDistanceMeters,
         routeDurationMinutes,
-        metadata: { mapMode, showHeatmap, productFormat, targetGroup, distributionType, plannerMode: mode },
+        metadata: { mapMode, productFormat, targetGroup, distributionType, plannerMode: mode },
       }),
     });
   }
@@ -1616,18 +1610,17 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         </div>
       </aside>
 
-      <section className={`orderMapStage ${mapMode} ${showHeatmap ? "heatmap" : ""}`}>
+      <section className={`orderMapStage ${mapMode}`}>
         <div className="mapChromeTop">
           <span>{postalCode} {city}</span>
         </div>
         <div className="mapTabs">
           <button type="button" className={mapMode === "map" ? "selected" : ""} onClick={() => setMapMode("map")}>Karte</button>
           <button type="button" className={mapMode === "satellite" ? "selected" : ""} onClick={() => setMapMode("satellite")}>Satellit</button>
-          {!isPublicPlanner ? <button type="button" className={showHeatmap ? "selected" : ""} onClick={requestHeatmap}>Heatmap</button> : null}
         </div>
-        {heatmapNotice ? <div className="heatmapNotice" role="status">{heatmapNotice}</div> : null}
+        {mapNotice ? <div className="mapNotice" role="status">{mapNotice}</div> : null}
         <div ref={mapElementRef} className="orderGoogleMap" aria-hidden={!mapsReady} />
-        {!mapsReady ? <MiniMapFallback center={center} polygon={polygon} showHeatmap={showHeatmap} /> : null}
+        {!mapsReady ? <MiniMapFallback /> : null}
         {!mapsReady ? (
           <div className="mapConfigNotice" role="status">
             <strong>{mapsBrowserKeyConfigured ? "Karte wird geladen" : "Live-Karte aktuell nicht verfügbar"}</strong>

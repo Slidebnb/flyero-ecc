@@ -196,24 +196,24 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
           />
         </label>
         <label>
-          Telefon
-          <input name="phone" type="tel" required />
+          Telefon optional
+          <input name="phone" type="tel" />
         </label>
         <label>
-          Rechnungsstraße
-          <input name="billingStreet" required />
+          Rechnungsstraße optional
+          <input name="billingStreet" />
         </label>
         <label>
           Hausnummer
           <input name="billingHouseNumber" />
         </label>
         <label>
-          PLZ
-          <input name="billingPostalCode" required />
+          PLZ optional
+          <input name="billingPostalCode" />
         </label>
         <label>
-          Stadt
-          <input name="billingCity" required />
+          Stadt optional
+          <input name="billingCity" />
         </label>
         <label>
           Lieferstraße optional

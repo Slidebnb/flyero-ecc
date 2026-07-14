@@ -102,7 +102,7 @@ try {
     "Flyer & Druck",
     "Abschluss",
     "areaOverview",
-    "Heatmap",
+    "Live-Karte nicht verfügbar",
     "Satellit",
     "orderStepPanel",
   ]);

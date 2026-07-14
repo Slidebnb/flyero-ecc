@@ -4417,15 +4417,15 @@ body {
 
 .orderMapFallback {
   z-index: 2;
-  background:
-    linear-gradient(180deg, rgba(5,11,18,0.24), rgba(5,11,18,0.72)),
-    repeating-linear-gradient(28deg, transparent 0 42px, rgba(118,154,198,0.16) 43px 45px, transparent 46px 98px),
-    repeating-linear-gradient(112deg, transparent 0 36px, rgba(118,154,198,0.14) 37px 39px, transparent 40px 86px),
-    radial-gradient(circle at 58% 36%, rgba(47,134,255,0.18), transparent 28%),
-    #142030;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  padding: 24px;
+  background: #18222e;
+  color: #ffffff;
+  text-align: center;
 }
 
-.orderMapFallback::after,
 .orderMapStage::after {
   content: "";
   position: absolute;
@@ -4435,52 +4435,19 @@ body {
   background: radial-gradient(circle at 48% 48%, transparent 0 38%, rgba(3,5,7,0.42) 72%, rgba(3,5,7,0.82));
 }
 
-.mapDistrict {
-  position: absolute;
+.orderMapFallback strong {
+  font-size: 1.05rem;
+}
+
+.orderMapFallback span {
+  max-width: 360px;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.5;
+}
+
+.orderMapFallback > * {
+  position: relative;
   z-index: 4;
-  color: rgba(255,255,255,0.42);
-  font-size: 1.2rem;
-  letter-spacing: 0.16em;
-  font-weight: 900;
-}
-
-.districtOne { top: 24%; left: 42%; }
-.districtTwo { top: 52%; left: 26%; }
-.districtThree { top: 31%; right: 22%; }
-
-.mapHeat {
-  position: absolute;
-  inset: 24% 28% 26% 26%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(72,222,87,0.2), rgba(47,134,255,0.16), transparent 68%);
-}
-
-.orderPolygonSvg {
-  position: absolute;
-  z-index: 4;
-  inset: 17% 18% 12% 13%;
-  width: 70%;
-  height: 70%;
-  filter: drop-shadow(0 0 14px rgba(47,134,255,0.7));
-}
-
-.orderPolygonSvg polygon {
-  fill: rgba(47,134,255,0.24);
-  stroke: #5aa0ff;
-  stroke-width: 0.7;
-}
-
-.orderPolygonSvg polyline {
-  fill: none;
-  stroke: #2f86ff;
-  stroke-width: 0.8;
-  stroke-dasharray: 1.4 1.2;
-}
-
-.orderPolygonSvg circle {
-  fill: #ffffff;
-  stroke: #2f86ff;
-  stroke-width: 0.7;
 }
 
 .mapChromeTop,
@@ -4536,7 +4503,7 @@ body {
   background: rgba(255,255,255,0.14);
 }
 
-.heatmapNotice {
+.mapNotice {
   position: absolute;
   top: 78px;
   right: 150px;
