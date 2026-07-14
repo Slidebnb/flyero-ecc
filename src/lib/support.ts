@@ -344,7 +344,7 @@ async function notifyTicketOwner(ticketId: string, type: string, title: string, 
 export async function updateTicket(actor: SessionUser, id: string, input: unknown) {
   if (!isSupportAdmin(actor)) throw new AuthError("Nur Admin/Support darf Tickets bearbeiten.", 403);
   const data = ticketUpdateSchema.parse(input);
-  const current = await prisma.supportTicket.findFirst({ where: { id, ...scopeWhere(actor) } });
+  const current = await prisma.supportTicket.findFirst({ where: { id, ...scopeWhere(actor), ...productionSupportTicketWhere() } });
   if (!current) throw new AuthError("Ticket wurde nicht gefunden.", 404);
 
   const updated = await prisma.supportTicket.update({

@@ -6,6 +6,12 @@ import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { logBackgroundJobFailure, logBackgroundJobStart, logBackgroundJobSuccess } from "@/lib/monitoring";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import {
+  productionAccountingExportWhere,
+  productionCreditNoteWhere,
+  productionInvoiceWhere,
+  productionPaymentWhere,
+} from "@/lib/productionData";
 
 type InvoiceExport = Prisma.InvoiceGetPayload<{
   include: { customer: true; order: true; payment: true; items: true };
@@ -42,13 +48,14 @@ function csv(headers: string[], rows: unknown[][]) {
 export async function generateExportNumber() {
   const year = new Date().getFullYear();
   const prefix = `ACC-${year}-`;
-  const count = await prisma.accountingExport.count({ where: { exportNumber: { startsWith: prefix } } });
+  const count = await prisma.accountingExport.count({ where: { ...productionAccountingExportWhere(), exportNumber: { startsWith: prefix } } });
   return `${prefix}${pad(count + 1)}`;
 }
 
 export async function collectInvoicesForPeriod(periodStart: Date, periodEnd: Date) {
   return prisma.invoice.findMany({
     where: {
+      ...productionInvoiceWhere(),
       invoiceDate: { gte: periodStart, lte: periodEnd },
       status: { not: "DRAFT" },
     },
@@ -60,6 +67,7 @@ export async function collectInvoicesForPeriod(periodStart: Date, periodEnd: Dat
 export async function collectPaymentsForPeriod(periodStart: Date, periodEnd: Date) {
   return prisma.payment.findMany({
     where: {
+      ...productionPaymentWhere(),
       OR: [
         { paidAt: { gte: periodStart, lte: periodEnd } },
         { createdAt: { gte: periodStart, lte: periodEnd } },
@@ -72,7 +80,7 @@ export async function collectPaymentsForPeriod(periodStart: Date, periodEnd: Dat
 
 export async function collectCreditNotesForPeriod(periodStart: Date, periodEnd: Date) {
   return prisma.creditNote.findMany({
-    where: { createdAt: { gte: periodStart, lte: periodEnd } },
+    where: { ...productionCreditNoteWhere(), createdAt: { gte: periodStart, lte: periodEnd } },
     include: { invoice: { include: { customer: true, order: true } } },
     orderBy: [{ createdAt: "asc" }, { creditNoteNumber: "asc" }],
   });
@@ -186,8 +194,14 @@ export async function markExportCompleted(input: { exportId: string; fileUrl: st
 }
 
 export async function archiveExport(input: { exportId: string; userId: string }) {
+  const current = await prisma.accountingExport.findFirst({
+    where: { id: input.exportId, ...productionAccountingExportWhere() },
+    select: { id: true },
+  });
+  if (!current) throw new Error("Export wurde nicht gefunden.");
+
   const updated = await prisma.accountingExport.update({
-    where: { id: input.exportId },
+    where: { id: current.id },
     data: { status: AccountingExportStatus.ARCHIVED },
   });
   await createAuditLog({ userId: input.userId, action: "accounting.export_archived", entityType: "AccountingExport", entityId: updated.id });

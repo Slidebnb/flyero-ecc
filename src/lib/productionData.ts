@@ -85,6 +85,11 @@ export function productionPaymentWhere(): Prisma.PaymentWhereInput {
   return { order: productionOrderWhere() };
 }
 
+export function productionCreditNoteWhere(): Prisma.CreditNoteWhereInput {
+  if (!isProductionRuntime) return {};
+  return { invoice: productionInvoiceWhere() };
+}
+
 export function productionReportWhere(): Prisma.ReportWhereInput {
   if (!isProductionRuntime) return {};
   return { order: productionOrderWhere() };

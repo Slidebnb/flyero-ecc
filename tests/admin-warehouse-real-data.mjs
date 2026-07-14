@@ -29,6 +29,8 @@ const adminAreasPage = read("src/app/admin/areas/page.tsx");
 const crm = read("src/lib/crm.ts");
 const leads = read("src/lib/leads.ts");
 const analytics = read("src/lib/analytics.ts");
+const accountingExport = read("src/lib/accountingExport.ts");
+const support = read("src/lib/support.ts");
 
 assert.match(schema, /model Warehouse[\s\S]*?isDemoData\s+Boolean\s+@default\(false\)/, "Warehouse braucht eine explizite Demo-Daten-Kennzeichnung.");
 assert.match(warehouseLibrary, /export function warehouseSourceWhere\(\)/, "Die Lagerquelle muss über einen gemeinsamen Server-Helper gesteuert werden.");
@@ -102,5 +104,12 @@ assert.match(crm, /addLeadNote[\s\S]*productionLeadWhere\(\)/, "CRM-Notizen dÃ�
 assert.match(crm, /convertLeadToCustomer[\s\S]*productionLeadWhere\(\)/, "CRM-Konvertierung dÃ¼rfen keine Seed-Leads mutieren.");
 assert.match(leads, /updateLead[\s\S]*productionLeadWhere\(\)/, "Lead-Updates dÃ¼rfen keine Seed-Leads mutieren.");
 assert.match(analytics, /getLeadMetrics[\s\S]*leadTenantWhere\(scope\),\s*\.\.\.productionLeadWhere\(\)/, "Lead-KPIs dÃ¼rfen keine Seed-Follow-ups zÃ¤hlen.");
+
+assert.match(productionData, /productionCreditNoteWhere/, "Buchhaltung braucht einen Produktionsfilter fuer Gutschriften.");
+assert.match(accountingExport, /productionInvoiceWhere\(\)/, "Buchhaltungsexporte duerfen keine Seed-Rechnungen einsammeln.");
+assert.match(accountingExport, /productionPaymentWhere\(\)/, "Buchhaltungsexporte duerfen keine Seed-Zahlungen einsammeln.");
+assert.match(accountingExport, /productionCreditNoteWhere\(\)/, "Buchhaltungsexporte duerfen keine Seed-Gutschriften einsammeln.");
+assert.match(accountingExport, /archiveExport[\s\S]*productionAccountingExportWhere\(\)/, "Seed-Buchhaltungsexporte duerfen nicht direkt archiviert werden.");
+assert.match(support, /updateTicket[\s\S]*productionSupportTicketWhere\(\)/, "Support-Updates duerfen keine versteckten Seed-Tickets mutieren.");
 
 console.log("Admin warehouse real-data contract passed");
