@@ -202,8 +202,9 @@ type GooglePath = {
   getLength: () => number;
   getAt: (index: number) => GoogleLatLng;
   forEach: (callback: (point: GoogleLatLng) => void) => void;
-  addListener?: (eventName: string, callback: () => void) => void;
+  addListener?: (eventName: string, callback: () => void) => GoogleEventListener | void;
 };
+type GoogleEventListener = { remove?: () => void };
 type GoogleMap = {
   setCenter: (center: LatLng) => void;
   setZoom: (zoom: number) => void;
@@ -214,19 +215,19 @@ type GooglePolygon = {
   setMap: (map: GoogleMap | null) => void;
   setPath: (path: LatLng[]) => void;
   getPath: () => GooglePath;
-  addListener?: (eventName: string, callback: () => void) => void;
+  addListener?: (eventName: string, callback: () => void) => GoogleEventListener | void;
 };
 type GoogleDrawingManager = {
   setMap: (map: GoogleMap | null) => void;
   setDrawingMode: (mode: string | null) => void;
-  addListener?: (eventName: string, callback: (overlay?: unknown) => void) => void;
+  addListener?: (eventName: string, callback: (overlay?: unknown) => void) => GoogleEventListener | void;
 };
 type GoogleNamespace = {
   maps: {
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
     Polygon: new (options: Record<string, unknown>) => GooglePolygon;
     LatLngBounds: new () => { extend: (point: LatLng) => void };
-    event: { addListener: (target: unknown, eventName: string, callback: (event?: unknown) => void) => void };
+    event: { addListener: (target: unknown, eventName: string, callback: (event?: unknown) => void) => GoogleEventListener | void };
     drawing?: {
       OverlayType: { POLYGON: string };
       DrawingManager: new (options: Record<string, unknown>) => GoogleDrawingManager;
@@ -455,18 +456,38 @@ function deliverabilityLabel(score?: number | null) {
 function loadGoogleMaps() {
   const browserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   if (!browserKey || typeof window === "undefined") return Promise.resolve(false);
-  if (window.google?.maps) return Promise.resolve(true);
+  const isReady = () => Boolean(
+    window.google?.maps?.Map
+      && window.google.maps.Polygon
+      && window.google.maps.drawing?.DrawingManager
+      && window.google.maps.LatLngBounds,
+  );
+  if (isReady()) return Promise.resolve(true);
   if (!window.__flyeroMapsLoading) {
     window.__flyeroMapsLoading = new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&libraries=drawing,geometry,places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&loading=async&libraries=drawing,geometry,places`;
       script.async = true;
-      script.onload = () => resolve();
+      script.onload = () => {
+        const startedAt = Date.now();
+        const waitForLibraries = () => {
+          if (isReady()) {
+            resolve();
+            return;
+          }
+          if (Date.now() - startedAt >= 10000) {
+            reject(new Error("Google Maps Zusatzbibliotheken konnten nicht geladen werden."));
+            return;
+          }
+          window.setTimeout(waitForLibraries, 50);
+        };
+        waitForLibraries();
+      };
       script.onerror = () => reject(new Error("Google Maps konnte nicht geladen werden."));
       document.head.appendChild(script);
     });
   }
-  return window.__flyeroMapsLoading.then(() => Boolean(window.google?.maps)).catch(() => false);
+  return window.__flyeroMapsLoading.then(() => isReady()).catch(() => false);
 }
 
 function MiniMapFallback() {
@@ -499,6 +520,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
+  const polygonListenerHandlesRef = useRef<GoogleEventListener[]>([]);
+  const drawingManagerListenerRef = useRef<GoogleEventListener | null>(null);
   const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
   const drawingManagerRef = useRef<GoogleDrawingManager | null>(null);
   const overviewDragRef = useRef<OverviewDragState | null>(null);
@@ -1203,82 +1226,146 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   useEffect(() => {
     if (!mapsReady || !mapElementRef.current || !window.google?.maps) return;
     const maps = window.google.maps;
+    let isActive = true;
+    const clearPolygonListeners = () => {
+      for (const handle of polygonListenerHandlesRef.current) {
+        try {
+          handle.remove?.();
+        } catch {
+          // Google may already have disposed the overlay during navigation.
+        }
+      }
+      polygonListenerHandlesRef.current = [];
+    };
     const syncPath = () => {
-      const next = pathToPoints(polygonRef.current?.getPath() ?? { getLength: () => 0, getAt: () => ({ lat: () => 0, lng: () => 0 }), forEach: () => undefined });
+      if (!isActive) return;
+      let next: LatLng[] = [];
+      try {
+        next = pathToPoints(polygonRef.current?.getPath() ?? { getLength: () => 0, getAt: () => ({ lat: () => 0, lng: () => 0 }), forEach: () => undefined });
+      } catch {
+        return;
+      }
       if (next.length >= 3) {
         setPolygon(next);
         setPolygonSource("manual");
       }
     };
     const attachPolygonListeners = (target: GooglePolygon) => {
-      const path = target.getPath();
-      if (!path) return;
-      const addListener = (listenerTarget: GooglePath | GooglePolygon, eventName: string, callback: () => void) => {
-        if (typeof listenerTarget.addListener === "function") {
-          listenerTarget.addListener(eventName, callback);
+      // The drawing API can finish an overlay on a later task. Registering
+      // immediately can target a disposed MVCObject and crash the wizard.
+      const register = () => {
+        if (!isActive || polygonRef.current !== target) return;
+        let path: GooglePath;
+        try {
+          path = target.getPath();
+        } catch {
           return;
         }
-        maps.event.addListener(listenerTarget, eventName, callback);
+        if (!path || typeof path.getLength !== "function") return;
+        clearPolygonListeners();
+        const addListener = (listenerTarget: GooglePath | GooglePolygon, eventName: string, callback: () => void) => {
+          try {
+            const handle = typeof listenerTarget.addListener === "function"
+              ? listenerTarget.addListener(eventName, callback)
+              : maps.event.addListener(listenerTarget, eventName, callback);
+            if (handle) polygonListenerHandlesRef.current.push(handle);
+          } catch {
+            // A route change can dispose a Google overlay between the checks
+            // above and registration. The next current overlay will retry.
+          }
+        };
+        addListener(path, "set_at", syncPath);
+        addListener(path, "insert_at", syncPath);
+        addListener(path, "remove_at", syncPath);
+        addListener(target, "drag", syncPath);
+        addListener(target, "dragend", syncPath);
       };
-      addListener(path, "set_at", syncPath);
-      addListener(path, "insert_at", syncPath);
-      addListener(path, "remove_at", syncPath);
-      addListener(target, "drag", syncPath);
-      addListener(target, "dragend", syncPath);
+      if (typeof window.requestAnimationFrame === "function") {
+        window.requestAnimationFrame(register);
+      } else {
+        window.setTimeout(register, 0);
+      }
     };
     if (!mapRef.current) {
-      mapRef.current = new maps.Map(mapElementRef.current, {
-        center,
-        zoom: 14,
-        disableDefaultUI: true,
-        mapTypeId: mapMode === "satellite" ? "satellite" : "roadmap",
-        styles: mapMode === "map" ? [
-          { elementType: "geometry", stylers: [{ color: "#182638" }] },
-          { elementType: "labels.text.fill", stylers: [{ color: "#b8c7d9" }] },
-          { elementType: "labels.text.stroke", stylers: [{ color: "#0a1018" }] },
-          { featureType: "road", elementType: "geometry", stylers: [{ color: "#26384d" }] },
-          { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c213a" }] },
-        ] : undefined,
-      });
+      try {
+        mapRef.current = new maps.Map(mapElementRef.current, {
+          center,
+          zoom: 14,
+          disableDefaultUI: true,
+          mapTypeId: mapMode === "satellite" ? "satellite" : "roadmap",
+          styles: mapMode === "map" ? [
+            { elementType: "geometry", stylers: [{ color: "#182638" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#b8c7d9" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#0a1018" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#26384d" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c213a" }] },
+          ] : undefined,
+        });
+      } catch {
+        return () => {
+          isActive = false;
+        };
+      }
     }
     if (!polygonRef.current && polygon.length >= 3) {
-      polygonRef.current = new maps.Polygon({
-        paths: polygon,
-        strokeColor: "#4a90ff",
-        strokeOpacity: 1,
-        strokeWeight: 3,
-        fillColor: "#1f7aff",
-        fillOpacity: 0.26,
-        editable: true,
-        draggable: true,
-      });
-      polygonRef.current.setMap(mapRef.current);
-      attachPolygonListeners(polygonRef.current);
-    }
-    if (!drawingManagerRef.current && maps.drawing && mapRef.current) {
-      drawingManagerRef.current = new maps.drawing.DrawingManager({
-        drawingMode: null,
-        drawingControl: false,
-        polygonOptions: {
-          strokeColor: "#a7ff00",
+      try {
+        polygonRef.current = new maps.Polygon({
+          paths: polygon,
+          strokeColor: "#4a90ff",
           strokeOpacity: 1,
           strokeWeight: 3,
           fillColor: "#1f7aff",
-          fillOpacity: 0.28,
+          fillOpacity: 0.26,
           editable: true,
           draggable: true,
-        },
-      });
-      drawingManagerRef.current.setMap(mapRef.current);
-      const drawingManager = drawingManagerRef.current;
+        });
+        polygonRef.current.setMap(mapRef.current);
+        attachPolygonListeners(polygonRef.current);
+      } catch {
+        polygonRef.current = null;
+      }
+    }
+    if (!drawingManagerRef.current && maps.drawing && mapRef.current) {
+      let drawingManager: GoogleDrawingManager | null = null;
+      try {
+        drawingManager = new maps.drawing.DrawingManager({
+          drawingMode: null,
+          drawingControl: false,
+          polygonOptions: {
+            strokeColor: "#a7ff00",
+            strokeOpacity: 1,
+            strokeWeight: 3,
+            fillColor: "#1f7aff",
+            fillOpacity: 0.28,
+            editable: true,
+            draggable: true,
+          },
+        });
+        drawingManager.setMap(mapRef.current);
+        drawingManagerRef.current = drawingManager;
+      } catch {
+        drawingManagerRef.current = null;
+      }
+      if (!drawingManager) return () => {
+        isActive = false;
+      };
       const onPolygonComplete = (overlay?: unknown) => {
         if (!overlay) return;
         const nextPolygon = overlay as GooglePolygon;
-        polygonRef.current?.setMap(null);
-        polygonRef.current = nextPolygon;
-        polygonRef.current.setMap(mapRef.current);
-        drawingManagerRef.current?.setDrawingMode(null);
-        const next = pathToPoints(nextPolygon.getPath());
+        try {
+          polygonRef.current?.setMap(null);
+          polygonRef.current = nextPolygon;
+          polygonRef.current.setMap(mapRef.current);
+          drawingManagerRef.current?.setDrawingMode(null);
+        } catch {
+          return;
+        }
+        let next: LatLng[] = [];
+        try {
+          next = pathToPoints(nextPolygon.getPath());
+        } catch {
+          return;
+        }
         if (next.length >= 3) {
           const segmentId = activeSegmentId ?? `segment-${Date.now()}`;
           if (!activeSegmentId) {
@@ -1299,13 +1386,40 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         }
         attachPolygonListeners(nextPolygon);
       };
-      if (typeof drawingManager.addListener === "function") {
-        drawingManager.addListener("polygoncomplete", onPolygonComplete);
-      } else {
-        maps.event.addListener(drawingManager, "polygoncomplete", onPolygonComplete);
+      if (!drawingManagerListenerRef.current) {
+        try {
+          const handle = typeof drawingManager.addListener === "function"
+            ? drawingManager.addListener("polygoncomplete", onPolygonComplete)
+            : maps.event.addListener(drawingManager, "polygoncomplete", onPolygonComplete);
+          if (handle) drawingManagerListenerRef.current = handle;
+        } catch {
+          drawingManagerListenerRef.current = null;
+        }
       }
     }
+    return () => {
+      isActive = false;
+    };
   }, [activeSegmentId, center, city, mapMode, mapsReady, polygon, postalCode, targetAreaName]);
+
+  useEffect(() => {
+    return () => {
+      for (const handle of polygonListenerHandlesRef.current) {
+        try {
+          handle.remove?.();
+        } catch {
+          // Google may already have disposed the overlay during navigation.
+        }
+      }
+      polygonListenerHandlesRef.current = [];
+      try {
+        drawingManagerListenerRef.current?.remove?.();
+      } catch {
+        // Google may already have disposed the drawing manager.
+      }
+      drawingManagerListenerRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     if (!mapsReady || !mapRef.current || !window.google?.maps) return;
