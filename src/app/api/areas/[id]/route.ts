@@ -10,6 +10,7 @@ import {
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { areaSchema } from "@/lib/validators";
 import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
+import { isProductionRuntime } from "@/lib/productionData";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -30,6 +31,9 @@ async function updateAreaFromBody(input: {
   const parsed = areaSchema.safeParse(input.body);
   if (!parsed.success) {
     throw new Error(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
+  }
+  if (isProductionRuntime && parsed.data.dataSourceType === "SEED") {
+    throw new Error("Seed-/Demo-Gebiete d\u00fcrfen in Produktion nicht angelegt werden.");
   }
 
   const area = await updateDistributionArea({ id: input.id, userId: input.userId, tenantId: input.tenantId, ...parsed.data });

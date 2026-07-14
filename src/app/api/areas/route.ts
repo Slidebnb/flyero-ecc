@@ -7,6 +7,7 @@ import { createDistributionArea, listAreas } from "@/lib/areas";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 import { areaSchema } from "@/lib/validators";
+import { isProductionRuntime } from "@/lib/productionData";
 
 export async function GET(request: Request) {
   try {
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
+    }
+    if (isProductionRuntime && parsed.data.dataSourceType === "SEED") {
+      return errorResponse("Seed-/Demo-Gebiete d\u00fcrfen in Produktion nicht angelegt werden.", 422);
     }
 
     const customer = session.role === "CUSTOMER"

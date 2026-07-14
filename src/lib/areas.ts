@@ -2,7 +2,7 @@ import { AreaDataSourceType, DistributionAreaType, HouseholdEstimateMethod, Pris
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { productionAreaWhere } from "@/lib/productionData";
+import { isProductionRuntime, productionAreaWhere } from "@/lib/productionData";
 
 type Position = [number, number];
 type PolygonFeature = {
@@ -54,6 +54,12 @@ type AreaInput = {
   customerId?: string | null;
   tenantId?: string | null;
 };
+
+function rejectSeedAreaInProduction(dataSourceType?: AreaDataSourceType | null) {
+  if (isProductionRuntime && dataSourceType === "SEED") {
+    throw new Error("Seed-/Demo-Gebiete d\u00fcrfen in Produktion nicht angelegt werden.");
+  }
+}
 
 export function slugifyAreaName(value: string) {
   return value
@@ -236,6 +242,7 @@ async function persistPolygons(areaId: string, geoJson: FeatureCollection | null
 }
 
 export async function createDistributionArea(input: AreaInput & { userId?: string | null }) {
+  rejectSeedAreaInProduction(input.dataSourceType);
   const geoJson = normalizeAreaGeoJson(input.geometryGeoJson ?? input.geoJson);
   const coverageAreaSqm = estimateCoverageAreaSqm({
     type: input.type,
@@ -316,9 +323,14 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
 
 export async function updateDistributionArea(input: AreaInput & { id: string; userId?: string | null; tenantId?: string | null }) {
   const existing = await prisma.distributionArea.findFirst({
-    where: { id: input.id, ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }) },
+    where: {
+      id: input.id,
+      ...productionAreaWhere(),
+      ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }),
+    },
   });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
+  rejectSeedAreaInProduction(input.dataSourceType);
   const geoJson = normalizeAreaGeoJson(input.geometryGeoJson ?? input.geoJson);
   const coverageAreaSqm = estimateCoverageAreaSqm({
     type: input.type,
@@ -405,7 +417,11 @@ export async function updateDistributionArea(input: AreaInput & { id: string; us
 
 export async function deleteDistributionArea(input: { id: string; userId?: string | null; tenantId?: string | null }) {
   const existing = await prisma.distributionArea.findFirst({
-    where: { id: input.id, ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }) },
+    where: {
+      id: input.id,
+      ...productionAreaWhere(),
+      ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }),
+    },
   });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
   const area = await prisma.distributionArea.update({
@@ -432,8 +448,8 @@ export async function deleteDistributionArea(input: { id: string; userId?: strin
 }
 
 export async function copyDistributionArea(input: { id: string; userId?: string | null; tenantId?: string | null }) {
-  const existing = await prisma.distributionArea.findUnique({
-    where: { id: input.id },
+  const existing = await prisma.distributionArea.findFirst({
+    where: { id: input.id, ...productionAreaWhere() },
     include: { polygons: { orderBy: { sortOrder: "asc" } } },
   });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
@@ -498,6 +514,7 @@ export async function linkAreaReferenceToOrder(input: {
   const area = await prisma.distributionArea.findFirst({
     where: {
       id: input.areaId,
+      ...productionAreaWhere(),
       status: { not: "DELETED" },
       OR: [{ tenantId: null }, { tenantId: order.tenantId }],
     },

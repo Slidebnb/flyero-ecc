@@ -5,6 +5,7 @@ import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPre
 import { requireRole } from "@/lib/auth";
 import { requireActiveTenantMembership } from "@/lib/tenantPolicy";
 import { listAreas } from "@/lib/areas";
+import { isProductionRuntime } from "@/lib/productionData";
 
 const AREA_TYPE_LABELS: Record<DistributionAreaType, string> = {
   POSTAL_CODE: "PLZ",
@@ -30,6 +31,9 @@ const AREA_SOURCE_TYPE_LABELS: Record<AreaDataSourceType, string> = {
   IMPORTED: "Importiert",
   ESTIMATED: "Geschätzt",
 };
+
+const AREA_SOURCE_TYPE_OPTIONS = Object.entries(AREA_SOURCE_TYPE_LABELS)
+  .filter(([value]) => !isProductionRuntime || value !== "SEED");
 
 type PageProps = {
   searchParams: Promise<{ search?: string; city?: string; type?: DistributionAreaType }>;
@@ -109,7 +113,7 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
           <label>
             Quellentyp
             <select name="dataSourceType" defaultValue="ADMIN">
-              {Object.entries(AREA_SOURCE_TYPE_LABELS).map(([value, label]) => (
+              {AREA_SOURCE_TYPE_OPTIONS.map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
@@ -238,7 +242,7 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
               <label>
                 Quellentyp
                 <select name="dataSourceType" defaultValue={area.dataSourceType}>
-                  {Object.entries(AREA_SOURCE_TYPE_LABELS).map(([value, label]) => (
+                  {AREA_SOURCE_TYPE_OPTIONS.map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>
