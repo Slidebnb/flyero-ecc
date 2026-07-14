@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { buildPlanningInputFingerprint } from "@/lib/planningQuote";
+import { calculateOrderPrice } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 type JsonRecord = Record<string, unknown>;
@@ -24,10 +25,13 @@ function decimalEqual(left: unknown, right: unknown) {
 export type OrderIntegrityCheck = {
   orderId: string;
   quoteMatchesOrder: boolean;
+  pricingMatchesSnapshot: boolean;
+  flyerQuantityConsistent: boolean;
   paymentMatchesOrder: boolean;
   invoiceMatchesPayment: boolean;
   shipmentMatchesFlyerSource: boolean;
   polygonReferenceMatches: boolean;
+  warehouseBasedOnCurrentArea: boolean;
   warnings: string[];
   checkedAt: string;
 };
@@ -39,11 +43,13 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
       payments: { where: { status: "PAID" }, orderBy: { createdAt: "desc" } },
       invoice: true,
       logisticsShipments: { orderBy: { createdAt: "desc" }, take: 1 },
+      distributionSegments: { select: { flyerQuantity: true, assignedWarehouseId: true } },
     },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
 
   const snapshot = nestedSnapshot(order.priceRuleSnapshot);
+  const currentPrice = await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity });
   const quoteInput = record(snapshot.quote.input);
   const quoteFingerprint = typeof snapshot.quote.fingerprint === "string" ? snapshot.quote.fingerprint : "";
   const currentFingerprint = buildPlanningInputFingerprint({
@@ -53,6 +59,8 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     street: typeof record(order.targetAddress).street === "string" ? record(order.targetAddress).street as string : null,
     houseNumber: typeof record(order.targetAddress).houseNumber === "string" ? record(order.targetAddress).houseNumber as string : null,
     flyerSource: order.customerOwnFlyers ? "CUSTOMER_OWN" : "PRINT_SERVICE",
+    productFormat: typeof snapshot.root.productFormat === "string" ? snapshot.root.productFormat : null,
+    pricingRuleSignature: currentPrice.snapshot.pricingRuleSignature,
     printDataStatus: snapshot.root.printDataStatus === "UPLOADED" || snapshot.root.printDataStatus === "PRINT_REQUESTED" ? snapshot.root.printDataStatus : "UPLOAD_LATER",
     preferredStartDate: order.preferredStartDate,
     preferredEndDate: order.preferredEndDate,
@@ -66,9 +74,16 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     : decimalEqual(snapshot.quote.netPrice, order.calculatedNetPrice)
       && decimalEqual(snapshot.quote.vatAmount, order.calculatedVat)
       && decimalEqual(snapshot.quote.grossPrice, order.calculatedGrossPrice);
+  const pricingMatchesSnapshot = priceMatches;
+  const segmentFlyerTotal = order.distributionSegments.reduce((sum, segment) => sum + (segment.flyerQuantity ?? 0), 0);
+  const flyerQuantityConsistent = Boolean(quoteInput.flyerQuantity)
+    && Number(quoteInput.flyerQuantity) === order.flyerQuantity
+    && (segmentFlyerTotal === 0 || segmentFlyerTotal <= order.flyerQuantity);
+  const warehouseBasedOnCurrentArea = Boolean(order.assignedWarehouseId) || Boolean(snapshot.area.needsManualReview);
   const quoteMatchesOrder = Boolean(quoteFingerprint) && quoteFingerprint === currentFingerprint.fingerprint
     && Number(snapshot.quote.flyerQuantity) === order.flyerQuantity
-    && priceMatches
+    && pricingMatchesSnapshot
+    && flyerQuantityConsistent
     && Number(snapshot.quote.coverageAreaSqm ?? order.coverageAreaSqm ?? 0) === Number(order.coverageAreaSqm ?? 0);
   const paidPayment = order.payments[0] ?? null;
   const paymentMatchesOrder = paidPayment ? decimalEqual(paidPayment.amount, order.calculatedGrossPrice) : order.status !== "PAID_WAITING_FOR_ADMIN_REVIEW";
@@ -78,6 +93,9 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
   const polygonReferenceMatches = Boolean(snapshot.quote.polygonHash)
     && snapshot.quote.polygonHash === currentFingerprint.polygonHash;
   const warnings: string[] = [];
+  if (!pricingMatchesSnapshot) warnings.push("Pricing-Snapshot und Auftrag stimmen nicht überein.");
+  if (!flyerQuantityConsistent) warnings.push("Flyermenge im Quote, Auftrag und Teilgebieten ist nicht konsistent.");
+  if (!warehouseBasedOnCurrentArea) warnings.push("Kein aktuelles Lager oder dokumentierte manuelle Prüfung hinterlegt.");
   if (!quoteMatchesOrder) warnings.push("Quote und gespeicherter Auftrag stimmen nicht vollständig überein.");
   if (manualOverride) warnings.push("Der Preis wurde durch eine dokumentierte manuelle Admin-Anpassung ersetzt.");
   if (!paymentMatchesOrder) warnings.push("Zahlungsbetrag und Auftragsbetrag stimmen nicht überein.");
@@ -89,10 +107,13 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
   return {
     orderId,
     quoteMatchesOrder,
+    pricingMatchesSnapshot,
+    flyerQuantityConsistent,
     paymentMatchesOrder,
     invoiceMatchesPayment,
     shipmentMatchesFlyerSource,
     polygonReferenceMatches,
+    warehouseBasedOnCurrentArea,
     warnings,
     checkedAt: new Date().toISOString(),
   };

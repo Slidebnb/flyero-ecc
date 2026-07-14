@@ -146,7 +146,13 @@ export async function assignWarehouseForOrder(input: { orderId: string; userId?:
     include: { assignedWarehouse: true, customer: true },
   });
 
-  if (input.reserveCapacity) {
+  const existingCustomerShipment = input.reserveCapacity
+    ? await prisma.logisticsShipment.findFirst({
+        where: { orderId: order.id, shipmentType: "CUSTOMER_TO_WAREHOUSE" },
+        select: { id: true },
+      })
+    : null;
+  if (input.reserveCapacity && !existingCustomerShipment) {
     await reserveWarehouseCapacity({
       warehouseId: best.warehouse.id,
       quantity: order.flyerQuantity,

@@ -616,6 +616,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     distributionAreaId: selectedAreaId,
     flyerQuantity: String(flyerQuantity),
     flyerSource,
+    productFormat,
     printDataStatus,
     preferredStartDate: startDate,
     preferredEndDate: endDate,
@@ -645,6 +646,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     postalCode,
     selectedAreaId,
     printDataStatus,
+    productFormat,
     street,
     startDate,
     endDate,
@@ -1476,6 +1478,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       centerLng: center.lng,
       flyerQuantity,
       flyerSource,
+      productFormat,
       printDataStatus,
       completionPath,
       preferredStartDate: startDate,
@@ -1884,6 +1887,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       <input type="hidden" name="centerLng" value={center.lng} />
       <input type="hidden" name="flyerQuantity" value={flyerQuantity} />
       <input type="hidden" name="flyerSource" value={flyerSource} />
+      <input type="hidden" name="productFormat" value={productFormat} />
       <input type="hidden" name="printDataStatus" value={printDataStatus} />
       <input type="hidden" name="preferredStartDate" value={startDate} />
       <input type="hidden" name="preferredEndDate" value={endDate} />

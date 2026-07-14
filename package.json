@@ -63,6 +63,7 @@
     "test:order-metrics-consistency": "node tests/order-metrics-consistency-smoke.mjs",
     "test:order-review-workflow": "node tests/order-review-workflow-smoke.mjs",
     "test:order-review-notifications": "node tests/order-review-notifications-smoke.mjs",
+    "test:order-review-notification": "node tests/order-review-notification-smoke.mjs",
     "test:order-notification-templates": "node tests/order-notification-template-smoke.mjs",
     "test:order-integrity": "node tests/order-integrity-diagnostic-smoke.mjs",
     "test:order-fulfillment-branching": "node tests/order-fulfillment-branching-smoke.mjs",

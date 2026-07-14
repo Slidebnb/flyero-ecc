@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import "dotenv/config";
 
 const baseUrl = process.env.PRICING_ADMIN_PROPAGATION_BASE_URL || "http://localhost:3000";
 const password = "DemoPasswort123!";
 let child = null;
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 async function waitForServer() {
   try {
@@ -65,20 +68,27 @@ async function requestJson(path, options = {}) {
 }
 
 function orderPayload() {
+  const geometryGeoJson = {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: { type: "Polygon", coordinates: [[[7.58, 50.35], [7.59, 50.35], [7.59, 50.36], [7.58, 50.36], [7.58, 50.35]]] },
+    }],
+  };
   return {
     serviceType: "FLYER_DISTRIBUTION",
     city: "Koblenz",
     postalCode: "56068",
     targetAreaName: "Pricing Propagation Smoke",
     areaType: "POLYGON",
-    targetAreaGeoJson: JSON.stringify({
-      type: "FeatureCollection",
-      features: [{
-        type: "Feature",
-        properties: {},
-        geometry: { type: "Polygon", coordinates: [[[7.58, 50.35], [7.59, 50.35], [7.59, 50.36], [7.58, 50.36], [7.58, 50.35]]] },
-      }],
-    }),
+    targetAreaGeoJson: JSON.stringify(geometryGeoJson),
+    areaSegments: [{
+      name: "Pricing Propagation Smoke",
+      city: "Koblenz",
+      postalCode: "56068",
+      geometryGeoJson,
+    }],
     coverageAreaSqm: 640000,
     estimatedHouseholds: 2400,
     estimatedFlyers: 2200,
@@ -99,6 +109,27 @@ function orderPayload() {
   };
 }
 
+async function orderPayloadWithCurrentQuote() {
+  const payload = orderPayload();
+  const quote = await requestJson("/api/public/planner/quote", {
+    method: "POST",
+    body: JSON.stringify({
+      city: payload.city,
+      postalCode: payload.postalCode,
+      coverageAreaSqm: payload.coverageAreaSqm,
+      flyerQuantity: payload.flyerQuantity,
+      flyerSource: payload.flyerSource,
+      printDataStatus: payload.printDataStatus,
+      preferredStartDate: payload.preferredStartDate,
+      preferredEndDate: payload.preferredEndDate,
+      segments: payload.areaSegments,
+    }),
+  });
+  assert.equal(typeof quote.data.metrics.fingerprint, "string", "Der öffentliche Planer liefert keinen Angebots-Fingerabdruck.");
+  return { ...payload, quoteFingerprint: quote.data.metrics.fingerprint };
+}
+
+await prisma.authRateLimitBucket.deleteMany();
 await waitForServer();
 let adminCookie = "";
 let originalRules = [];
@@ -131,7 +162,7 @@ try {
   const existingOrder = await requestJson("/api/customer/orders", {
     method: "POST",
     headers: { cookie: customerCookie },
-    body: JSON.stringify(orderPayload()),
+    body: JSON.stringify(await orderPayloadWithCurrentQuote()),
   });
   assert.equal(existingOrder.data.calculatedNetPrice, "760", "Ausgangspreis der bestehenden offenen Order ist unerwartet.");
 
@@ -180,14 +211,14 @@ try {
   const created = await requestJson("/api/customer/orders", {
     method: "POST",
     headers: { cookie: customerCookie },
-    body: JSON.stringify(orderPayload()),
+    body: JSON.stringify(await orderPayloadWithCurrentQuote()),
   });
   assert.equal(created.data.calculatedNetPrice, "2000", "Neue Order uebernimmt die Admin-Preisregel nicht.");
 
   const pendingCheckoutOrder = await requestJson("/api/customer/orders", {
     method: "POST",
     headers: { cookie: customerCookie },
-    body: JSON.stringify({ ...orderPayload(), completionPath: "direct_payment" }),
+    body: JSON.stringify({ ...(await orderPayloadWithCurrentQuote()), completionPath: "direct_payment" }),
   });
   const firstCheckout = await requestJson("/api/payments/checkout", {
     method: "POST",
@@ -199,7 +230,7 @@ try {
   const manualPriceOrder = await requestJson("/api/customer/orders", {
     method: "POST",
     headers: { cookie: customerCookie },
-    body: JSON.stringify(orderPayload()),
+    body: JSON.stringify(await orderPayloadWithCurrentQuote()),
   });
   await requestJson(`/api/admin/orders/${manualPriceOrder.data.id}/price`, {
     method: "POST",
@@ -247,5 +278,7 @@ try {
       body: JSON.stringify({ rules: originalRules, settings: { vat_rate: originalVatRate } }),
     }).catch(() => {});
   }
+  await prisma.authRateLimitBucket.deleteMany().catch(() => {});
+  await prisma.$disconnect();
   if (child) child.kill();
 }

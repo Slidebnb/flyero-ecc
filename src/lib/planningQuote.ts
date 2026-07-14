@@ -14,6 +14,8 @@ export type PlanningInputFingerprint = {
   coverageAreaSqm: number;
   flyerSource: "CUSTOMER_OWN" | "PRINT_SERVICE";
   printDataStatus: "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED";
+  productFormat: string;
+  pricingRuleSignature: string;
   preferredStartDate: string;
   preferredEndDate: string;
   perimeterMeters: number | null;
@@ -60,6 +62,8 @@ export type PlanningQuoteInput = {
   houseNumber?: string | null;
   flyerSource?: "CUSTOMER_OWN" | "PRINT_SERVICE";
   printDataStatus?: "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED";
+  productFormat?: string | null;
+  pricingRuleSignature?: string | null;
   preferredStartDate?: string | Date | null;
   preferredEndDate?: string | Date | null;
   coverageAreaSqm?: number | null;
@@ -152,6 +156,8 @@ export function normalizePlanningInput(input: PlanningQuoteInput): PlanningInput
     coverageAreaSqm,
     flyerSource: input.flyerSource ?? "CUSTOMER_OWN",
     printDataStatus: input.printDataStatus ?? "UPLOAD_LATER",
+    productFormat: input.productFormat?.trim() || "DIN Lang (99 x 210 mm)",
+    pricingRuleSignature: input.pricingRuleSignature?.trim() ?? "",
     preferredStartDate: dateValue(input.preferredStartDate),
     preferredEndDate: dateValue(input.preferredEndDate),
     perimeterMeters,

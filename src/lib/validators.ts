@@ -209,6 +209,7 @@ export const orderCreateSchema = z
     radiusMeters: optionalNonNegativeInt,
     flyerQuantity: z.coerce.number().int().positive(),
     flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]),
+    productFormat: z.string().trim().min(2).max(80).optional().default("DIN Lang (99 x 210 mm)"),
     printDataStatus: z.enum(["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"]).optional().default("UPLOAD_LATER"),
     completionPath: z.enum(["direct_payment", "inquiry", "document_email"]).optional().default("direct_payment"),
     preferredStartDate: z.coerce.date(),

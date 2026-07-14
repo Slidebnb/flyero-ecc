@@ -503,7 +503,7 @@ export async function listPrintOrders(actor: SessionUser): Promise<PrintOrderLis
   }) as Promise<PrintOrderListItem[]>;
 }
 
-export async function createPrintOrder(actor: SessionUser, input: unknown) {
+export async function createPrintOrder(actor: SessionUser, input: unknown, options?: { notifyCustomer?: boolean }) {
   const data = printOrderCreateSchema.parse(input);
   const order = await assertOrderAccess(actor, data.orderId);
   const assigned = await assignWarehouseForOrder({ orderId: order.id, userId: actor.id, reserveCapacity: true });
@@ -545,8 +545,55 @@ export async function createPrintOrder(actor: SessionUser, input: unknown) {
   await prisma.order.update({ where: { id: order.id }, data: { needsPrintService: true, customerOwnFlyers: false } });
   await createAuditLog({ userId: actor.id, tenantId: printOrder.tenantId, action: "print.requested", entityType: "PrintOrder", entityId: printOrder.id, newValues: { status: printOrder.status, quantity: printOrder.quantity } });
   await notifyAdmins({ type: "PRINT_ORDER_REQUESTED", title: "Druckauftrag", message: `${printOrder.order.orderNumber}: Druckauftrag wurde angefragt.`, data: { printOrderId: printOrder.id } });
-  await createNotification({ userId: actor.id, type: "PRINT_ORDER_REQUESTED", title: "Druckauftrag angefragt", message: "Dein Druckauftrag wurde gespeichert.", data: { printOrderId: printOrder.id } });
+  if (options?.notifyCustomer !== false) {
+    await createNotification({ userId: actor.id, type: "PRINT_ORDER_REQUESTED", title: "Druckauftrag angefragt", message: "Dein Druckauftrag wurde gespeichert.", data: { printOrderId: printOrder.id } });
+  }
   return printOrder;
+}
+
+function printFormatFromSnapshot(snapshot: unknown) {
+  const value = snapshot && typeof snapshot === "object" && !Array.isArray(snapshot)
+    ? (snapshot as Record<string, unknown>).productFormat
+    : null;
+  const format = typeof value === "string" ? value.toLowerCase() : "";
+  if (format.includes("a5")) return "DIN_A5" as const;
+  if (format.includes("a6")) return "CUSTOM" as const;
+  if (format.includes("din lang")) return "DIN_LANG" as const;
+  return "CUSTOM" as const;
+}
+
+export async function ensurePrintOrderForOrder(input: { orderId: string; adminUserId: string }) {
+  const existing = await prisma.printOrder.findFirst({
+    where: { orderId: input.orderId },
+    orderBy: { createdAt: "asc" },
+  });
+  if (existing) return existing;
+
+  const order = await prisma.order.findUnique({
+    where: { id: input.orderId },
+    select: { id: true, flyerQuantity: true, needsPrintService: true, priceRuleSnapshot: true },
+  });
+  if (!order) throw new AuthError("Auftrag wurde nicht gefunden.", 404);
+  if (!order.needsPrintService) throw new Error("Für diesen Auftrag ist kein FLYERO-Druckservice ausgewählt.");
+
+  const actor = await prisma.user.findUnique({
+    where: { id: input.adminUserId },
+    select: { id: true, email: true, role: true, warehouseId: true, tenantId: true },
+  });
+  if (!actor || !adminRoles.includes(actor.role)) throw new AuthError("Nur Admin/Support darf Druckaufträge anlegen.", 403);
+
+  return createPrintOrder(actor, {
+    orderId: input.orderId,
+    printFormat: printFormatFromSnapshot(order.priceRuleSnapshot),
+    paperType: "Standardpapier",
+    paperWeight: 80,
+    colorMode: "4/4",
+    doubleSided: true,
+    folded: "NONE",
+    finishing: "NONE",
+    quantity: order.flyerQuantity,
+    notes: "Automatisch aus der bestätigten Bestellung angelegt. Druckpartner und finale Druckdetails werden durch FLYERO geprüft.",
+  }, { notifyCustomer: false });
 }
 
 async function ensureWarehouseInventoryForPrint(printOrderId: string, actor: SessionUser) {

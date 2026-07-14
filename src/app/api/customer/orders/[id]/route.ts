@@ -77,6 +77,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       segments: data.areaSegments,
       coverageAreaSqm: data.coverageAreaSqm,
       flyerSource: data.flyerSource,
+      productFormat: data.productFormat,
       printDataStatus: data.printDataStatus,
       preferredStartDate: data.preferredStartDate,
       preferredEndDate: data.preferredEndDate,
@@ -170,8 +171,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
             quoteFingerprint: intelligence.metrics.fingerprint,
             polygonHash: intelligence.metrics.polygonHash,
             calculationVersion: intelligence.metrics.calculationVersion,
+            productFormat: data.productFormat,
           },
-          snapshot: order.priceRuleSnapshot,
+          snapshot: {
+            ...(order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot) ? order.priceRuleSnapshot : {}),
+            productFormat: data.productFormat,
+          },
         }),
       },
     });

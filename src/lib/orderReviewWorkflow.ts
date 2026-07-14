@@ -1,7 +1,8 @@
 import { createAuditLog } from "@/lib/audit";
 import { createInvoiceForOrder } from "@/lib/invoices";
+import { ensurePrintOrderForOrder } from "@/lib/documents";
 import { ensureShipmentForCustomerFlyers } from "@/lib/logistics";
-import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { createNotification } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { assertOrderTransition } from "@/lib/orders";
 import { createCheckoutForOrder } from "@/lib/payments";
@@ -66,6 +67,7 @@ export async function reviewOrder(input: {
     if (paid) {
       await createInvoiceForOrder({ orderId: order.id, adminUserId: input.adminUserId });
       if (order.customerOwnFlyers) await ensureShipmentForCustomerFlyers({ orderId: order.id, userId: input.adminUserId });
+      if (order.needsPrintService) await ensurePrintOrderForOrder({ orderId: order.id, adminUserId: input.adminUserId });
     }
     return order;
   }
@@ -116,7 +118,14 @@ export async function reviewOrder(input: {
       const shipment = await ensureShipmentForCustomerFlyers({ orderId: order.id, userId: input.adminUserId });
       shipmentWarehouse = await prisma.warehouse.findUnique({ where: { id: shipment.warehouseId }, select: { name: true, address: true } });
     } else {
-      await notifyAdmins({ type: "PRINT_ORDER_REQUESTED", title: "Druckprozess starten", message: `Auftrag ${order.orderNumber} wurde angenommen und benötigt den Druckprozess.` });
+      const printOrder = await ensurePrintOrderForOrder({ orderId: order.id, adminUserId: input.adminUserId });
+      await createAuditLog({
+        userId: input.adminUserId,
+        action: "print.order_created_from_approval",
+        entityType: "PrintOrder",
+        entityId: printOrder.id,
+        newValues: { orderId: order.id, quantity: printOrder.quantity },
+      });
     }
     await createNotification({
       userId: order.customer.userId,

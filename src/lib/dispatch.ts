@@ -526,12 +526,13 @@ export async function acceptDispatchOrder(input: { orderId: string; distributorU
   }
 
   const assignment = await prisma.dispatchAssignment.findFirst({
-    where: { orderId: input.orderId, distributorId: profile.id, status: "ASSIGNED" },
+    where: { orderId: input.orderId, distributorId: profile.id, status: { in: ["ASSIGNED", "ACCEPTED"] } },
     include: { order: true, inventory: true },
   });
   if (!assignment) {
     throw new Error("Keine offene Dispatch-Anfrage gefunden.");
   }
+  if (assignment.status === "ACCEPTED") return assignment;
   if (assignment.inventory?.reservedDistributorId && assignment.inventory.reservedDistributorId !== profile.id) {
     throw new Error("Dieser Auftrag ist bereits für einen anderen Verteiler reserviert.");
   }
@@ -591,12 +592,13 @@ export async function rejectDispatchOrder(input: {
   }
 
   const assignment = await prisma.dispatchAssignment.findFirst({
-    where: { orderId: input.orderId, distributorId: profile.id, status: "ASSIGNED" },
+    where: { orderId: input.orderId, distributorId: profile.id, status: { in: ["ASSIGNED", "REJECTED"] } },
     include: { order: true },
   });
   if (!assignment) {
     throw new Error("Keine offene Dispatch-Anfrage gefunden.");
   }
+  if (assignment.status === "REJECTED") return assignment;
 
   const updated = await prisma.$transaction(async (tx) => {
     const rejected = await tx.dispatchAssignment.update({

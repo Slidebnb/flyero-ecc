@@ -242,6 +242,7 @@ export async function getOrderIntelligence(input: {
   perimeterMeters?: number | null;
   targetAreaGeoJson?: unknown;
   flyerSource?: "CUSTOMER_OWN" | "PRINT_SERVICE";
+  productFormat?: string | null;
   printDataStatus?: "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED";
   preferredStartDate?: string | Date | null;
   preferredEndDate?: string | Date | null;
@@ -260,11 +261,12 @@ export async function getOrderIntelligence(input: {
     coverageAreaSqm: input.coverageAreaSqm,
     perimeterMeters: input.perimeterMeters,
     flyerSource: input.flyerSource,
+    productFormat: input.productFormat,
     printDataStatus: input.printDataStatus,
     preferredStartDate: input.preferredStartDate,
     preferredEndDate: input.preferredEndDate,
   });
-  const quoteFingerprint = buildPlanningInputFingerprint({
+  let quoteFingerprint = buildPlanningInputFingerprint({
     flyerQuantity: input.flyerQuantity ?? 0,
     city: input.city,
     postalCode: input.postalCode,
@@ -275,6 +277,7 @@ export async function getOrderIntelligence(input: {
     coverageAreaSqm: planning.coverageAreaSqm ?? input.coverageAreaSqm,
     perimeterMeters: planning.perimeterMeters,
     flyerSource: input.flyerSource,
+    productFormat: input.productFormat,
     printDataStatus: input.printDataStatus,
     preferredStartDate: input.preferredStartDate,
     preferredEndDate: input.preferredEndDate,
@@ -380,6 +383,23 @@ export async function getOrderIntelligence(input: {
     distributorCount: distributorNeed,
   });
   const price = await calculateOrderPrice({ serviceType: "FLYER_DISTRIBUTION", flyerQuantity });
+  quoteFingerprint = buildPlanningInputFingerprint({
+    flyerQuantity,
+    city: input.city,
+    postalCode: input.postalCode,
+    street: input.street,
+    houseNumber: input.houseNumber,
+    targetAreaGeoJson: input.targetAreaGeoJson,
+    areaSegments: input.segments,
+    coverageAreaSqm: planning.coverageAreaSqm ?? input.coverageAreaSqm,
+    perimeterMeters: planning.perimeterMeters,
+    flyerSource: input.flyerSource,
+    productFormat: input.productFormat,
+    printDataStatus: input.printDataStatus,
+    preferredStartDate: input.preferredStartDate,
+    preferredEndDate: input.preferredEndDate,
+    pricingRuleSignature: price.snapshot.pricingRuleSignature,
+  });
   const householdCountSource = segmentCalculations
     ? segmentCalculations.map((item) => estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source)).join(", ")
     : estimateSourceLabel(referenceEstimate?.method, referenceEstimate?.source);

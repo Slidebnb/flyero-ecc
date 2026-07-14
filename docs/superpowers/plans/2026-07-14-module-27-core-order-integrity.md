@@ -3,7 +3,9 @@
 Stand der Analyse: 14.07.2026
 Start-Commit: `13657ef Mehrgebiete und deutschlandweite Verteilung vorbereiten`
 Start-Branch: `codex/module-27-core-order-integrity`
-Basisvergleich: `origin/main` ist auf demselben Commit wie der Start-HEAD.
+Basisvergleich: Der Arbeitsstand startete auf `13657ef`; der zum Auditzeitpunkt
+aktuelle `origin/main` zeigte auf `7851370` und war damit Vorfahr des
+Start-HEAD. Es wurde kein Reset und keine Migration geloescht.
 Der Arbeitsbaum enthielt bereits uncommittete Aktivierungs-/Checkout-Aenderungen
 aus dem vorherigen Modul-27-Arbeitsstand. Diese Aenderungen werden erhalten und
 nicht zurueckgesetzt.

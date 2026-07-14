@@ -551,8 +551,18 @@ export async function refundPayment(input: {
   if (openDispute && isRefundBlockedByDispute(openDispute.status)) {
     throw new Error("Für diese Zahlung ist ein offener Stripe-Zahlungsstreitfall vorhanden. Bitte zuerst den Streitfall prüfen.");
   }
-  const amount = input.amount ? new Prisma.Decimal(input.amount) : payment.amount;
-  const refundType = amount.lessThan(payment.amount) ? "PARTIAL" : "FULL";
+  const refundedAmount = payment.refunds
+    .filter((refund) => refund.status === "SUCCEEDED")
+    .reduce((total, refund) => total.plus(refund.amount), new Prisma.Decimal(0));
+  const remainingAmount = payment.amount.minus(refundedAmount);
+  if (remainingAmount.lessThanOrEqualTo(0)) {
+    throw new Error("Diese Zahlung wurde bereits vollständig erstattet.");
+  }
+  const amount = input.amount ? new Prisma.Decimal(input.amount) : remainingAmount;
+  if (amount.lessThanOrEqualTo(0) || amount.greaterThan(remainingAmount)) {
+    throw new Error("Der Erstattungsbetrag überschreitet den noch offenen Zahlungsbetrag.");
+  }
+  const refundType = amount.lessThan(remainingAmount) ? "PARTIAL" : "FULL";
   const refund = await prisma.refund.create({
     data: {
       paymentId: payment.id,

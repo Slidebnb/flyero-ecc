@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
       segments: data.areaSegments,
       coverageAreaSqm: data.coverageAreaSqm,
       flyerSource: data.flyerSource,
+      productFormat: data.productFormat,
       printDataStatus: data.printDataStatus,
       preferredStartDate: data.preferredStartDate,
       preferredEndDate: data.preferredEndDate,
@@ -207,6 +208,7 @@ export async function POST(request: NextRequest) {
               snapshot: {
               ...price.snapshot,
               completionPath: data.completionPath,
+              productFormat: data.productFormat,
               printDataStatus: data.printDataStatus,
               customerFacingPriceLabel: data.completionPath === "direct_payment"
                 ? "Endpreis vorbehaltlich finaler Prüfung"

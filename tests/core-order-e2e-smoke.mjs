@@ -9,7 +9,7 @@ const files = [
   "src/lib/dispatch.ts",
 ];
 const source = files.map((file) => readFileSync(file, "utf8")).join("\n");
-for (const snippet of ["quoteFingerprint", "calculateOrderPrice", "checkout", "createInvoiceForOrder", "REPORT_PUBLISHED", "assignOrderToDistributor", "acceptDispatchOrder"]) {
+for (const snippet of ["quoteFingerprint", "calculateOrderPrice", "checkout", "createInvoiceForOrder", "REPORT_PUBLISHED", "assignOrderToDistributor", "acceptDispatchOrder", "status === \"ACCEPTED\"", "status === \"REJECTED\""]) {
   assert(source.includes(snippet), `Core-Prozessbaustein fehlt: ${snippet}`);
 }
 console.log("Core order e2e contract checks passed.");
