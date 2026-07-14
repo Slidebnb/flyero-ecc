@@ -26,6 +26,7 @@ const areas = read("src/lib/areas.ts");
 const areaRoute = read("src/app/api/areas/route.ts");
 const areaIdRoute = read("src/app/api/areas/[id]/route.ts");
 const adminAreasPage = read("src/app/admin/areas/page.tsx");
+const crm = read("src/lib/crm.ts");
 
 assert.match(schema, /model Warehouse[\s\S]*?isDemoData\s+Boolean\s+@default\(false\)/, "Warehouse braucht eine explizite Demo-Daten-Kennzeichnung.");
 assert.match(warehouseLibrary, /export function warehouseSourceWhere\(\)/, "Die Lagerquelle muss über einen gemeinsamen Server-Helper gesteuert werden.");
@@ -93,5 +94,6 @@ assert.match(areaRoute, /Seed-\/Demo-Gebiete.*Produktion nicht angelegt werden/,
 assert.match(areaIdRoute, /Seed-\/Demo-Gebiete.*Produktion nicht angelegt werden/, "Die Gebiets-ID-API muss den Seed-Quellentyp bei Ã„nderungen ablehnen.");
 assert.match(adminAreasPage, /AREA_SOURCE_TYPE_OPTIONS/, "Das Admin-Gebietsformular muss eine produktionsbereinigte Quellenliste verwenden.");
 assert.match(adminAreasPage, /!isProductionRuntime \|\| value !== "SEED"/, "Das Admin-Gebietsformular darf Seed\/Demo in Produktion nicht anbieten.");
+assert.match(crm, /getCrmFollowups[\s\S]*baseWhere = \{[\s\S]*productionLeadWhere\(\)/, "CRM-Follow-ups dÃ¼rfen keine Seed-Leads anzeigen.");
 
 console.log("Admin warehouse real-data contract passed");

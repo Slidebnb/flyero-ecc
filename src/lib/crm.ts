@@ -427,7 +427,7 @@ export async function getCrmFollowups(scope: LeadScope) {
   const weekEnd = new Date(todayEnd);
   weekEnd.setDate(weekEnd.getDate() + 7);
 
-  const baseWhere = { ...leadScopeWhere(scope), archivedAt: null, status: { notIn: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.ARCHIVED] } };
+  const baseWhere = { ...leadScopeWhere(scope), ...productionLeadWhere(), archivedAt: null, status: { notIn: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.ARCHIVED] } };
   const include = { assignedTo: { select: { email: true } } };
   const [overdue, today, thisWeek, withoutFollowup] = await Promise.all([
     prisma.lead.findMany({ where: { ...baseWhere, nextFollowUpAt: { lt: todayStart } }, include, orderBy: { nextFollowUpAt: "asc" }, take: 100 }),
