@@ -124,7 +124,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       isActive: data.isActive,
       isDefault: data.isDefault,
     };
-    const warehouse = await prisma.warehouse.update({ where: { id }, data: update });
+    const warehouse = await prisma.$transaction(async (tx) => {
+      if (data.isDefault === true) {
+        await tx.warehouse.updateMany({ where: { ...warehouseSourceWhere(), id: { not: id } }, data: { isDefault: false } });
+      }
+      return tx.warehouse.update({ where: { id }, data: update });
+    });
     await createAuditLog({ userId: session.id, action: "logistics.warehouse_updated", entityType: "Warehouse", entityId: id, newValues: warehouse });
     return successResponse(warehouse);
   } catch (error) {

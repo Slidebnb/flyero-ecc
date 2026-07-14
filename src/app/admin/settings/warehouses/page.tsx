@@ -13,7 +13,7 @@ async function createWarehouse(formData: FormData) {
   const session = await requireRole([UserRole.ADMIN]);
   const isDefault = formData.get("isDefault") === "on";
   const warehouse = await prisma.$transaction(async (tx) => {
-    if (isDefault) await tx.warehouse.updateMany({ data: { isDefault: false } });
+    if (isDefault) await tx.warehouse.updateMany({ where: warehouseSourceWhere(), data: { isDefault: false } });
     return tx.warehouse.create({
       data: {
         name: String(formData.get("name") ?? ""),
@@ -37,6 +37,7 @@ async function createWarehouse(formData: FormData) {
         contactPerson: String(formData.get("contactPerson") ?? ""),
         contactPhone: String(formData.get("contactPhone") ?? ""),
         contactEmail: String(formData.get("contactEmail") ?? ""),
+        notes: String(formData.get("notes") ?? ""),
       },
     });
   });
@@ -53,7 +54,7 @@ async function toggleWarehouse(formData: FormData) {
   if (!before) throw new Error("Lager wurde nicht gefunden.");
   const isDefault = formData.get("isDefault") === "on";
   const warehouse = await prisma.$transaction(async (tx) => {
-    if (isDefault) await tx.warehouse.updateMany({ where: { id: { not: id } }, data: { isDefault: false } });
+    if (isDefault) await tx.warehouse.updateMany({ where: { ...warehouseSourceWhere(), id: { not: id } }, data: { isDefault: false } });
     return tx.warehouse.update({
       where: { id },
       data: {
@@ -75,6 +76,7 @@ async function toggleWarehouse(formData: FormData) {
         contactPerson: String(formData.get("contactPerson") ?? ""),
         contactPhone: String(formData.get("contactPhone") ?? ""),
         contactEmail: String(formData.get("contactEmail") ?? ""),
+        notes: String(formData.get("notes") ?? ""),
         isActive: formData.get("isActive") === "on",
         isDefault,
       },
@@ -96,7 +98,7 @@ export default async function WarehouseSettingsPage() {
           <label>Name<input name="name" required /></label><label>Code<input name="code" placeholder="KOB-HQ" required /></label><label>Stadt<input name="city" required /></label><label>PLZ<input name="postalCode" required /></label>
           <label>Region<input name="region" /></label><label>Kapazität Flyer<input name="capacityLimit" type="number" min="0" /></label>
           <label>Straße<input name="street" /></label><label>Hausnummer<input name="houseNumber" /></label><label>Öffnungszeiten<textarea name="openingHours" /></label>
-          <label>Ansprechpartner<input name="contactPerson" /></label><label>Telefon<input name="contactPhone" /></label><label>E-Mail<input name="contactEmail" /></label>
+          <label>Ansprechpartner<input name="contactPerson" /></label><label>Telefon<input name="contactPhone" /></label><label>E-Mail<input name="contactEmail" /></label><label>Notizen<textarea name="notes" /></label>
           <label><input name="isDefault" type="checkbox" /> Standardlager</label><button type="submit">Anlegen</button>
         </form>
       </section>
@@ -121,6 +123,7 @@ export default async function WarehouseSettingsPage() {
                 <label>Ansprechpartner<input name="contactPerson" defaultValue={warehouse.contactPerson ?? ""} /></label>
                 <label>Telefon<input name="contactPhone" defaultValue={warehouse.contactPhone ?? ""} /></label>
                 <label>E-Mail<input name="contactEmail" defaultValue={warehouse.contactEmail ?? ""} /></label>
+                <label>Notizen<textarea name="notes" defaultValue={warehouse.notes ?? ""} /></label>
               </div>
               <label><input name="isActive" type="checkbox" defaultChecked={warehouse.isActive} /> aktiv</label>
               <label><input name="isDefault" type="checkbox" defaultChecked={warehouse.isDefault} /> Standardlager</label>

@@ -32,6 +32,7 @@ function warehouseData(body: Record<string, unknown>) {
     contactPerson: String(body.contactPerson ?? "").trim(),
     contactPhone: String(body.contactPhone ?? "").trim(),
     contactEmail: String(body.contactEmail ?? "").trim(),
+    notes: String(body.notes ?? "").trim(),
   };
 }
 
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     const data = warehouseData(body);
     if (!data.name || !data.city || !data.postalCode) throw new Error("Name, Stadt und PLZ sind Pflichtfelder.");
     const warehouse = await prisma.$transaction(async (tx) => {
-      if (data.isDefault) await tx.warehouse.updateMany({ data: { isDefault: false } });
+      if (data.isDefault) await tx.warehouse.updateMany({ where: warehouseSourceWhere(), data: { isDefault: false } });
       return tx.warehouse.create({ data: { ...data, isDemoData: false } });
     });
     await createAuditLog({ userId: session.id, action: "settings.warehouse_created", entityType: "Warehouse", entityId: warehouse.id, newValues: warehouse });

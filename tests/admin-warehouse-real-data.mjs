@@ -39,6 +39,13 @@ assert.match(settingsPage, /isDemoData:\s*false/, "Neu angelegte Lager mÃ¼ssen
 assert.match(settingsPage, /findFirst\(\{ where: \{ id, \.\.\.warehouseSourceWhere\(\) \}/, "Die Admin-Lagerbearbeitung darf versteckte Demo-Lager nicht mutieren.");
 assert.match(settingsPage, /Noch kein echtes Lager angelegt\./, "Die Admin-Oberfläche braucht einen ehrlichen Leerzustand.");
 assert.match(settingsIdRoute, /export async function DELETE/, "Die Admin-API braucht eine explizite DELETE-Route.");
+assert.match(settingsRoute, /where: warehouseSourceWhere\(\)/, "Default warehouse updates must exclude hidden demo data.");
+assert.match(settingsIdRoute, /where: \{ \.\.\.warehouseSourceWhere\(\), id: \{ not: id \} \}/, "Warehouse default updates must remain scoped to real data.");
+assert.match(settingsIdRoute, /replacement = before\.isDefault/, "Deleting the default warehouse must select a real replacement.");
+assert.match(read("src/app/api/admin/logistics/warehouses/[id]/route.ts"), /tx\.warehouse\.updateMany\(\{ where: \{ \.\.\.warehouseSourceWhere\(\), id: \{ not: id \} \}/, "Logistics warehouse updates must exclude hidden demo data.");
+assert.match(settingsPage, /name="notes"/, "Warehouse maintenance must expose notes.");
+assert.match(settingsRoute, /notes: String\(body\.notes/, "Warehouse creation API must persist notes.");
+assert.match(settingsIdRoute, /\"notes\"\]\)/, "Warehouse update API must persist notes.");
 assert.match(settingsIdRoute, /warehouseDeleteReferences/, "DELETE muss vor dem Löschen bestehende Referenzen prüfen.");
 assert.match(seed, /SEED_DEMO_DATA/, "Demo-Seeding muss explizit opt-in sein.");
 assert.match(seed, /isDemoData:\s*true/, "Seed-Lager müssen als Demo-Daten markiert werden.");

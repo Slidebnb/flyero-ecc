@@ -6,11 +6,11 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { isProductionRuntime } from "@/lib/productionData";
 import { assertSameOrigin, errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
-import { warehouseDeleteReferences } from "@/lib/warehouse";
+import { warehouseDeleteReferences, warehouseSourceWhere } from "@/lib/warehouse";
 
 function warehouseUpdateData(body: Record<string, unknown>) {
   const data: Record<string, unknown> = {};
-  for (const field of ["name", "city", "postalCode", "openingHours", "contactPerson", "contactPhone", "contactEmail"]) {
+  for (const field of ["name", "city", "postalCode", "openingHours", "contactPerson", "contactPhone", "contactEmail", "notes"]) {
     if (body[field] !== undefined) data[field] = String(body[field] ?? "").trim();
   }
   if (body.street !== undefined || body.houseNumber !== undefined || body.city !== undefined || body.postalCode !== undefined) {
@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     if (isProductionRuntime && before.isDemoData) return errorResponse("Dieses Lager ist in der Produktion nicht verfügbar.", 404);
     const data = warehouseUpdateData(body);
     const warehouse = await prisma.$transaction(async (tx) => {
-      if (data.isDefault === true) await tx.warehouse.updateMany({ where: { id: { not: id } }, data: { isDefault: false } });
+      if (data.isDefault === true) await tx.warehouse.updateMany({ where: { ...warehouseSourceWhere(), id: { not: id } }, data: { isDefault: false } });
       return tx.warehouse.update({ where: { id }, data });
     });
     await createAuditLog({ userId: session.id, action: "settings.warehouse_updated", entityType: "Warehouse", entityId: warehouse.id, oldValues: before, newValues: warehouse });
@@ -65,7 +65,18 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
       );
     }
 
-    const deleted = await prisma.warehouse.delete({ where: { id } });
+    const deleted = await prisma.$transaction(async (tx) => {
+      const replacement = before.isDefault
+        ? await tx.warehouse.findFirst({
+            where: { ...warehouseSourceWhere(), id: { not: id }, isActive: true },
+            orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
+            select: { id: true },
+          })
+        : null;
+      const removed = await tx.warehouse.delete({ where: { id } });
+      if (replacement) await tx.warehouse.update({ where: { id: replacement.id }, data: { isDefault: true } });
+      return removed;
+    });
     await createAuditLog({ userId: session.id, action: "settings.warehouse_deleted", entityType: "Warehouse", entityId: id, oldValues: before });
     await notifyAdmins({ type: "WAREHOUSE_CHANGED", title: "Lager gelöscht", message: `${before.name} wurde gelöscht.` });
     return successResponse(deleted);
