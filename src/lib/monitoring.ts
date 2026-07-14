@@ -12,6 +12,7 @@ import { createAuditLog } from "@/lib/audit";
 import { currentAuditRequestContext } from "@/lib/auditRequestContext";
 import { privateStorageConfiguration } from "@/lib/privateObjectStorage";
 import { prisma } from "@/lib/prisma";
+import { productionBackgroundJobWhere, productionErrorLogWhere, productionHealthCheckWhere, productionNotificationQueueWhere, productionSystemLogWhere } from "@/lib/productionData";
 
 type JsonMetadata = Prisma.InputJsonValue | undefined;
 
@@ -286,7 +287,7 @@ export async function runHealthCheck(userId?: string) {
   const googleMapsStatus = googleMapsBrowserConfigured && googleMapsServerConfigured ? HealthStatus.OK : HealthStatus.DEGRADED;
   const email = emailHealthCheck();
   const emailStatus = email.status;
-  const failedQueueCount = await prisma.notificationQueue.count({ where: { status: { in: ["FAILED", "RETRY"] } } }).catch(() => 0);
+  const failedQueueCount = await prisma.notificationQueue.count({ where: { ...productionNotificationQueueWhere(), status: { in: ["FAILED", "RETRY"] } } }).catch(() => 0);
   const queueStatus = failedQueueCount > 20 ? HealthStatus.DEGRADED : HealthStatus.OK;
 
   const status = statusFromChecks([
@@ -363,24 +364,24 @@ export async function getMonitoringDashboard() {
     openErrors,
     recentSystemLogs,
   ] = await Promise.all([
-    prisma.systemHealthCheck.findFirst({ orderBy: { checkedAt: "desc" } }),
-    prisma.systemHealthCheck.findMany({ orderBy: { checkedAt: "desc" }, take: 10 }),
+    prisma.systemHealthCheck.findFirst({ where: productionHealthCheckWhere(), orderBy: { checkedAt: "desc" } }),
+    prisma.systemHealthCheck.findMany({ where: productionHealthCheckWhere(), orderBy: { checkedAt: "desc" }, take: 10 }),
     prisma.errorLog.findMany({
-      where: { severity: ErrorSeverity.CRITICAL, status: { in: [ErrorStatus.OPEN, ErrorStatus.IN_PROGRESS] } },
+      where: { ...productionErrorLogWhere(), severity: ErrorSeverity.CRITICAL, status: { in: [ErrorStatus.OPEN, ErrorStatus.IN_PROGRESS] } },
       orderBy: { createdAt: "desc" },
       take: 10,
     }),
     prisma.errorLog.groupBy({
       by: ["source"],
       _count: { source: true },
-      where: { status: { in: [ErrorStatus.OPEN, ErrorStatus.IN_PROGRESS] } },
+      where: { ...productionErrorLogWhere(), status: { in: [ErrorStatus.OPEN, ErrorStatus.IN_PROGRESS] } },
       orderBy: { _count: { source: "desc" } },
       take: 12,
     }),
-    prisma.backgroundJobLog.findMany({ where: { status: BackgroundJobStatus.FAILED }, orderBy: { startedAt: "desc" }, take: 10 }),
-    prisma.notificationQueue.groupBy({ by: ["status"], _count: { status: true } }),
-    prisma.errorLog.count({ where: { status: { in: [ErrorStatus.OPEN, ErrorStatus.IN_PROGRESS] } } }),
-    prisma.systemLog.findMany({ orderBy: { createdAt: "desc" }, take: 12 }),
+    prisma.backgroundJobLog.findMany({ where: { ...productionBackgroundJobWhere(), status: BackgroundJobStatus.FAILED }, orderBy: { startedAt: "desc" }, take: 10 }),
+    prisma.notificationQueue.groupBy({ by: ["status"], where: productionNotificationQueueWhere(), _count: { status: true } }),
+    prisma.errorLog.count({ where: { ...productionErrorLogWhere(), status: { in: [ErrorStatus.OPEN, ErrorStatus.IN_PROGRESS] } } }),
+    prisma.systemLog.findMany({ where: productionSystemLogWhere(), orderBy: { createdAt: "desc" }, take: 12 }),
   ]);
 
   return {

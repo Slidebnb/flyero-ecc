@@ -12,7 +12,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSupportAnalytics } from "@/lib/support";
 import { getDocumentAnalytics } from "@/lib/documents";
-import { productionCustomerWhere, productionLeadWhere, productionOrderWhere, productionUserWhere } from "@/lib/productionData";
+import { productionCustomerWhere, productionLeadWhere, productionOrderWhere, productionPaymentWhere, productionUserWhere } from "@/lib/productionData";
 
 export type AnalyticsFilters = {
   from: Date;
@@ -290,10 +290,11 @@ function statusSeries<T extends string>(values: readonly T[], counts: Array<{ st
 
 export async function getRevenueMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [allPaid, periodPaid, currentMonthPaid, refunds] = await Promise.all([
-    prisma.payment.findMany({ where: { ...directTenantWhere(scope), status: { in: PAID_PAYMENT_STATUSES } }, select: { amount: true, paidAt: true, createdAt: true } }),
+    prisma.payment.findMany({ where: { ...productionPaymentWhere(), ...directTenantWhere(scope), status: { in: PAID_PAYMENT_STATUSES } }, select: { amount: true, paidAt: true, createdAt: true } }),
     prisma.payment.findMany({ where: { ...paymentWhere(filters, "createdAt", scope), status: { in: PAID_PAYMENT_STATUSES } }, select: { amount: true, paidAt: true, createdAt: true } }),
     prisma.payment.findMany({
       where: {
+        ...productionPaymentWhere(),
         ...directTenantWhere(scope),
         status: { in: PAID_PAYMENT_STATUSES },
         createdAt: { gte: startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)), lte: endOfDay(new Date()) },
@@ -304,9 +305,13 @@ export async function getRevenueMetrics(filters: AnalyticsFilters, scope: Analyt
       where: {
         createdAt: { gte: filters.from, lte: filters.to },
         ...directTenantWhere(scope),
-        ...((filters.customerId || filters.city || filters.distributorId)
-          ? { payment: { ...(filters.customerId ? { customerId: filters.customerId } : {}), ...((filters.city || filters.distributorId) ? { order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.distributorId ? { assignedDistributorId: filters.distributorId } : {}) } } : {}) } }
-          : {}),
+        payment: {
+          ...productionPaymentWhere(),
+          ...(filters.customerId ? { customerId: filters.customerId } : {}),
+          ...((filters.city || filters.distributorId)
+            ? { order: { ...productionOrderWhere(), ...(filters.city ? { city: filters.city } : {}), ...(filters.distributorId ? { assignedDistributorId: filters.distributorId } : {}) } }
+            : {}),
+        },
       },
       select: { amount: true, status: true },
     }),
@@ -345,7 +350,7 @@ export async function getCustomerMetrics(filters: AnalyticsFilters, scope: Analy
     prisma.customerProfile.findMany({
       where: { ...directTenantWhere(scope), ...productionCustomerWhere() },
       include: {
-        orders: { include: { payments: true } },
+        orders: { where: productionOrderWhere(), include: { payments: true } },
         user: { select: { status: true } },
       },
     }),
@@ -388,7 +393,7 @@ export async function getDistributorMetrics(filters: AnalyticsFilters, scope: An
     prisma.distributorProfile.findMany({
       where: { user: { ...productionUserWhere(), ...(scope.tenantId ? { tenantId: scope.tenantId } : {}) } },
       include: {
-        dispatchAssignments: { where: { assignedAt: { gte: filters.from, lte: filters.to } } },
+        dispatchAssignments: { where: { assignedAt: { gte: filters.from, lte: filters.to }, order: productionOrderWhere() } },
         tours: {
           where: tourWhere(filters, "createdAt", scope),
           include: { gpsPoints: { select: { accuracy: true } } },
@@ -428,7 +433,7 @@ export async function getWarehouseMetrics(filters: AnalyticsFilters, scope: Anal
   const inventories = await prisma.warehouseInventory.findMany({
     where: {
       createdAt: { lte: filters.to },
-      order: { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
+      order: { ...productionOrderWhere(), ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
       ...(filters.distributorId ? { reservedDistributorId: filters.distributorId } : {}),
     },
     select: { status: true, receivedAt: true, pickedUpAt: true, preparedAt: true, createdAt: true },
@@ -462,7 +467,7 @@ export async function getReportMetrics(filters: AnalyticsFilters, scope: Analyti
         ...directTenantWhere(scope),
         status: { in: [ReportStatus.PUBLISHED, ReportStatus.RELEASED_TO_CUSTOMER, ReportStatus.APPROVED] },
         createdAt: { gte: filters.from, lte: filters.to },
-        order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
+        order: { ...productionOrderWhere(), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
         ...(filters.distributorId ? { tour: { distributorId: filters.distributorId } } : {}),
       },
     }),
@@ -470,7 +475,7 @@ export async function getReportMetrics(filters: AnalyticsFilters, scope: Analyti
       where: {
         ...directTenantWhere(scope),
         createdAt: { gte: filters.from, lte: filters.to },
-        order: { ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
+        order: { ...productionOrderWhere(), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) },
         ...(filters.distributorId ? { tour: { distributorId: filters.distributorId } } : {}),
       },
       include: { tour: true },
@@ -520,9 +525,9 @@ export async function getOperationalKpis(filters: AnalyticsFilters, scope: Analy
   const [tours, payments, inventories, dispatchAssignments, reports] = await Promise.all([
     prisma.distributionTour.findMany({ where: tourWhere(filters, "createdAt", scope), include: { gpsPoints: { select: { accuracy: true } } } }),
     prisma.payment.findMany({ where: paymentWhere(filters, "createdAt", scope), include: { order: true } }),
-    prisma.warehouseInventory.findMany({ where: { order: { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } }),
-    prisma.dispatchAssignment.findMany({ where: { assignedAt: { gte: filters.from, lte: filters.to }, ...(filters.distributorId ? { distributorId: filters.distributorId } : {}), order: { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } }),
-    prisma.report.findMany({ where: { ...directTenantWhere(scope), createdAt: { gte: filters.from, lte: filters.to } }, include: { tour: true } }),
+    prisma.warehouseInventory.findMany({ where: { order: { ...productionOrderWhere(), ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } }),
+    prisma.dispatchAssignment.findMany({ where: { assignedAt: { gte: filters.from, lte: filters.to }, ...(filters.distributorId ? { distributorId: filters.distributorId } : {}), order: { ...productionOrderWhere(), ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...(filters.city ? { city: filters.city } : {}), ...(filters.customerId ? { customerId: filters.customerId } : {}) } } }),
+    prisma.report.findMany({ where: { ...directTenantWhere(scope), createdAt: { gte: filters.from, lte: filters.to }, order: productionOrderWhere() }, include: { tour: true } }),
   ]);
 
   return {

@@ -146,6 +146,26 @@ export function productionErrorLogWhere(): Prisma.ErrorLogWhereInput {
   };
 }
 
+export function productionSystemLogWhere(): Prisma.SystemLogWhereInput {
+  if (!isProductionRuntime) return {};
+  return {
+    NOT: [
+      { source: { startsWith: "seed." } },
+      { message: { startsWith: "Seed" } },
+    ],
+  };
+}
+
+export function productionHealthCheckWhere(): Prisma.SystemHealthCheckWhereInput {
+  if (!isProductionRuntime) return {};
+  return { NOT: [{ metadata: { path: ["source"], equals: "seed.module17" } }] };
+}
+
+export function productionBackgroundJobWhere(): Prisma.BackgroundJobLogWhereInput {
+  if (!isProductionRuntime) return {};
+  return { NOT: [{ metadata: { path: ["source"], equals: "seed.module17" } }] };
+}
+
 export function productionNotificationMessageWhere(): Prisma.NotificationMessageWhereInput {
   if (!isProductionRuntime) return {};
   return {

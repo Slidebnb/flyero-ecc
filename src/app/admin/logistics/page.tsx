@@ -6,17 +6,19 @@ import { getLogisticsAnalytics } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 import { warehouseSourceWhere } from "@/lib/warehouse";
+import { productionOrderWhere } from "@/lib/productionData";
 
 
 export default async function AdminLogisticsPage() {
   const session = await requirePermission(Permission.WAREHOUSE_VIEW);
   const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
+  const orderScope = { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) };
   const [analytics, warehouses, shipments, transfers, stockCounts] = await Promise.all([
     getLogisticsAnalytics(tenantId),
     prisma.warehouse.findMany({ where: warehouseSourceWhere(), include: { regions: true }, orderBy: [{ isDefault: "desc" }, { name: "asc" }] }),
-    prisma.logisticsShipment.findMany({ where: tenantId === undefined ? {} : { order: { tenantId: tenantId ?? "__no_tenant__" } }, include: { order: true, warehouse: true }, orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }], take: 12 }),
-    prisma.warehouseTransfer.findMany({ where: tenantId === undefined ? {} : { inventory: { order: { tenantId: tenantId ?? "__no_tenant__" } } }, include: { fromWarehouse: true, toWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 10 }),
-    prisma.warehouseStockCount.findMany({ where: { ...(tenantId === undefined ? {} : { inventory: { order: { tenantId: tenantId ?? "__no_tenant__" } } }), difference: { not: 0 } }, include: { warehouse: true, inventory: { include: { order: true } } }, orderBy: { countedAt: "desc" }, take: 10 }),
+    prisma.logisticsShipment.findMany({ where: { order: orderScope }, include: { order: true, warehouse: true }, orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }], take: 12 }),
+    prisma.warehouseTransfer.findMany({ where: { inventory: { order: orderScope } }, include: { fromWarehouse: true, toWarehouse: true, inventory: { include: { order: true } } }, orderBy: { createdAt: "desc" }, take: 10 }),
+    prisma.warehouseStockCount.findMany({ where: { inventory: { order: orderScope }, difference: { not: 0 } }, include: { warehouse: true, inventory: { include: { order: true } } }, orderBy: { countedAt: "desc" }, take: 10 }),
   ]);
 
   return (

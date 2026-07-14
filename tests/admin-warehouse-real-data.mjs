@@ -65,6 +65,12 @@ assert.match(read("src/lib/smartMaps.ts"), /productionOrderExperienceEventWhere\
 assert.match(read("src/lib/smartMaps.ts"), /productionOrderWhere\(\)/, "Admin-Karten dürfen keine Demo-Aufträge aggregieren.");
 assert.match(productionData, /productionPaymentEventWhere/, "Zahlungsereignisse brauchen einen eindeutigen Seed-Filter.");
 assert.match(read("src/app/admin/notifications/queue/page.tsx"), /Empfänger-E-Mail eingeben/, "Admin-Formulare dürfen keine Beispiel-E-Mail als Eingabe suggerieren.");
+assert.match(read("src/app/admin/logistics/page.tsx"), /productionOrderWhere\(\)/, "Die Logistik-Zusammenfassung darf keine Demo-Aufträge aggregieren.");
+assert.match(read("src/lib/analytics.ts"), /productionPaymentWhere\(\)/, "Umsatz-Analytics müssen Demo-Zahlungen ausschließen.");
+assert.match(read("src/lib/analytics.ts"), /orders: \{ where: productionOrderWhere\(\)/, "Kunden-Analytics müssen Demo-Aufträge ausschließen.");
+assert.match(read("src/lib/monitoring.ts"), /productionHealthCheckWhere\(\)/, "Monitoring darf keine Seed-Healthchecks anzeigen.");
+assert.match(read("src/lib/monitoring.ts"), /productionBackgroundJobWhere\(\)/, "Monitoring darf keine Seed-Backgroundjobs anzeigen.");
+assert.match(read("src/lib/monitoring.ts"), /productionNotificationQueueWhere\(\)/, "Healthstatus darf keine Seed-Queues zählen.");
 assert.match(cleanupDocs, /nicht beim normalen Deploy/, "Die Betriebsdoku muss die nicht-automatische Bereinigung erklären.");
 
 console.log("Admin warehouse real-data contract passed");
