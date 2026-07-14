@@ -3,13 +3,14 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { createRetentionHold, retentionHoldSchema } from "@/lib/retention";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
+import { productionOrderWhere, productionRetentionHoldWhere } from "@/lib/productionData";
 
 export async function GET(request: Request) {
   try {
     await requirePermission(Permission.RETENTION_HOLD_MANAGE);
     const orderId = new URL(request.url).searchParams.get("orderId");
     const holds = await prisma.retentionHold.findMany({
-      where: orderId ? { orderId } : undefined,
+      where: { ...productionRetentionHoldWhere(), ...(orderId ? { orderId } : {}) },
       include: {
         order: { select: { id: true, orderNumber: true, tenantId: true } },
         createdBy: { select: { id: true, email: true } },
@@ -33,8 +34,8 @@ export async function POST(request: NextRequest) {
       return errorResponse("Das Ablaufdatum muss in der Zukunft liegen.", 422);
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: parsed.data.orderId },
+    const order = await prisma.order.findFirst({
+      where: { id: parsed.data.orderId, ...productionOrderWhere() },
       select: { id: true, tenantId: true },
     });
     if (!order) return errorResponse("Auftrag wurde nicht gefunden.", 404);

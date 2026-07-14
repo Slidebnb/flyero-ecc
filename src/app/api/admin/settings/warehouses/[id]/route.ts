@@ -32,7 +32,7 @@ export async function PATCH(request: NextRequest, context: { params: Promise<{ i
     const session = await requirePermission(Permission.WAREHOUSE_MANAGE);
     const { id } = await context.params;
     const body = await readBody(request) as Record<string, unknown>;
-    const before = await prisma.warehouse.findUnique({ where: { id } });
+    const before = await prisma.warehouse.findFirst({ where: { id, ...warehouseSourceWhere() } });
     if (!before) throw new Error("Lager wurde nicht gefunden.");
     if (isProductionRuntime && before.isDemoData) return errorResponse("Dieses Lager ist in der Produktion nicht verfügbar.", 404);
     const data = warehouseUpdateData(body);
@@ -53,7 +53,7 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
     const session = await requirePermission(Permission.WAREHOUSE_MANAGE);
     assertSameOrigin(request);
     const { id } = await context.params;
-    const before = await prisma.warehouse.findUnique({ where: { id } });
+    const before = await prisma.warehouse.findFirst({ where: { id, ...warehouseSourceWhere() } });
     if (!before) return errorResponse("Lager wurde nicht gefunden.", 404);
     if (isProductionRuntime && before.isDemoData) return errorResponse("Dieses Lager ist in der Produktion nicht verfügbar.", 404);
 

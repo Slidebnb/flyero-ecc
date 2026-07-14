@@ -5,7 +5,7 @@ import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { productionInvoiceWhere } from "@/lib/productionData";
+import { productionAuditLogWhere, productionInvoiceWhere } from "@/lib/productionData";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -18,7 +18,7 @@ export default async function AdminInvoiceDetailPage({ params }: PageProps) {
   });
   if (!invoice) notFound();
   const auditLogs = await prisma.auditLog.findMany({
-    where: { entityType: { in: ["Invoice", "CreditNote"] }, OR: [{ entityId: invoice.id }, { newValues: { path: ["invoiceId"], equals: invoice.id } }] },
+    where: { ...productionAuditLogWhere(), entityType: { in: ["Invoice", "CreditNote"] }, OR: [{ entityId: invoice.id }, { newValues: { path: ["invoiceId"], equals: invoice.id } }] },
     orderBy: { createdAt: "desc" },
     take: 40,
   });

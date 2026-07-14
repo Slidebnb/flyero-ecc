@@ -2,6 +2,7 @@ import { ErrorSeverity, NotificationAudience, NotificationChannel, NotificationQ
 import { createAuditLog } from "@/lib/audit";
 import { createErrorLog } from "@/lib/monitoring";
 import { prisma } from "@/lib/prisma";
+import { productionUserWhere } from "@/lib/productionData";
 
 export const TEMPLATE_PLACEHOLDERS = [
   "customerName",
@@ -237,7 +238,7 @@ export async function createNotification(input: NotificationInput) {
 
 export async function notifyAdmins(input: Omit<NotificationInput, "userId">) {
   const admins = await prisma.user.findMany({
-    where: { role: { in: [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER] } },
+    where: { ...productionUserWhere(), role: { in: [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER] } },
     select: { id: true },
   });
 

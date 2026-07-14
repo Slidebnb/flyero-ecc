@@ -46,6 +46,10 @@ assert.match(read("src/app/api/admin/logistics/warehouses/[id]/route.ts"), /tx\.
 assert.match(settingsPage, /name="notes"/, "Warehouse maintenance must expose notes.");
 assert.match(settingsRoute, /notes: String\(body\.notes/, "Warehouse creation API must persist notes.");
 assert.match(settingsIdRoute, /\"notes\"\]\)/, "Warehouse update API must persist notes.");
+assert.match(read("src/lib/notifications.ts"), /where: \{ \.\.\.productionUserWhere\(\), role:/, "Admin notifications must exclude hidden demo recipients.");
+assert.match(read("src/app/api/admin/retention-holds/route.ts"), /productionRetentionHoldWhere\(\)/, "Retention hold lists must exclude demo orders.");
+assert.match(read("src/app/api/admin/retention-holds/route.ts"), /productionOrderWhere\(\)/, "Retention holds must not be created for demo orders in production.");
+assert.match(read("src/app/admin/invoices/[id]/page.tsx"), /productionAuditLogWhere\(\)/, "Invoice audit history must use the production audit filter.");
 assert.match(settingsIdRoute, /warehouseDeleteReferences/, "DELETE muss vor dem Löschen bestehende Referenzen prüfen.");
 assert.match(seed, /SEED_DEMO_DATA/, "Demo-Seeding muss explizit opt-in sein.");
 assert.match(seed, /isDemoData:\s*true/, "Seed-Lager müssen als Demo-Daten markiert werden.");
