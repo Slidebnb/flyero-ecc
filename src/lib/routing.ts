@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { productionOrderWhere, productionUserWhere } from "@/lib/productionData";
 
 export type RoutePoint = { lat: number; lng: number };
 
@@ -116,7 +117,7 @@ export async function calculateBestDistributor(input: {
   flyerQuantity?: number | null;
 }) {
   const distributors = await prisma.distributorProfile.findMany({
-    where: { reviewStatus: "APPROVED", availableToday: true, user: { status: "ACTIVE" } },
+    where: { reviewStatus: "APPROVED", availableToday: true, user: { ...productionUserWhere(), status: "ACTIVE" } },
   });
   const city = normalizeCity(input.city);
   const scored = distributors.map((distributor) => {
@@ -159,6 +160,7 @@ export async function clusterOrders(input: { city?: string | null; postalCode?: 
   const since = new Date(Date.now() - (input.days ?? 90) * 24 * 60 * 60 * 1000);
   const orders = await prisma.order.findMany({
     where: {
+      ...productionOrderWhere(),
       createdAt: { gte: since },
       ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }),
       ...(input.city ? { city: { equals: input.city, mode: "insensitive" } } : {}),

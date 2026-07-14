@@ -118,14 +118,14 @@ function warehouseCity(inventory: ReadyInventory) {
 async function syncDistributorCapacity(distributorId: string) {
   const [assignments, activeTours, completedTours] = await Promise.all([
     prisma.dispatchAssignment.findMany({
-      where: { distributorId, status: { in: ACTIVE_ASSIGNMENT_STATUSES } },
+      where: { distributorId, status: { in: ACTIVE_ASSIGNMENT_STATUSES }, order: productionOrderWhere() },
       include: { order: true },
     }),
     prisma.distributionTour.count({
-      where: { distributorId, status: { in: [...ACTIVE_TOUR_STATUSES] } },
+      where: { distributorId, status: { in: [...ACTIVE_TOUR_STATUSES] }, order: productionOrderWhere() },
     }),
     prisma.distributionTour.count({
-      where: { distributorId, status: { in: [...COMPLETED_TOUR_STATUSES] } },
+      where: { distributorId, status: { in: [...COMPLETED_TOUR_STATUSES] }, order: productionOrderWhere() },
     }),
   ]);
 
@@ -157,8 +157,8 @@ async function distributorSnapshot(distributor: DistributorWithUser, inventory: 
   const distanceSource = distributorCoordinates && warehouseCoordinates ? "address-geodesic-estimate" : "regional-estimate";
   const futureFlyers = capacity.currentAssignedFlyers + inventory.order.flyerQuantity;
   const futureTours = capacity.currentAssignedTours + 1;
-  const rejectedAssignments = await prisma.dispatchAssignment.count({ where: { distributorId: distributor.id, status: "REJECTED" } });
-  const totalAssignments = await prisma.dispatchAssignment.count({ where: { distributorId: distributor.id } });
+  const rejectedAssignments = await prisma.dispatchAssignment.count({ where: { distributorId: distributor.id, status: "REJECTED", order: productionOrderWhere() } });
+  const totalAssignments = await prisma.dispatchAssignment.count({ where: { distributorId: distributor.id, order: productionOrderWhere() } });
   const rejectionRate = totalAssignments > 0 ? rejectedAssignments / totalAssignments : 0;
   const capacityWarning =
     !distributor.availableToday ||
@@ -235,7 +235,7 @@ export async function getSuitableDistributors(orderId: string, tenantId?: string
     where: {
       reviewStatus: "APPROVED",
       availableToday: true,
-      user: { status: "ACTIVE", ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) },
+      user: { ...productionUserWhere(), status: "ACTIVE", ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) },
     },
     include: { user: { select: { id: true, status: true, tenantId: true } } },
   });

@@ -267,7 +267,7 @@ export async function listInternalUsers() {
 }
 
 export async function setInternalUserStatus(input: { userId: string; status: UserStatus; adminUserId: string }) {
-  const current = await prisma.user.findUnique({ where: { id: input.userId } });
+  const current = await prisma.user.findFirst({ where: { id: input.userId, ...productionUserWhere() } });
   if (!current) throw new Error("Benutzer wurde nicht gefunden.");
   const internalRoles: UserRole[] = [UserRole.ADMIN, UserRole.WAREHOUSE_STAFF, UserRole.SUPPORT_DISPATCHER];
   if (!internalRoles.includes(current.role)) {

@@ -32,6 +32,7 @@ async function createWarehouse(formData: FormData) {
         },
         isDefault,
         isActive: true,
+        isDemoData: false,
         openingHours: String(formData.get("openingHours") ?? ""),
         contactPerson: String(formData.get("contactPerson") ?? ""),
         contactPhone: String(formData.get("contactPhone") ?? ""),
@@ -48,7 +49,8 @@ async function toggleWarehouse(formData: FormData) {
   "use server";
   const session = await requireRole([UserRole.ADMIN]);
   const id = String(formData.get("id"));
-  const before = await prisma.warehouse.findUnique({ where: { id } });
+  const before = await prisma.warehouse.findFirst({ where: { id, ...warehouseSourceWhere() } });
+  if (!before) throw new Error("Lager wurde nicht gefunden.");
   const isDefault = formData.get("isDefault") === "on";
   const warehouse = await prisma.$transaction(async (tx) => {
     if (isDefault) await tx.warehouse.updateMany({ where: { id: { not: id } }, data: { isDefault: false } });

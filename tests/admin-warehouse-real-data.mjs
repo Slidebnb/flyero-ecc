@@ -20,10 +20,14 @@ const templatePreview = read("src/app/admin/notifications/TemplatePreviewForm.ts
 const productionData = read("src/lib/productionData.ts");
 const purgeScript = read("scripts/purge-demo-data.mjs");
 const cleanupDocs = read("docs/PRODUCTION_DEMO_DATA_CLEANUP.md");
+const routing = read("src/lib/routing.ts");
+const dispatch = read("src/lib/dispatch.ts");
 
 assert.match(schema, /model Warehouse[\s\S]*?isDemoData\s+Boolean\s+@default\(false\)/, "Warehouse braucht eine explizite Demo-Daten-Kennzeichnung.");
 assert.match(warehouseLibrary, /export function warehouseSourceWhere\(\)/, "Die Lagerquelle muss über einen gemeinsamen Server-Helper gesteuert werden.");
 assert.match(settingsRoute, /warehouseSourceWhere\(\)/, "Die Admin-Lagerliste muss den gemeinsamen Real-Daten-Filter verwenden.");
+assert.match(settingsPage, /isDemoData:\s*false/, "Neu angelegte Lager mÃ¼ssen explizit als echte Daten markiert werden.");
+assert.match(settingsPage, /findFirst\(\{ where: \{ id, \.\.\.warehouseSourceWhere\(\) \}/, "Die Admin-Lagerbearbeitung darf versteckte Demo-Lager nicht mutieren.");
 assert.match(settingsPage, /Noch kein echtes Lager angelegt\./, "Die Admin-Oberfläche braucht einen ehrlichen Leerzustand.");
 assert.match(settingsIdRoute, /export async function DELETE/, "Die Admin-API braucht eine explizite DELETE-Route.");
 assert.match(settingsIdRoute, /warehouseDeleteReferences/, "DELETE muss vor dem Löschen bestehende Referenzen prüfen.");
@@ -34,6 +38,7 @@ assert.match(productionEnvExample, /^SEED_DEMO_DATA=/m, "Die Produktionsumgebung
 assert.match(productionPreflight, /requireValue\("SEED_DEMO_DATA"/, "Der Produktions-Preflight muss Demo-Seeding blockieren.");
 assert.match(settings, /companyName:\s*""/, "Fehlende Firmeneinstellungen müssen leer statt mit Beispieldaten angelegt werden.");
 assert.match(settings, /invoiceFooterText:\s*""/, "Fehlendes Branding darf keine Beispieladresse erzeugen.");
+assert.match(settings, /setInternalUserStatus[\s\S]*findFirst\(\{ where: \{ id: input\.userId, \.\.\.productionUserWhere\(\) \}/, "Interne Benutzeraktionen dÃ¼rfen versteckte Demo-Konten nicht mutieren.");
 assert.doesNotMatch(templatePreview, /Max Mustermann|Muster GmbH|ORD-2026-0001/, "Admin-Vorlagenvorschau darf keine Demo-Kundendaten vorausfüllen.");
 assert.match(productionData, /productionOrderWhere/, "Admin-Produktionslisten brauchen einen zentralen Auftragsfilter.");
 assert.match(productionData, /productionLeadWhere/, "Admin-Produktionslisten brauchen einen zentralen Lead-Filter.");
@@ -72,5 +77,10 @@ assert.match(read("src/lib/monitoring.ts"), /productionHealthCheckWhere\(\)/, "M
 assert.match(read("src/lib/monitoring.ts"), /productionBackgroundJobWhere\(\)/, "Monitoring darf keine Seed-Backgroundjobs anzeigen.");
 assert.match(read("src/lib/monitoring.ts"), /productionNotificationQueueWhere\(\)/, "Healthstatus darf keine Seed-Queues zählen.");
 assert.match(cleanupDocs, /nicht beim normalen Deploy/, "Die Betriebsdoku muss die nicht-automatische Bereinigung erklären.");
+
+assert.match(routing, /import \{ productionOrderWhere, productionUserWhere \} from "@\/lib\/productionData";/, "Routing muss die Produktionsfilter verwenden.");
+assert.match(routing, /\.\.\.productionOrderWhere\(\)/, "Routen-/KombinationsvorschlÃ¤ge dÃ¼rfen keine Demo-AuftrÃ¤ge verwenden.");
+assert.match(dispatch, /user: \{ \.\.\.productionUserWhere\(\)/, "Verteilerempfehlungen mÃ¼ssen Demo-Verteiler ausschlieÃŸen.");
+assert.match(dispatch, /order: productionOrderWhere\(\)/, "KapazitÃ¤tsberechnungen dÃ¼rfen keine Demo-AuftrÃ¤ge einbeziehen.");
 
 console.log("Admin warehouse real-data contract passed");
