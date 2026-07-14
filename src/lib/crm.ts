@@ -255,7 +255,7 @@ export async function updateCrmLead(id: string, input: z.input<typeof crmLeadUpd
 
 export async function changeLeadStatus(id: string, input: z.input<typeof crmStatusSchema>, actorId: string | undefined, scope: LeadScope) {
   const data = crmStatusSchema.parse(input);
-  const existing = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] } });
+  const existing = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope), productionLeadWhere()] } });
   if (!existing) throw new Error("Lead wurde nicht gefunden.");
 
   const now = new Date();
@@ -310,7 +310,7 @@ export async function changeLeadStatus(id: string, input: z.input<typeof crmStat
 
 export async function addLeadNote(id: string, input: z.input<typeof crmNoteSchema>, actorId: string | undefined, scope: LeadScope) {
   const data = crmNoteSchema.parse(input);
-  const lead = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] } });
+  const lead = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope), productionLeadWhere()] } });
   if (!lead) throw new Error("Lead wurde nicht gefunden.");
 
   const note = await prisma.leadNote.create({
@@ -335,7 +335,7 @@ export async function assignLead(id: string, input: z.input<typeof crmAssignSche
 }
 
 export async function convertLeadToCustomer(id: string, actorId: string | undefined, scope: LeadScope) {
-  const lead = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] }, include: { wonCustomer: true } });
+  const lead = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope), productionLeadWhere()] }, include: { wonCustomer: true } });
   if (!lead) throw new Error("Lead wurde nicht gefunden.");
 
   if (lead.wonCustomerId) {

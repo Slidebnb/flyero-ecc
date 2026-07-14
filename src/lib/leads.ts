@@ -4,6 +4,7 @@ import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { leadScopeWhere, type LeadScope } from "@/lib/leadScope";
+import { productionLeadWhere } from "@/lib/productionData";
 
 const leadTypeValues = Object.values(LeadType) as [LeadType, ...LeadType[]];
 const leadStatusValues = Object.values(LeadStatus) as [LeadStatus, ...LeadStatus[]];
@@ -75,7 +76,7 @@ export async function createLead(input: z.input<typeof createLeadSchema>) {
 
 export async function updateLead(id: string, input: z.input<typeof updateLeadSchema>, userId: string | undefined, scope: LeadScope) {
   const data = updateLeadSchema.parse(input);
-  const existing = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] } });
+  const existing = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope), productionLeadWhere()] } });
 
   if (!existing) {
     throw new Error("Lead wurde nicht gefunden.");

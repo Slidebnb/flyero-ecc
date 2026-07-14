@@ -498,6 +498,7 @@ export async function getLeadMetrics(filters: AnalyticsFilters, scope: Analytics
     prisma.lead.count({
       where: {
         ...leadTenantWhere(scope),
+        ...productionLeadWhere(),
         archivedAt: null,
         status: { notIn: [LeadStatus.WON, LeadStatus.LOST, LeadStatus.ARCHIVED] },
         nextFollowUpAt: { not: null },

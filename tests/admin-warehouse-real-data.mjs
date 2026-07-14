@@ -27,6 +27,8 @@ const areaRoute = read("src/app/api/areas/route.ts");
 const areaIdRoute = read("src/app/api/areas/[id]/route.ts");
 const adminAreasPage = read("src/app/admin/areas/page.tsx");
 const crm = read("src/lib/crm.ts");
+const leads = read("src/lib/leads.ts");
+const analytics = read("src/lib/analytics.ts");
 
 assert.match(schema, /model Warehouse[\s\S]*?isDemoData\s+Boolean\s+@default\(false\)/, "Warehouse braucht eine explizite Demo-Daten-Kennzeichnung.");
 assert.match(warehouseLibrary, /export function warehouseSourceWhere\(\)/, "Die Lagerquelle muss über einen gemeinsamen Server-Helper gesteuert werden.");
@@ -95,5 +97,10 @@ assert.match(areaIdRoute, /Seed-\/Demo-Gebiete.*Produktion nicht angelegt werden
 assert.match(adminAreasPage, /AREA_SOURCE_TYPE_OPTIONS/, "Das Admin-Gebietsformular muss eine produktionsbereinigte Quellenliste verwenden.");
 assert.match(adminAreasPage, /!isProductionRuntime \|\| value !== "SEED"/, "Das Admin-Gebietsformular darf Seed\/Demo in Produktion nicht anbieten.");
 assert.match(crm, /getCrmFollowups[\s\S]*baseWhere = \{[\s\S]*productionLeadWhere\(\)/, "CRM-Follow-ups dÃ¼rfen keine Seed-Leads anzeigen.");
+assert.match(crm, /changeLeadStatus[\s\S]*productionLeadWhere\(\)/, "CRM-StatusÃ¤nderungen dÃ¼rfen keine Seed-Leads mutieren.");
+assert.match(crm, /addLeadNote[\s\S]*productionLeadWhere\(\)/, "CRM-Notizen dÃ¼rfen keine Seed-Leads mutieren.");
+assert.match(crm, /convertLeadToCustomer[\s\S]*productionLeadWhere\(\)/, "CRM-Konvertierung dÃ¼rfen keine Seed-Leads mutieren.");
+assert.match(leads, /updateLead[\s\S]*productionLeadWhere\(\)/, "Lead-Updates dÃ¼rfen keine Seed-Leads mutieren.");
+assert.match(analytics, /getLeadMetrics[\s\S]*leadTenantWhere\(scope\),\s*\.\.\.productionLeadWhere\(\)/, "Lead-KPIs dÃ¼rfen keine Seed-Follow-ups zÃ¤hlen.");
 
 console.log("Admin warehouse real-data contract passed");
