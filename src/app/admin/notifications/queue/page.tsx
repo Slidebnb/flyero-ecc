@@ -9,6 +9,7 @@ import { formatDateTime } from "@/lib/format";
 import { createSystemLog } from "@/lib/monitoring";
 import { processPendingNotifications, retryFailedNotification } from "@/lib/notificationWorker";
 import { prisma } from "@/lib/prisma";
+import { productionUserWhere } from "@/lib/productionData";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function processQueueAction() {
@@ -65,8 +66,9 @@ function queueTone(status: NotificationQueueStatus) {
 
 export default async function AdminNotificationQueuePage() {
   await requirePermission(Permission.NOTIFICATION_OPERATIONS_VIEW);
-  const [queues, counts, templates] = await Promise.all([
+  const [queues, templates] = await Promise.all([
     prisma.notificationQueue.findMany({
+      where: { user: productionUserWhere() },
       include: {
         user: { select: { email: true, role: true } },
         template: { select: { id: true, key: true, name: true } },
@@ -75,11 +77,10 @@ export default async function AdminNotificationQueuePage() {
       orderBy: [{ status: "asc" }, { scheduledAt: "desc" }],
       take: 200,
     }),
-    prisma.notificationQueue.groupBy({ by: ["status"], _count: { status: true } }),
     prisma.notificationTemplate.findMany({ where: { channel: "EMAIL", isActive: true }, orderBy: { name: "asc" } }),
   ]);
 
-  const countFor = (status: NotificationQueueStatus) => counts.find((item) => item.status === status)?._count.status ?? 0;
+  const countFor = (status: NotificationQueueStatus) => queues.filter((item) => item.status === status).length;
 
   return (
     <PortalShell

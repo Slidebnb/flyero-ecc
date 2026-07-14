@@ -5,12 +5,13 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { warehouseStockCountCreateSchema } from "@/lib/validators";
+import { productionOrderWhere } from "@/lib/productionData";
 
 export async function GET() {
   try {
     const session = await requirePermission(Permission.WAREHOUSE_VIEW);
     const counts = await prisma.warehouseStockCount.findMany({
-      where: session.role === UserRole.ADMIN ? {} : { inventory: { order: { tenantId: session.tenantId ?? "__no_tenant__" } } },
+      where: { inventory: { order: { ...productionOrderWhere(), ...(session.role === UserRole.ADMIN ? {} : { tenantId: session.tenantId ?? "__no_tenant__" }) } } },
       include: { warehouse: true, inventory: { include: { order: true } }, countedBy: true },
       orderBy: { countedAt: "desc" },
       take: 200,

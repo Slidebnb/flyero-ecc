@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "utf8");
+
+const schema = read("prisma/schema.prisma");
+const warehouseLibrary = read("src/lib/warehouse.ts");
+const settingsRoute = read("src/app/api/admin/settings/warehouses/route.ts");
+const settingsIdRoute = read("src/app/api/admin/settings/warehouses/[id]/route.ts");
+const settingsPage = read("src/app/admin/settings/warehouses/page.tsx");
+const seed = read("prisma/seed.mjs");
+const envExample = read(".env.example");
+const productionEnvExample = read(".env.production.example");
+const productionPreflight = read("scripts/production-preflight.mjs");
+const settings = read("src/lib/settings.ts");
+const templatePreview = read("src/app/admin/notifications/TemplatePreviewForm.tsx");
+const productionData = read("src/lib/productionData.ts");
+const purgeScript = read("scripts/purge-demo-data.mjs");
+const cleanupDocs = read("docs/PRODUCTION_DEMO_DATA_CLEANUP.md");
+
+assert.match(schema, /model Warehouse[\s\S]*?isDemoData\s+Boolean\s+@default\(false\)/, "Warehouse braucht eine explizite Demo-Daten-Kennzeichnung.");
+assert.match(warehouseLibrary, /export function warehouseSourceWhere\(\)/, "Die Lagerquelle muss über einen gemeinsamen Server-Helper gesteuert werden.");
+assert.match(settingsRoute, /warehouseSourceWhere\(\)/, "Die Admin-Lagerliste muss den gemeinsamen Real-Daten-Filter verwenden.");
+assert.match(settingsPage, /Noch kein echtes Lager angelegt\./, "Die Admin-Oberfläche braucht einen ehrlichen Leerzustand.");
+assert.match(settingsIdRoute, /export async function DELETE/, "Die Admin-API braucht eine explizite DELETE-Route.");
+assert.match(settingsIdRoute, /warehouseDeleteReferences/, "DELETE muss vor dem Löschen bestehende Referenzen prüfen.");
+assert.match(seed, /SEED_DEMO_DATA/, "Demo-Seeding muss explizit opt-in sein.");
+assert.match(seed, /isDemoData:\s*true/, "Seed-Lager müssen als Demo-Daten markiert werden.");
+assert.match(envExample, /^SEED_DEMO_DATA=/m, "Die Entwicklungsumgebung muss den Seed-Schalter dokumentieren.");
+assert.match(productionEnvExample, /^SEED_DEMO_DATA=/m, "Die Produktionsumgebung muss den Seed-Schalter dokumentieren.");
+assert.match(productionPreflight, /requireValue\("SEED_DEMO_DATA"/, "Der Produktions-Preflight muss Demo-Seeding blockieren.");
+assert.match(settings, /companyName:\s*""/, "Fehlende Firmeneinstellungen müssen leer statt mit Beispieldaten angelegt werden.");
+assert.match(settings, /invoiceFooterText:\s*""/, "Fehlendes Branding darf keine Beispieladresse erzeugen.");
+assert.doesNotMatch(templatePreview, /Max Mustermann|Muster GmbH|ORD-2026-0001/, "Admin-Vorlagenvorschau darf keine Demo-Kundendaten vorausfüllen.");
+assert.match(productionData, /productionOrderWhere/, "Admin-Produktionslisten brauchen einen zentralen Auftragsfilter.");
+assert.match(productionData, /productionLeadWhere/, "Admin-Produktionslisten brauchen einen zentralen Lead-Filter.");
+assert.match(productionData, /productionDocumentWhere/, "Admin-Produktionslisten brauchen einen zentralen Dokumentfilter.");
+assert.match(productionData, /productionErrorLogWhere/, "Admin-Monitoring darf keine Seed-Fehlerlogs anzeigen.");
+assert.match(read("src/app/admin/notifications/page.tsx"), /user: productionUserWhere\(\)/, "Die Admin-Nachrichtenzentrale muss Demo-Empfänger ausblenden.");
+assert.match(read("src/app/admin/warehouse/page.tsx"), /productionInventoryWhere\(\)/, "Die Lagerübersicht darf keine Demo-Bestände anzeigen.");
+assert.match(read("src/app/api/admin/reports/[id]/publish/route.ts"), /productionReportWhere\(\)/, "Berichtsaktionen müssen Demo-Berichte blockieren.");
+assert.match(read("src/app/api/admin/orders/[id]/status/route.ts"), /productionOrderWhere\(\)/, "Admin-Statusänderungen dürfen keine Demo-Aufträge mutieren.");
+assert.match(purgeScript, /FLYERO_PURGE_DEMO_DATA/, "Demo-Bereinigung muss explizit bestätigt werden.");
+assert.match(purgeScript, /PRESERVE_EMAILS/, "Demo-Bereinigung muss echte Konten schützen.");
+assert.match(cleanupDocs, /nicht beim normalen Deploy/, "Die Betriebsdoku muss die nicht-automatische Bereinigung erklären.");
+
+console.log("Admin warehouse real-data contract passed");

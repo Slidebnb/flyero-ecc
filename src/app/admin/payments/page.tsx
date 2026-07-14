@@ -5,6 +5,7 @@ import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { productionPaymentWhere, productionOrderWhere } from "@/lib/productionData";
 
 type PageProps = {
   searchParams: Promise<{ status?: string }>;
@@ -23,6 +24,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
   const filter = FILTERS.some((entry) => entry.value === params.status) ? params.status : undefined;
   const payments = await prisma.payment.findMany({
     where: {
+      ...productionPaymentWhere(),
       ...(filter === "REFUND"
         ? { refunds: { some: {} } }
         : filter
@@ -38,7 +40,7 @@ export default async function AdminPaymentsPage({ searchParams }: PageProps) {
       orderBy: { updatedAt: "desc" },
   });
   const disputes = await prisma.paymentDispute.findMany({
-    where: { status: "OPEN" },
+    where: { status: "OPEN", order: productionOrderWhere() },
     include: { payment: true, order: true, customer: true },
     orderBy: [{ dueBy: "asc" }, { updatedAt: "desc" }],
     take: 100,

@@ -5,6 +5,7 @@ import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { productionLeadWhere, productionUserWhere } from "@/lib/productionData";
 import { createCustomerTenant } from "@/lib/tenant";
 import { leadScopeWhere, type LeadScope } from "@/lib/leadScope";
 
@@ -132,7 +133,7 @@ function serializeLeadValues(lead: unknown) {
 
 export async function listCrmLeads(filters: LeadListFilters, scope: LeadScope) {
   return prisma.lead.findMany({
-    where: { AND: [leadScopeWhere(scope), leadWhere(filters)] },
+    where: { AND: [leadScopeWhere(scope), productionLeadWhere(), leadWhere(filters)] },
     include: {
       assignedTo: { select: { id: true, email: true, role: true } },
       wonCustomer: { select: { id: true, companyName: true } },
@@ -146,7 +147,7 @@ export async function listCrmLeads(filters: LeadListFilters, scope: LeadScope) {
 
 export async function getCrmLead(id: string, scope: LeadScope) {
   return prisma.lead.findFirst({
-    where: { AND: [{ id }, leadScopeWhere(scope)] },
+    where: { AND: [{ id }, leadScopeWhere(scope), productionLeadWhere()] },
     include: {
       assignedTo: { select: { id: true, email: true, role: true } },
       wonCustomer: { select: { id: true, companyName: true, user: { select: { email: true } } } },
@@ -159,6 +160,7 @@ export async function getCrmLead(id: string, scope: LeadScope) {
 export async function getAssignableUsers(scope: LeadScope) {
   return prisma.user.findMany({
     where: {
+      ...productionUserWhere(),
       role: { in: [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER] },
       ...(scope.isGlobalAdmin ? {} : { tenantId: scope.tenantId ?? "__no_tenant__" }),
     },
@@ -191,7 +193,7 @@ async function recordLeadActivity(input: {
 
 export async function updateCrmLead(id: string, input: z.input<typeof crmLeadUpdateSchema>, actorId: string | undefined, scope: LeadScope) {
   const data = crmLeadUpdateSchema.parse(input);
-  const existing = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope)] } });
+  const existing = await prisma.lead.findFirst({ where: { AND: [{ id }, leadScopeWhere(scope), productionLeadWhere()] } });
   if (!existing) throw new Error("Lead wurde nicht gefunden.");
 
   const nextFollowUpAt = Object.prototype.hasOwnProperty.call(data, "nextFollowUpAt")

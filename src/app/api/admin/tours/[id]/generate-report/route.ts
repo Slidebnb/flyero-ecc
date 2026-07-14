@@ -5,6 +5,7 @@ import { createReportForTour } from "@/lib/reports";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 import { tenantWhereForSession } from "@/lib/tenantPolicy";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const session = await requirePermission(Permission.REPORT_REVIEW);
     const { id } = await context.params;
-    const scopedTour = await prisma.distributionTour.findFirst({ where: { id, order: tenantWhereForSession(session) }, select: { id: true } });
+    const scopedTour = await prisma.distributionTour.findFirst({ where: { id, order: { ...tenantWhereForSession(session), ...productionOrderWhere() } }, select: { id: true } });
     if (!scopedTour) return errorResponse("Tour wurde nicht gefunden.", 404);
     const job = await logBackgroundJobStart("REPORT_GENERATION", { tourId: id });
     jobId = job.id;

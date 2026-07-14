@@ -6,6 +6,7 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { adminDistributorUpdateSchema } from "@/lib/validators";
+import { productionDistributorWhere } from "@/lib/productionData";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -21,8 +22,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
   }
 
-  const profile = await prisma.distributorProfile.findUnique({
-    where: { id },
+  const profile = await prisma.distributorProfile.findFirst({
+    where: { id, ...productionDistributorWhere() },
     select: { id: true, userId: true, reviewStatus: true, adminNotes: true, approvedAt: true, rejectedAt: true },
   });
 

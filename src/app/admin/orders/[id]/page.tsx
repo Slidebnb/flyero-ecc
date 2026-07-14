@@ -13,6 +13,7 @@ import { getSuitableDistributors } from "@/lib/dispatch";
 import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getOrderGrossPrice } from "@/lib/pricing";
+import { productionDistributorWhere, productionOrderWhere } from "@/lib/productionData";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -48,8 +49,8 @@ const PRINT_STATUS_LABELS: Record<string, string> = {
 export default async function AdminOrderDetailPage({ params }: PageProps) {
   await requireRole([UserRole.ADMIN]);
   const { id } = await params;
-  const order = await prisma.order.findUnique({
-    where: { id },
+  const order = await prisma.order.findFirst({
+    where: { id, ...productionOrderWhere() },
     include: {
       customer: { include: { user: { select: { id: true, email: true, role: true, status: true } } } },
       assignedWarehouse: true,
@@ -86,7 +87,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
       ? await getSuitableDistributors(order.id)
       : [];
   const approvedDistributors = await prisma.distributorProfile.findMany({
-    where: { reviewStatus: "APPROVED" },
+    where: { ...productionDistributorWhere(), reviewStatus: "APPROVED" },
     select: { id: true, firstName: true, lastName: true, phone: true, federalState: true },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });

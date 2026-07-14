@@ -1,6 +1,8 @@
 Flyero ECC - Demo-Benutzer
 ==========================
 
+Wichtig: Diese Konten und die zugehörigen Seed-Daten sind ausschließlich für isolierte Entwicklung/Smoke-Tests. Sie dürfen nicht in Produktion eingesät oder Kunden als echte Daten angezeigt werden. Für Produktion `SEED_DEMO_DATA="false"` verwenden.
+
 Alle Demo-Accounts aus dem Seed verwenden dasselbe Passwort:
 
 Passwort: DemoPasswort123!

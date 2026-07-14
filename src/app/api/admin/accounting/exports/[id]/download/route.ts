@@ -4,12 +4,13 @@ import { readGeneratedAsset } from "@/lib/generatedAssets";
 import { privateDownloadHeaders } from "@/lib/downloadHeaders";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse } from "@/lib/request";
+import { productionAccountingExportWhere } from "@/lib/productionData";
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   try {
     const session = await requirePermission(Permission.ACCOUNTING_EXPORT_DOWNLOAD);
     const { id } = await context.params;
-    const accountingExport = await prisma.accountingExport.findUnique({ where: { id } });
+    const accountingExport = await prisma.accountingExport.findFirst({ where: { id, ...productionAccountingExportWhere() } });
     if (!accountingExport?.fileUrl) throw new Error("Exportdatei wurde nicht gefunden.");
     const file = await readGeneratedAsset(accountingExport.fileUrl);
     await createAuditLog({ userId: session.id, action: "accounting.export_downloaded", entityType: "AccountingExport", entityId: accountingExport.id });

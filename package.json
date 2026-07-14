@@ -119,6 +119,8 @@
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",
     "test:tenant-ab-idor": "node -r dotenv/config tests/tenant-ab-idor-smoke.mjs",
     "test:warehouse-scope": "node -r dotenv/config tests/warehouse-scope-smoke.mjs",
+    "test:admin-warehouse-real-data": "node tests/admin-warehouse-real-data.mjs",
+    "purge:demo-data": "node -r dotenv/config scripts/purge-demo-data.mjs",
     "test:warehouse-privacy": "node tests/warehouse-privacy-smoke.mjs",
     "test:internal-response-privacy": "node tests/internal-response-privacy-smoke.mjs",
     "test:health-failsafe": "node tests/health-failsafe-smoke.mjs",

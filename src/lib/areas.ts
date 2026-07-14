@@ -2,6 +2,7 @@ import { AreaDataSourceType, DistributionAreaType, HouseholdEstimateMethod, Pris
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { productionAreaWhere } from "@/lib/productionData";
 
 type Position = [number, number];
 type PolygonFeature = {
@@ -535,6 +536,7 @@ export async function listAreas(filters: {
 }) {
   return prisma.distributionArea.findMany({
     where: {
+      ...productionAreaWhere(),
       AND: [
         ...(filters.tenantId ? [{ OR: [{ tenantId: null }, { tenantId: filters.tenantId }] }] : []),
         ...(filters.search

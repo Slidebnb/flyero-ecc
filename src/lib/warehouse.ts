@@ -12,6 +12,51 @@ import { assertOrderTransition, createOrderStatusEvent } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 import { getDefaultWarehouse } from "@/lib/settings";
 
+export function warehouseSourceWhere(): Prisma.WarehouseWhereInput {
+  return process.env.NODE_ENV === "production" ? { isDemoData: false } : {};
+}
+
+export type WarehouseDeleteReferences = {
+  staff: number;
+  assignedOrders: number;
+  assignedOrderSegments: number;
+  inventories: number;
+  printOrders: number;
+  shipments: number;
+  transfersFrom: number;
+  transfersTo: number;
+  stockCounts: number;
+  total: number;
+};
+
+export async function warehouseDeleteReferences(id: string): Promise<WarehouseDeleteReferences> {
+  const warehouse = await prisma.warehouse.findUnique({
+    where: { id },
+    select: {
+      _count: {
+        select: {
+          staff: true,
+          assignedOrders: true,
+          assignedOrderSegments: true,
+          inventories: true,
+          printOrders: true,
+          shipments: true,
+          transfersFrom: true,
+          transfersTo: true,
+          stockCounts: true,
+        },
+      },
+    },
+  });
+  if (!warehouse) throw new Error("Lager wurde nicht gefunden.");
+
+  const references = warehouse._count;
+  return {
+    ...references,
+    total: Object.values(references).reduce((sum, count) => sum + count, 0),
+  };
+}
+
 export function createPickupToken() {
   return randomBytes(24).toString("base64url");
 }

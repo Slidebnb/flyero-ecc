@@ -8,6 +8,7 @@ import { formatDateTime } from "@/lib/format";
 import { analyzeRoute, normalizeRoutePoint } from "@/lib/routeAnalysis";
 import { openTourReview } from "@/lib/tours";
 import { prisma } from "@/lib/prisma";
+import { productionAuditLogWhere, productionTourWhere } from "@/lib/productionData";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -19,8 +20,8 @@ function routePoint(point: { lat: unknown; lng: unknown; recordedAt: Date }) {
 export default async function AdminTourDetailPage({ params }: PageProps) {
   const session = await requireRole([UserRole.ADMIN]);
   const { id } = await params;
-  const tour = await prisma.distributionTour.findUnique({
-    where: { id },
+  const tour = await prisma.distributionTour.findFirst({
+    where: { id, ...productionTourWhere() },
     include: {
       distributor: { include: { user: { select: { id: true, email: true, status: true } } } },
       order: { include: { customer: true, statusEvents: { orderBy: { createdAt: "desc" } } } },
@@ -37,7 +38,7 @@ export default async function AdminTourDetailPage({ params }: PageProps) {
     targetAreaGeoJson: tour.order.targetAreaGeoJson,
   });
   const auditLogs = await prisma.auditLog.findMany({
-    where: { entityType: "DistributionTour", entityId: tour.id },
+    where: { ...productionAuditLogWhere(), entityType: "DistributionTour", entityId: tour.id },
     orderBy: { createdAt: "desc" },
     take: 30,
   });

@@ -4,6 +4,7 @@ import { notifyAdmins } from "@/lib/notifications";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
+import { warehouseSourceWhere } from "@/lib/warehouse";
 
 function warehouseData(body: Record<string, unknown>) {
   const city = String(body.city ?? "").trim();
@@ -37,7 +38,7 @@ function warehouseData(body: Record<string, unknown>) {
 export async function GET() {
   try {
     await requirePermission(Permission.PLATFORM_SETTINGS_MANAGE);
-    const warehouses = await prisma.warehouse.findMany({ orderBy: [{ isDefault: "desc" }, { name: "asc" }] });
+    const warehouses = await prisma.warehouse.findMany({ where: warehouseSourceWhere(), orderBy: [{ isDefault: "desc" }, { name: "asc" }] });
     return successResponse(warehouses);
   } catch (error) {
     return routeErrorResponse(error);
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
     if (!data.name || !data.city || !data.postalCode) throw new Error("Name, Stadt und PLZ sind Pflichtfelder.");
     const warehouse = await prisma.$transaction(async (tx) => {
       if (data.isDefault) await tx.warehouse.updateMany({ data: { isDefault: false } });
-      return tx.warehouse.create({ data });
+      return tx.warehouse.create({ data: { ...data, isDemoData: false } });
     });
     await createAuditLog({ userId: session.id, action: "settings.warehouse_created", entityType: "Warehouse", entityId: warehouse.id, newValues: warehouse });
     await notifyAdmins({ type: "WAREHOUSE_CHANGED", title: "Lager geaendert", message: `${warehouse.name} wurde angelegt.` });

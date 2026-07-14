@@ -3,6 +3,7 @@ import { NotificationAudience, NotificationChannel } from "@prisma/client";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { productionUserWhere } from "@/lib/productionData";
 import { EmptyState } from "@/app/PortalComponents";
 import { TemplatePreviewForm } from "./TemplatePreviewForm";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
@@ -27,19 +28,20 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
   const createdAt = dateFilter(filters.date);
   const [messages, queues, templates, logs, preferences] = await Promise.all([
     prisma.notificationMessage.findMany({
-      where: { audience: { in: ["ADMIN", "INTERNAL"] }, ...readFilter, ...typeFilter, ...(createdAt ? { createdAt } : {}) },
+      where: { audience: { in: ["ADMIN", "INTERNAL"] }, user: productionUserWhere(), ...readFilter, ...typeFilter, ...(createdAt ? { createdAt } : {}) },
       include: { user: true, template: true },
       orderBy: { createdAt: "desc" },
       take: 100,
     }),
     prisma.notificationQueue.findMany({
+      where: { user: productionUserWhere() },
       include: { user: true, template: true },
       orderBy: [{ status: "asc" }, { scheduledAt: "desc" }],
       take: 100,
     }),
     prisma.notificationTemplate.findMany({ orderBy: [{ audience: "asc" }, { name: "asc" }] }),
-    prisma.notificationLog.findMany({ include: { user: true, template: true }, orderBy: { createdAt: "desc" }, take: 100 }),
-    prisma.notificationPreference.findMany({ include: { user: true }, orderBy: [{ userId: "asc" }, { type: "asc" }], take: 100 }),
+    prisma.notificationLog.findMany({ where: { user: productionUserWhere() }, include: { user: true, template: true }, orderBy: { createdAt: "desc" }, take: 100 }),
+    prisma.notificationPreference.findMany({ where: { user: productionUserWhere() }, include: { user: true }, orderBy: [{ userId: "asc" }, { type: "asc" }], take: 100 }),
   ]);
   const types = [...new Set(messages.map((message) => message.type))].sort();
 

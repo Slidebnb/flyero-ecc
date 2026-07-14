@@ -2,12 +2,14 @@ import { UserRole } from "@prisma/client";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
+import { warehouseSourceWhere } from "@/lib/warehouse";
 
 export async function GET() {
   try {
     const session = await requirePermission(Permission.WAREHOUSE_VIEW);
     const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId ?? "__no_tenant__";
     const warehouses = await prisma.warehouse.findMany({
+      where: warehouseSourceWhere(),
       include: {
         regions: { orderBy: [{ priority: "desc" }, { name: "asc" }] },
         _count: {

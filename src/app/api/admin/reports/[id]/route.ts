@@ -3,6 +3,7 @@ import { collectReportData } from "@/lib/reports";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { tenantWhereForSession } from "@/lib/tenantPolicy";
+import { productionReportWhere } from "@/lib/productionData";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -10,8 +11,8 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     const session = await requirePermission(Permission.REPORT_REVIEW);
     const { id } = await context.params;
-    const report = await prisma.report.findUnique({
-      where: { id, ...tenantWhereForSession(session) },
+    const report = await prisma.report.findFirst({
+      where: { id, ...tenantWhereForSession(session), ...productionReportWhere() },
       include: {
         order: { include: { customer: true } },
         tour: {

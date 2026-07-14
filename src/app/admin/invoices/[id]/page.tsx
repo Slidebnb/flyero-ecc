@@ -5,14 +5,15 @@ import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { productionInvoiceWhere } from "@/lib/productionData";
 
 type PageProps = { params: Promise<{ id: string }> };
 
 export default async function AdminInvoiceDetailPage({ params }: PageProps) {
   await requireRole([UserRole.ADMIN]);
   const { id } = await params;
-  const invoice = await prisma.invoice.findUnique({
-    where: { id },
+  const invoice = await prisma.invoice.findFirst({
+    where: { id, ...productionInvoiceWhere() },
     include: { customer: true, order: true, payment: true, items: true, creditNotes: true },
   });
   if (!invoice) notFound();

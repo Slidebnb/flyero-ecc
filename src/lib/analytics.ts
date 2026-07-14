@@ -12,6 +12,7 @@ import {
 import { prisma } from "@/lib/prisma";
 import { getSupportAnalytics } from "@/lib/support";
 import { getDocumentAnalytics } from "@/lib/documents";
+import { productionCustomerWhere, productionLeadWhere, productionOrderWhere, productionUserWhere } from "@/lib/productionData";
 
 export type AnalyticsFilters = {
   from: Date;
@@ -123,16 +124,13 @@ function directTenantWhere(scope: AnalyticsScope) {
   return scope.tenantId ? { tenantId: scope.tenantId } : {};
 }
 
-function distributorTenantWhere(scope: AnalyticsScope) {
-  return scope.tenantId ? { user: { tenantId: scope.tenantId } } : {};
-}
-
 function leadTenantWhere(scope: AnalyticsScope) {
   return scope.tenantId ? { wonCustomer: { tenantId: scope.tenantId } } : {};
 }
 
 function orderWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: AnalyticsScope = {}) {
   return {
+    ...productionOrderWhere(),
     ...dateRange(dateField, filters),
     ...directTenantWhere(scope),
     ...(filters.city ? { city: filters.city } : {}),
@@ -146,6 +144,7 @@ function orderWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: A
 
 function paymentWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: AnalyticsScope = {}) {
   const order = {
+    ...productionOrderWhere(),
     ...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
     ...(filters.city ? { city: filters.city } : {}),
     ...(filters.distributorId ? { assignedDistributorId: filters.distributorId } : {}),
@@ -154,7 +153,7 @@ function paymentWhere(filters: AnalyticsFilters, dateField = "createdAt", scope:
     ...dateRange(dateField, filters),
     ...directTenantWhere(scope),
     ...(filters.customerId ? { customerId: filters.customerId } : {}),
-    ...(Object.keys(order).length ? { order } : {}),
+    order,
     ...(filters.status && Object.values(PaymentStatus).includes(filters.status as PaymentStatus)
       ? { status: filters.status as PaymentStatus }
       : {}),
@@ -163,6 +162,7 @@ function paymentWhere(filters: AnalyticsFilters, dateField = "createdAt", scope:
 
 function tourWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: AnalyticsScope = {}) {
   const order = {
+    ...productionOrderWhere(),
     ...(scope.tenantId ? { tenantId: scope.tenantId } : {}),
     ...(filters.city ? { city: filters.city } : {}),
     ...(filters.customerId ? { customerId: filters.customerId } : {}),
@@ -170,7 +170,7 @@ function tourWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: An
   return {
     ...dateRange(dateField, filters),
     ...(filters.distributorId ? { distributorId: filters.distributorId } : {}),
-    ...(Object.keys(order).length ? { order } : {}),
+    order,
     ...(filters.status && Object.values(TourStatus).includes(filters.status as TourStatus)
       ? { status: filters.status as TourStatus }
       : {}),
@@ -179,6 +179,7 @@ function tourWhere(filters: AnalyticsFilters, dateField = "createdAt", scope: An
 
 function leadWhere(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   return {
+    ...productionLeadWhere(),
     ...dateRange("createdAt", filters),
     ...leadTenantWhere(scope),
     ...(filters.city ? { city: filters.city } : {}),
@@ -340,9 +341,9 @@ export async function getOrderMetrics(filters: AnalyticsFilters, scope: Analytic
 
 export async function getCustomerMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [activeCustomers, customers] = await Promise.all([
-    prisma.user.count({ where: { ...directTenantWhere(scope), role: "CUSTOMER", status: UserStatus.ACTIVE } }),
+    prisma.user.count({ where: { ...directTenantWhere(scope), ...productionUserWhere(), role: "CUSTOMER", status: UserStatus.ACTIVE } }),
     prisma.customerProfile.findMany({
-      where: directTenantWhere(scope),
+      where: { ...directTenantWhere(scope), ...productionCustomerWhere() },
       include: {
         orders: { include: { payments: true } },
         user: { select: { status: true } },
@@ -383,9 +384,9 @@ export async function getCustomerMetrics(filters: AnalyticsFilters, scope: Analy
 
 export async function getDistributorMetrics(filters: AnalyticsFilters, scope: AnalyticsScope = {}) {
   const [activeDistributors, distributors, tourStatusCounts] = await Promise.all([
-    prisma.distributorProfile.count({ where: { ...distributorTenantWhere(scope), reviewStatus: DistributorReviewStatus.APPROVED } }),
+    prisma.distributorProfile.count({ where: { reviewStatus: DistributorReviewStatus.APPROVED, user: { ...productionUserWhere(), ...(scope.tenantId ? { tenantId: scope.tenantId } : {}) } } }),
     prisma.distributorProfile.findMany({
-      where: distributorTenantWhere(scope),
+      where: { user: { ...productionUserWhere(), ...(scope.tenantId ? { tenantId: scope.tenantId } : {}) } },
       include: {
         dispatchAssignments: { where: { assignedAt: { gte: filters.from, lte: filters.to } } },
         tours: {
@@ -602,9 +603,9 @@ export async function getBusinessOverview(filters: AnalyticsFilters, scope: Anal
 
 export async function getAnalyticsFilterOptions(scope: AnalyticsScope = {}) {
   const [cities, customers, distributors] = await Promise.all([
-    prisma.order.findMany({ where: directTenantWhere(scope), select: { city: true }, distinct: ["city"], orderBy: { city: "asc" } }),
-    prisma.customerProfile.findMany({ where: directTenantWhere(scope), select: { id: true, companyName: true }, orderBy: { companyName: "asc" } }),
-    prisma.distributorProfile.findMany({ where: distributorTenantWhere(scope), select: { id: true, firstName: true, lastName: true }, orderBy: { lastName: "asc" } }),
+    prisma.order.findMany({ where: { ...directTenantWhere(scope), ...productionOrderWhere() }, select: { city: true }, distinct: ["city"], orderBy: { city: "asc" } }),
+    prisma.customerProfile.findMany({ where: { ...directTenantWhere(scope), ...productionCustomerWhere() }, select: { id: true, companyName: true }, orderBy: { companyName: "asc" } }),
+    prisma.distributorProfile.findMany({ where: { user: { ...productionUserWhere(), ...(scope.tenantId ? { tenantId: scope.tenantId } : {}) } }, select: { id: true, firstName: true, lastName: true }, orderBy: { lastName: "asc" } }),
   ]);
 
   return {

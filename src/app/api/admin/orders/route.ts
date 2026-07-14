@@ -2,6 +2,7 @@ import { OrderStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { productionOrderWhere } from "@/lib/productionData";
 import { routeErrorResponse } from "@/lib/request";
 
 export async function GET(request: NextRequest) {
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
 
     const orders = await prisma.order.findMany({
       where: {
+        ...productionOrderWhere(),
         ...(status ? { status } : {}),
         ...(city ? { city: { contains: city, mode: "insensitive" } } : {}),
         ...(search

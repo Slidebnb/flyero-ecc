@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { productionDistributorWhere } from "@/lib/productionData";
 import { DISTRIBUTOR_STATUS_LABELS } from "@/lib/constants";
 import { asObject, formatAddress, formatDate } from "@/lib/format";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
@@ -14,8 +15,8 @@ type PageProps = {
 export default async function AdminDistributorDetailPage({ params }: PageProps) {
   await requireRole([UserRole.ADMIN]);
   const { id } = await params;
-  const profile = await prisma.distributorProfile.findUnique({
-    where: { id },
+  const profile = await prisma.distributorProfile.findFirst({
+    where: { id, ...productionDistributorWhere() },
     include: { user: true },
   });
 

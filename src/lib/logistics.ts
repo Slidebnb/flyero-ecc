@@ -10,6 +10,8 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/auth";
+import { warehouseSourceWhere } from "@/lib/warehouse";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type WarehouseWithRegions = Warehouse & {
   regions: { name: string; city: string | null; postalCodes: string[]; priority: number; isActive: boolean }[];
@@ -65,7 +67,7 @@ function regionMatches(warehouse: WarehouseWithRegions, area: { city?: string | 
 }
 
 export async function getWarehouseCapacityStatus(warehouseId: string) {
-  const warehouse = await prisma.warehouse.findUnique({ where: { id: warehouseId } });
+  const warehouse = await prisma.warehouse.findFirst({ where: { id: warehouseId, ...warehouseSourceWhere() } });
   if (!warehouse) throw new Error("Lager wurde nicht gefunden.");
   const utilization = warehouse.currentUtilization;
   const limit = warehouse.capacityLimit;
@@ -87,7 +89,7 @@ export async function findBestWarehouseForArea(area: {
   lng?: number | null;
 }) {
   const warehouses = await prisma.warehouse.findMany({
-    where: { isActive: true },
+    where: { isActive: true, ...warehouseSourceWhere() },
     include: { regions: { where: { isActive: true } } },
     orderBy: [{ isDefault: "desc" }, { name: "asc" }],
   });
@@ -220,9 +222,10 @@ export async function releaseWarehouseCapacity(input: { warehouseId: string; qua
 }
 
 export function warehouseScopeForUser(actor: SessionUser): Prisma.WarehouseWhereInput {
-  if (actor.role === UserRole.ADMIN || actor.role === UserRole.SUPPORT_DISPATCHER) return {};
-  if (actor.role === UserRole.WAREHOUSE_STAFF) return actor.warehouseId ? { id: actor.warehouseId } : { id: "__none__" };
-  return { id: "__forbidden__" };
+  const source = warehouseSourceWhere();
+  if (actor.role === UserRole.ADMIN || actor.role === UserRole.SUPPORT_DISPATCHER) return source;
+  if (actor.role === UserRole.WAREHOUSE_STAFF) return { AND: [source, actor.warehouseId ? { id: actor.warehouseId } : { id: "__none__" }] };
+  return { AND: [source, { id: "__forbidden__" }] };
 }
 
 export function shipmentScopeForUser(actor: SessionUser): Prisma.LogisticsShipmentWhereInput {
@@ -393,7 +396,7 @@ export async function createWarehouseTransfer(input: {
   notes?: string | null;
 }) {
   const inventory = await prisma.warehouseInventory.findFirst({
-    where: { id: input.inventoryId, ...(input.tenantId === undefined ? {} : { order: { tenantId: input.tenantId ?? "__no_tenant__" } }) },
+    where: { id: input.inventoryId, order: { ...productionOrderWhere(), ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }) } },
     select: { id: true },
   });
   if (!inventory) throw new Error("Bestand wurde nicht gefunden oder ist nicht berechtigt.");
@@ -472,7 +475,7 @@ export async function createWarehouseStockCount(input: {
   notes?: string | null;
 }) {
   const inventory = await prisma.warehouseInventory.findFirst({
-    where: { id: input.inventoryId, ...(input.tenantId === undefined ? {} : { order: { tenantId: input.tenantId ?? "__no_tenant__" } }) },
+    where: { id: input.inventoryId, order: { ...productionOrderWhere(), ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }) } },
     select: { id: true, warehouseId: true },
   });
   if (!inventory) throw new Error("Bestand wurde nicht gefunden oder ist nicht berechtigt.");
@@ -502,10 +505,10 @@ export async function createWarehouseStockCount(input: {
 
 export async function getLogisticsAnalytics(tenantId?: string | null) {
   const now = new Date();
-  const shipmentScope = tenantId === undefined ? {} : { order: { tenantId: tenantId ?? "__no_tenant__" } };
-  const inventoryScope = tenantId === undefined ? {} : { inventory: { order: { tenantId: tenantId ?? "__no_tenant__" } } };
+  const shipmentScope = { order: { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) } };
+  const inventoryScope = { inventory: { order: { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) } } };
   const [warehouses, openShipments, lateShipments, damagedShipments, stockDifferences, byStatus, byType, receivedShipments] = await Promise.all([
-    prisma.warehouse.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.warehouse.findMany({ where: { isActive: true, ...warehouseSourceWhere() }, orderBy: { name: "asc" } }),
     prisma.logisticsShipment.count({ where: { ...shipmentScope, status: { in: ["CREATED", "IN_TRANSIT", "DELIVERED"] } } }),
     prisma.logisticsShipment.count({ where: { ...shipmentScope, status: { in: ["CREATED", "IN_TRANSIT"] }, expectedDeliveryDate: { lt: now } } }),
     prisma.logisticsShipment.count({ where: { ...shipmentScope, status: "DAMAGED" } }),

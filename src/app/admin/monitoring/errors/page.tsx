@@ -4,6 +4,7 @@ import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { formatDateTime } from "@/lib/format";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { productionErrorLogWhere } from "@/lib/productionData";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type SearchParams = Promise<{
@@ -27,6 +28,7 @@ export default async function AdminMonitoringErrorsPage({ searchParams }: { sear
 
   const errors = await prisma.errorLog.findMany({
     where: {
+      ...productionErrorLogWhere(),
       ...(status ? { status } : {}),
       ...(severity ? { severity } : {}),
       ...(source ? { source: { contains: source, mode: "insensitive" } } : {}),

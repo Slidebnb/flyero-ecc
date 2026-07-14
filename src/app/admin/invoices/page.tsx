@@ -4,11 +4,13 @@ import { EmptyState } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { formatCurrency } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { productionInvoiceWhere } from "@/lib/productionData";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 export default async function AdminInvoicesPage() {
   await requireRole([UserRole.ADMIN]);
   const invoices = await prisma.invoice.findMany({
+    where: productionInvoiceWhere(),
     include: { customer: true, order: true, payment: true, creditNotes: true },
     orderBy: { invoiceDate: "desc" },
   });
@@ -60,4 +62,3 @@ export default async function AdminInvoicesPage() {
     </AdminPortalShell>
   );
 }
-

@@ -2,6 +2,7 @@ import { Prisma, UserRole, UserStatus } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { productionUserWhere } from "@/lib/productionData";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -13,24 +14,29 @@ export const PRICING_SETTING_KEYS = {
 } as const;
 
 export async function getCompanySettings() {
-  const existing = await prisma.companySettings.findFirst({ orderBy: { createdAt: "asc" } });
+  const existing = await prisma.companySettings.findFirst({
+    where: process.env.NODE_ENV === "production"
+      ? { NOT: { OR: [{ street: "Musterstrasse 1" }, { bankName: "Demo Bank" }, { vatId: "DE000000000" }] } }
+      : undefined,
+    orderBy: { createdAt: "asc" },
+  });
   if (existing) return existing;
   return prisma.companySettings.create({
     data: {
-      companyName: "Flyero",
-      legalName: "Flyero GmbH i.G.",
-      street: "Musterstrasse 1",
-      postalCode: "56068",
-      city: "Koblenz",
+      companyName: "",
+      legalName: "",
+      street: "",
+      postalCode: "",
+      city: "",
       country: "DE",
-      phone: "+49 261 000000",
-      email: "hello@flyero.de",
-      website: "https://flyero.de",
-      taxNumber: "22/123/45678",
-      vatId: "DE000000000",
-      bankName: "Demo Bank",
-      iban: "DE89370400440532013000",
-      bic: "DEMODEFFXXX",
+      phone: "",
+      email: "",
+      website: "",
+      taxNumber: "",
+      vatId: "",
+      bankName: "",
+      iban: "",
+      bic: "",
     },
   });
 }
@@ -51,7 +57,10 @@ export async function updateCompanySettings(data: Prisma.CompanySettingsUpdateIn
 }
 
 export async function getBrandingSettings() {
-  const existing = await prisma.brandingSettings.findFirst({ orderBy: { createdAt: "asc" } });
+  const existing = await prisma.brandingSettings.findFirst({
+    where: process.env.NODE_ENV === "production" ? { NOT: { invoiceFooterText: { contains: "Musterstrasse" } } } : undefined,
+    orderBy: { createdAt: "asc" },
+  });
   if (existing) return existing;
   return prisma.brandingSettings.create({
     data: {
@@ -60,7 +69,7 @@ export async function getBrandingSettings() {
       accentColor: "#e0b84d",
       logoUrl: "",
       reportFooterText: "Flyero / digitaler Verteilnachweis",
-      invoiceFooterText: "Flyero GmbH i.G. / Musterstrasse 1 / 56068 Koblenz",
+      invoiceFooterText: "",
     },
   });
 }
@@ -176,7 +185,10 @@ export async function getGoogleMapsConfigStatus() {
 
 export async function getDefaultWarehouse() {
   return prisma.warehouse.findFirst({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(process.env.NODE_ENV === "production" ? { isDemoData: false } : {}),
+    },
     orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }],
   });
 }
@@ -246,6 +258,7 @@ export async function generateSettingsNumber(kind: NumberingKind) {
 export async function listInternalUsers() {
   return prisma.user.findMany({
     where: {
+      ...productionUserWhere(),
       role: { in: [UserRole.ADMIN, UserRole.WAREHOUSE_STAFF, UserRole.SUPPORT_DISPATCHER] },
     },
     orderBy: [{ role: "asc" }, { email: "asc" }],

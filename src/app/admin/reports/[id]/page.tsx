@@ -5,6 +5,7 @@ import { requirePermission, hasPermission, Permission } from "@/lib/permissions"
 import { formatDateTime } from "@/lib/format";
 import { collectReportData } from "@/lib/reports";
 import { prisma } from "@/lib/prisma";
+import { productionReportWhere } from "@/lib/productionData";
 import { tenantWhereForSession } from "@/lib/tenantPolicy";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
@@ -15,7 +16,7 @@ export default async function AdminReportDetailPage({ params }: PageProps) {
   const canPublish = hasPermission(session, Permission.REPORT_PUBLISH);
   const { id } = await params;
   const report = await prisma.report.findFirst({
-    where: { id, ...tenantWhereForSession(session) },
+    where: { id, ...tenantWhereForSession(session), ...productionReportWhere() },
     include: { order: { include: { customer: true } }, tour: true, approver: true },
   });
   if (!report) notFound();

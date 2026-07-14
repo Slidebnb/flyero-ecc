@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { adminOrderNoteSchema } from "@/lib/validators";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -19,7 +20,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     }
 
-    const order = await prisma.order.findUnique({ where: { id } });
+    const order = await prisma.order.findFirst({ where: { id, ...productionOrderWhere() } });
     if (!order) {
       return errorResponse("Auftrag wurde nicht gefunden.", 404);
     }

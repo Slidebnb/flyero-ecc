@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -11,8 +12,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     await requirePermission(Permission.ORDER_VIEW);
     const { id } = await context.params;
-    const order = await prisma.order.findUnique({
-      where: { id },
+    const order = await prisma.order.findFirst({
+      where: { id, ...productionOrderWhere() },
       include: {
         customer: {
           include: {

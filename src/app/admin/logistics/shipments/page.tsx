@@ -3,6 +3,8 @@ import { DataSection, PortalShell, StatusBadge } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
+import { warehouseSourceWhere } from "@/lib/warehouse";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type PageProps = { searchParams?: Promise<Record<string, string | undefined>> };
 
@@ -15,7 +17,7 @@ export default async function AdminLogisticsShipmentsPage({ searchParams }: Page
   const [shipments, warehouses, orders] = await Promise.all([
     prisma.logisticsShipment.findMany({
       where: {
-        ...(tenantId === undefined ? {} : { order: { tenantId: tenantId ?? "__no_tenant__" } }),
+        order: { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) },
         ...(status ? { status } : {}),
         ...(shipmentType ? { shipmentType } : {}),
         ...(params.warehouseId ? { warehouseId: params.warehouseId } : {}),
@@ -28,9 +30,9 @@ export default async function AdminLogisticsShipmentsPage({ searchParams }: Page
       orderBy: [{ expectedDeliveryDate: "asc" }, { createdAt: "desc" }],
       take: 200,
     }),
-    prisma.warehouse.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.warehouse.findMany({ where: { isActive: true, ...warehouseSourceWhere() }, orderBy: { name: "asc" } }),
     prisma.order.findMany({
-      where: tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" },
+      where: { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) },
       orderBy: { createdAt: "desc" },
       take: 50,
       select: { id: true, orderNumber: true, targetAreaName: true },

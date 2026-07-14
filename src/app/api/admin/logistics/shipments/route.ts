@@ -5,6 +5,7 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { logisticsShipmentCreateSchema } from "@/lib/validators";
+import { productionOrderWhere } from "@/lib/productionData";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +16,7 @@ export async function GET(request: NextRequest) {
     const warehouseId = params.get("warehouseId") || undefined;
     const shipments = await prisma.logisticsShipment.findMany({
       where: {
-        ... (session.role === UserRole.ADMIN ? {} : { order: { tenantId: session.tenantId ?? "__no_tenant__" } }),
+        order: { ...productionOrderWhere(), ...(session.role === UserRole.ADMIN ? {} : { tenantId: session.tenantId ?? "__no_tenant__" }) },
         ...(status ? { status } : {}),
         ...(shipmentType ? { shipmentType } : {}),
         ...(warehouseId ? { warehouseId } : {}),

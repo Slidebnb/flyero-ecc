@@ -5,6 +5,7 @@ import { regenerateReport } from "@/lib/reports";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 import { tenantWhereForSession } from "@/lib/tenantPolicy";
+import { productionReportWhere } from "@/lib/productionData";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const session = await requirePermission(Permission.REPORT_REVIEW);
     const { id } = await context.params;
-    const scopedReport = await prisma.report.findFirst({ where: { id, ...tenantWhereForSession(session) }, select: { id: true } });
+    const scopedReport = await prisma.report.findFirst({ where: { id, ...tenantWhereForSession(session), ...productionReportWhere() }, select: { id: true } });
     if (!scopedReport) return errorResponse("Bericht wurde nicht gefunden.", 404);
     const job = await logBackgroundJobStart("PDF_GENERATION", { reportId: id, regenerate: true });
     jobId = job.id;

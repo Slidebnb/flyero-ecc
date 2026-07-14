@@ -3,6 +3,7 @@ import { DataSection, EmptyState, MetricTile, PortalShell, StatusBadge } from "@
 import { addDocumentComment, approveDocument, DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, getDocumentAnalytics, listDocuments, rejectDocument, rescanDocument } from "@/lib/documents";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { productionCustomerWhere, productionOrderWhere } from "@/lib/productionData";
 import { tenantWhereForSession } from "@/lib/tenantPolicy";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
@@ -53,8 +54,8 @@ export default async function AdminDocumentsPage({ searchParams }: { searchParam
   const [documents, analytics, customers, orders] = await Promise.all([
     listDocuments(session, params),
     getDocumentAnalytics({ tenantId: session.tenantId }),
-    prisma.customerProfile.findMany({ where: tenantWhereForSession(session), select: { id: true, companyName: true }, orderBy: { companyName: "asc" }, take: 200 }),
-    prisma.order.findMany({ where: tenantWhereForSession(session), select: { id: true, orderNumber: true, targetAreaName: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
+    prisma.customerProfile.findMany({ where: { ...tenantWhereForSession(session), ...productionCustomerWhere() }, select: { id: true, companyName: true }, orderBy: { companyName: "asc" }, take: 200 }),
+    prisma.order.findMany({ where: { ...tenantWhereForSession(session), ...productionOrderWhere() }, select: { id: true, orderNumber: true, targetAreaName: true }, orderBy: { updatedAt: "desc" }, take: 200 }),
   ]);
 
   return (

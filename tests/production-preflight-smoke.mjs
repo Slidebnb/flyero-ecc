@@ -25,6 +25,7 @@ const validEnvironment = {
   NEXT_PUBLIC_SITE_URL: "https://flyero.org",
   DATABASE_URL: "postgresql://flyero:secret@postgres:5432/flyero?schema=public",
   ENABLE_MOCK_PAYMENTS: "false",
+  SEED_DEMO_DATA: "false",
   STRIPE_SECRET_KEY: "sk_test_synthetic_123456",
   STRIPE_WEBHOOK_SECRET: "whsec_synthetic_123456",
   EMAIL_PROVIDER: "resend",

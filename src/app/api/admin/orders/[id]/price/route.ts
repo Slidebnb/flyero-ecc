@@ -8,6 +8,7 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { calculatePriceFromNet, getVatRate } from "@/lib/pricing";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { adminOrderPriceSchema } from "@/lib/validators";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -23,8 +24,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id },
+    const order = await prisma.order.findFirst({
+      where: { id, ...productionOrderWhere() },
       include: {
         customer: { select: { userId: true } },
         payments: { where: { status: { in: ["CHECKOUT_CREATED", "PENDING", "PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } } },

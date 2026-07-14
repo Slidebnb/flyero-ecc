@@ -5,6 +5,8 @@ import { DataSection, MetricTile, PortalShell, StatusBadge } from "@/app/PortalC
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
+import { warehouseSourceWhere } from "@/lib/warehouse";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -12,9 +14,9 @@ export default async function AdminWarehouseDetailPage({ params }: PageProps) {
   const session = await requirePermission(Permission.WAREHOUSE_VIEW);
   const tenantId = session.role === UserRole.ADMIN ? undefined : session.tenantId;
   const { id } = await params;
-  const orderTenantWhere = tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" };
-  const warehouse = await prisma.warehouse.findUnique({
-    where: { id },
+  const orderTenantWhere = { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) };
+  const warehouse = await prisma.warehouse.findFirst({
+    where: { id, ...warehouseSourceWhere() },
     include: {
       regions: { orderBy: [{ priority: "desc" }, { name: "asc" }] },
       locations: { orderBy: { fullLabel: "asc" } },

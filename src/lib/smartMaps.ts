@@ -18,20 +18,36 @@ export type SmartPlaceSuggestion = {
   source: "local" | "google";
 };
 
-const LOCAL_PLACES: SmartPlaceSuggestion[] = [
-  { id: "local-56068", label: "56068 Koblenz Zentrum", description: "Altstadt, Mitte, Rheinanlagen", city: "Koblenz", postalCode: "56068", lat: 50.3569, lng: 7.589, source: "local" },
-  { id: "local-56070", label: "56070 Koblenz-Lützel", description: "Lützel, Neuendorf, Wallersheim", city: "Koblenz", postalCode: "56070", lat: 50.3761, lng: 7.5897, source: "local" },
-  { id: "local-56072", label: "56072 Koblenz-Metternich", description: "Metternich, Rübenach, Güls", city: "Koblenz", postalCode: "56072", lat: 50.3669, lng: 7.5251, source: "local" },
-  { id: "local-56170", label: "56170 Bendorf", description: "Bendorf und Sayn", city: "Bendorf", postalCode: "56170", lat: 50.437, lng: 7.575, source: "local" },
-  { id: "local-56564", label: "56564 Neuwied Innenstadt", description: "Neuwied Mitte und Rheinquartier", city: "Neuwied", postalCode: "56564", lat: 50.4285, lng: 7.4607, source: "local" },
-  { id: "local-56112", label: "56112 Lahnstein", description: "Oberlahnstein und Niederlahnstein", city: "Lahnstein", postalCode: "56112", lat: 50.3067, lng: 7.6079, source: "local" },
-  { id: "local-56626", label: "56626 Andernach", description: "Innenstadt und Südstadt", city: "Andernach", postalCode: "56626", lat: 50.4398, lng: 7.4009, source: "local" },
-  { id: "local-50667", label: "50667 Köln Innenstadt", description: "Altstadt-Nord, City", city: "Köln", postalCode: "50667", lat: 50.9384, lng: 6.9571, source: "local" },
-  { id: "local-60311", label: "60311 Frankfurt am Main", description: "Innenstadt, Altstadt, Bankenviertel", city: "Frankfurt am Main", postalCode: "60311", lat: 50.1109, lng: 8.6821, source: "local" },
-];
-
-function normalize(value: string) {
-  return value.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+async function configuredPlaceSuggestions(query: string): Promise<SmartPlaceSuggestion[]> {
+  const needle = query.trim();
+  if (needle.length < 2) return [];
+  const sourceFilter = process.env.NODE_ENV === "production" ? { dataSourceType: { not: AreaDataSourceType.SEED } } : {};
+  const areas = await prisma.distributionArea.findMany({
+    where: {
+      status: "ACTIVE",
+      reusable: true,
+      ...sourceFilter,
+      OR: [
+        { name: { contains: needle, mode: "insensitive" } },
+        { city: { contains: needle, mode: "insensitive" } },
+        { district: { contains: needle, mode: "insensitive" } },
+        { postalCode: { startsWith: needle } },
+      ],
+    },
+    select: { id: true, name: true, city: true, postalCode: true, district: true, state: true, centerLat: true, centerLng: true },
+    orderBy: [{ city: "asc" }, { name: "asc" }],
+    take: 6,
+  });
+  return areas.map((area) => ({
+    id: area.id,
+    label: [area.postalCode, area.name].filter(Boolean).join(" "),
+    description: [area.district, area.city, area.state].filter(Boolean).join(", "),
+    city: area.city ?? "",
+    postalCode: area.postalCode ?? "",
+    lat: area.centerLat == null ? 0 : Number(area.centerLat),
+    lng: area.centerLng == null ? 0 : Number(area.centerLng),
+    source: "local" as const,
+  }));
 }
 
 async function googleAutocomplete(query: string): Promise<SmartPlaceSuggestion[]> {
@@ -61,13 +77,7 @@ async function googleAutocomplete(query: string): Promise<SmartPlaceSuggestion[]
 }
 
 export async function getPlaceAutocomplete(query: string, options?: { publicOnly?: boolean }) {
-  const needle = normalize(query);
-  const local = options?.publicOnly
-    ? []
-    : LOCAL_PLACES.filter((place) => {
-        const haystack = normalize(`${place.label} ${place.description} ${place.city} ${place.postalCode}`);
-        return haystack.includes(needle) || needle.includes(normalize(place.postalCode));
-      }).slice(0, 6);
+  const local = options?.publicOnly ? [] : await configuredPlaceSuggestions(query).catch(() => []);
   const google = await googleAutocomplete(query).catch(() => []);
   return [...local, ...google].slice(0, 8);
 }
@@ -116,13 +126,37 @@ export async function geocodeSmartAddress(input: {
   houseNumber?: string;
 }, options?: { publicOnly?: boolean }) {
   const query = input.query || [input.street, input.houseNumber, input.postalCode, input.city, "Deutschland"].filter(Boolean).join(" ");
-  const needle = normalize(query);
   const google = await googleGeocode(query).catch(() => null);
   if (google) return google;
   if (options?.publicOnly) return null;
-  const local = LOCAL_PLACES.find((place) => needle.includes(normalize(place.postalCode)) || needle.includes(normalize(place.city)));
-  return local
-    ? { ...local, houseNumber: "", source: "local" as const }
+  const sourceFilter = process.env.NODE_ENV === "production" ? { dataSourceType: { not: AreaDataSourceType.SEED } } : {};
+  const area = await prisma.distributionArea.findFirst({
+    where: {
+      status: "ACTIVE",
+      reusable: true,
+      centerLat: { not: null },
+      centerLng: { not: null },
+      ...sourceFilter,
+      OR: [
+        { name: { contains: query, mode: "insensitive" } },
+        { city: { contains: query, mode: "insensitive" } },
+        { district: { contains: query, mode: "insensitive" } },
+        { postalCode: { startsWith: query.trim() } },
+      ],
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+  return area
+    ? {
+        label: [area.postalCode, area.name].filter(Boolean).join(" "),
+        city: area.city ?? "",
+        postalCode: area.postalCode ?? "",
+        street: "",
+        houseNumber: "",
+        lat: Number(area.centerLat),
+        lng: Number(area.centerLng),
+        source: "local" as const,
+      }
     : null;
 }
 

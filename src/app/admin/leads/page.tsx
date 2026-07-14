@@ -6,6 +6,7 @@ import { leadScopeFromSession, leadScopeWhere } from "@/lib/leadScope";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { updateLead } from "@/lib/leads";
 import { prisma } from "@/lib/prisma";
+import { productionLeadWhere } from "@/lib/productionData";
 
 type SearchParams = Promise<{
   status?: string;
@@ -42,6 +43,7 @@ export default async function AdminLeadsPage({ searchParams }: { searchParams: S
 
   const leads = await prisma.lead.findMany({
       where: {
+        ...productionLeadWhere(),
         ...leadScopeWhere(leadScopeFromSession(session)),
       ...(status ? { status } : {}),
       ...(type ? { type } : {}),

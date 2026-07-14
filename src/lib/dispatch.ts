@@ -4,21 +4,23 @@ import { asObject } from "@/lib/format";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { getSystemSettings } from "@/lib/settings";
+import { warehouseSourceWhere } from "@/lib/warehouse";
+import { productionOrderWhere, productionUserWhere } from "@/lib/productionData";
 
 const ACTIVE_ASSIGNMENT_STATUSES: DispatchAssignmentStatus[] = ["ASSIGNED", "ACCEPTED"];
 const ACTIVE_TOUR_STATUSES = ["ASSIGNED", "READY", "PICKED_UP", "STARTED", "PAUSED", "RESUMED"] as const;
 const COMPLETED_TOUR_STATUSES = ["COMPLETED", "UNDER_REVIEW", "APPROVED"] as const;
 
 function orderTenantWhere(tenantId: string | null | undefined) {
-  return tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" };
+  return { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) };
 }
 
 function orderRelationTenantWhere(tenantId: string | null | undefined) {
-  return tenantId === undefined ? {} : { order: { tenantId: tenantId ?? "__no_tenant__" } };
+  return { order: { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) } };
 }
 
 function distributorTenantWhere(tenantId: string | null | undefined) {
-  return tenantId === undefined ? {} : { user: { tenantId: tenantId ?? "__no_tenant__" } };
+  return { user: { ...productionUserWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }) } };
 }
 
 async function ensureOrderAccess(orderId: string, tenantId: string | null | undefined) {
@@ -673,13 +675,13 @@ export async function getDispatchDashboard(filters: {
     status: "READY_FOR_PICKUP",
     pickupStatus: { in: ["PREPARED", "RESERVED"] },
     ...(filters.warehouseId ? { warehouseLocation: { warehouseId: filters.warehouseId } } : {}),
-    ...((filters.city || tenantId !== undefined) ? { order: { ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }), ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}) } } : {}),
+    order: { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }), ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}) },
   };
 
   const assignmentWhere: Prisma.DispatchAssignmentWhereInput = {
     ...(filters.distributorId ? { distributorId: filters.distributorId } : {}),
     ...(filters.status ? { status: filters.status as DispatchAssignmentStatus } : {}),
-    ...((filters.city || tenantId !== undefined) ? { order: { ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }), ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}) } } : {}),
+    order: { ...productionOrderWhere(), ...(tenantId === undefined ? {} : { tenantId: tenantId ?? "__no_tenant__" }), ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}) },
     ...(filters.warehouseId ? { inventory: { warehouseLocation: { warehouseId: filters.warehouseId } } } : {}),
   };
 
@@ -713,7 +715,7 @@ export async function getDispatchDashboard(filters: {
         orderBy: { updatedAt: "desc" },
         take: 25,
       }),
-      prisma.warehouse.findMany({ orderBy: { name: "asc" } }),
+      prisma.warehouse.findMany({ where: warehouseSourceWhere(), orderBy: { name: "asc" } }),
       prisma.distributorProfile.findMany({ where: { ...distributorTenantWhere(tenantId), reviewStatus: "APPROVED" }, orderBy: [{ lastName: "asc" }, { firstName: "asc" }] }),
       prisma.order.count({ where: { ...orderTenantWhere(tenantId), status: { in: ["APPROVED", "READY_FOR_FLYERS", "FLYERS_EXPECTED", "FLYERS_RECEIVED", "STORED", "READY_FOR_PICKUP"] } } }),
       prisma.dispatchAssignment.count({ where: { status: "ACCEPTED", ...orderRelationTenantWhere(tenantId) } }),

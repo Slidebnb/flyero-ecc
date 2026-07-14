@@ -1,10 +1,12 @@
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
-﻿import { revalidatePath } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { warehouseSourceWhere } from "@/lib/warehouse";
+import { WarehouseDeleteButton } from "./WarehouseDeleteButton";
 
 async function createWarehouse(formData: FormData) {
   "use server";
@@ -38,7 +40,7 @@ async function createWarehouse(formData: FormData) {
     });
   });
   await createAuditLog({ userId: session.id, action: "settings.warehouse_created", entityType: "Warehouse", entityId: warehouse.id, newValues: warehouse });
-  await notifyAdmins({ type: "WAREHOUSE_CHANGED", title: "Lager geaendert", message: `${warehouse.name} wurde angelegt.` });
+  await notifyAdmins({ type: "WAREHOUSE_CHANGED", title: "Lager geändert", message: `${warehouse.name} wurde angelegt.` });
   revalidatePath("/admin/settings/warehouses");
 }
 
@@ -77,13 +79,13 @@ async function toggleWarehouse(formData: FormData) {
     });
   });
   await createAuditLog({ userId: session.id, action: "settings.warehouse_updated", entityType: "Warehouse", entityId: warehouse.id, oldValues: before, newValues: warehouse });
-  await notifyAdmins({ type: "WAREHOUSE_CHANGED", title: "Lager geaendert", message: `${warehouse.name} wurde aktualisiert.` });
+  await notifyAdmins({ type: "WAREHOUSE_CHANGED", title: "Lager geändert", message: `${warehouse.name} wurde aktualisiert.` });
   revalidatePath("/admin/settings/warehouses");
 }
 
 export default async function WarehouseSettingsPage() {
   await requireRole([UserRole.ADMIN]);
-  const warehouses = await prisma.warehouse.findMany({ orderBy: [{ isDefault: "desc" }, { name: "asc" }] });
+  const warehouses = await prisma.warehouse.findMany({ where: warehouseSourceWhere(), orderBy: [{ isDefault: "desc" }, { name: "asc" }] });
   return (
     <AdminPortalShell eyebrow="Einstellungen" title="Lager">
       <section className="panel stack widePanel">
@@ -98,6 +100,7 @@ export default async function WarehouseSettingsPage() {
       </section>
       <section className="panel stack widePanel">
         <h2 className="sectionTitle">Bestehende Lager</h2>
+        {!warehouses.length ? <p className="emptyState">Noch kein echtes Lager angelegt.</p> : null}
         {warehouses.map((warehouse) => {
           const address = warehouse.address as { street?: string; houseNumber?: string } | null;
           return (
@@ -120,6 +123,7 @@ export default async function WarehouseSettingsPage() {
               <label><input name="isActive" type="checkbox" defaultChecked={warehouse.isActive} /> aktiv</label>
               <label><input name="isDefault" type="checkbox" defaultChecked={warehouse.isDefault} /> Standardlager</label>
               <button type="submit">Lager speichern</button>
+              <WarehouseDeleteButton id={warehouse.id} name={warehouse.name} />
             </form>
           );
         })}

@@ -6,6 +6,11 @@ import { createHash, randomBytes } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+if (process.env.NODE_ENV === "production" && process.env.SEED_DEMO_DATA !== "true") {
+  console.error("Demo-Seeding ist in Produktion deaktiviert. Setze SEED_DEMO_DATA=true nur in einer isolierten Testumgebung.");
+  process.exit(1);
+}
+
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
@@ -649,6 +654,7 @@ const warehouse = await prisma.warehouse.upsert({
     notes: "Zentrales Demo-Lager für Koblenz und Umgebung.",
     isActive: true,
     isDefault: true,
+    isDemoData: true,
     openingHours: "Mo-Fr 08:00-17:00",
     contactPerson: "Lager Team Koblenz",
     contactPhone: "+49 261 1000090",
@@ -676,6 +682,7 @@ const warehouse = await prisma.warehouse.upsert({
     notes: "Zentrales Demo-Lager für Koblenz und Umgebung.",
     isActive: true,
     isDefault: true,
+    isDemoData: true,
     openingHours: "Mo-Fr 08:00-17:00",
     contactPerson: "Lager Team Koblenz",
     contactPhone: "+49 261 1000090",
@@ -696,6 +703,7 @@ await prisma.warehouse.upsert({
     notes: "Sekundaeres Demo-Lager für Rhein-Wied.",
     isActive: true,
     isDefault: false,
+    isDemoData: true,
     openingHours: "Mo, Mi, Fr 09:00-15:00",
     contactPerson: "Lager Team Neuwied",
     contactPhone: "+49 2631 1000091",
@@ -723,6 +731,7 @@ await prisma.warehouse.upsert({
     notes: "Sekundaeres Demo-Lager für Rhein-Wied.",
     isActive: true,
     isDefault: false,
+    isDemoData: true,
     openingHours: "Mo, Mi, Fr 09:00-15:00",
     contactPerson: "Lager Team Neuwied",
     contactPhone: "+49 2631 1000091",
@@ -874,6 +883,7 @@ for (const item of module23WarehouseSeed) {
       currentUtilization: item.currentUtilization,
       isActive: item.isActive ?? true,
       isDefault: false,
+      isDemoData: true,
       notes: "Modul 23 Demo-Standort für Multi-Lager-Logistik.",
     },
     create: {
@@ -897,6 +907,7 @@ for (const item of module23WarehouseSeed) {
       currentUtilization: item.currentUtilization,
       isActive: item.isActive ?? true,
       isDefault: false,
+      isDemoData: true,
       openingHours: "Mo-Fr 08:00-17:00",
       contactPerson: `Team ${item.city}`,
       contactPhone: "+49 261 1000099",

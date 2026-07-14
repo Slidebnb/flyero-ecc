@@ -149,8 +149,9 @@ try {
     "order-area-v1",
     "pricingVersion",
     "singleDistributorMinutes",
-    "local-56170",
+    "distributionArea.findMany",
   ]);
+  assert(!smartMaps.includes("LOCAL_PLACES"), "Smart Maps darf keine lokal hartcodierten Ortsdaten als echte Vorschläge ausgeben.");
   includes("src/lib/pricing.ts", [
     "premium-distribution-v4",
     "calculatePremiumDistributionNetPrice",

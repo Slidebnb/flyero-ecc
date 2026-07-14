@@ -4,6 +4,7 @@ import { createAccountingExport } from "@/lib/accountingExport";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
+import { productionAccountingExportWhere } from "@/lib/productionData";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +12,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const exports = await prisma.accountingExport.findMany({
       where: {
+        ...productionAccountingExportWhere(),
         ...(url.searchParams.get("status") ? { status: url.searchParams.get("status") as never } : {}),
         ...(url.searchParams.get("type") ? { type: url.searchParams.get("type") as never } : {}),
       },

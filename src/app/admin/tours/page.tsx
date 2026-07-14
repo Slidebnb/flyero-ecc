@@ -6,12 +6,14 @@ import { TOUR_STATUS_LABELS } from "@/lib/constants";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { productionDistributorWhere, productionInventoryWhere, productionTourWhere } from "@/lib/productionData";
 
 export default async function AdminToursPage() {
   await requireRole([UserRole.ADMIN]);
 
   const [tours, inventories, distributors] = await Promise.all([
     prisma.distributionTour.findMany({
+      where: productionTourWhere(),
       include: {
         distributor: true,
         order: { include: { customer: true } },
@@ -21,12 +23,12 @@ export default async function AdminToursPage() {
       orderBy: { updatedAt: "desc" },
     }),
     prisma.warehouseInventory.findMany({
-      where: { status: "READY_FOR_PICKUP" },
+      where: { ...productionInventoryWhere(), status: "READY_FOR_PICKUP" },
       include: { order: { include: { customer: true } }, warehouseLocation: true },
       orderBy: { updatedAt: "desc" },
     }),
     prisma.distributorProfile.findMany({
-      where: { reviewStatus: "APPROVED" },
+      where: { ...productionDistributorWhere(), reviewStatus: "APPROVED" },
       orderBy: { lastName: "asc" },
     }),
   ]);

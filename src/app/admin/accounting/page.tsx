@@ -5,6 +5,7 @@ import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { productionAccountingExportWhere } from "@/lib/productionData";
 
 async function startExport(formData: FormData) {
   "use server";
@@ -38,6 +39,7 @@ export default async function AdminAccountingPage() {
   const now = new Date();
   const start = new Date(now.getFullYear(), now.getMonth(), 1);
   const exports = await prisma.accountingExport.findMany({
+    where: productionAccountingExportWhere(),
     include: { items: true, createdBy: { select: { email: true } } },
     orderBy: { createdAt: "desc" },
     take: 100,

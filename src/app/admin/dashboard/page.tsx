@@ -4,6 +4,7 @@ import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 import { ActionPanel, DataSection, MetricTile } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { productionCustomerWhere, productionDistributorWhere, productionInventoryWhere, productionLeadWhere, productionOrderWhere, productionSupportTicketWhere, productionTourWhere, productionUserWhere } from "@/lib/productionData";
 
 export default async function AdminDashboardPage() {
   await requireRole([UserRole.ADMIN]);
@@ -22,18 +23,18 @@ export default async function AdminDashboardPage() {
     openSupportTickets,
     urgentSupportTickets,
   ] = await Promise.all([
-    prisma.customerProfile.count(),
-    prisma.distributorProfile.count(),
-    prisma.distributorProfile.count({ where: { reviewStatus: "PENDING_REVIEW" } }),
-    prisma.user.count({ where: { role: "CUSTOMER", status: "ACTIVE" } }),
-    prisma.user.count({ where: { role: { in: ["ADMIN", "SUPPORT_DISPATCHER"] } } }),
-    prisma.order.count({ where: { status: { in: ["PAYMENT_PENDING", "PAYMENT_FAILED"] } } }),
-    prisma.order.count({ where: { status: "PAID_WAITING_FOR_ADMIN_REVIEW" } }),
-    prisma.warehouseInventory.count({ where: { status: "READY_FOR_PICKUP" } }),
-    prisma.distributionTour.count({ where: { status: "UNDER_REVIEW" } }),
-    prisma.lead.count({ where: { status: "NEW", archivedAt: null } }),
-    prisma.supportTicket.count({ where: { status: { notIn: ["RESOLVED", "CLOSED"] } } }),
-    prisma.supportTicket.count({ where: { priority: "URGENT", status: { notIn: ["RESOLVED", "CLOSED"] } } }),
+    prisma.customerProfile.count({ where: productionCustomerWhere() }),
+    prisma.distributorProfile.count({ where: productionDistributorWhere() }),
+    prisma.distributorProfile.count({ where: { ...productionDistributorWhere(), reviewStatus: "PENDING_REVIEW" } }),
+    prisma.user.count({ where: { ...productionUserWhere(), role: "CUSTOMER", status: "ACTIVE" } }),
+    prisma.user.count({ where: { ...productionUserWhere(), role: { in: ["ADMIN", "SUPPORT_DISPATCHER"] } } }),
+    prisma.order.count({ where: { ...productionOrderWhere(), status: { in: ["PAYMENT_PENDING", "PAYMENT_FAILED"] } } }),
+    prisma.order.count({ where: { ...productionOrderWhere(), status: "PAID_WAITING_FOR_ADMIN_REVIEW" } }),
+    prisma.warehouseInventory.count({ where: { ...productionInventoryWhere(), status: "READY_FOR_PICKUP" } }),
+    prisma.distributionTour.count({ where: { ...productionTourWhere(), status: "UNDER_REVIEW" } }),
+    prisma.lead.count({ where: { ...productionLeadWhere(), status: "NEW", archivedAt: null } }),
+    prisma.supportTicket.count({ where: { ...productionSupportTicketWhere(), status: { notIn: ["RESOLVED", "CLOSED"] } } }),
+    prisma.supportTicket.count({ where: { ...productionSupportTicketWhere(), priority: "URGENT", status: { notIn: ["RESOLVED", "CLOSED"] } } }),
   ]);
 
   return (

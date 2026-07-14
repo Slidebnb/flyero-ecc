@@ -13,6 +13,7 @@ import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 import { tenantWhereForSession } from "@/lib/tenantPolicy";
+import { productionDocumentWhere, productionPrintOrderWhere, productionPrintPartnerWhere } from "@/lib/productionData";
 
 const adminRoles: UserRole[] = [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER];
 const DOCUMENT_TYPE_VALUES = ["FLYER_PDF", "PRINT_FILE", "INDESIGN", "ILLUSTRATOR", "LOGO", "IMAGE", "ZIP", "REPORT", "INVOICE", "CONTRACT", "OTHER"] as const;
@@ -182,7 +183,7 @@ export async function assertOrderAccess(actor: SessionUser, orderId: string) {
 }
 
 function documentWhere(actor: SessionUser) {
-  if (isPlatformAdmin(actor)) return {};
+  if (isPlatformAdmin(actor)) return productionDocumentWhere();
   if (actor.role === UserRole.SUPPORT_DISPATCHER) return tenantWhereForSession(actor);
   if (actor.role === UserRole.CUSTOMER) {
     if (!actor.tenantId) throw new AuthError("Dein Konto ist keinem Unternehmen zugeordnet.", 403);
@@ -496,7 +497,7 @@ type PrintOrderListItem = Prisma.PrintOrderGetPayload<{
 
 export async function listPrintOrders(actor: SessionUser): Promise<PrintOrderListItem[]> {
   return prisma.printOrder.findMany({
-    where: printScope(actor),
+    where: { ...printScope(actor), ...productionPrintOrderWhere() },
     include: { order: { select: { orderNumber: true, targetAreaName: true } }, customer: { select: { companyName: true } }, printer: true, warehouseInventory: true },
     orderBy: { updatedAt: "desc" },
     take: 100,
@@ -689,7 +690,7 @@ export async function updatePrintOrder(actor: SessionUser, id: string, input: un
 }
 
 export async function listPrintPartners() {
-  return prisma.printPartner.findMany({ orderBy: [{ isActive: "desc" }, { companyName: "asc" }] });
+  return prisma.printPartner.findMany({ where: productionPrintPartnerWhere(), orderBy: [{ isActive: "desc" }, { companyName: "asc" }] });
 }
 
 export async function createPrintPartner(actor: SessionUser, input: unknown) {
@@ -728,17 +729,18 @@ export async function updatePrintPartner(actor: SessionUser, id: string, input: 
 }
 
 export async function getDocumentAnalytics(scope: { tenantId?: string | null } = {}) {
-  const tenantWhere = scope.tenantId ? { tenantId: scope.tenantId } : {};
+  const tenantWhere = { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...productionDocumentWhere() };
+  const printOrderWhere = { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...productionPrintOrderWhere() };
   const [documents, versions, printOrders, byType, byStatus, printStatus, approvedDocs, completedPrintOrders] = await Promise.all([
     prisma.document.count({ where: tenantWhere }),
-    prisma.documentVersion.count({ where: scope.tenantId ? { document: { tenantId: scope.tenantId } } : {} }),
-    prisma.printOrder.count({ where: tenantWhere }),
+    prisma.documentVersion.count({ where: { document: tenantWhere } }),
+    prisma.printOrder.count({ where: printOrderWhere }),
     prisma.document.groupBy({ by: ["documentType"], where: tenantWhere, _count: { _all: true } }),
     prisma.document.groupBy({ by: ["status"], where: tenantWhere, _count: { _all: true } }),
-    prisma.printOrder.groupBy({ by: ["status"], where: tenantWhere, _count: { _all: true } }),
+    prisma.printOrder.groupBy({ by: ["status"], where: printOrderWhere, _count: { _all: true } }),
     prisma.document.findMany({ where: { ...tenantWhere, approvedAt: { not: null } }, select: { uploadedAt: true, approvedAt: true }, take: 300 }),
     prisma.printOrder.findMany({
-      where: { ...tenantWhere, status: { in: ["SHIPPED", "DELIVERED", "RECEIVED_IN_WAREHOUSE", "READY_FOR_DISTRIBUTION"] } },
+      where: { ...printOrderWhere, status: { in: ["SHIPPED", "DELIVERED", "RECEIVED_IN_WAREHOUSE", "READY_FOR_DISTRIBUTION"] } },
       select: { createdAt: true, updatedAt: true },
       take: 300,
     }),

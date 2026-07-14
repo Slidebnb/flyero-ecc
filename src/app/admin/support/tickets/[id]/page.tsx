@@ -7,6 +7,7 @@ import { ActionPanel, DataSection, PortalShell, StatusBadge } from "@/app/Portal
 import { requireRole } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
+import { productionUserWhere } from "@/lib/productionData";
 import {
   addTicketMessage,
   closeTicket,
@@ -57,7 +58,7 @@ export default async function AdminTicketDetailPage({ params }: PageProps) {
   const [ticket, assignees] = await Promise.all([
     getTicket(session, id).catch(() => null),
     prisma.user.findMany({
-      where: { role: { in: [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER] } },
+      where: { role: { in: [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER] }, ...productionUserWhere() },
       select: { id: true, email: true, role: true },
       orderBy: { email: "asc" },
     }),

@@ -8,6 +8,7 @@ import { formatDateTime } from "@/lib/format";
 import { ignoreErrorLog, markErrorLogInProgress, resolveErrorLog } from "@/lib/monitoring";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { productionErrorLogWhere } from "@/lib/productionData";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 type PageProps = {
@@ -44,8 +45,8 @@ async function updateErrorAction(formData: FormData) {
 export default async function AdminMonitoringErrorDetailPage({ params }: PageProps) {
   await requirePermission(Permission.MONITORING_VIEW);
   const { id } = await params;
-  const error = await prisma.errorLog.findUnique({
-    where: { id },
+  const error = await prisma.errorLog.findFirst({
+    where: { id, ...productionErrorLogWhere() },
     include: { resolvedBy: { select: { email: true, role: true } } },
   });
 

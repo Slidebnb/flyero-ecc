@@ -8,6 +8,7 @@ import {
   DISTRIBUTOR_STATUS_LABELS,
 } from "@/lib/constants";
 import { formatDate } from "@/lib/format";
+import { productionDistributorWhere } from "@/lib/productionData";
 
 type PageProps = {
   searchParams: Promise<{ status?: string }>;
@@ -23,7 +24,7 @@ export default async function AdminDistributorsPage({ searchParams }: PageProps)
     : undefined;
 
   const distributors = await prisma.distributorProfile.findMany({
-    where: selectedStatus ? { reviewStatus: selectedStatus } : undefined,
+    where: { ...productionDistributorWhere(), ...(selectedStatus ? { reviewStatus: selectedStatus } : {}) },
     include: { user: true },
     orderBy: [{ reviewStatus: "asc" }, { createdAt: "desc" }],
   });

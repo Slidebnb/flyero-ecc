@@ -6,6 +6,7 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { routeErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 import { tenantWhereForSession } from "@/lib/tenantPolicy";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -22,7 +23,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { id } = await context.params;
     const parsed = payloadSchema.parse(await request.json());
     const current = await prisma.photoProof.findFirst({
-      where: { id, order: tenantWhereForSession(session) },
+      where: { id, order: { ...tenantWhereForSession(session), ...productionOrderWhere() } },
       select: { scanStatus: true },
     });
     if (!current) return Response.json({ ok: false, error: "Nachweisfoto wurde nicht gefunden." }, { status: 404 });

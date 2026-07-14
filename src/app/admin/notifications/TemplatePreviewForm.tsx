@@ -17,10 +17,10 @@ export function TemplatePreviewForm({ templates }: { templates: TemplateOption[]
           {templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}
         </select>
       </label>
-      <label>Kunde<input name="customerName" defaultValue="Max Mustermann" /></label>
-      <label>Firma<input name="companyName" defaultValue="Muster GmbH" /></label>
-      <label>Auftrag<input name="orderNumber" defaultValue="ORD-2026-0001" /></label>
-      <label>Dashboard<input name="dashboardUrl" defaultValue="http://localhost:3000/customer/dashboard" /></label>
+      <label>Kunde<input name="customerName" required placeholder="Echten Kundennamen eingeben" /></label>
+      <label>Firma<input name="companyName" required placeholder="Echten Firmennamen eingeben" /></label>
+      <label>Auftrag<input name="orderNumber" required placeholder="Auftragsnummer eingeben" /></label>
+      <label>Dashboard<input name="dashboardUrl" required placeholder="/customer/dashboard" /></label>
       <button type="submit">Vorschau erzeugen</button>
     </form>
   );

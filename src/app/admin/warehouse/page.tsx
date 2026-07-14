@@ -4,6 +4,8 @@ import { DataSection, EmptyState, MetricTile, StatusBadge } from "@/app/PortalCo
 import { requireRole } from "@/lib/auth";
 import { WAREHOUSE_INVENTORY_STATUS_LABELS } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { productionInventoryWhere } from "@/lib/productionData";
+import { warehouseSourceWhere } from "@/lib/warehouse";
 
 function statusTone(status: string) {
   if (status === "READY_FOR_PICKUP") return "success";
@@ -16,9 +18,10 @@ export default async function AdminWarehousePage() {
   await requireRole([UserRole.ADMIN]);
 
   const [warehouses, locations, inventory] = await Promise.all([
-    prisma.warehouse.count(),
-    prisma.warehouseLocation.count(),
+    prisma.warehouse.count({ where: warehouseSourceWhere() }),
+    prisma.warehouseLocation.count({ where: { warehouse: warehouseSourceWhere() } }),
     prisma.warehouseInventory.findMany({
+      where: productionInventoryWhere(),
       include: { order: { include: { customer: true } }, warehouseLocation: true },
       orderBy: { updatedAt: "desc" },
       take: 100,

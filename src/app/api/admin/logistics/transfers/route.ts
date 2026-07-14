@@ -5,13 +5,14 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { warehouseTransferCreateSchema } from "@/lib/validators";
+import { productionOrderWhere } from "@/lib/productionData";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await requirePermission(Permission.WAREHOUSE_VIEW);
     const status = request.nextUrl.searchParams.get("status") as TransferStatus | null;
     const transfers = await prisma.warehouseTransfer.findMany({
-      where: { ...(session.role === UserRole.ADMIN ? {} : { inventory: { order: { tenantId: session.tenantId ?? "__no_tenant__" } } }), ...(status ? { status } : {}) },
+      where: { inventory: { order: { ...productionOrderWhere(), ...(session.role === UserRole.ADMIN ? {} : { tenantId: session.tenantId ?? "__no_tenant__" }) } }, ...(status ? { status } : {}) },
       include: { fromWarehouse: true, toWarehouse: true, inventory: { include: { order: true } }, requestedBy: true, approvedBy: true },
       orderBy: { createdAt: "desc" },
       take: 200,

@@ -4,11 +4,13 @@ import { adminTourAssignSchema } from "@/lib/validators";
 import { assignTour } from "@/lib/tours";
 import { prisma } from "@/lib/prisma";
 import { Permission, requirePermission } from "@/lib/permissions";
+import { productionTourWhere } from "@/lib/productionData";
 
 export async function GET() {
   try {
     await requirePermission(Permission.TOUR_VIEW);
     const tours = await prisma.distributionTour.findMany({
+      where: productionTourWhere(),
       include: {
         distributor: {
           include: { user: { select: { id: true, email: true, status: true } } },

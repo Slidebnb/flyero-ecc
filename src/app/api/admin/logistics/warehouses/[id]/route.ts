@@ -5,6 +5,8 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { logisticsWarehouseUpdateSchema } from "@/lib/validators";
+import { warehouseSourceWhere } from "@/lib/warehouse";
+import { productionOrderWhere } from "@/lib/productionData";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -12,9 +14,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   try {
     const session = await requirePermission(Permission.WAREHOUSE_VIEW);
     const { id } = await context.params;
-    const orderTenantWhere = session.role === UserRole.ADMIN ? {} : { tenantId: session.tenantId ?? "__no_tenant__" };
-    const warehouse = await prisma.warehouse.findUnique({
-      where: { id },
+    const orderTenantWhere = { ...productionOrderWhere(), ...(session.role === UserRole.ADMIN ? {} : { tenantId: session.tenantId ?? "__no_tenant__" }) };
+    const warehouse = await prisma.warehouse.findFirst({
+      where: { id, ...warehouseSourceWhere() },
       include: {
         regions: { orderBy: [{ priority: "desc" }, { name: "asc" }] },
         locations: { orderBy: { fullLabel: "asc" } },
@@ -100,6 +102,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const parsed = logisticsWarehouseUpdateSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
+    const existing = await prisma.warehouse.findFirst({ where: { id, ...warehouseSourceWhere() }, select: { id: true } });
+    if (!existing) return errorResponse("Lager wurde nicht gefunden.", 404);
     const data = parsed.data;
     const update: Prisma.WarehouseUpdateInput = {
       name: data.name,

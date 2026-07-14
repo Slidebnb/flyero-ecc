@@ -11,6 +11,7 @@ import { AuthError, type SessionUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { productionSupportTicketWhere } from "@/lib/productionData";
 
 const adminRoles: UserRole[] = [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER];
 
@@ -186,7 +187,7 @@ async function assertDistributorLinks(distributorId: string | null, data: z.infe
 }
 
 function scopeWhere(actor: SessionUser): Prisma.SupportTicketWhereInput {
-  if (isGlobalSupportAdmin(actor)) return {};
+  if (isGlobalSupportAdmin(actor)) return productionSupportTicketWhere();
   if (actor.role === UserRole.SUPPORT_DISPATCHER) {
     if (!actor.tenantId) throw new AuthError("Dein Supportkonto ist keinem Unternehmen zugeordnet.", 403);
     return { tenantId: actor.tenantId };
@@ -206,6 +207,7 @@ export function parseTicketFilters(input: Record<string, string | undefined>) {
 export async function listTickets(actor: SessionUser, filters: z.infer<typeof ticketListFilterSchema> = {}) {
   const where: Prisma.SupportTicketWhereInput = {
     ...scopeWhere(actor),
+    ...productionSupportTicketWhere(),
     status: filters.status,
     type: filters.type,
     priority: filters.priority,
@@ -231,7 +233,7 @@ export async function listTickets(actor: SessionUser, filters: z.infer<typeof ti
 
 export async function getTicket(actor: SessionUser, id: string) {
   const ticket = await prisma.supportTicket.findFirst({
-    where: { id, ...scopeWhere(actor) },
+    where: { id, ...scopeWhere(actor), ...productionSupportTicketWhere() },
     include: ticketInclude(!isSupportAdmin(actor)),
   });
 
@@ -433,7 +435,7 @@ export async function getSupportAnalytics(scope: { tenantId?: string | null } = 
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
-  const tenantWhere = scope.tenantId ? { tenantId: scope.tenantId } : {};
+  const tenantWhere = { ...(scope.tenantId ? { tenantId: scope.tenantId } : {}), ...productionSupportTicketWhere() };
 
   const [openTickets, urgentTickets, complaintsThisMonth, byType, byStatus, resolvedTickets] = await Promise.all([
     prisma.supportTicket.count({ where: { ...tenantWhere, status: { notIn: [SupportTicketStatus.RESOLVED, SupportTicketStatus.CLOSED] } } }),
