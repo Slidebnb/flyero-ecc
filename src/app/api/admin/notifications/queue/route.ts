@@ -4,7 +4,7 @@ import { getEmailProviderStatus } from "@/lib/email";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { routeErrorResponse, successResponse } from "@/lib/request";
-import { productionUserWhere } from "@/lib/productionData";
+import { productionNotificationQueueWhere } from "@/lib/productionData";
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       : {};
     const [queues, countRows] = await Promise.all([
       prisma.notificationQueue.findMany({
-        where: { ...statusWhere, user: productionUserWhere() },
+        where: { ...productionNotificationQueueWhere(), ...statusWhere },
         include: {
           user: { select: { email: true, role: true } },
           template: { select: { key: true, name: true } },
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
         orderBy: [{ status: "asc" }, { scheduledAt: "desc" }],
         take: 200,
       }),
-      prisma.notificationQueue.findMany({ where: { user: productionUserWhere() }, select: { status: true } }),
+      prisma.notificationQueue.findMany({ where: productionNotificationQueueWhere(), select: { status: true } }),
     ]);
     const counts = Object.values(NotificationQueueStatus).map((queueStatus) => ({
       status: queueStatus,

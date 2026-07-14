@@ -9,7 +9,7 @@ import { formatDateTime } from "@/lib/format";
 import { createSystemLog } from "@/lib/monitoring";
 import { processPendingNotifications, retryFailedNotification } from "@/lib/notificationWorker";
 import { prisma } from "@/lib/prisma";
-import { productionUserWhere } from "@/lib/productionData";
+import { productionNotificationQueueWhere } from "@/lib/productionData";
 import { adminNavItems } from "@/app/admin/AdminPortalShell";
 
 async function processQueueAction() {
@@ -68,7 +68,7 @@ export default async function AdminNotificationQueuePage() {
   await requirePermission(Permission.NOTIFICATION_OPERATIONS_VIEW);
   const [queues, templates] = await Promise.all([
     prisma.notificationQueue.findMany({
-      where: { user: productionUserWhere() },
+      where: productionNotificationQueueWhere(),
       include: {
         user: { select: { email: true, role: true } },
         template: { select: { id: true, key: true, name: true } },

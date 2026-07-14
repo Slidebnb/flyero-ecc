@@ -15,9 +15,59 @@ const preserveClause = preserveEmails.length
   ? Prisma.sql`AND lower("email") NOT IN (${Prisma.join(preserveEmails)})`
   : Prisma.empty;
 
+const demoOrderClause = Prisma.sql`"orderNumber" LIKE 'DEMO-%'`;
+const seedNotificationMessageClause = Prisma.sql`(
+  lower("subject") LIKE '%seed%'
+  OR lower("body") LIKE '%seed%'
+  OR lower("subject") LIKE '%m15-%'
+  OR lower("body") LIKE '%m15-%'
+  OR "data"->>'source' LIKE 'seed.%'
+  OR "data"->>'companyName' = 'Flyero Demo'
+)`;
+const seedNotificationQueueClause = Prisma.sql`(
+  "payload"->>'source' LIKE 'seed.%'
+  OR "payload"->'data'->>'source' LIKE 'seed.%'
+  OR lower("payload"->>'subject') LIKE '%seed%'
+  OR lower("payload"->>'subject') LIKE '%m15-%'
+  OR "messageId" IN (SELECT "id" FROM "NotificationMessage" WHERE ${seedNotificationMessageClause})
+)`;
+const seedLegacyNotificationClause = Prisma.sql`(
+  lower("title") LIKE '%seed%'
+  OR lower("message") LIKE '%seed%'
+  OR lower("title") LIKE '%m15-%'
+  OR lower("message") LIKE '%m15-%'
+  OR lower("title") LIKE '%demo-%'
+  OR lower("message") LIKE '%demo-%'
+  OR lower("title") LIKE '%flyero demo%'
+  OR lower("message") LIKE '%flyero demo%'
+)`;
+const seedNotificationLogClause = Prisma.sql`(
+  "userId" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com')
+  OR "messageId" IN (SELECT "id" FROM "NotificationMessage" WHERE ${seedNotificationMessageClause})
+  OR "queueId" IN (SELECT "id" FROM "NotificationQueue" WHERE ${seedNotificationQueueClause})
+  OR lower("detail") LIKE '%seed%'
+  OR "metadata"->>'source' LIKE 'seed.%'
+)`;
+const fakeCompanySettingsClause = Prisma.sql`(
+  "street" = 'Musterstrasse 1'
+  OR "bankName" = 'Demo Bank'
+  OR "vatId" = 'DE000000000'
+)`;
+const fakeBrandingSettingsClause = Prisma.sql`(
+  "invoiceFooterText" ILIKE '%Musterstrasse%'
+  OR "invoiceFooterText" ILIKE '%DE000000000%'
+  OR "reportFooterText" ILIKE '%powered by ECC%'
+)`;
+
 const checks = [
   ["Beispielkonten", Prisma.sql`SELECT count(*)::int AS count FROM "User" WHERE lower("email") LIKE '%@example.com'`],
-  ["Demoaufträge", Prisma.sql`SELECT count(*)::int AS count FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%'`],
+  ["Demoaufträge", Prisma.sql`SELECT count(*)::int AS count FROM "Order" WHERE ${demoOrderClause}`],
+  ["Seed-Nachrichten", Prisma.sql`SELECT count(*)::int AS count FROM "NotificationMessage" WHERE ${seedNotificationMessageClause}`],
+  ["Seed-Queues", Prisma.sql`SELECT count(*)::int AS count FROM "NotificationQueue" WHERE ${seedNotificationQueueClause}`],
+  ["Seed-Legacy-Benachrichtigungen", Prisma.sql`SELECT count(*)::int AS count FROM "Notification" WHERE ${seedLegacyNotificationClause}`],
+  ["Seed-Benachrichtigungslogs", Prisma.sql`SELECT count(*)::int AS count FROM "NotificationLog" WHERE ${seedNotificationLogClause}`],
+  ["Fake-Firmeneinstellungen", Prisma.sql`SELECT count(*)::int AS count FROM "CompanySettings" WHERE ${fakeCompanySettingsClause}`],
+  ["Fake-Branding-Einstellungen", Prisma.sql`SELECT count(*)::int AS count FROM "BrandingSettings" WHERE ${fakeBrandingSettingsClause}`],
   ["Seed-Gebiete", Prisma.sql`SELECT count(*)::int AS count FROM "DistributionArea" WHERE "dataSourceType" = 'SEED'`],
   ["Demo-Lager", Prisma.sql`SELECT count(*)::int AS count FROM "Warehouse" WHERE "isDemoData" = true`],
   ["Seed-Leads", Prisma.sql`SELECT count(*)::int AS count FROM "Lead" WHERE "source" LIKE 'seed%'`],
@@ -39,20 +89,24 @@ async function report(label) {
 
 async function purge(tx) {
   const statements = [
-    ["Seed-Benachrichtigungswarteschlangen", Prisma.sql`DELETE FROM "NotificationQueue" WHERE "userId" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com') OR "payload"->>'source' LIKE 'seed%' OR "data"->>'source' LIKE 'seed%'`],
-    ["Seed-Benachrichtigungen", Prisma.sql`DELETE FROM "NotificationMessage" WHERE "userId" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com') OR "data"->>'source' LIKE 'seed%'`],
+    ["Seed-Benachrichtigungslogs", Prisma.sql`DELETE FROM "NotificationLog" WHERE ${seedNotificationLogClause}`],
+    ["Seed-Benachrichtigungswarteschlangen", Prisma.sql`DELETE FROM "NotificationQueue" WHERE "userId" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com') OR ${seedNotificationQueueClause}`],
+    ["Seed-Benachrichtigungen", Prisma.sql`DELETE FROM "NotificationMessage" WHERE "userId" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com') OR ${seedNotificationMessageClause}`],
+    ["Seed-Legacy-Benachrichtigungen", Prisma.sql`DELETE FROM "Notification" WHERE ${seedLegacyNotificationClause}`],
+    ["Fake-Firmeneinstellungen", Prisma.sql`DELETE FROM "CompanySettings" WHERE ${fakeCompanySettingsClause}`],
+    ["Fake-Branding-Einstellungen", Prisma.sql`DELETE FROM "BrandingSettings" WHERE ${fakeBrandingSettingsClause}`],
     ["Seed-Ticketanhänge", Prisma.sql`DELETE FROM "TicketAttachment" WHERE "fileName" LIKE 'seed-%' OR "fileUrl" LIKE '%seed-module%'`],
     ["Seed-Ticketnachrichten", Prisma.sql`DELETE FROM "TicketMessage" WHERE "ticketId" IN (SELECT "id" FROM "SupportTicket" WHERE "subject" ILIKE '%seed%' OR "description" ILIKE '%seed%' OR "createdById" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com'))`],
     ["Seed-Supporttickets", Prisma.sql`DELETE FROM "SupportTicket" WHERE "subject" ILIKE '%seed%' OR "description" ILIKE '%seed%' OR "createdById" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com')`],
     ["Seed-Dokumente", Prisma.sql`DELETE FROM "Document" WHERE "storedFilename" LIKE 'seed/%' OR "title" LIKE 'Seed Modul%'`],
-    ["Seed-Druckaufträge", Prisma.sql`DELETE FROM "PrintOrder" WHERE "notes" LIKE 'seed.%' OR "orderId" IN (SELECT "id" FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%')`],
-    ["Seed-Zahlungsstreitfälle", Prisma.sql`DELETE FROM "PaymentDispute" WHERE "orderId" IN (SELECT "id" FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%') OR "customerId" IN (SELECT "id" FROM "CustomerProfile" WHERE "userId" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com'))`],
-    ["Seed-Rechnungen", Prisma.sql`DELETE FROM "Invoice" WHERE "orderId" IN (SELECT "id" FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%') OR "invoiceNumber" LIKE 'INV-SEED-%'`],
-    ["Seed-Erstattungen", Prisma.sql`DELETE FROM "Refund" WHERE "reason" ILIKE 'Seed %' OR "orderId" IN (SELECT "id" FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%')`],
-    ["Seed-Lagerzählungen", Prisma.sql`DELETE FROM "WarehouseStockCount" WHERE "notes" ILIKE '%seed%' OR "inventoryId" IN (SELECT "id" FROM "WarehouseInventory" WHERE "orderId" IN (SELECT "id" FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%'))`],
-    ["Seed-Lagertransfers", Prisma.sql`DELETE FROM "WarehouseTransfer" WHERE "notes" ILIKE '%seed%' OR "inventoryId" IN (SELECT "id" FROM "WarehouseInventory" WHERE "orderId" IN (SELECT "id" FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%'))`],
-    ["Seed-Sendungen", Prisma.sql`DELETE FROM "LogisticsShipment" WHERE "notes" ILIKE '%seed%' OR "orderId" IN (SELECT "id" FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%')`],
-    ["Seed-Aufträge", Prisma.sql`DELETE FROM "Order" WHERE "orderNumber" LIKE 'DEMO-%'`],
+    ["Seed-Druckaufträge", Prisma.sql`DELETE FROM "PrintOrder" WHERE "notes" LIKE 'seed.%' OR "orderId" IN (SELECT "id" FROM "Order" WHERE ${demoOrderClause})`],
+    ["Seed-Zahlungsstreitfälle", Prisma.sql`DELETE FROM "PaymentDispute" WHERE "orderId" IN (SELECT "id" FROM "Order" WHERE ${demoOrderClause}) OR "customerId" IN (SELECT "id" FROM "CustomerProfile" WHERE "userId" IN (SELECT "id" FROM "User" WHERE lower("email") LIKE '%@example.com'))`],
+    ["Seed-Rechnungen", Prisma.sql`DELETE FROM "Invoice" WHERE "orderId" IN (SELECT "id" FROM "Order" WHERE ${demoOrderClause}) OR "invoiceNumber" LIKE 'INV-SEED-%'`],
+    ["Seed-Erstattungen", Prisma.sql`DELETE FROM "Refund" WHERE "reason" ILIKE 'Seed %' OR "orderId" IN (SELECT "id" FROM "Order" WHERE ${demoOrderClause})`],
+    ["Seed-Lagerzählungen", Prisma.sql`DELETE FROM "WarehouseStockCount" WHERE "notes" ILIKE '%seed%' OR "inventoryId" IN (SELECT "id" FROM "WarehouseInventory" WHERE "orderId" IN (SELECT "id" FROM "Order" WHERE ${demoOrderClause}))`],
+    ["Seed-Lagertransfers", Prisma.sql`DELETE FROM "WarehouseTransfer" WHERE "notes" ILIKE '%seed%' OR "inventoryId" IN (SELECT "id" FROM "WarehouseInventory" WHERE "orderId" IN (SELECT "id" FROM "Order" WHERE ${demoOrderClause}))`],
+    ["Seed-Sendungen", Prisma.sql`DELETE FROM "LogisticsShipment" WHERE "notes" ILIKE '%seed%' OR "orderId" IN (SELECT "id" FROM "Order" WHERE ${demoOrderClause})`],
+    ["Seed-Aufträge", Prisma.sql`DELETE FROM "Order" WHERE ${demoOrderClause}`],
     ["Seed-Touren ohne Auftrag", Prisma.sql`DELETE FROM "DistributionTour" WHERE "id" LIKE 'demo-%'`],
     ["Seed-Leads", Prisma.sql`DELETE FROM "Lead" WHERE "source" LIKE 'seed%' OR lower("email") LIKE '%@example.com' AND "email" LIKE '%lead%'`],
     ["Seed-Analytics-Refunds", Prisma.sql`DELETE FROM "Refund" WHERE "reason" ILIKE 'Seed Modul 19%'`],

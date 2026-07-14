@@ -45,6 +45,16 @@ assert.match(read("src/app/api/admin/reports/[id]/publish/route.ts"), /productio
 assert.match(read("src/app/api/admin/orders/[id]/status/route.ts"), /productionOrderWhere\(\)/, "Admin-Statusänderungen dürfen keine Demo-Aufträge mutieren.");
 assert.match(purgeScript, /FLYERO_PURGE_DEMO_DATA/, "Demo-Bereinigung muss explizit bestätigt werden.");
 assert.match(purgeScript, /PRESERVE_EMAILS/, "Demo-Bereinigung muss echte Konten schützen.");
+assert.match(purgeScript, /Fake-Firmeneinstellungen/, "Bekannte Seed-Firmeneinstellungen müssen kontrolliert bereinigt werden.");
+assert.match(purgeScript, /Fake-Branding-Einstellungen/, "Bekannte Seed-Branding-Einstellungen müssen kontrolliert bereinigt werden.");
+assert.match(purgeScript, /Seed-Benachrichtigungslogs/, "Seed-Benachrichtigungslogs müssen vor dem Benutzer-Purge entfernt werden.");
+assert.match(purgeScript, /Seed-Legacy-Benachrichtigungen/, "Alte Seed-Benachrichtigungen müssen ebenfalls bereinigt werden.");
+assert.doesNotMatch(purgeScript, /DELETE FROM \"NotificationQueue\"[\s\S]*?\"data\"->>/, "NotificationQueue darf keine nicht vorhandene data-Spalte abfragen.");
+assert.match(productionData, /productionNotificationMessageWhere/, "Admin-Nachrichten brauchen einen Seed-Inhaltsfilter.");
+assert.match(productionData, /productionNotificationQueueWhere/, "Admin-Queue und Worker brauchen einen Seed-Queue-Filter.");
+assert.match(read("src/app/admin/notifications/queue/page.tsx"), /productionNotificationQueueWhere\(\)/, "Die Admin-Queue-Seite muss Seed-Queues ausblenden.");
+assert.match(read("src/lib/notificationWorker.ts"), /productionNotificationQueueWhere\(\)/, "Der Queue-Worker darf keine Seed-Nachrichten versenden.");
+assert.match(productionData, /return \{\s*order: productionOrderWhere\(\),\s*NOT:/, "Support-Tickets müssen echte Aufträge behalten und Seed-Aufträge ausschließen.");
 assert.match(cleanupDocs, /nicht beim normalen Deploy/, "Die Betriebsdoku muss die nicht-automatische Bereinigung erklären.");
 
 console.log("Admin warehouse real-data contract passed");

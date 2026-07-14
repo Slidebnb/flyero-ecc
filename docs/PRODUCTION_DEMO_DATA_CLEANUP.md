@@ -9,7 +9,9 @@ Nachweise entstehen ausschließlich durch echte Prozesse.
 Die Admin-Listen wenden zusätzlich eine Produktions-Datenrichtlinie an. Sie
 blendet bekannte Seed-Marker aus, darunter `DEMO-*`-Aufträge,
 `@example.com`-Konten, Seed-Gebiete, Seed-Leads, Seed-Dokumente,
-Seed-Druckpartner und Seed-Buchhaltungsexporte.
+Seed-Druckpartner, Seed-Buchhaltungsexporte, Seed-Nachrichten und bekannte
+Seed-Queue-/Monitoring-Einträge aus. Bekannte Seed-Firmen- und
+Brandingwerte werden bei der Bereinigung ebenfalls entfernt.
 
 ## Bereits vorhandene Altlasten
 
@@ -48,6 +50,10 @@ docker compose --env-file .env.production -f docker-compose.production.yml exec 
 Das Skript löscht nur eindeutig markierte Seed-Datensätze. Demo-Lager mit
 verbleibenden echten Referenzen werden nicht blind gelöscht und müssen in der
 Admin-Lagerverwaltung deaktiviert oder nach Prüfung manuell bereinigt werden.
+Die Bereinigung wurde nicht als normaler Deploy-Schritt ausgeführt. Nach dem
+Deploy muss der Admin die Vorschau auf dem Produktionsserver prüfen und den
+Apply-Befehl bewusst ausführen. Die Ausgabe muss danach für alle Prüfkategorien
+`0` zeigen, außer für echte, ausdrücklich erhaltene Konten.
 
 ## Lagerverwaltung
 

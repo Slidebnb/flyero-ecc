@@ -9,6 +9,7 @@ import {
   logBackgroundJobSuccess,
 } from "@/lib/monitoring";
 import { prisma } from "@/lib/prisma";
+import { productionNotificationQueueWhere } from "@/lib/productionData";
 
 const MAX_PER_RUN = 50;
 const MAX_ATTEMPTS = 3;
@@ -16,8 +17,8 @@ const MAX_ATTEMPTS = 3;
 type QueueWithRelations = Awaited<ReturnType<typeof getQueueItem>>;
 
 async function getQueueItem(queueId: string) {
-  return prisma.notificationQueue.findUnique({
-    where: { id: queueId },
+  return prisma.notificationQueue.findFirst({
+    where: { id: queueId, ...productionNotificationQueueWhere() },
     include: {
       message: true,
       user: { select: { id: true, email: true, role: true } },
@@ -79,7 +80,7 @@ export async function markAsSent(queueId: string, providerMessageId?: string) {
 }
 
 export async function markAsFailed(queueId: string, error: unknown) {
-  const existing = await prisma.notificationQueue.findUnique({ where: { id: queueId } });
+  const existing = await prisma.notificationQueue.findFirst({ where: { id: queueId, ...productionNotificationQueueWhere() } });
   if (!existing) throw new Error("Queue-Eintrag wurde nicht gefunden.");
 
   const message = error instanceof Error ? error.message : String(error || "E-Mail Versand fehlgeschlagen.");
@@ -171,7 +172,7 @@ export async function sendNotificationMessage(queueId: string) {
 }
 
 export async function retryFailedNotification(queueId: string, userId?: string | null) {
-  const queue = await prisma.notificationQueue.findUnique({ where: { id: queueId } });
+  const queue = await prisma.notificationQueue.findFirst({ where: { id: queueId, ...productionNotificationQueueWhere() } });
   if (!queue) throw new Error("Queue-Eintrag wurde nicht gefunden.");
   if (queue.attempts >= MAX_ATTEMPTS) throw new Error("Maximale Retry-Anzahl erreicht.");
 
@@ -216,6 +217,7 @@ export async function processPendingNotifications(input: { limit?: number; trigg
   try {
     const queues = await prisma.notificationQueue.findMany({
       where: {
+        ...productionNotificationQueueWhere(),
         channel: "EMAIL",
         status: { in: [NotificationQueueStatus.PENDING, NotificationQueueStatus.RETRY] },
         scheduledAt: { lte: new Date() },

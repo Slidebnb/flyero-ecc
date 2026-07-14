@@ -125,14 +125,48 @@ export function productionErrorLogWhere(): Prisma.ErrorLogWhereInput {
   };
 }
 
-export function productionSupportTicketWhere(): Prisma.SupportTicketWhereInput {
+export function productionNotificationMessageWhere(): Prisma.NotificationMessageWhereInput {
   if (!isProductionRuntime) return {};
   return {
     NOT: [
       { subject: { contains: "Seed", mode: "insensitive" } },
+      { body: { contains: "Seed", mode: "insensitive" } },
+      { subject: { contains: "M15-", mode: "insensitive" } },
+      { body: { contains: "M15-", mode: "insensitive" } },
+      { data: { path: ["source"], equals: "seed.module18" } },
+      { data: { path: ["companyName"], equals: "Flyero Demo" } },
+    ],
+  };
+}
+
+export function productionNotificationQueueWhere(): Prisma.NotificationQueueWhereInput {
+  if (!isProductionRuntime) return {};
+  return {
+    user: productionUserWhere(),
+    message: productionNotificationMessageWhere(),
+  };
+}
+
+export function productionNotificationLogWhere(): Prisma.NotificationLogWhereInput {
+  if (!isProductionRuntime) return {};
+  return {
+    user: productionUserWhere(),
+    NOT: [
+      { detail: { contains: "Seed", mode: "insensitive" } },
+      { action: { startsWith: "seed." } },
+      { metadata: { path: ["source"], equals: "seed.module18" } },
+    ],
+  };
+}
+
+export function productionSupportTicketWhere(): Prisma.SupportTicketWhereInput {
+  if (!isProductionRuntime) return {};
+  return {
+    order: productionOrderWhere(),
+    NOT: [
+      { subject: { contains: "Seed", mode: "insensitive" } },
       { description: { contains: "Seed", mode: "insensitive" } },
       { createdBy: { email: { endsWith: "@example.com" } } },
-      { order: productionOrderWhere() },
     ],
   };
 }
