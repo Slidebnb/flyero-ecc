@@ -9,7 +9,14 @@ export default async function CustomerReportsPage() {
   const session = await requireTenantSession();
   const reports = await prisma.report.findMany({
     where: { tenantId: session.tenantId, status: "PUBLISHED", order: { tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } }, tour: { status: "APPROVED" } },
-    include: { order: true, tour: true },
+    include: {
+      order: {
+        include: {
+          distributionSegments: { orderBy: { sortOrder: "asc" }, select: { name: true, city: true, postalCode: true } },
+        },
+      },
+      tour: true,
+    },
     orderBy: { updatedAt: "desc" },
   });
   const latestReport = reports[0] ?? null;
@@ -43,6 +50,7 @@ export default async function CustomerReportsPage() {
                 <div className="customerItemMeta">
                   <span>{customerOrderName(report.order.orderNumber)}</span>
                   <span>{customerAreaName(report.order.targetAreaName)}</span>
+                  {report.order.distributionSegments.length > 1 ? <span>{report.order.distributionSegments.length} Teilgebiete</span> : null}
                   <span>{report.pdfUrl ? "PDF bereit" : "PDF wird erstellt"}</span>
                 </div>
               </div>

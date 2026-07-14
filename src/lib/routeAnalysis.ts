@@ -68,14 +68,18 @@ export function distanceMeters(a: { lat: number; lng: number }, b: { lat: number
   return 2 * radius * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
 }
 
-function polygonFromGeoJson(value: unknown): Array<{ lat: number; lng: number }> | null {
+function polygonsFromGeoJson(value: unknown): Array<Array<{ lat: number; lng: number }>> {
   const geo = asObject(value);
-  if (geo.type !== "Polygon" || !Array.isArray(geo.coordinates)) return null;
-  const ring = geo.coordinates[0];
-  if (!Array.isArray(ring)) return null;
-  return ring
+  if (geo.type === "FeatureCollection" && Array.isArray(geo.features)) {
+    return geo.features.flatMap((feature) => polygonsFromGeoJson(feature));
+  }
+  if (geo.type === "Feature") return polygonsFromGeoJson(geo.geometry);
+  if (geo.type !== "Polygon" && geo.type !== "MultiPolygon") return [];
+  if (!Array.isArray(geo.coordinates)) return [];
+  const rings = geo.type === "Polygon" ? [geo.coordinates[0]] : geo.coordinates.map((polygon) => polygon?.[0]);
+  return rings.filter(Array.isArray).map((ring) => ring
     .filter((point): point is [number, number] => Array.isArray(point) && point.length >= 2)
-    .map(([lng, lat]) => ({ lat, lng }));
+    .map(([lng, lat]) => ({ lat, lng })));
 }
 
 function isInsidePolygon(point: { lat: number; lng: number }, polygon: Array<{ lat: number; lng: number }>) {
@@ -106,12 +110,12 @@ export function analyzeRoute(input: {
   let gaps = 0;
   let jumps = 0;
   let noMovementSeconds = 0;
-  const polygon = polygonFromGeoJson(input.targetAreaGeoJson);
+  const polygons = polygonsFromGeoJson(input.targetAreaGeoJson);
   let outsideTargetArea = 0;
 
   for (let index = 0; index < points.length; index += 1) {
     const current = points[index];
-    if (polygon && !isInsidePolygon(current, polygon)) outsideTargetArea += 1;
+    if (polygons.length > 0 && !polygons.some((polygon) => isInsidePolygon(current, polygon))) outsideTargetArea += 1;
     const pointFlags = Array.isArray(current.flags) ? current.flags : [];
     for (const flag of pointFlags) flags.add(String(flag).toUpperCase());
     if (current.speed && current.speed > 13.9) {

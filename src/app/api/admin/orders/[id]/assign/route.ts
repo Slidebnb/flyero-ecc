@@ -22,6 +22,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const assignment = await assignOrderToDistributor({
       orderId: id,
       distributorId: parsed.data.distributorId,
+      segmentId: parsed.data.segmentId,
       adminUserId: session.id,
       tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId,
     });

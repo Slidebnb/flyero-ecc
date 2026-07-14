@@ -4395,6 +4395,124 @@ body {
   font-weight: 850;
 }
 
+.orderSegmentList {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.orderSegmentListHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(255,255,255,0.62);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.orderSegmentListHeader strong {
+  color: #a7ff00;
+}
+
+.orderSegmentRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.035);
+  padding: 8px;
+}
+
+.orderSegmentRow.active {
+  border-color: rgba(167,255,0,0.55);
+  background: rgba(167,255,0,0.07);
+}
+
+.orderSegmentRow > button:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  padding: 0;
+  text-align: left;
+}
+
+.orderSegmentRow > button:first-child > span:last-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.orderSegmentRow strong,
+.orderSegmentRow small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orderSegmentRow strong {
+  font-size: 0.82rem;
+}
+
+.orderSegmentRow small {
+  color: rgba(255,255,255,0.56);
+  font-size: 0.72rem;
+}
+
+.orderSegmentIndex {
+  display: grid;
+  flex: 0 0 24px;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(167,255,0,0.16);
+  color: #a7ff00;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.orderSegmentRemove {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,0.52);
+  font-size: 0.7rem;
+  padding: 4px;
+}
+
+.orderSegmentRemove:not(:disabled):hover {
+  color: #ff8b7d;
+}
+
+.orderSegmentRemove:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.orderSegmentAdd {
+  width: 100%;
+  border: 1px dashed rgba(167,255,0,0.55);
+  border-radius: 9px;
+  background: rgba(167,255,0,0.06);
+  color: #a7ff00;
+  font-weight: 800;
+  padding: 10px 12px;
+}
+
+.orderSegmentHint {
+  color: rgba(255,255,255,0.52);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
 .replaceAreaNotice {
   display: grid;
   gap: 8px;

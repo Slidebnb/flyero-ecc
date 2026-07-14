@@ -23,6 +23,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
           orderBy: { createdAt: "asc" },
           include: { user: { select: { id: true, email: true, role: true } } },
         },
+        distributionSegments: { orderBy: { sortOrder: "asc" } },
       },
     });
 

@@ -862,6 +862,7 @@ model Order {
   logisticsShipments          LogisticsShipment[]
   experienceEvents            OrderExperienceEvent[]
   retentionHolds              RetentionHold[]
+  distributionSegments        OrderDistributionSegment[]
 
   @@index([customerId, status])
   @@index([tenantId, status, createdAt])
@@ -955,6 +956,7 @@ model DistributionArea {
   estimates AreaHouseholdEstimate[]
   history   AreaHistory[]
   orders    Order[]
+  orderSegments OrderDistributionSegment[]
 
   @@index([type, status])
   @@index([city])
@@ -1101,6 +1103,7 @@ model Warehouse {
   transfersFrom  WarehouseTransfer[]   @relation("TransferFromWarehouse")
   transfersTo    WarehouseTransfer[]   @relation("TransferToWarehouse")
   stockCounts    WarehouseStockCount[]
+  assignedOrderSegments OrderDistributionSegment[] @relation("AssignedWarehouseSegments")
 
   @@index([city])
   @@index([city, postalCode])
@@ -1126,6 +1129,44 @@ model WarehouseRegion {
   @@index([warehouseId, isActive])
   @@index([city])
   @@index([priority])
+}
+
+model OrderDistributionSegment {
+  id                    String   @id @default(cuid())
+  orderId               String
+  distributionAreaId    String?
+  assignedWarehouseId   String?
+  sortOrder             Int      @default(0)
+  name                  String
+  city                  String?
+  postalCode            String?
+  district              String?
+  country               String   @default("DE")
+  geometryGeoJson       Json
+  centerLat             Decimal? @db.Decimal(10, 7)
+  centerLng             Decimal? @db.Decimal(10, 7)
+  areaSqm               Decimal  @db.Decimal(14, 2)
+  estimatedHouseholds   Int?
+  flyerQuantity         Int?
+  dataSource             String?
+  dataSourceType         AreaDataSourceType @default(ESTIMATED)
+  confidence             Decimal? @db.Decimal(4, 3)
+  warehouseMatchStatus   String   @default("MANUAL_REVIEW")
+  warehouseAssignmentReason String?
+  notes                  String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  order             Order            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  distributionArea  DistributionArea? @relation(fields: [distributionAreaId], references: [id], onDelete: SetNull)
+  assignedWarehouse Warehouse?       @relation("AssignedWarehouseSegments", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
+  tours             DistributionTour[]
+
+  @@unique([orderId, sortOrder])
+  @@index([orderId, sortOrder])
+  @@index([distributionAreaId])
+  @@index([assignedWarehouseId, warehouseMatchStatus])
+  @@index([city, postalCode])
 }
 
 model CompanySettings {
@@ -1389,6 +1430,7 @@ model WarehouseStockCount {
 model DistributionTour {
   id                         String       @id @default(cuid())
   orderId                    String
+  segmentId                  String?
   inventoryId                String?
   distributorId              String
   status                     TourStatus   @default(ASSIGNED)
@@ -1436,6 +1478,7 @@ model DistributionTour {
   updatedAt                  DateTime     @updatedAt
 
   order          Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  segment        OrderDistributionSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
   inventory      WarehouseInventory?     @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
   distributor    DistributorProfile      @relation(fields: [distributorId], references: [id], onDelete: Restrict)
   gpsPoints      GpsPoint[]
@@ -1445,6 +1488,7 @@ model DistributionTour {
   supportTickets SupportTicket[]
 
   @@index([orderId, status])
+  @@index([segmentId, status])
   @@index([inventoryId, status])
   @@index([distributorId, status])
 }

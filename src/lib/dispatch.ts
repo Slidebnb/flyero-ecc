@@ -361,6 +361,7 @@ export async function assignOrderToDistributor(input: {
   distributorId: string;
   adminUserId: string;
   tenantId?: string | null;
+  segmentId?: string;
 }) {
   await ensureOrderAccess(input.orderId, input.tenantId);
   const inventory = await getReadyInventoryForOrder(input.orderId, input.tenantId);
@@ -390,6 +391,13 @@ export async function assignOrderToDistributor(input: {
   const isReassignment = previousActive.some((assignment) => assignment.distributorId !== input.distributorId);
 
   const [assignment, tour] = await prisma.$transaction(async (tx) => {
+    if (input.segmentId) {
+      const segment = await tx.orderDistributionSegment.findFirst({
+        where: { id: input.segmentId, orderId: input.orderId },
+        select: { id: true },
+      });
+      if (!segment) throw new Error("Teilgebiet gehört nicht zu diesem Auftrag.");
+    }
     if (previousActive.length > 0) {
       await tx.dispatchAssignment.updateMany({
         where: { id: { in: previousActive.map((assignment) => assignment.id) } },
@@ -422,6 +430,7 @@ export async function assignOrderToDistributor(input: {
         orderId: input.orderId,
         inventoryId: inventory.id,
         distributorId: input.distributorId,
+        segmentId: input.segmentId ?? null,
         status: "ASSIGNED",
       },
     });

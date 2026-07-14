@@ -65,6 +65,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
       payments: { include: { refunds: true }, orderBy: { createdAt: "desc" } },
       documents: { orderBy: { uploadedAt: "desc" } },
       reports: { orderBy: { updatedAt: "desc" } },
+      distributionSegments: { orderBy: { sortOrder: "asc" } },
       statusEvents: {
         orderBy: { createdAt: "asc" },
         include: { user: { select: { id: true, email: true, role: true } } },
@@ -295,6 +296,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
               <tr><th>Zahlung</th><td>{latestPayment ? `${formatCurrency(latestPayment.amount)} / ${latestPayment.status}` : "Keine Zahlung gestartet"}</td></tr>
               <tr><th>Druckdaten</th><td>{PRINT_STATUS_LABELS[snapshot.printDataStatus ?? ""] ?? (order.needsPrintService ? "Druck über FLYERO angefragt" : "Noch zu prüfen")}</td></tr>
               <tr><th>Gebiet</th><td>{order.targetAreaName}</td></tr>
+              <tr><th>Teilgebiete</th><td>{order.distributionSegments.length > 0 ? order.distributionSegments.map((segment) => `${segment.name}${segment.city ? ` (${segment.city})` : ""}`).join(", ") : "Einzelgebiet"}</td></tr>
               <tr><th>Gebietsdaten</th><td>{areaSnapshot?.confidence ? `${areaSnapshot.confidence} / ${areaSnapshot.source ?? "verfügbare Gebietsdaten"}` : "Nach Prüfung bestätigen"}</td></tr>
               <tr><th>Prüfhinweis</th><td>{snapshot.reviewNotice ?? "Gebiet, Druckdaten und Zustellbarkeit final prüfen."}</td></tr>
               <tr><th>Adresse</th><td style={{ whiteSpace: "pre-line" }}>{formatAddress(order.targetAddress)}</td></tr>

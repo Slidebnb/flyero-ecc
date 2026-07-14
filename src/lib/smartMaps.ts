@@ -3,6 +3,7 @@ import { estimateHouseholds, estimateRouteDistanceMeters, calculateDistributionT
 import { findBestWarehouseForArea } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
 import { calculateOrderPrice } from "@/lib/pricing";
+import { aggregateOrderAreaSegments, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
 
 export type SmartPlaceSuggestion = {
   id: string;
@@ -191,6 +192,41 @@ function densityFromArea(area?: {
   return Math.max(35, Math.min(5000, coverage / households));
 }
 
+function confidenceRank(value?: "high" | "medium" | "low" | null) {
+  return value === "low" ? 0 : value === "medium" ? 1 : 2;
+}
+
+function lowestConfidence(values: Array<"high" | "medium" | "low">) {
+  return values.sort((left, right) => confidenceRank(left) - confidenceRank(right))[0] ?? "low";
+}
+
+function areaReferenceForSegment(segment: NormalizedOrderAreaSegment, areas: Array<{
+  id: string;
+  name: string;
+  city: string | null;
+  postalCode: string | null;
+  coverageAreaSqm: Prisma.Decimal | null;
+  estimatedHouseholds: number | null;
+  dataSourceType: AreaDataSourceType;
+  dataSourceName: string | null;
+  dataSourceUrl: string | null;
+  licenseNote: string | null;
+  dataUpdatedAt: Date | null;
+  confidence: Prisma.Decimal | null;
+  estimates: Array<{
+    method: HouseholdEstimateMethod;
+    source: string | null;
+    sourceUrl: string | null;
+    sourceYear: number | null;
+    confidence: Prisma.Decimal | null;
+  }>;
+  }>
+) {
+  return areas.find((area) => segment.distributionAreaId && area.id === segment.distributionAreaId)
+    ?? areas.find((area) => Boolean(segment.postalCode && area.postalCode === segment.postalCode))
+    ?? areas.find((area) => Boolean(segment.city && area.city?.toLowerCase() === segment.city.toLowerCase()));
+}
+
 export async function getOrderIntelligence(input: {
   tenantId?: string | null;
   city?: string | null;
@@ -203,17 +239,29 @@ export async function getOrderIntelligence(input: {
   coverageAreaSqm?: number | null;
   distanceMeters?: number | null;
   perimeterMeters?: number | null;
+  segments?: unknown;
   includeOperationalData?: boolean;
   publicOnly?: boolean;
 }) {
+  const parsedAreaSelection = input.segments ? aggregateOrderAreaSegments(input.segments) : null;
+  const areaSelection = parsedAreaSelection?.segments.length ? parsedAreaSelection : null;
+  const primarySegment = areaSelection?.primarySegment ?? null;
+  const effectiveCity = primarySegment?.city ?? input.city;
+  const effectivePostalCode = primarySegment?.postalCode ?? input.postalCode;
+  const effectiveCoverageAreaSqm = areaSelection?.totalAreaSqm ?? input.coverageAreaSqm;
   const areaFilters = [
     input.distributionAreaId ? { id: input.distributionAreaId } : null,
-    input.city ? { city: { equals: input.city, mode: "insensitive" as const } } : null,
-    input.postalCode ? { postalCode: { startsWith: input.postalCode.slice(0, 3) } } : null,
+    effectiveCity ? { city: { equals: effectiveCity, mode: "insensitive" as const } } : null,
+    effectivePostalCode ? { postalCode: { startsWith: effectivePostalCode.slice(0, 3) } } : null,
     input.street ? { name: { contains: input.street, mode: "insensitive" as const } } : null,
   ].filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const segmentFilters = areaSelection?.segments.flatMap((segment) => [
+    segment.distributionAreaId ? { id: segment.distributionAreaId } : null,
+    segment.city ? { city: { equals: segment.city, mode: "insensitive" as const } } : null,
+    segment.postalCode ? { postalCode: { startsWith: segment.postalCode.slice(0, 3) } } : null,
+  ]).filter((item): item is NonNullable<typeof item> => Boolean(item)) ?? [];
   const includeOperationalData = input.includeOperationalData ?? true;
-  const [matchingAreas, warehouseMatch, combinations] = await Promise.all([
+  const [matchingAreas, warehouseMatch, combinations, segmentWarehouseMatches] = await Promise.all([
     prisma.distributionArea.findMany({
       where: {
         AND: [
@@ -222,20 +270,23 @@ export async function getOrderIntelligence(input: {
             : input.tenantId
               ? [{ OR: [{ tenantId: null }, { tenantId: input.tenantId }] }]
               : []),
-          ...(areaFilters.length ? [{ OR: areaFilters }] : []),
+          ...((segmentFilters.length || areaFilters.length) ? [{ OR: segmentFilters.length ? segmentFilters : areaFilters }] : []),
         ],
         status: "ACTIVE",
         reusable: true,
       },
       orderBy: [{ city: "asc" }, { name: "asc" }],
       include: { estimates: { orderBy: { createdAt: "desc" }, take: 1 } },
-      take: 8,
+      take: areaSelection ? 40 : 8,
     }),
     includeOperationalData
-      ? findBestWarehouseForArea({ city: input.city, postalCode: input.postalCode }).catch(() => null)
+      ? findBestWarehouseForArea({ city: effectiveCity, postalCode: effectivePostalCode }).catch(() => null)
       : Promise.resolve(null),
     includeOperationalData
-      ? combineOrders({ city: input.city, postalCode: input.postalCode }).catch(() => [])
+      ? combineOrders({ city: effectiveCity, postalCode: effectivePostalCode }).catch(() => [])
+      : Promise.resolve([]),
+    includeOperationalData && areaSelection
+      ? Promise.all(areaSelection.segments.map((segment) => findBestWarehouseForArea({ city: segment.city, postalCode: segment.postalCode }).catch(() => null)))
       : Promise.resolve([]),
   ]);
   const densitySamples = matchingAreas
@@ -247,6 +298,7 @@ export async function getOrderIntelligence(input: {
     .filter((value): value is number => Boolean(value) && Number.isFinite(value));
   const referenceArea =
     (input.distributionAreaId ? matchingAreas.find((area) => area.id === input.distributionAreaId) : null) ??
+    (primarySegment ? areaReferenceForSegment(primarySegment, matchingAreas) : null) ??
     matchingAreas.find((area) => area.coverageAreaSqm && area.estimatedHouseholds) ??
     null;
   const referenceEstimate = referenceArea?.estimates?.[0] ?? null;
@@ -254,19 +306,36 @@ export async function getOrderIntelligence(input: {
     (densitySamples.length
       ? Math.max(35, Math.min(5000, densitySamples.reduce((sum, value) => sum + value, 0) / densitySamples.length))
       : 125);
-  const households = estimateHouseholds({
-    coverageAreaSqm: input.coverageAreaSqm,
-    cityDensityFactor: densityFactor,
-  });
+  const segmentCalculations = areaSelection?.segments.map((segment) => {
+    const segmentArea = areaReferenceForSegment(segment, matchingAreas);
+    const segmentEstimate = segmentArea?.estimates?.[0] ?? null;
+    const segmentDensity = densityFromArea(segmentArea ?? undefined) ?? densityFactor;
+    const households = estimateHouseholds({ coverageAreaSqm: segment.areaSqm, cityDensityFactor: segmentDensity });
+    const confidence = confidenceForEstimate(
+      segmentEstimate?.method,
+      segmentEstimate?.source,
+      segmentArea?.dataSourceType,
+      segmentEstimate?.sourceYear,
+      Boolean(segmentArea?.estimatedHouseholds),
+    );
+    return { segment, segmentArea, segmentEstimate, households, confidence };
+  }) ?? null;
+  const households = segmentCalculations
+    ? segmentCalculations.reduce((sum, item) => sum + item.households, 0)
+    : estimateHouseholds({ coverageAreaSqm: effectiveCoverageAreaSqm, cityDensityFactor: densityFactor });
   const recommendedFlyerQuantity = Math.max(500, Math.ceil((households * 1.1) / 100) * 100);
   const flyerQuantity = input.flyerQuantity ?? recommendedFlyerQuantity;
-  const routeDistanceMeters =
-    input.distanceMeters ??
-    estimateRouteDistanceMeters({
-      coverageAreaSqm: input.coverageAreaSqm,
-      perimeterMeters: input.perimeterMeters,
-      households,
-    });
+  const routeDistanceMeters = areaSelection
+    ? estimateRouteDistanceMeters({
+        coverageAreaSqm: effectiveCoverageAreaSqm,
+        perimeterMeters: input.perimeterMeters,
+        households,
+      })
+    : input.distanceMeters ?? estimateRouteDistanceMeters({
+        coverageAreaSqm: effectiveCoverageAreaSqm,
+        perimeterMeters: input.perimeterMeters,
+        households,
+      });
   const singleDistributorMinutes = calculateDistributionTime({
     distanceMeters: routeDistanceMeters,
     flyerQuantity,
@@ -281,14 +350,37 @@ export async function getOrderIntelligence(input: {
     distributorCount: distributorNeed,
   });
   const price = await calculateOrderPrice({ serviceType: "FLYER_DISTRIBUTION", flyerQuantity });
-  const householdCountSource = estimateSourceLabel(referenceEstimate?.method, referenceEstimate?.source);
-  const confidence = confidenceForEstimate(
+  const householdCountSource = segmentCalculations
+    ? segmentCalculations.map((item) => estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source)).join(", ")
+    : estimateSourceLabel(referenceEstimate?.method, referenceEstimate?.source);
+  const confidence = segmentCalculations
+    ? lowestConfidence(segmentCalculations.map((item) => item.confidence))
+    : confidenceForEstimate(
     referenceEstimate?.method,
     referenceEstimate?.source,
     referenceArea?.dataSourceType,
     referenceEstimate?.sourceYear,
     Boolean(referenceArea?.estimatedHouseholds),
   );
+  const segmentWarehouseData = areaSelection?.segments.map((segment, index) => {
+    const match = segmentWarehouseMatches[index];
+    return {
+      name: segment.name,
+      city: segment.city,
+      postalCode: segment.postalCode,
+      warehouse: match?.warehouse ? {
+        id: match.warehouse.id,
+        name: match.warehouse.name,
+        code: match.warehouse.code,
+        city: match.warehouse.city,
+      } : null,
+      matchedRegion: Boolean(match?.matchedRegion),
+      reason: match?.reason ?? "Kein aktives Lager für dieses Teilgebiet hinterlegt.",
+    };
+  }) ?? [];
+  const needsManualReview = Boolean(areaSelection && (
+    !segmentWarehouseData.length || segmentWarehouseData.some((item) => !item.matchedRegion)
+  ));
 
   return {
     suggestions: matchingAreas.map(compactArea),
@@ -297,17 +389,17 @@ export async function getOrderIntelligence(input: {
       flyerQuantity,
       routeDistanceMeters,
       routeDurationMinutes,
-      coverageAreaSqm: input.coverageAreaSqm ?? Math.round(households * 92),
+      coverageAreaSqm: effectiveCoverageAreaSqm ?? Math.round(households * 92),
       grossPrice: price.gross.toString(),
       netPrice: price.net.toString(),
       vatAmount: price.vat.toString(),
       vatRate: price.snapshot.vatRate,
       distributorNeed,
-      score: scoreArea({ city: input.city, postalCode: input.postalCode, households, flyerQuantity, coverageAreaSqm: input.coverageAreaSqm, distanceMeters: routeDistanceMeters }),
+      score: scoreArea({ city: effectiveCity, postalCode: effectivePostalCode, households, flyerQuantity, coverageAreaSqm: effectiveCoverageAreaSqm, distanceMeters: routeDistanceMeters }),
       source: referenceArea?.estimatedHouseholds ? "area-household-estimate" : "area-formula",
       confidence,
       calculatedAt: new Date().toISOString(),
-      calculationVersion: "order-area-v1",
+      calculationVersion: areaSelection ? "order-area-v2-multi-segment" : "order-area-v1",
       householdCountSource,
       pricingVersion: price.snapshot.pricingVersion,
       areaReference: referenceArea
@@ -334,13 +426,25 @@ export async function getOrderIntelligence(input: {
             name: null,
             city: input.city ?? null,
             postalCode: input.postalCode ?? null,
-            coverageAreaSqm: input.coverageAreaSqm ?? null,
+            coverageAreaSqm: effectiveCoverageAreaSqm ?? null,
             estimateMethod: null,
             estimateSource: null,
             estimateConfidence: null,
           },
+      segments: segmentCalculations?.map((item) => ({
+        name: item.segment.name,
+        city: item.segment.city,
+        postalCode: item.segment.postalCode,
+        areaSqm: item.segment.areaSqm,
+        households: item.households,
+        householdCountSource: estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source),
+        confidence: item.confidence,
+        distributionAreaId: item.segmentArea?.id ?? item.segment.distributionAreaId,
+      })) ?? [],
+      needsManualReview,
+      warehouseMatches: segmentWarehouseData,
     },
-    warehouse: warehouseMatch?.warehouse
+    warehouse: warehouseMatch?.warehouse && !needsManualReview
       ? {
           id: warehouseMatch.warehouse.id,
           name: warehouseMatch.warehouse.name,
@@ -350,6 +454,8 @@ export async function getOrderIntelligence(input: {
         }
       : null,
     combinations: combinations.slice(0, 5),
+    needsManualReview,
+    warehouseMatches: segmentWarehouseData,
   };
 }
 

@@ -74,6 +74,19 @@ const optionalJson = z
     }
   });
 
+const optionalOrderAreaSegments = z.preprocess(
+  (value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "string" || !value.trim()) return undefined;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return undefined;
+    }
+  },
+  z.array(z.record(z.string(), z.unknown())).max(50).optional(),
+);
+
 export const customerRegisterSchema = z.object({
   companyName: z.string().min(2),
   contactName: z.string().min(2),
@@ -177,6 +190,7 @@ export const orderCreateSchema = z
     estimatedDistanceMeters: optionalNonNegativeInt,
     coverageAreaSqm: optionalPositiveNumber,
     areaCalculationSnapshot: optionalJson,
+    areaSegments: optionalOrderAreaSegments,
     centerLat: z.coerce.number().optional(),
     centerLng: z.coerce.number().optional(),
     radiusMeters: optionalNonNegativeInt,
@@ -332,6 +346,7 @@ export const adminTourAssignSchema = z.object({
 
 export const adminDispatchAssignSchema = z.object({
   distributorId: z.string().min(1),
+  segmentId: z.string().min(1).optional(),
 });
 
 export const distributorDispatchRejectSchema = z.object({

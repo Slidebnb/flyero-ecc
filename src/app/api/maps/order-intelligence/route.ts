@@ -10,6 +10,15 @@ function numberParam(value: string | null) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
+function jsonParam(value: string | null) {
+  if (!value) return undefined;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const baseSession = await requireRole([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
@@ -28,6 +37,7 @@ export async function GET(request: Request) {
       coverageAreaSqm: numberParam(params.get("coverageAreaSqm")),
       distanceMeters: numberParam(params.get("distanceMeters")),
       perimeterMeters: numberParam(params.get("perimeterMeters")),
+      segments: jsonParam(params.get("segments")),
     });
     return Response.json({ ok: true, data });
   } catch (error) {

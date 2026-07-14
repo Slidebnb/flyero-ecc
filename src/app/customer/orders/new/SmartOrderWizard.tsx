@@ -23,6 +23,19 @@ import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor
 type LatLng = { lat: number; lng: number };
 type PolygonSource = "postal_code" | "manual" | "saved_area" | "drawn";
 type OverviewDragState = { pointerId: number; startX: number; startY: number; baseX: number; baseY: number };
+type OrderAreaSegmentDraft = {
+  id: string;
+  name: string;
+  city: string;
+  postalCode: string;
+  district: string;
+  country: string;
+  points: LatLng[];
+  polygonSource: PolygonSource;
+  distributionAreaId?: string;
+  flyerQuantity?: number;
+  notes?: string;
+};
 
 type LocationResult = {
   city?: string | null;
@@ -82,6 +95,17 @@ type Intelligence = {
       estimateSource: string | null;
       estimateConfidence: number | null;
     };
+    segments?: Array<{
+      name: string;
+      city: string | null;
+      postalCode: string | null;
+      coverageAreaSqm: number;
+      households: number;
+      householdCountSource: string;
+      confidence: "high" | "medium" | "low";
+      distributionAreaId: string | null;
+    }>;
+    needsManualReview?: boolean;
   };
   warehouse?: { id: string; name: string; code: string; city: string; reason: string } | null;
   combinations?: Array<{ key: string; orders: unknown[]; savedDistanceMeters: number; savedMinutes: number; savedCostEstimate: string }>;
@@ -99,6 +123,7 @@ type OrderDraft = {
   center?: LatLng;
   polygon?: LatLng[];
   polygonSource?: PolygonSource;
+  areaSegments?: OrderAreaSegmentDraft[];
   areaStats?: {
     polygonSource: PolygonSource;
     areaKm2: number;
@@ -116,6 +141,8 @@ type OrderDraft = {
     calculationVersion: string;
     householdCountSource: string;
     pricingVersion: string;
+    needsManualReview?: boolean;
+    segments?: Array<{ name: string; city: string; postalCode: string; areaSqm: number; flyerQuantity?: number }>;
     areaReference: {
       distributionAreaId: string | null;
       targetAreaName: string;
@@ -285,6 +312,22 @@ function polygonToGeoJson(points: LatLng[]) {
   };
 }
 
+function segmentsToGeoJson(segments: Array<{ points: LatLng[]; name: string; city: string; postalCode: string }>) {
+  return {
+    type: "FeatureCollection",
+    features: segments
+      .filter((segment) => segment.points.length >= 3)
+      .map((segment) => {
+        const geometry = polygonToGeoJson(segment.points).features[0].geometry;
+        return {
+          type: "Feature",
+          properties: { name: segment.name, city: segment.city, postalCode: segment.postalCode },
+          geometry,
+        };
+      }),
+  };
+}
+
 function polygonAroundCenter(nextCenter: LatLng) {
   return DEFAULT_POLYGON.map((point) => ({
     lat: point.lat + (nextCenter.lat - DEFAULT_CENTER.lat),
@@ -445,6 +488,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
+  const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
   const drawingManagerRef = useRef<GoogleDrawingManager | null>(null);
   const overviewDragRef = useRef<OverviewDragState | null>(null);
   const initialSearchRef = useRef<string | null>(null);
@@ -465,6 +509,17 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [center, setCenter] = useState<LatLng>(isPublicPlanner ? PUBLIC_DEFAULT_CENTER : DEFAULT_CENTER);
   const [polygon, setPolygon] = useState<LatLng[]>(isPublicPlanner ? [] : DEFAULT_POLYGON);
   const [polygonSource, setPolygonSource] = useState<PolygonSource>("postal_code");
+  const [areaSegments, setAreaSegments] = useState<OrderAreaSegmentDraft[]>(isPublicPlanner ? [] : [{
+    id: "segment-default",
+    name: "Koblenz Zentrum",
+    city: "Koblenz",
+    postalCode: "56068",
+    district: "",
+    country: "DE",
+    points: DEFAULT_POLYGON,
+    polygonSource: "postal_code",
+  }]);
+  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(isPublicPlanner ? null : "segment-default");
   const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
   const [, setHistory] = useState<LatLng[][]>(isPublicPlanner ? [] : [DEFAULT_POLYGON]);
   const [historyIndex, setHistoryIndex] = useState(0);
@@ -493,8 +548,33 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [overviewOffset, setOverviewOffset] = useState({ x: 0, y: 0 });
   const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
 
-  const coverageAreaSqm = useMemo(() => polygonAreaSqm(polygon), [polygon]);
-  const perimeterMeters = useMemo(() => polygonPerimeterMeters(polygon), [polygon]);
+  const areaSegmentsPayload = useMemo(() => {
+    const currentSegments = areaSegments.map((segment) => ({ ...segment, points: [...segment.points] }));
+    if (polygon.length < 3) return currentSegments.filter((segment) => segment.points.length >= 3);
+    const currentSegment = {
+      id: activeSegmentId ?? "segment-current",
+      name: targetAreaName || [postalCode, city].filter(Boolean).join(" ") || "Verteilgebiet",
+      city,
+      postalCode,
+      district: currentSegments.find((segment) => segment.id === activeSegmentId)?.district ?? "",
+      country: "DE",
+      points: [...polygon],
+      polygonSource,
+      distributionAreaId: selectedAreaId || undefined,
+    } satisfies OrderAreaSegmentDraft;
+    const existingIndex = currentSegments.findIndex((segment) => segment.id === currentSegment.id);
+    if (existingIndex >= 0) currentSegments[existingIndex] = { ...currentSegments[existingIndex], ...currentSegment };
+    else currentSegments.push(currentSegment);
+    return currentSegments.filter((segment) => segment.points.length >= 3);
+  }, [activeSegmentId, areaSegments, city, polygon, polygonSource, postalCode, selectedAreaId, targetAreaName]);
+  const coverageAreaSqm = useMemo(
+    () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonAreaSqm(segment.points), 0),
+    [areaSegmentsPayload],
+  );
+  const perimeterMeters = useMemo(
+    () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segment.points), 0),
+    [areaSegmentsPayload],
+  );
   const localHouseholds = useMemo(() => estimateHouseholdsFromArea(coverageAreaSqm), [coverageAreaSqm]);
   const localRouteDistanceMeters = useMemo(
     () => estimateWalkingDistanceMeters(coverageAreaSqm, perimeterMeters, localHouseholds),
@@ -529,7 +609,19 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     coverageAreaSqm: String(coverageAreaSqm),
     distanceMeters: String(localRouteDistanceMeters),
     perimeterMeters: String(perimeterMeters),
+    segments: JSON.stringify(areaSegmentsPayload.map((segment) => ({
+      name: segment.name,
+      city: segment.city,
+      postalCode: segment.postalCode,
+      district: segment.district,
+      country: segment.country,
+      geometryGeoJson: polygonToGeoJson(segment.points),
+      distributionAreaId: segment.distributionAreaId,
+      flyerQuantity: segment.flyerQuantity,
+      notes: segment.notes,
+    }))),
   }).toString(), [
+    areaSegmentsPayload,
     city,
     coverageAreaSqm,
     flyerQuantity,
@@ -542,7 +634,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     printDataStatus,
     street,
   ]);
-  const geoJson = useMemo(() => polygonToGeoJson(polygon), [polygon]);
+  const geoJson = useMemo(() => segmentsToGeoJson(areaSegmentsPayload), [areaSegmentsPayload]);
   const areaStats = useMemo(() => ({
     polygonSource,
     areaKm2: coverageAreaSqm / 1_000_000,
@@ -551,7 +643,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     pricePreview: netPrice,
     walkingDistanceKm: routeDistanceMeters / 1000,
     deliveryDurationMinutes: routeDurationMinutes,
-    warehouseSuggestion: intelligence?.warehouse?.city ?? null,
+    warehouseSuggestion: intelligence?.metrics.needsManualReview ? null : intelligence?.warehouse?.city ?? null,
     distributorDemand: distributorNeed,
     deliverabilityScore,
     source: calculationSource,
@@ -560,6 +652,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     calculationVersion: intelligence?.metrics.calculationVersion ?? "client-area-estimate-v1",
     householdCountSource,
     pricingVersion,
+    needsManualReview: intelligence?.metrics.needsManualReview ?? false,
+    segments: areaSegmentsPayload.map((segment) => ({
+      name: segment.name,
+      city: segment.city,
+      postalCode: segment.postalCode,
+      areaSqm: polygonAreaSqm(segment.points),
+      flyerQuantity: segment.flyerQuantity,
+    })),
     areaReference: {
       distributionAreaId: intelligence?.metrics.areaReference?.distributionAreaId ?? selectedAreaId ?? null,
       targetAreaName,
@@ -590,6 +690,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     intelligence?.metrics.calculatedAt,
     intelligence?.metrics.calculationVersion,
     intelligence?.warehouse?.city,
+    intelligence?.metrics.needsManualReview,
+    areaSegmentsPayload,
     polygonSource,
     postalCode,
     pricingVersion,
@@ -628,6 +730,83 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     setHistoryIndex((index) => index + 1);
   }, [historyIndex]);
 
+  const addSegment = useCallback(() => {
+    const id = `segment-${Date.now()}`;
+    setAreaSegments((current) => {
+      if (polygon.length < 3) return current;
+      const existingIndex = current.findIndex((segment) => segment.id === activeSegmentId);
+      const currentSegment: OrderAreaSegmentDraft = {
+        id: activeSegmentId ?? `segment-${Date.now()}-current`,
+        name: targetAreaName || [postalCode, city].filter(Boolean).join(" ") || "Verteilgebiet",
+        city,
+        postalCode,
+        district: existingIndex >= 0 ? current[existingIndex].district : "",
+        country: "DE",
+        points: [...polygon],
+        polygonSource,
+        distributionAreaId: selectedAreaId || undefined,
+      };
+      const next = existingIndex >= 0
+        ? current.map((segment, index) => index === existingIndex ? currentSegment : segment)
+        : [...current, currentSegment];
+      return [...next, {
+        id,
+        name: `Teilgebiet ${next.length + 1}`,
+        city: "",
+        postalCode: "",
+        district: "",
+        country: "DE",
+        points: [],
+        polygonSource: "drawn",
+      }];
+    });
+    setActiveSegmentId(id);
+    setPolygon([]);
+    setPolygonSource("drawn");
+    setSelectedAreaId("");
+    setTargetAreaName("");
+    setCity("");
+    setPostalCode("");
+    setStreet("");
+    setHouseNumber("");
+    setQuery("");
+    setMapNotice("Neues Teilgebiet bereit. Suche jetzt eine weitere PLZ, Stadt oder Adresse.");
+  }, [activeSegmentId, city, polygon, polygonSource, postalCode, selectedAreaId, targetAreaName]);
+
+  const selectSegment = useCallback((segment: OrderAreaSegmentDraft) => {
+    setActiveSegmentId(segment.id);
+    setCity(segment.city);
+    setPostalCode(segment.postalCode);
+    setTargetAreaName(segment.name);
+    setSelectedAreaId(segment.distributionAreaId ?? "");
+    setPolygon(segment.points);
+    setPolygonSource(segment.polygonSource);
+    if (segment.points.length) {
+      const nextCenter = segment.points.reduce((centerValue, point) => ({
+        lat: centerValue.lat + point.lat / segment.points.length,
+        lng: centerValue.lng + point.lng / segment.points.length,
+      }), { lat: 0, lng: 0 });
+      setCenter(nextCenter);
+    }
+    setMapNotice(`${segment.name} ausgewählt. Du kannst die Fläche auf der Karte anpassen.`);
+  }, []);
+
+  const removeSegment = useCallback((segmentId: string) => {
+    setAreaSegments((current) => {
+      const next = current.filter((segment) => segment.id !== segmentId);
+      const replacement = next[next.length - 1];
+      if (segmentId === activeSegmentId) {
+        setActiveSegmentId(replacement?.id ?? null);
+        setPolygon(replacement?.points ?? []);
+        setPolygonSource(replacement?.polygonSource ?? "drawn");
+        setCity(replacement?.city ?? "");
+        setPostalCode(replacement?.postalCode ?? "");
+        setTargetAreaName(replacement?.name ?? "");
+      }
+      return next;
+    });
+  }, [activeSegmentId]);
+
   // Restore customer draft once from localStorage before the user continues editing.
   useEffect(() => {
     try {
@@ -650,7 +829,19 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       if (draft.houseNumber) setHouseNumber(draft.houseNumber);
       if (draft.targetAreaName) setTargetAreaName(draft.targetAreaName);
       if (draft.center && Number.isFinite(draft.center.lat) && Number.isFinite(draft.center.lng)) setCenter(draft.center);
-      if (Array.isArray(draft.polygon) && draft.polygon.length >= 3) {
+      if (Array.isArray(draft.areaSegments) && draft.areaSegments.length > 0) {
+        const restoredSegments = draft.areaSegments.filter((segment) => Array.isArray(segment.points));
+        if (restoredSegments.length > 0) {
+          setAreaSegments(restoredSegments);
+          setActiveSegmentId(restoredSegments[0].id);
+          setCity(restoredSegments[0].city);
+          setPostalCode(restoredSegments[0].postalCode);
+          setTargetAreaName(restoredSegments[0].name);
+          setPolygon(restoredSegments[0].points);
+          setPolygonSource(restoredSegments[0].polygonSource);
+          setHistory([restoredSegments[0].points]);
+        }
+      } else if (Array.isArray(draft.polygon) && draft.polygon.length >= 3) {
         setPolygon(draft.polygon);
         setHistory([draft.polygon]);
       }
@@ -701,11 +892,29 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           if (draft.houseNumber) setHouseNumber(draft.houseNumber);
           if (draft.targetAreaName) setTargetAreaName(draft.targetAreaName);
           if (draft.center) setCenter(draft.center);
-          const repeatedPolygon = featurePoints(draft.targetAreaGeoJson);
-          if (repeatedPolygon.length >= 3) {
-            setPolygon(repeatedPolygon);
-            setPolygonSource("saved_area");
-            setHistory([repeatedPolygon]);
+          if (Array.isArray(draft.areaSegments) && draft.areaSegments.length > 0) {
+            const repeatedSegments = draft.areaSegments.map((segment) => ({
+              ...segment,
+              points: Array.isArray(segment.points) && segment.points.length >= 3
+                ? segment.points
+                : featurePoints((segment as OrderAreaSegmentDraft & { geometryGeoJson?: unknown }).geometryGeoJson),
+              polygonSource: segment.polygonSource ?? "saved_area",
+            })).filter((segment) => segment.points.length >= 3);
+            setAreaSegments(repeatedSegments);
+            setActiveSegmentId(repeatedSegments[0]?.id ?? null);
+            setCity(repeatedSegments[0]?.city ?? draft.city ?? "");
+            setPostalCode(repeatedSegments[0]?.postalCode ?? draft.postalCode ?? "");
+            setTargetAreaName(repeatedSegments[0]?.name ?? draft.targetAreaName ?? "");
+            setPolygon(repeatedSegments[0]?.points ?? []);
+            setPolygonSource(repeatedSegments[0]?.polygonSource ?? "saved_area");
+            setHistory([repeatedSegments[0]?.points ?? []]);
+          } else {
+            const repeatedPolygon = featurePoints(draft.targetAreaGeoJson);
+            if (repeatedPolygon.length >= 3) {
+              setPolygon(repeatedPolygon);
+              setPolygonSource("saved_area");
+              setHistory([repeatedPolygon]);
+            }
           }
           if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
           setFlyerQuantityTouched(true);
@@ -746,6 +955,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       center,
       polygon,
       polygonSource,
+      areaSegments: areaSegmentsPayload,
       areaStats,
       flyerQuantity,
       flyerQuantityTouched,
@@ -769,6 +979,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   }, [
     activeStep,
     areaStats,
+    areaSegmentsPayload,
     center,
     city,
     contactPerson,
@@ -1046,6 +1257,20 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         drawingManagerRef.current?.setDrawingMode(null);
         const next = pathToPoints(nextPolygon.getPath());
         if (next.length >= 3) {
+          const segmentId = activeSegmentId ?? `segment-${Date.now()}`;
+          if (!activeSegmentId) {
+            setActiveSegmentId(segmentId);
+            setAreaSegments((current) => [...current, {
+              id: segmentId,
+              name: targetAreaName || [postalCode, city].filter(Boolean).join(" ") || "Verteilgebiet",
+              city,
+              postalCode,
+              district: "",
+              country: "DE",
+              points: next,
+              polygonSource: "drawn",
+            }]);
+          }
           setPolygon(next);
           setPolygonSource("drawn");
         }
@@ -1057,7 +1282,40 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         maps.event.addListener(drawingManager, "polygoncomplete", onPolygonComplete);
       }
     }
-  }, [center, mapMode, mapsReady, polygon]);
+  }, [activeSegmentId, center, city, mapMode, mapsReady, polygon, postalCode, targetAreaName]);
+
+  useEffect(() => {
+    if (!mapsReady || !mapRef.current || !window.google?.maps) return;
+    const maps = window.google.maps;
+    const visibleSegments = new Set(areaSegmentsPayload.map((segment) => segment.id));
+    for (const [segmentId, overlay] of segmentPolygonsRef.current.entries()) {
+      if (!visibleSegments.has(segmentId) || segmentId === activeSegmentId) {
+        overlay.setMap(null);
+        segmentPolygonsRef.current.delete(segmentId);
+      }
+    }
+    areaSegmentsPayload.forEach((segment) => {
+      if (segment.id === activeSegmentId || segment.points.length < 3) return;
+      let overlay = segmentPolygonsRef.current.get(segment.id);
+      if (!overlay) {
+        overlay = new maps.Polygon({
+          paths: segment.points,
+          strokeColor: "#a7ff00",
+          strokeOpacity: 0.9,
+          strokeWeight: 2,
+          fillColor: "#1f7aff",
+          fillOpacity: 0.2,
+          editable: false,
+          draggable: false,
+        });
+        overlay.setMap(mapRef.current);
+        segmentPolygonsRef.current.set(segment.id, overlay);
+      } else {
+        overlay.setPath(segment.points);
+      }
+    });
+    return () => undefined;
+  }, [activeSegmentId, areaSegmentsPayload, mapsReady]);
 
   useEffect(() => {
     if (!mapsReady || !mapRef.current || !polygonRef.current || !window.google?.maps) return;
@@ -1067,9 +1325,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     polygonRef.current.setPath(polygon);
     if (polygon.length === 0) return;
     const bounds = new window.google.maps.LatLngBounds();
-    polygon.forEach((point) => bounds.extend(point));
+    areaSegmentsPayload.forEach((segment) => segment.points.forEach((point) => bounds.extend(point)));
     mapRef.current.fitBounds(bounds);
-  }, [center, mapMode, mapsReady, polygon, street]);
+  }, [areaSegmentsPayload, center, mapMode, mapsReady, polygon, street]);
 
   function applySuggestion(suggestion: Suggestion) {
     setUsedAutocomplete(true);
@@ -1159,7 +1417,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         coverageAreaSqm,
         routeDistanceMeters,
         routeDurationMinutes,
-        metadata: { mapMode, productFormat, targetGroup, distributionType, plannerMode: mode },
+        metadata: { mapMode, productFormat, targetGroup, distributionType, plannerMode: mode, segmentCount: areaSegmentsPayload.length },
       }),
     });
   }
@@ -1175,6 +1433,17 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       areaType: "POLYGON",
       distributionAreaId: selectedAreaId,
       targetAreaGeoJson: JSON.stringify(geoJson),
+      areaSegments: JSON.stringify(areaSegmentsPayload.map((segment) => ({
+        name: segment.name,
+        city: segment.city,
+        postalCode: segment.postalCode,
+        district: segment.district,
+        country: segment.country,
+        geometryGeoJson: polygonToGeoJson(segment.points),
+        distributionAreaId: segment.distributionAreaId,
+        flyerQuantity: segment.flyerQuantity,
+        notes: segment.notes,
+      }))),
       polygonSource,
       coverageAreaSqm,
       estimatedHouseholds: households,
@@ -1226,6 +1495,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       }
 
       if (completionPath === "direct_payment") {
+        if (orderResult.data.requiresManualReview) {
+          window.localStorage.removeItem(ORDER_DRAFT_KEY);
+          setFinishStatus("Deine Gebiete werden vor der Buchung manuell geprüft. FLYERO meldet sich mit den nächsten Schritten bei dir.");
+          window.location.href = `/customer/orders/${orderResult.data.id}?manual-review=1`;
+          return;
+        }
         const checkoutResponse = await fetch("/api/payments/checkout", {
           method: "POST",
           headers: { "content-type": "application/json" },
@@ -1357,6 +1632,26 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
               <small>{polygonSourceLabel()}</small>
             </div>
             <div className="miniPolygon" aria-hidden="true" />
+          </div>
+          <div className="orderSegmentList" aria-label="Teilgebiete">
+            <div className="orderSegmentListHeader">
+              <span>Teilgebiete dieser Kampagne</span>
+              <strong>{areaSegmentsPayload.length}</strong>
+            </div>
+            {areaSegments.map((segment, index) => (
+              <div className={segment.id === activeSegmentId ? "orderSegmentRow active" : "orderSegmentRow"} key={segment.id}>
+                <button type="button" onClick={() => selectSegment(segment)}>
+                  <span className="orderSegmentIndex">{index + 1}</span>
+                  <span>
+                    <strong>{segment.name || `Teilgebiet ${index + 1}`}</strong>
+                    <small>{[segment.postalCode, segment.city].filter(Boolean).join(" ") || "Noch nicht festgelegt"}</small>
+                  </span>
+                </button>
+                <button type="button" className="orderSegmentRemove" onClick={() => removeSegment(segment.id)} disabled={areaSegments.length <= 1} aria-label={`${segment.name || "Teilgebiet"} entfernen`}>Entfernen</button>
+              </div>
+            ))}
+            <button type="button" className="orderSegmentAdd" onClick={addSegment}>Teilgebiet hinzufügen</button>
+            <small className="orderSegmentHint">Mehrere Städte oder Stadtteile bleiben getrennt sichtbar und werden gemeinsam berechnet.</small>
           </div>
         </section>
       );
@@ -1533,6 +1828,17 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       <input type="hidden" name="areaType" value="POLYGON" />
       <input type="hidden" name="distributionAreaId" value={selectedAreaId} />
       <input type="hidden" name="targetAreaGeoJson" value={JSON.stringify(geoJson)} />
+      <input type="hidden" name="areaSegments" value={JSON.stringify(areaSegmentsPayload.map((segment) => ({
+        name: segment.name,
+        city: segment.city,
+        postalCode: segment.postalCode,
+        district: segment.district,
+        country: segment.country,
+        geometryGeoJson: polygonToGeoJson(segment.points),
+        distributionAreaId: segment.distributionAreaId,
+        flyerQuantity: segment.flyerQuantity,
+        notes: segment.notes,
+      })))} />
       <input type="hidden" name="polygonSource" value={polygonSource} />
       <input type="hidden" name="coverageAreaSqm" value={coverageAreaSqm} />
       <input type="hidden" name="estimatedHouseholds" value={households} />

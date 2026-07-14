@@ -141,6 +141,16 @@ function buildReportSnapshot(data: ReportData) {
       areaName: data.order.targetAreaName,
       city: data.order.city,
       postalCode: data.order.postalCode,
+      segments: data.order.distributionSegments.map((segment) => ({
+        name: segment.name,
+        city: segment.city,
+        postalCode: segment.postalCode,
+        district: segment.district,
+        geometryGeoJson: segment.geometryGeoJson,
+        areaSqm: segment.areaSqm,
+        estimatedHouseholds: segment.estimatedHouseholds,
+        flyerQuantity: segment.flyerQuantity,
+      })),
       flyerQuantity: quantities.planned,
       householdCount: data.order.estimatedHouseholds,
       startDate: data.order.preferredStartDate,
@@ -196,7 +206,13 @@ export async function collectReportData(tourId: string) {
   const tour = await prisma.distributionTour.findUnique({
     where: { id: tourId },
     include: {
-      order: { include: { customer: true, distributionArea: true } },
+      order: {
+        include: {
+          customer: true,
+          distributionArea: true,
+          distributionSegments: { orderBy: { sortOrder: "asc" } },
+        },
+      },
       distributor: { select: { id: true, userId: true, firstName: true, lastName: true } },
       gpsPoints: { orderBy: { recordedAt: "asc" } },
       photoProofs: { orderBy: { createdAt: "asc" } },

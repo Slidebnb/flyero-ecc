@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { OrderStatus, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
@@ -7,6 +7,8 @@ import { createNotification } from "@/lib/notifications";
 import { assignWarehouseForOrder } from "@/lib/logistics";
 import { generateOrderNumber, createOrderStatusEvent } from "@/lib/orders";
 import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
+import { getOrderIntelligence } from "@/lib/smartMaps";
+import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderCreateSchema } from "@/lib/validators";
@@ -65,7 +67,39 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
-    let distributionAreaId = data.distributionAreaId ?? null;
+    let areaSelection = null;
+    try {
+      areaSelection = data.areaSegments ? aggregateOrderAreaSegments(data.areaSegments) : null;
+    } catch (error) {
+      return errorResponse(error instanceof Error ? error.message : "Das Verteilgebiet konnte nicht verarbeitet werden.", 400);
+    }
+    const primarySegment = areaSelection?.primarySegment ?? null;
+    const targetAreaGeoJson = areaSelection?.targetAreaGeoJson ?? data.targetAreaGeoJson;
+    const orderCity = primarySegment?.city ?? data.city;
+    const orderPostalCode = primarySegment?.postalCode ?? data.postalCode;
+    const intelligence = areaSelection
+      ? await getOrderIntelligence({
+          tenantId: session.tenantId,
+          city: orderCity,
+          postalCode: orderPostalCode,
+          flyerQuantity: data.flyerQuantity,
+          segments: data.areaSegments,
+          includeOperationalData: true,
+        })
+      : null;
+    const serverCoverageAreaSqm = intelligence?.metrics.coverageAreaSqm ?? areaSelection?.totalAreaSqm ?? data.coverageAreaSqm;
+    const serverHouseholds = intelligence?.metrics.households ?? data.estimatedHouseholds;
+    const serverDistanceMeters = intelligence?.metrics.routeDistanceMeters ?? data.estimatedDistanceMeters;
+    const serverAreaSnapshot = {
+      ...(data.areaCalculationSnapshot && typeof data.areaCalculationSnapshot === "object" && !Array.isArray(data.areaCalculationSnapshot)
+        ? data.areaCalculationSnapshot as Record<string, unknown>
+        : {}),
+      ...(intelligence?.metrics ?? {}),
+      segments: intelligence?.metrics.segments ?? areaSelection?.segments ?? [],
+      calculationVersion: intelligence?.metrics.calculationVersion ?? "order-area-v2-multi-segment",
+    };
+    const requiresManualReview = Boolean(intelligence?.needsManualReview);
+    let distributionAreaId = areaSelection ? null : data.distributionAreaId ?? null;
 
     if (!distributionAreaId) {
       const area = await createDistributionArea({
@@ -73,18 +107,18 @@ export async function POST(request: NextRequest) {
         customerId: customer.id,
         tenantId: session.tenantId,
         name: data.targetAreaName,
-        type: data.areaType ?? (data.targetAreaGeoJson ? "POLYGON" : "POSTAL_CODE"),
-        city: data.city,
-        postalCode: data.postalCode,
+        type: data.areaType ?? (targetAreaGeoJson ? "POLYGON" : "POSTAL_CODE"),
+        city: orderCity,
+        postalCode: orderPostalCode,
         district: data.areaType === "DISTRICT" ? data.targetAreaName : null,
         centerLat: data.centerLat,
         centerLng: data.centerLng,
         radiusMeters: data.radiusMeters,
-        geoJson: data.targetAreaGeoJson,
-        coverageAreaSqm: data.coverageAreaSqm,
-        estimatedHouseholds: data.estimatedHouseholds,
+        geoJson: targetAreaGeoJson,
+        coverageAreaSqm: serverCoverageAreaSqm,
+        estimatedHouseholds: serverHouseholds,
         estimatedFlyers: data.estimatedFlyers ?? data.flyerQuantity,
-        estimatedDistanceMeters: data.estimatedDistanceMeters,
+        estimatedDistanceMeters: serverDistanceMeters,
         reusable: false,
       });
       distributionAreaId = area.id;
@@ -94,7 +128,9 @@ export async function POST(request: NextRequest) {
       serviceType: data.serviceType,
       flyerQuantity: data.flyerQuantity,
     });
-    const status = data.completionPath === "direct_payment" ? "PAYMENT_PENDING" : "SUBMITTED";
+    const status: OrderStatus = data.completionPath === "direct_payment"
+      ? requiresManualReview ? "UNDER_REVIEW" : "PAYMENT_PENDING"
+      : "SUBMITTED";
     const customerNotePrefix = data.completionPath === "direct_payment"
       ? "Direkt online buchen und bezahlen."
       : data.completionPath === "document_email"
@@ -109,29 +145,29 @@ export async function POST(request: NextRequest) {
     let order: Awaited<ReturnType<typeof prisma.order.create>> | null = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
-        order = await prisma.order.create({
+        order = await prisma.$transaction(async (tx) => tx.order.create({
           data: {
             orderNumber: await generateOrderNumber(),
             customerId: customer.id,
             tenantId: session.tenantId,
             status,
             serviceType: data.serviceType,
-            city: data.city,
-            postalCode: data.postalCode,
+            city: orderCity,
+            postalCode: orderPostalCode,
             targetAddress: {
               street: data.street ?? data.targetAreaName,
               houseNumber: data.houseNumber || null,
-              postalCode: data.postalCode,
-              city: data.city,
+              postalCode: orderPostalCode,
+              city: orderCity,
               country: "DE",
             },
             distributionAreaId,
             targetAreaName: data.targetAreaName,
-            targetAreaGeoJson: data.targetAreaGeoJson ?? undefined,
-            estimatedHouseholds: data.estimatedHouseholds || null,
+            targetAreaGeoJson: targetAreaGeoJson ?? undefined,
+            estimatedHouseholds: serverHouseholds || null,
             estimatedFlyers: data.estimatedFlyers ?? data.flyerQuantity,
-            estimatedDistanceMeters: data.estimatedDistanceMeters ?? null,
-            coverageAreaSqm: data.coverageAreaSqm ? new Prisma.Decimal(data.coverageAreaSqm) : null,
+            estimatedDistanceMeters: serverDistanceMeters ?? null,
+            coverageAreaSqm: serverCoverageAreaSqm ? new Prisma.Decimal(serverCoverageAreaSqm) : null,
             flyerQuantity: data.flyerQuantity,
             customerOwnFlyers: data.flyerSource === "CUSTOMER_OWN",
             needsPrintService: data.flyerSource === "PRINT_SERVICE",
@@ -146,7 +182,7 @@ export async function POST(request: NextRequest) {
             calculatedGrossPrice: price.gross,
             priceRuleSnapshot: withCurrentPricingSnapshot({
               price,
-              areaCalculationSnapshot: data.areaCalculationSnapshot,
+              areaCalculationSnapshot: serverAreaSnapshot,
               snapshot: {
               ...price.snapshot,
               completionPath: data.completionPath,
@@ -156,11 +192,43 @@ export async function POST(request: NextRequest) {
                 : "Geschätzter Preis",
               reviewNotice: "Gebiet, Druckdaten und Zustellbarkeit werden durch FLYERO final geprüft.",
               includedProofs: ["GPS-Nachweis", "Foto-Dokumentation", "PDF-Bericht nach Abschluss"],
-              areaCalculationSnapshot: data.areaCalculationSnapshot ?? null,
+              areaCalculationSnapshot: serverAreaSnapshot,
               },
             }),
+            distributionSegments: areaSelection ? {
+              create: areaSelection.segments.map((segment, index) => {
+                const intelligenceSegment = intelligence?.metrics.segments?.[index];
+                const warehouseMatch = intelligence?.warehouseMatches?.[index];
+                return {
+                  sortOrder: segment.sortOrder,
+                  name: segment.name,
+                  city: segment.city,
+                  postalCode: segment.postalCode,
+                  district: segment.district,
+                  country: segment.country,
+                  geometryGeoJson: segment.geometryGeoJson as Prisma.InputJsonValue,
+                  centerLat: segment.centerLat,
+                  centerLng: segment.centerLng,
+                  areaSqm: new Prisma.Decimal(segment.areaSqm),
+                  estimatedHouseholds: intelligenceSegment?.households ?? null,
+                  flyerQuantity: segment.flyerQuantity,
+                  dataSource: intelligenceSegment?.householdCountSource ?? null,
+                  dataSourceType: "ESTIMATED",
+                  confidence: intelligenceSegment?.confidence === "high"
+                    ? new Prisma.Decimal("1")
+                    : intelligenceSegment?.confidence === "medium"
+                      ? new Prisma.Decimal("0.6")
+                      : new Prisma.Decimal("0.3"),
+                  warehouseMatchStatus: warehouseMatch?.matchedRegion ? "MATCHED" : "MANUAL_REVIEW",
+                  warehouseAssignmentReason: warehouseMatch?.reason ?? null,
+                  assignedWarehouseId: warehouseMatch?.matchedRegion ? warehouseMatch.warehouse?.id ?? null : null,
+                  distributionAreaId: intelligence ? intelligenceSegment?.distributionAreaId ?? null : segment.distributionAreaId,
+                  notes: segment.notes,
+                };
+              }),
+            } : undefined,
           },
-        });
+        }));
         break;
       } catch (error) {
         const target = error instanceof Prisma.PrismaClientKnownRequestError ? error.meta?.target : null;
@@ -204,16 +272,20 @@ export async function POST(request: NextRequest) {
         userId: session.id,
       });
     }
-    await assignWarehouseForOrder({
-      orderId: order.id,
-      userId: session.id,
-      reserveCapacity: false,
-    });
+    if (!requiresManualReview) {
+      await assignWarehouseForOrder({
+        orderId: order.id,
+        userId: session.id,
+        reserveCapacity: false,
+      });
+    }
     await createNotification({
       userId: session.id,
       type: "ORDER_CREATED",
       title: "Auftrag erstellt",
-      message: data.completionPath === "direct_payment"
+      message: requiresManualReview
+        ? `Auftrag ${order.orderNumber} wurde erstellt. Das Gebiet wird vor der Buchung manuell geprüft.`
+        : data.completionPath === "direct_payment"
         ? `Auftrag ${order.orderNumber} wurde erstellt. Bitte starte jetzt die Zahlung.`
         : `Anfrage ${order.orderNumber} wurde übermittelt. Wir prüfen Gebiet, Druckdaten und Preis.`,
     });
@@ -227,7 +299,7 @@ export async function POST(request: NextRequest) {
         city: order.city,
         postalCode: order.postalCode,
         areaName: order.targetAreaName,
-        areaType: data.areaType ?? (data.targetAreaGeoJson ? "POLYGON" : "POSTAL_CODE"),
+        areaType: data.areaType ?? (targetAreaGeoJson ? "POLYGON" : "POSTAL_CODE"),
         usedSavedArea: Boolean(data.distributionAreaId),
         households: order.estimatedHouseholds,
         flyerQuantity: order.flyerQuantity,
@@ -242,6 +314,8 @@ export async function POST(request: NextRequest) {
           printDataStatus: data.printDataStatus,
           needsPrintService: order.needsPrintService,
           assignedWarehouseId: order.assignedWarehouseId,
+          segmentCount: areaSelection?.segments.length ?? 0,
+          needsManualReview: requiresManualReview,
         },
       },
     });
@@ -252,7 +326,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return Response.json({ ok: true, data: order }, { status: 201 });
+    return Response.json({
+      ok: true,
+      data: {
+        ...order,
+        requiresManualReview,
+      },
+    }, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       return errorResponse("Auftrag konnte nicht gespeichert werden.", 400);

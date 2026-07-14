@@ -26,6 +26,9 @@ export async function GET(_request: Request, context: RouteContext) {
             history: { orderBy: { createdAt: "desc" }, take: 10 },
           },
         },
+        distributionSegments: {
+          orderBy: { sortOrder: "asc" },
+        },
       },
     });
 
@@ -39,6 +42,7 @@ export async function GET(_request: Request, context: RouteContext) {
         orderId: order.id,
         orderNumber: order.orderNumber,
         area: order.distributionArea,
+        segments: order.distributionSegments,
         targetAreaGeoJson: order.targetAreaGeoJson,
         estimatedHouseholds: order.estimatedHouseholds,
         estimatedFlyers: order.estimatedFlyers,

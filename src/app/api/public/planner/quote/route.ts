@@ -15,6 +15,15 @@ const quoteInputSchema = z.object({
   perimeterMeters: z.union([z.string(), z.number()]).optional(),
   flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]).optional(),
   printDataStatus: z.enum(["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"]).optional(),
+  segments: z.preprocess((value) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value !== "string" || !value.trim()) return undefined;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return undefined;
+    }
+  }, z.array(z.record(z.string(), z.unknown())).max(50).optional()),
 });
 
 type QuoteInput = z.infer<typeof quoteInputSchema>;
@@ -39,6 +48,7 @@ function safeQueryInput(request: Request) {
     perimeterMeters: params.get("perimeterMeters") ?? undefined,
     flyerSource: params.get("flyerSource") ?? undefined,
     printDataStatus: params.get("printDataStatus") ?? undefined,
+    segments: params.get("segments") ?? undefined,
   };
 }
 
@@ -61,6 +71,7 @@ async function createPublicQuote(input: unknown) {
     coverageAreaSqm,
     distanceMeters: Math.round(boundedNumber(value.distanceMeters, 10_000_000) ?? 0) || null,
     perimeterMeters: Math.round(boundedNumber(value.perimeterMeters, 10_000_000) ?? 0) || null,
+    segments: value.segments,
     includeOperationalData: false,
     publicOnly: true,
   });
@@ -86,6 +97,9 @@ async function createPublicQuote(input: unknown) {
     calculationVersion: safeData.metrics.calculationVersion,
     householdCountSource: safeData.metrics.householdCountSource,
     pricingVersion: safeData.metrics.pricingVersion,
+    segments: safeData.metrics.segments,
+    needsManualReview: safeData.metrics.needsManualReview,
+    warehouseMatches: safeData.metrics.warehouseMatches,
     areaReference: areaReference
       ? {
           name: areaReference.name,

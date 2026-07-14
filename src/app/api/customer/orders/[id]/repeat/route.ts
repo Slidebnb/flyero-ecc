@@ -27,6 +27,9 @@ export async function GET(_request: Request, context: RouteContext) {
         contactPerson: true,
         contactPhone: true,
         notes: true,
+        distributionSegments: {
+          orderBy: { sortOrder: "asc" },
+        },
       },
     });
     if (!order) return errorResponse("Kampagne wurde nicht gefunden.", 404);
@@ -43,6 +46,19 @@ export async function GET(_request: Request, context: RouteContext) {
           targetAreaName: order.targetAreaName,
           center: order.targetLat && order.targetLng ? { lat: Number(order.targetLat), lng: Number(order.targetLng) } : null,
           targetAreaGeoJson: order.targetAreaGeoJson,
+          areaSegments: order.distributionSegments.map((segment) => ({
+            name: segment.name,
+            city: segment.city,
+            postalCode: segment.postalCode,
+            district: segment.district,
+            country: segment.country,
+            geometryGeoJson: segment.geometryGeoJson,
+            distributionAreaId: segment.distributionAreaId,
+            centerLat: segment.centerLat ? Number(segment.centerLat) : null,
+            centerLng: segment.centerLng ? Number(segment.centerLng) : null,
+            flyerQuantity: segment.flyerQuantity,
+            notes: segment.notes,
+          })),
           flyerQuantity: order.flyerQuantity,
           flyerQuantityTouched: true,
           flyerSource: order.customerOwnFlyers ? "CUSTOMER_OWN" : "PRINT_SERVICE",
