@@ -10,6 +10,7 @@ import {
   ReceiptText,
   UserCircle,
 } from "lucide-react";
+import { MobileMenu } from "@/app/components/MobileMenu";
 
 type CustomerPortalShellProps = {
   title: string;
@@ -67,6 +68,10 @@ export function CustomerPortalShell({
             Profil
           </Link>
         </div>
+        <MobileMenu
+          items={navItems.map(({ href, label }) => ({ href, label }))}
+          showLogout
+        />
       </header>
       <div className="customerUnifiedBody">
         <aside className="orderSideNav customerSideNav" aria-label="Kundennavigation">

@@ -29,14 +29,14 @@
   text-decoration: none;
 }
 
-.mkNavbar nav {
+.mkNavbar > .mkDesktopNav {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.mkNavbar nav a {
+.mkNavbar > .mkDesktopNav a {
   min-height: 42px;
   display: inline-flex;
   align-items: center;
@@ -49,7 +49,7 @@
   letter-spacing: 0;
 }
 
-.mkNavbar nav a:not(.mkNavCta):hover,
+.mkNavbar > .mkDesktopNav a:not(.mkNavCta):hover,
 .mkNavLogin {
   background: rgba(15, 23, 42, 0.05);
 }
@@ -1442,13 +1442,13 @@
     padding: 16px 0;
   }
 
-  .mkNavbar nav {
+  .mkNavbar > .mkDesktopNav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
   }
 
-  .mkNavbar nav a {
+  .mkNavbar > .mkDesktopNav a {
     min-height: 42px;
     padding: 0 10px;
     font-size: 0.82rem;
@@ -1660,5 +1660,176 @@
 @media (prefers-reduced-motion: reduce) {
   .mkFlyingFlyer {
     animation: none;
+  }
+}
+
+/* Mobile navigation and narrow-screen finishing pass. */
+.flyeroMobileMenu {
+  position: relative;
+  z-index: 70;
+}
+
+.flyeroMobileMenuButton {
+  width: 44px;
+  height: 44px;
+  display: none;
+  place-items: center;
+  border: 1px solid var(--flyero-border);
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--flyero-text);
+  cursor: pointer;
+}
+
+.flyeroMobileMenuButton svg {
+  width: 20px;
+  height: 20px;
+}
+
+.flyeroMobileMenuBackdrop {
+  position: fixed;
+  z-index: 68;
+  inset: 0;
+  border: 0;
+  background: rgba(5, 8, 10, 0.42);
+  cursor: pointer;
+}
+
+.flyeroMobileMenuPanel {
+  position: fixed;
+  z-index: 69;
+  top: 76px;
+  right: 16px;
+  left: 16px;
+  max-height: calc(100svh - 92px);
+  overflow: auto;
+  border: 1px solid var(--flyero-border);
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(5, 8, 10, 0.22);
+  padding: 10px;
+}
+
+.flyeroMobileMenuPanel nav {
+  display: grid;
+  gap: 4px;
+}
+
+.flyeroMobileMenuPanel a,
+.flyeroMobileMenuPanel form button {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--flyero-text);
+  padding: 0 14px;
+  font-size: 0.98rem;
+  font-weight: 850;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.flyeroMobileMenuPanel a:hover,
+.flyeroMobileMenuPanel form button:hover {
+  background: var(--flyero-green-soft);
+}
+
+.flyeroMobileMenuPanel .flyeroMobileMenuCta {
+  justify-content: center;
+  margin-top: 6px;
+  background: var(--flyero-green);
+  text-align: center;
+}
+
+.flyeroMobileMenuPanel form {
+  margin: 0;
+}
+
+@media (max-width: 820px) {
+  .mkNavbar {
+    display: flex;
+    align-items: center;
+    min-height: 76px;
+  }
+
+  .mkDesktopNav {
+    display: none !important;
+  }
+
+  .mkNavbar > .flyeroMobileMenu {
+    margin-left: auto;
+  }
+
+  .mkNavbar > .flyeroMobileMenu .flyeroMobileMenuButton {
+    display: grid;
+  }
+
+  .mkLogo {
+    font-size: 1.3rem;
+  }
+
+  .mkLogoMark {
+    width: 27px;
+  }
+
+  .mkLogoMark i:nth-child(1) {
+    width: 27px;
+  }
+
+  .mkLogoMark i:nth-child(2) {
+    width: 21px;
+  }
+
+  .mkLogoMark i:nth-child(3) {
+    width: 14px;
+  }
+
+  .mkHeroActions {
+    display: grid;
+    gap: 10px;
+  }
+
+  .mkHeroVisual,
+  .mkProofMockup {
+    max-width: 100%;
+  }
+
+  .mkProofMockup {
+    min-height: 360px;
+  }
+
+  .mkProofReport p {
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 460px) {
+  .mkContainer,
+  .mkNavbar,
+  .mkFooter {
+    width: min(calc(100% - 28px), var(--flyero-container));
+  }
+
+  .mkHero h1,
+  .mkRequestHero h1 {
+    font-size: clamp(2.7rem, 14vw, 3.7rem);
+  }
+
+  .mkPlannerSearch,
+  .mkHeroActions,
+  .mkTrustRow {
+    max-width: none;
+  }
+
+  .mkProofBrand {
+    top: 20px;
+  }
+
+  .mkProofBrand > span {
+    font-size: 0.62rem;
   }
 }

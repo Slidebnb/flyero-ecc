@@ -1,6 +1,7 @@
 import { SmartOrderWizard } from "@/app/customer/orders/new/SmartOrderWizard";
 import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
+import { MobileMenu } from "@/app/components/MobileMenu";
 
 export default async function NewCustomerOrderPage() {
   const session = await requireTenantSession();
@@ -44,6 +45,17 @@ export default async function NewCustomerOrderPage() {
         <div className="orderTopActions" aria-label="Kontoaktionen">
           <strong>Kundenkonto</strong>
         </div>
+        <MobileMenu
+          items={[
+            { label: "Übersicht", href: "/customer/dashboard" },
+            { label: "Kampagnen", href: "/customer/orders" },
+            { label: "Nachweise", href: "/customer/reports" },
+            { label: "Rechnungen", href: "/customer/invoices" },
+            { label: "Hilfe", href: "/customer/support" },
+          ]}
+          cta={{ label: "Neue Verteilung", href: "/customer/orders/new" }}
+          showLogout
+        />
       </header>
       <SmartOrderWizard areas={areaOptions} today={today} />
     </main>

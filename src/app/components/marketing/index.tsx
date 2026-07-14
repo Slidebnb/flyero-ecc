@@ -22,6 +22,7 @@ import {
   UploadCloud,
   Utensils,
 } from "lucide-react";
+import { MobileMenu } from "@/app/components/MobileMenu";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "dark" | "coral";
 
@@ -63,7 +64,7 @@ export function PublicNavbar() {
       <Link href="/" aria-label="FLYERO Startseite">
         <FlyeroLogo />
       </Link>
-      <nav aria-label="Hauptnavigation">
+      <nav className="mkDesktopNav" aria-label="Hauptnavigation">
         {navItems.map(([label, href]) => (
           <Link key={href} href={href}>
             {label}
@@ -77,6 +78,10 @@ export function PublicNavbar() {
           <ArrowRight aria-hidden="true" />
         </Link>
       </nav>
+      <MobileMenu
+        items={navItems.map(([label, href]) => ({ label, href }))}
+        cta={{ label: "Verteilung anfragen", href: "/verteilung-anfragen" }}
+      />
     </header>
   );
 }

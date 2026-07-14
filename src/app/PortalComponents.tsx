@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FlyeroLogo } from "@/app/marketing";
+import { MobileMenu } from "@/app/components/MobileMenu";
 
 type PortalNavItem = {
   href: string;
@@ -38,6 +39,10 @@ export function PortalShell({
         <PortalNav items={navItems} />
       </aside>
       <section className="portalMain">
+        <div className="portalMobileTopbar">
+          <FlyeroLogo dark />
+          <MobileMenu items={navItems} showLogout />
+        </div>
         <PortalHeader eyebrow={eyebrow} title={title} description={description} />
         <div className="portalContent">{children}</div>
       </section>
@@ -70,7 +75,7 @@ export function PortalHeader({
 
 export function PortalNav({ items }: { items: PortalNavItem[] }) {
   return (
-    <nav className="portalNav" aria-label="Portal Navigation">
+    <nav className="portalNav portalDesktopNav" aria-label="Portal Navigation">
       {items.map((item) => (
         <Link href={item.href} key={item.href}>
           {item.label}

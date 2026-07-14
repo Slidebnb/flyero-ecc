@@ -1,5 +1,6 @@
 import { SmartOrderWizard } from "@/app/customer/orders/new/SmartOrderWizard";
 import { createSeoMetadata } from "@/app/seo";
+import { MobileMenu } from "@/app/components/MobileMenu";
 
 export const metadata = createSeoMetadata({
   title: "Flyerverteilung planen und Preis prüfen",
@@ -19,6 +20,14 @@ export default function PublicDistributionPlannerPage() {
           <a href="/verteilung-anfragen">Anfrage senden</a>
           <a href="/login?next=%2Fcustomer%2Forders%2Fnew">Einloggen</a>
         </div>
+        <MobileMenu
+          items={[
+            { label: "FLYERO Start", href: "/" },
+            { label: "Preise", href: "/preise" },
+            { label: "Anfrage senden", href: "/verteilung-anfragen" },
+          ]}
+          cta={{ label: "Einloggen", href: "/login?next=%2Fcustomer%2Forders%2Fnew" }}
+        />
       </header>
       <SmartOrderWizard areas={[]} today={new Date().toISOString().slice(0, 10)} mode="public_quote" />
     </main>
