@@ -210,6 +210,14 @@ type GoogleMap = {
   setZoom: (zoom: number) => void;
   fitBounds: (bounds: unknown) => void;
   setMapTypeId: (mapTypeId: "roadmap" | "satellite") => void;
+  getFeatureLayer?: (featureType: string) => GoogleFeatureLayer;
+};
+type GoogleFeature = { placeId?: string };
+type GoogleFeatureMouseEvent = { features?: GoogleFeature[] };
+type GoogleFeatureLayer = {
+  isAvailable?: boolean;
+  style: unknown;
+  addListener?: (eventName: string, callback: (event: GoogleFeatureMouseEvent) => void) => GoogleEventListener | void;
 };
 type GooglePolygon = {
   setMap: (map: GoogleMap | null) => void;
@@ -228,6 +236,7 @@ type GoogleNamespace = {
     Polygon: new (options: Record<string, unknown>) => GooglePolygon;
     LatLngBounds: new () => { extend: (point: LatLng) => void };
     event: { addListener: (target: unknown, eventName: string, callback: (event?: unknown) => void) => GoogleEventListener | void };
+    FeatureType?: { POSTAL_CODE?: string; LOCALITY?: string };
     drawing?: {
       OverlayType: { POLYGON: string };
       DrawingManager: new (options: Record<string, unknown>) => GoogleDrawingManager;
@@ -453,6 +462,20 @@ function deliverabilityLabel(score?: number | null) {
   return "Gebiet wird vorab geprüft";
 }
 
+function boundaryLayerStyle(selectedPlaceIds: string[]) {
+  return (options: { feature?: GoogleFeature }) => {
+    const placeId = options.feature?.placeId ?? "";
+    const selected = selectedPlaceIds.includes(placeId);
+    return {
+      strokeColor: selected ? "#a7ff00" : "#87a4c2",
+      strokeOpacity: selected ? 1 : 0.85,
+      strokeWeight: selected ? 3 : 1,
+      fillColor: selected ? "#a7ff00" : "#52708f",
+      fillOpacity: selected ? 0.28 : 0.1,
+    };
+  };
+}
+
 function loadGoogleMaps() {
   const browserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   if (!browserKey || typeof window === "undefined") return Promise.resolve(false);
@@ -524,6 +547,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const drawingManagerListenerRef = useRef<GoogleEventListener | null>(null);
   const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
   const drawingManagerRef = useRef<GoogleDrawingManager | null>(null);
+  const boundaryLayerRefs = useRef(new Map<string, GoogleFeatureLayer>());
+  const boundaryLayerListenersRef = useRef<GoogleEventListener[]>([]);
+  const boundaryIdleListenerRef = useRef<GoogleEventListener | null>(null);
+  const selectedBoundaryPlaceIdsRef = useRef<string[]>([]);
+  const areaSegmentsRef = useRef<OrderAreaSegmentDraft[]>([]);
+  const selectBoundaryAreaRef = useRef<(placeId: string) => void>(() => undefined);
   const overviewDragRef = useRef<OverviewDragState | null>(null);
   const initialSearchRef = useRef<string | null>(null);
   const trackedPublicStepsRef = useRef(new Set<number>());
@@ -571,6 +600,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [contactPhone, setContactPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [mapMode, setMapMode] = useState<"map" | "satellite">("map");
+  const [areaSelectionMode, setAreaSelectionMode] = useState<"boundary" | "draw">("boundary");
+  const [selectedBoundaryPlaceIds, setSelectedBoundaryPlaceIds] = useState<string[]>([]);
   const [mapNotice, setMapNotice] = useState("");
   const [usedAutocomplete, setUsedAutocomplete] = useState(false);
   const [clickCount, setClickCount] = useState(0);
@@ -581,6 +612,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [isFinishing, setIsFinishing] = useState(false);
   const [overviewOffset, setOverviewOffset] = useState({ x: 0, y: 0 });
   const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
+  const mapsBoundaryMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "";
+  const mapsBoundaryConfigured = Boolean(mapsBoundaryMapId);
+
+  useEffect(() => {
+    areaSegmentsRef.current = areaSegments;
+  }, [areaSegments]);
+
+  useEffect(() => {
+    selectedBoundaryPlaceIdsRef.current = selectedBoundaryPlaceIds;
+  }, [selectedBoundaryPlaceIds]);
 
   const areaSegmentsPayload = useMemo(() => {
     const currentSegments = areaSegments.map((segment) => ({ ...segment, points: [...segment.points] }));
@@ -762,6 +803,59 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       .sort((a, b) => b.score - a.score);
     return scored[0] ?? null;
   }, [areas]);
+
+  const selectBoundaryArea = useCallback((placeId: string) => {
+    const area = areas.find((candidate) => candidate.googlePlaceId === placeId);
+    if (!area) {
+      setMapNotice("Dieses Gebiet ist noch nicht als FLYERO-Gebiet hinterlegt. Du kannst es zeichnen oder als Anfrage zur Prüfung senden.");
+      return;
+    }
+    const points = featurePoints(area.geoJson);
+    if (points.length < 3) {
+      setMapNotice("Für dieses Gebiet liegt noch keine geprüfte Flächenkarte vor. FLYERO prüft es gerne manuell für dich.");
+      return;
+    }
+
+    const currentSegments = areaSegmentsRef.current;
+    const existingSegment = currentSegments.find((segment) => segment.distributionAreaId === area.id);
+    const replaceDefault = !existingSegment && currentSegments.length === 1 && currentSegments[0]?.id === "segment-default";
+    const segmentId = existingSegment?.id ?? (replaceDefault ? "segment-default" : `segment-boundary-${Date.now()}`);
+    const nextSegment: OrderAreaSegmentDraft = {
+      id: segmentId,
+      name: area.name,
+      city: area.city ?? "",
+      postalCode: area.postalCode ?? "",
+      district: area.district ?? "",
+      country: "DE",
+      points,
+      polygonSource: "saved_area",
+      distributionAreaId: area.id,
+    };
+    const nextSegments = existingSegment
+      ? currentSegments.map((segment) => segment.id === existingSegment.id ? { ...segment, ...nextSegment } : segment)
+      : replaceDefault
+        ? [nextSegment]
+        : [...currentSegments, nextSegment];
+
+    areaSegmentsRef.current = nextSegments;
+    setAreaSegments(nextSegments);
+    setActiveSegmentId(segmentId);
+    setSelectedAreaId(area.id);
+    setPolygon(points);
+    setPolygonSource("saved_area");
+    setCity(area.city ?? "");
+    setPostalCode(area.postalCode ?? "");
+    setTargetAreaName(area.name);
+    setQuery([area.postalCode, area.city].filter(Boolean).join(" "));
+    if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
+    setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
+    setAreaSelectionMode("boundary");
+    setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
+  }, [areas]);
+
+  useEffect(() => {
+    selectBoundaryAreaRef.current = selectBoundaryArea;
+  }, [selectBoundaryArea]);
 
   const pushPolygon = useCallback((next: LatLng[], source: PolygonSource = "drawn") => {
     setPolygon(next);
@@ -1288,18 +1382,24 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     };
     if (!mapRef.current) {
       try {
-        mapRef.current = new maps.Map(mapElementRef.current, {
+        const mapOptions: Record<string, unknown> = {
           center,
           zoom: 14,
           disableDefaultUI: true,
           mapTypeId: mapMode === "satellite" ? "satellite" : "roadmap",
-          styles: mapMode === "map" ? [
+        };
+        if (mapsBoundaryMapId) mapOptions.mapId = mapsBoundaryMapId;
+        if (!mapsBoundaryMapId && mapMode === "map") {
+          mapOptions.styles = [
             { elementType: "geometry", stylers: [{ color: "#182638" }] },
             { elementType: "labels.text.fill", stylers: [{ color: "#b8c7d9" }] },
             { elementType: "labels.text.stroke", stylers: [{ color: "#0a1018" }] },
             { featureType: "road", elementType: "geometry", stylers: [{ color: "#26384d" }] },
             { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c213a" }] },
-          ] : undefined,
+          ];
+        }
+        mapRef.current = new maps.Map(mapElementRef.current, {
+          ...mapOptions,
         });
       } catch {
         return () => {
@@ -1400,9 +1500,55 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     return () => {
       isActive = false;
     };
-  }, [activeSegmentId, center, city, mapMode, mapsReady, polygon, postalCode, targetAreaName]);
+  }, [activeSegmentId, center, city, mapMode, mapsBoundaryMapId, mapsReady, polygon, postalCode, targetAreaName]);
 
   useEffect(() => {
+    if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps?.FeatureType) return;
+    const maps = window.google.maps;
+    const installBoundaryLayers = () => {
+      if (!mapRef.current?.getFeatureLayer) return;
+      const featureTypes = [
+        maps.FeatureType?.POSTAL_CODE ?? "POSTAL_CODE",
+        maps.FeatureType?.LOCALITY ?? "LOCALITY",
+      ];
+      for (const featureType of featureTypes) {
+        if (boundaryLayerRefs.current.has(featureType)) continue;
+        let layer: GoogleFeatureLayer;
+        try {
+          layer = mapRef.current.getFeatureLayer(featureType);
+        } catch {
+          continue;
+        }
+        if (!layer || layer.isAvailable === false) continue;
+        layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current);
+        boundaryLayerRefs.current.set(featureType, layer);
+        const listener = layer.addListener?.("click", (event) => {
+          const placeId = event.features?.[0]?.placeId;
+          if (placeId) selectBoundaryAreaRef.current(placeId);
+        });
+        if (listener) boundaryLayerListenersRef.current.push(listener);
+      }
+    };
+
+    installBoundaryLayers();
+    if (!boundaryIdleListenerRef.current) {
+      const idleListener = maps.event.addListener(mapRef.current, "idle", installBoundaryLayers);
+      if (idleListener) {
+        boundaryIdleListenerRef.current = idleListener;
+        boundaryLayerListenersRef.current.push(idleListener);
+      }
+    }
+  }, [mapsBoundaryConfigured, mapsReady]);
+
+  useEffect(() => {
+    for (const layer of boundaryLayerRefs.current.values()) {
+      layer.style = boundaryLayerStyle(selectedBoundaryPlaceIds);
+    }
+  }, [selectedBoundaryPlaceIds]);
+
+  useEffect(() => {
+    const boundaryLayerRefsAtMount = boundaryLayerRefs.current;
+    const boundaryLayerListenersAtMount = boundaryLayerListenersRef.current;
     return () => {
       for (const handle of polygonListenerHandlesRef.current) {
         try {
@@ -1418,6 +1564,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         // Google may already have disposed the drawing manager.
       }
       drawingManagerListenerRef.current = null;
+      for (const handle of boundaryLayerListenersAtMount) {
+        try {
+          handle.remove?.();
+        } catch {
+          // Google may already have disposed the feature layer during navigation.
+        }
+      }
+      boundaryLayerListenersAtMount.length = 0;
+      boundaryLayerRefsAtMount.clear();
+      boundaryIdleListenerRef.current = null;
     };
   }, []);
 
@@ -1514,6 +1670,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   }
 
   function startDrawingArea() {
+    setAreaSelectionMode("draw");
     const drawing = window.google?.maps.drawing;
     if (!mapsReady || !drawingManagerRef.current || !drawing) {
       setMapNotice(
@@ -1774,9 +1931,28 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
               ))}
             </div>
           ) : null}
-          <div className="modeTabs">
-            <button type="button" className="selected" onClick={startDrawingArea}>Gebiet auf Karte zeichnen</button>
+          <div className="modeTabs areaSelectionTabs">
+            <button
+              type="button"
+              className={areaSelectionMode === "boundary" && mapsBoundaryConfigured ? "selected" : ""}
+              disabled={!mapsBoundaryConfigured}
+              onClick={() => {
+                setAreaSelectionMode("boundary");
+                drawingManagerRef.current?.setDrawingMode(null);
+                setMapNotice("Klicke auf eine markierte PLZ- oder Stadtfläche, um sie auszuwählen.");
+              }}
+            >
+              Gebiet auswählen
+            </button>
+            <button type="button" className={areaSelectionMode === "draw" || !mapsBoundaryConfigured ? "selected" : ""} onClick={startDrawingArea}>
+              Eigenes Gebiet zeichnen
+            </button>
           </div>
+          <small className="orderSegmentHint">
+            {mapsBoundaryConfigured
+              ? "Wähle eine markierte PLZ- oder Stadtfläche oder zeichne dein Gebiet selbst."
+              : "Du kannst dein Gebiet direkt zeichnen. Die Auswahl fertiger PLZ- und Stadtflächen wird nach der Kartenfreigabe aktiviert."}
+          </small>
           <div className="savedAreaMini">
             <div>
               <span>Dein Verteilgebiet</span>

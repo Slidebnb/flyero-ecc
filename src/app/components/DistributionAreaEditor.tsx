@@ -11,6 +11,8 @@ export type ReusableAreaOption = {
   city?: string | null;
   postalCode?: string | null;
   district?: string | null;
+  googlePlaceId?: string | null;
+  googleFeatureType?: string | null;
   estimatedHouseholds?: number | null;
   estimatedFlyers?: number | null;
   estimatedDistanceMeters?: number | null;

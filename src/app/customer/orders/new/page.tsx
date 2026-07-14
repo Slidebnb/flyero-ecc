@@ -20,6 +20,8 @@ export default async function NewCustomerOrderPage() {
       city: true,
       postalCode: true,
       district: true,
+      googlePlaceId: true,
+      googleFeatureType: true,
       estimatedHouseholds: true,
       estimatedFlyers: true,
       estimatedDistanceMeters: true,

@@ -124,6 +124,12 @@ try {
     "overviewDragHandle",
     "onPointerMove={moveOverviewDrag}",
     "Aktualisiert sich, sobald du das Gebiet",
+    "NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID",
+    "getFeatureLayer",
+    "POSTAL_CODE",
+    "LOCALITY",
+    "Gebiet ausw\u00e4hlen",
+    "Eigenes Gebiet zeichnen",
   ]);
   assert(!wizard.includes("Math.random"), "Wizard darf keine Zufallswerte fuer Gebietsuebersicht nutzen.");
   for (const forbidden of ["8.414", "8414", "1.249,50", "1249.50", "FeatureCollection</", "GeoJSON</"]) {

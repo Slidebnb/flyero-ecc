@@ -53,6 +53,8 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
     city: area.city,
     postalCode: area.postalCode,
     district: area.district,
+    googlePlaceId: area.googlePlaceId,
+    googleFeatureType: area.googleFeatureType,
     estimatedHouseholds: area.estimatedHouseholds,
     estimatedFlyers: area.estimatedFlyers,
     estimatedDistanceMeters: area.estimatedDistanceMeters,
@@ -110,6 +112,18 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
               {Object.entries(AREA_SOURCE_TYPE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
+            </select>
+          </label>
+          <label>
+            Google Place-ID
+            <input name="googlePlaceId" placeholder="z. B. ChIJ..." />
+          </label>
+          <label>
+            Google-Gebietstyp
+            <select name="googleFeatureType" defaultValue="POSTAL_CODE">
+              <option value="POSTAL_CODE">PLZ-Gebiet</option>
+              <option value="LOCALITY">Stadt/Gemeinde</option>
+              <option value="ADMINISTRATIVE_AREA_LEVEL_2">Landkreis</option>
             </select>
           </label>
           <label>
@@ -227,6 +241,18 @@ export default async function AdminAreasPage({ searchParams }: PageProps) {
                   {Object.entries(AREA_SOURCE_TYPE_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
+                </select>
+              </label>
+              <label>
+                Google Place-ID
+                <input name="googlePlaceId" defaultValue={area.googlePlaceId ?? ""} placeholder="z. B. ChIJ..." />
+              </label>
+              <label>
+                Google-Gebietstyp
+                <select name="googleFeatureType" defaultValue={area.googleFeatureType ?? "POSTAL_CODE"}>
+                  <option value="POSTAL_CODE">PLZ-Gebiet</option>
+                  <option value="LOCALITY">Stadt/Gemeinde</option>
+                  <option value="ADMINISTRATIVE_AREA_LEVEL_2">Landkreis</option>
                 </select>
               </label>
               <label>
