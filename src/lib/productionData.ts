@@ -90,6 +90,22 @@ export function productionCreditNoteWhere(): Prisma.CreditNoteWhereInput {
   return { invoice: productionInvoiceWhere() };
 }
 
+export function productionPaymentDisputeWhere(): Prisma.PaymentDisputeWhereInput {
+  if (!isProductionRuntime) return {};
+  return {
+    OR: [
+      { order: productionOrderWhere() },
+      { payment: { order: productionOrderWhere() } },
+      { customer: productionCustomerWhere() },
+    ],
+  };
+}
+
+export function productionRetentionHoldWhere(): Prisma.RetentionHoldWhereInput {
+  if (!isProductionRuntime) return {};
+  return { order: productionOrderWhere() };
+}
+
 export function productionReportWhere(): Prisma.ReportWhereInput {
   if (!isProductionRuntime) return {};
   return { order: productionOrderWhere() };

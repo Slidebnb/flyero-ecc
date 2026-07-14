@@ -2,6 +2,7 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, routeErrorResponse, successResponse } from "@/lib/request";
 import { createAuditLog } from "@/lib/audit";
+import { productionRetentionHoldWhere } from "@/lib/productionData";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -9,7 +10,7 @@ export async function PATCH(_request: Request, context: RouteContext) {
   try {
     const session = await requirePermission(Permission.RETENTION_HOLD_MANAGE);
     const { id } = await context.params;
-    const current = await prisma.retentionHold.findUnique({ where: { id } });
+    const current = await prisma.retentionHold.findFirst({ where: { id, ...productionRetentionHoldWhere() } });
     if (!current) return errorResponse("Aufbewahrungssperre wurde nicht gefunden.", 404);
     if (current.releasedAt) return successResponse(current);
 

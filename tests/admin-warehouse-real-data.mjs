@@ -111,5 +111,11 @@ assert.match(accountingExport, /productionPaymentWhere\(\)/, "Buchhaltungsexport
 assert.match(accountingExport, /productionCreditNoteWhere\(\)/, "Buchhaltungsexporte duerfen keine Seed-Gutschriften einsammeln.");
 assert.match(accountingExport, /archiveExport[\s\S]*productionAccountingExportWhere\(\)/, "Seed-Buchhaltungsexporte duerfen nicht direkt archiviert werden.");
 assert.match(support, /updateTicket[\s\S]*productionSupportTicketWhere\(\)/, "Support-Updates duerfen keine versteckten Seed-Tickets mutieren.");
+assert.match(productionData, /productionPaymentDisputeWhere/, "Zahlungsstreitfaelle brauchen einen Produktionsfilter.");
+assert.match(productionData, /productionRetentionHoldWhere/, "Aufbewahrungssperren brauchen einen Produktionsfilter.");
+assert.match(read("src/app/api/admin/payments/disputes/[id]/route.ts"), /productionPaymentDisputeWhere\(\)/, "Seed-Zahlungsstreitfaelle duerfen nicht direkt mutiert werden.");
+assert.match(read("src/app/api/admin/retention-holds/[id]/route.ts"), /productionRetentionHoldWhere\(\)/, "Seed-Aufbewahrungssperren duerfen nicht direkt mutiert werden.");
+assert.match(read("src/lib/invoices.ts"), /cancelInvoice[\s\S]*productionInvoiceWhere\(\)/, "Seed-Rechnungen duerfen nicht storniert werden.");
+assert.match(read("src/lib/reports.ts"), /approveReport[\s\S]*productionReportWhere\(\)/, "Seed-Berichte duerfen nicht direkt freigegeben werden.");
 
 console.log("Admin warehouse real-data contract passed");

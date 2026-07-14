@@ -4,6 +4,7 @@ import { Permission, requirePermission } from "@/lib/permissions";
 import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 import { createAuditLog } from "@/lib/audit";
+import { productionPaymentDisputeWhere } from "@/lib/productionData";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -18,7 +19,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     const actor = await requirePermission(Permission.PAYMENT_DISPUTE_MANAGE);
     const { id } = await context.params;
     const input = updateSchema.parse(await readBody(request as never));
-    const current = await prisma.paymentDispute.findUnique({ where: { id } });
+    const current = await prisma.paymentDispute.findFirst({ where: { id, ...productionPaymentDisputeWhere() } });
     if (!current) return Response.json({ ok: false, error: "Zahlungsstreitfall wurde nicht gefunden." }, { status: 404 });
     const updated = await prisma.paymentDispute.update({
       where: { id },

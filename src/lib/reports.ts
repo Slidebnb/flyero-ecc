@@ -7,6 +7,7 @@ import { createMapSnapshotPlaceholder } from "@/lib/mapSnapshot";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { analyzeRoute, normalizeRoutePoint, type RouteAnalysis } from "@/lib/routeAnalysis";
+import { productionReportWhere, productionTourWhere } from "@/lib/productionData";
 import { generateSettingsNumber, getBrandingSettings, getCompanySettings } from "@/lib/settings";
 
 type ReportData = Awaited<ReturnType<typeof collectReportData>>;
@@ -203,8 +204,8 @@ function buildReportSnapshot(data: ReportData) {
 }
 
 export async function collectReportData(tourId: string) {
-  const tour = await prisma.distributionTour.findUnique({
-    where: { id: tourId },
+  const tour = await prisma.distributionTour.findFirst({
+    where: { id: tourId, ...productionTourWhere() },
     include: {
       order: {
         include: {
@@ -360,8 +361,8 @@ function buildSimplePdf(lines: string[]) {
 }
 
 export async function generatePdf(reportId: string) {
-  const report = await prisma.report.findUnique({
-    where: { id: reportId },
+  const report = await prisma.report.findFirst({
+    where: { id: reportId, ...productionReportWhere() },
     include: { tour: true },
   });
   if (!report) throw new Error("Report wurde nicht gefunden.");
@@ -409,7 +410,7 @@ export async function createReportForTour(input: {
 }) {
   const data = await collectReportData(input.tourId);
   if (data.tour.status !== "APPROVED") throw new Error("Berichte können nur für freigegebene Touren erzeugt werden.");
-  const existing = await prisma.report.findUnique({ where: { tourId: input.tourId } });
+  const existing = await prisma.report.findFirst({ where: { tourId: input.tourId, ...productionReportWhere() } });
   const now = new Date();
   const snapshot = buildReportSnapshot(data);
   const quantities = flyerQuantitySummary({
@@ -537,13 +538,13 @@ export async function createReportForTour(input: {
 }
 
 export async function regenerateReport(input: { reportId: string; adminUserId: string }) {
-  const report = await prisma.report.findUnique({ where: { id: input.reportId } });
+  const report = await prisma.report.findFirst({ where: { id: input.reportId, ...productionReportWhere() } });
   if (!report) throw new Error("Report wurde nicht gefunden.");
   return createReportForTour({ tourId: report.tourId, adminUserId: input.adminUserId, template: report.template });
 }
 
 export async function approveReport(input: { reportId: string; adminUserId: string }) {
-  const current = await prisma.report.findUnique({ where: { id: input.reportId } });
+  const current = await prisma.report.findFirst({ where: { id: input.reportId, ...productionReportWhere() } });
   if (!current) throw new Error("Report wurde nicht gefunden.");
   if (current.status === "APPROVED" || current.status === "PUBLISHED") return current;
   if (!["READY_FOR_REVIEW", "IN_REVIEW", "CHANGES_REQUIRED"].includes(current.status)) {
@@ -569,7 +570,7 @@ export async function approveReport(input: { reportId: string; adminUserId: stri
   }
   const now = new Date();
   const changed = await prisma.report.updateMany({
-    where: { id: input.reportId, status: { in: ["READY_FOR_REVIEW", "IN_REVIEW", "CHANGES_REQUIRED"] } },
+    where: { id: input.reportId, ...productionReportWhere(), status: { in: ["READY_FOR_REVIEW", "IN_REVIEW", "CHANGES_REQUIRED"] } },
     data: {
       status: "APPROVED",
       internalReviewStatus: "APPROVED",
@@ -579,8 +580,8 @@ export async function approveReport(input: { reportId: string; adminUserId: stri
       approvedAt: now,
     },
   });
-  if (changed.count === 0) return prisma.report.findUniqueOrThrow({ where: { id: input.reportId } });
-  const report = await prisma.report.findUniqueOrThrow({ where: { id: input.reportId } });
+  if (changed.count === 0) return prisma.report.findFirstOrThrow({ where: { id: input.reportId, ...productionReportWhere() } });
+  const report = await prisma.report.findFirstOrThrow({ where: { id: input.reportId, ...productionReportWhere() } });
   await createAuditLog({ userId: input.adminUserId, action: "report.approved", entityType: "Report", entityId: report.id });
   return report;
 }
@@ -593,8 +594,10 @@ function evidenceDocumentIdsFromSnapshot(snapshot: Prisma.JsonValue | null) {
 }
 
 export async function requestReportCorrection(input: { reportId: string; adminUserId: string; message?: string }) {
+  const current = await prisma.report.findFirst({ where: { id: input.reportId, ...productionReportWhere() }, select: { id: true } });
+  if (!current) throw new Error("Report wurde nicht gefunden.");
   const report = await prisma.report.update({
-    where: { id: input.reportId },
+    where: { id: current.id },
     data: {
       status: "CHANGES_REQUIRED",
       internalReviewStatus: "NEEDS_CORRECTION",
@@ -614,8 +617,8 @@ export async function requestReportCorrection(input: { reportId: string; adminUs
 }
 
 export async function publishReport(input: { reportId: string; adminUserId: string }) {
-  const current = await prisma.report.findUnique({
-    where: { id: input.reportId },
+  const current = await prisma.report.findFirst({
+    where: { id: input.reportId, ...productionReportWhere() },
     include: { customer: true, order: true },
   });
   if (!current) throw new Error("Report wurde nicht gefunden.");
@@ -681,8 +684,10 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
 }
 
 export async function archiveReport(input: { reportId: string; adminUserId: string }) {
+  const current = await prisma.report.findFirst({ where: { id: input.reportId, ...productionReportWhere() }, select: { id: true } });
+  if (!current) throw new Error("Report wurde nicht gefunden.");
   const report = await prisma.report.update({
-    where: { id: input.reportId },
+    where: { id: current.id },
     data: { status: "ARCHIVED" },
   });
   await createAuditLog({ userId: input.adminUserId, action: "report.archived", entityType: "Report", entityId: report.id });
@@ -690,8 +695,10 @@ export async function archiveReport(input: { reportId: string; adminUserId: stri
 }
 
 export async function markReportDownloaded(input: { reportId: string; userId?: string | null }) {
+  const current = await prisma.report.findFirst({ where: { id: input.reportId, ...productionReportWhere() }, select: { id: true } });
+  if (!current) throw new Error("Report wurde nicht gefunden.");
   const report = await prisma.report.update({
-    where: { id: input.reportId },
+    where: { id: current.id },
     data: { downloadedAt: new Date() },
   });
   await createAuditLog({ userId: input.userId, action: "report.downloaded", entityType: "Report", entityId: report.id });

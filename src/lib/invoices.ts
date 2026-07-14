@@ -5,6 +5,7 @@ import { formatAddress, formatDate, formatDateTime } from "@/lib/format";
 import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
+import { productionInvoiceWhere } from "@/lib/productionData";
 import { getVatRate } from "@/lib/pricing";
 import { generateSettingsNumber, getBrandingSettings, getCompanySettings, getSystemSettings } from "@/lib/settings";
 
@@ -230,8 +231,10 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
 }
 
 export async function cancelInvoice(input: { invoiceId: string; adminUserId: string; reason?: string | null }) {
+  const current = await prisma.invoice.findFirst({ where: { id: input.invoiceId, ...productionInvoiceWhere() } });
+  if (!current) throw new Error("Rechnung wurde nicht gefunden.");
   const invoice = await prisma.invoice.update({
-    where: { id: input.invoiceId },
+    where: { id: current.id },
     data: { status: "CANCELLED", notes: input.reason ?? "Storno vorbereitet." },
   });
   await createAuditLog({
@@ -245,7 +248,7 @@ export async function cancelInvoice(input: { invoiceId: string; adminUserId: str
 }
 
 export async function prepareCreditNote(input: { invoiceId: string; adminUserId: string; reason: string }) {
-  const invoice = await prisma.invoice.findUnique({ where: { id: input.invoiceId } });
+  const invoice = await prisma.invoice.findFirst({ where: { id: input.invoiceId, ...productionInvoiceWhere() } });
   if (!invoice) throw new Error("Rechnung wurde nicht gefunden.");
   const creditNote = await prisma.creditNote.create({
     data: {
