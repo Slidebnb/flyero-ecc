@@ -62,3 +62,11 @@ löschen. Ein Lager mit Aufträgen, Bestand, Sendungen, Transfers oder Personal
 wird aus Sicherheitsgründen nicht physisch gelöscht; es wird stattdessen
 deaktiviert. Dadurch bleiben historische Nachweise und Buchungsbeziehungen
 intakt.
+
+## Zusaetzliche Seed-Reste
+
+Die Bereinigung umfasst auch Zahlungsereignisse mit `evt_seed_` oder
+`payload.seed=true`, UX-Ereignisse aus `seed.*`, seed-markierte Auditlogs und
+Demo-Lagerregionen. Logeintraege, die auf Demo-Logistikobjekte zeigen, werden
+vor deren Loeschung entfernt. Produktionsanalysen filtern diese UX- und
+Auditdaten zusaetzlich zur eigentlichen Loeschung aus.

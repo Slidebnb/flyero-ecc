@@ -2,6 +2,7 @@ import { AreaDataSourceType, HouseholdEstimateMethod, Prisma, type DistributionA
 import { estimateHouseholds, estimateRouteDistanceMeters, calculateDistributionTime, scoreArea, combineOrders } from "@/lib/routing";
 import { findBestWarehouseForArea } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
+import { productionAreaWhere, productionOrderExperienceEventWhere, productionOrderWhere } from "@/lib/productionData";
 import { calculateOrderPrice } from "@/lib/pricing";
 import { aggregateOrderAreaSegments, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
 import { buildAuthoritativePlanningQuote, buildPlanningInputFingerprint, planningGeometry } from "@/lib/planningQuote";
@@ -581,13 +582,14 @@ export async function getHeatmapData(tenantId?: string | null) {
   const [orders, areas] = await Promise.all([
     prisma.order.groupBy({
       by: ["city", "postalCode", "status"],
-      where: tenantId ? { tenantId } : undefined,
+      where: { ...productionOrderWhere(), ...(tenantId ? { tenantId } : {}) },
       _count: { _all: true },
       _sum: { flyerQuantity: true },
     }),
     prisma.distributionArea.findMany({
       where: {
         status: "ACTIVE",
+        ...productionAreaWhere(),
         ...(tenantId ? { OR: [{ tenantId: null }, { tenantId }] } : {}),
       },
       select: { id: true, name: true, city: true, postalCode: true, centerLat: true, centerLng: true, estimatedHouseholds: true },
@@ -617,10 +619,11 @@ export async function getHeatmapData(tenantId?: string | null) {
 
 export async function getOrderExperienceAnalytics() {
   const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const experienceWhere = { ...productionOrderExperienceEventWhere(), createdAt: { gte: since } };
   const [events, cities, areas] = await Promise.all([
-    prisma.orderExperienceEvent.findMany({ where: { createdAt: { gte: since } }, orderBy: { createdAt: "desc" }, take: 500 }),
-    prisma.orderExperienceEvent.groupBy({ by: ["city"], where: { city: { not: null }, createdAt: { gte: since } }, _count: { city: true }, orderBy: { _count: { city: "desc" } }, take: 8 }),
-    prisma.orderExperienceEvent.groupBy({ by: ["areaName"], where: { areaName: { not: null }, createdAt: { gte: since } }, _count: { areaName: true }, orderBy: { _count: { areaName: "desc" } }, take: 8 }),
+    prisma.orderExperienceEvent.findMany({ where: experienceWhere, orderBy: { createdAt: "desc" }, take: 500 }),
+    prisma.orderExperienceEvent.groupBy({ by: ["city"], where: { ...experienceWhere, city: { not: null } }, _count: { city: true }, orderBy: { _count: { city: "desc" } }, take: 8 }),
+    prisma.orderExperienceEvent.groupBy({ by: ["areaName"], where: { ...experienceWhere, areaName: { not: null } }, _count: { areaName: true }, orderBy: { _count: { areaName: "desc" } }, take: 8 }),
   ]);
   const completed = events.filter((event) => event.eventType === "ORDER_CREATED" && event.durationMs);
   const started = events.filter((event) => event.eventType === "WIZARD_STARTED").length;

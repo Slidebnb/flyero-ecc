@@ -49,12 +49,22 @@ assert.match(purgeScript, /Fake-Firmeneinstellungen/, "Bekannte Seed-Firmeneinst
 assert.match(purgeScript, /Fake-Branding-Einstellungen/, "Bekannte Seed-Branding-Einstellungen müssen kontrolliert bereinigt werden.");
 assert.match(purgeScript, /Seed-Benachrichtigungslogs/, "Seed-Benachrichtigungslogs müssen vor dem Benutzer-Purge entfernt werden.");
 assert.match(purgeScript, /Seed-Legacy-Benachrichtigungen/, "Alte Seed-Benachrichtigungen müssen ebenfalls bereinigt werden.");
+assert.match(purgeScript, /Seed-Zahlungsereignisse/, "Seed-Zahlungsereignisse müssen unabhängig vom Order-Purge bereinigt werden.");
+assert.match(purgeScript, /Seed-UX-Ereignisse/, "Seed-UX-Ereignisse dürfen nicht in Produktionsanalysen verbleiben.");
+assert.match(purgeScript, /Seed-Lagerregionen/, "Demo-Lagerregionen müssen gemeinsam mit Demo-Lagern bereinigt werden.");
+assert.match(purgeScript, /newValues\"->>'seed'/, "Seed-Auditlogs müssen auch über den Seed-Marker im JSON erkannt werden.");
 assert.doesNotMatch(purgeScript, /DELETE FROM \"NotificationQueue\"[\s\S]*?\"data\"->>/, "NotificationQueue darf keine nicht vorhandene data-Spalte abfragen.");
 assert.match(productionData, /productionNotificationMessageWhere/, "Admin-Nachrichten brauchen einen Seed-Inhaltsfilter.");
 assert.match(productionData, /productionNotificationQueueWhere/, "Admin-Queue und Worker brauchen einen Seed-Queue-Filter.");
 assert.match(read("src/app/admin/notifications/queue/page.tsx"), /productionNotificationQueueWhere\(\)/, "Die Admin-Queue-Seite muss Seed-Queues ausblenden.");
 assert.match(read("src/lib/notificationWorker.ts"), /productionNotificationQueueWhere\(\)/, "Der Queue-Worker darf keine Seed-Nachrichten versenden.");
 assert.match(productionData, /return \{\s*order: productionOrderWhere\(\),\s*NOT:/, "Support-Tickets müssen echte Aufträge behalten und Seed-Aufträge ausschließen.");
+assert.match(productionData, /newValues: \{ path: \["seed"\], equals: true \}/, "Produktions-Auditlogs müssen Seed-Marker im JSON ausblenden.");
+assert.match(productionData, /productionOrderExperienceEventWhere/, "Produktionsanalysen müssen Seed-UX-Ereignisse ausblenden.");
+assert.match(read("src/lib/smartMaps.ts"), /productionOrderExperienceEventWhere\(\)/, "Bestellanalysen müssen den Produktions-UX-Filter verwenden.");
+assert.match(read("src/lib/smartMaps.ts"), /productionOrderWhere\(\)/, "Admin-Karten dürfen keine Demo-Aufträge aggregieren.");
+assert.match(productionData, /productionPaymentEventWhere/, "Zahlungsereignisse brauchen einen eindeutigen Seed-Filter.");
+assert.match(read("src/app/admin/notifications/queue/page.tsx"), /Empfänger-E-Mail eingeben/, "Admin-Formulare dürfen keine Beispiel-E-Mail als Eingabe suggerieren.");
 assert.match(cleanupDocs, /nicht beim normalen Deploy/, "Die Betriebsdoku muss die nicht-automatische Bereinigung erklären.");
 
 console.log("Admin warehouse real-data contract passed");

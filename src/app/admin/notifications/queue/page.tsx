@@ -111,7 +111,7 @@ export default async function AdminNotificationQueuePage() {
         <form className="form grid" action={sendTestEmailAction}>
           <label>
             Empfänger
-            <input name="recipient" type="email" required placeholder="admin@example.com" />
+            <input name="recipient" type="email" required placeholder="Empfänger-E-Mail eingeben" />
           </label>
           <label>
             Vorlage optional

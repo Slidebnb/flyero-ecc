@@ -100,6 +100,26 @@ export function productionTourWhere(): Prisma.DistributionTourWhereInput {
   return { order: productionOrderWhere() };
 }
 
+export function productionOrderExperienceEventWhere(): Prisma.OrderExperienceEventWhereInput {
+  if (!isProductionRuntime) return {};
+  return {
+    NOT: [
+      { source: { startsWith: "seed." } },
+      { metadata: { path: ["source"], equals: "seed.module24" } },
+    ],
+  };
+}
+
+export function productionPaymentEventWhere(): Prisma.PaymentEventWhereInput {
+  if (!isProductionRuntime) return {};
+  return {
+    NOT: [
+      { stripeEventId: { startsWith: "evt_seed_" } },
+      { payload: { path: ["seed"], equals: true } },
+    ],
+  };
+}
+
 export function productionAccountingExportWhere(): Prisma.AccountingExportWhereInput {
   if (!isProductionRuntime) return {};
   return { NOT: [{ exportNumber: { startsWith: "ACC-SEED-" } }] };
@@ -111,6 +131,7 @@ export function productionAuditLogWhere(): Prisma.AuditLogWhereInput {
     NOT: [
       { action: { startsWith: "seed." } },
       { entityId: { startsWith: "seed" } },
+      { newValues: { path: ["seed"], equals: true } },
     ],
   };
 }
