@@ -56,7 +56,7 @@ assert.match(wizard, /addDaysToIsoDate/);
 assert.match(wizard, /min=\{minimumStartDate\}/);
 assert.doesNotMatch(wizard, /areaQuickList/);
 assert.match(wizard, /Gebiet auf Karte zeichnen/);
-assert.match(wizard, /Druckdaten sp\u00e4ter senden/);
+assert.match(wizard, /Datei sp\u00e4ter senden/);
 assert.match(validators, /earliestOrderStartDate/);
 assert.match(validators, /sieben Tage nach heute/);
 

@@ -102,10 +102,10 @@ try {
     "Flyer",
     "Verteilung",
     "Zeitraum",
-    "Pr\u00fcfen",
+    "Preis pr\u00fcfen",
     "Abschluss",
     "areaOverview",
-    "Live-Karte nicht verfügbar",
+    "Karte gerade nicht verfügbar",
     "Satellit",
     "orderStepPanel",
   ]);

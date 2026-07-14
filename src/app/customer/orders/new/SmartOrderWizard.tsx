@@ -382,17 +382,17 @@ function recommendedFlyersForHouseholds(households: number) {
 }
 
 function confidenceLabel(confidence?: "high" | "medium" | "low") {
-  if (confidence === "high") return "Datenbasis: geprüfte Importdaten";
-  if (confidence === "medium") return "Datenbasis: berechnet aus verfügbaren Gebietsdaten";
-  return "Datenbasis: wird nach Prüfung bestätigt";
+  if (confidence === "high") return "Gebietsdaten geprüft";
+  if (confidence === "medium") return "Gebiet aus verfügbaren Daten berechnet";
+  return "Gebiet wird nach der Anfrage geprüft";
 }
 
 function syncStateLabel(status: "local" | "updating" | "live" | "error", confidence?: "high" | "medium" | "low", pending?: boolean) {
   if (status === "updating" || pending) return "Wird aktualisiert";
-  if (status === "live" && confidence === "high") return "Geprüft berechnet";
-  if (status === "live") return "Berechnet aus Gebietsdaten";
-  if (status === "error") return "Geschätzt";
-  return "Geschätzt";
+  if (status === "live" && confidence === "high") return "Gebiet geprüft";
+  if (status === "live") return "Gebiet berechnet";
+  if (status === "error") return "Vorläufige Schätzung";
+  return "Vorläufige Schätzung";
 }
 
 function pathToPoints(path: GooglePath) {
@@ -446,11 +446,11 @@ function clampOverviewOffset(x: number, y: number) {
 }
 
 function deliverabilityLabel(score?: number | null) {
-  if (!Number.isFinite(score ?? NaN)) return "Verteilbarkeit wird geprüft";
-  if ((score ?? 0) >= 82) return "Sehr gute Verteilbarkeit";
-  if ((score ?? 0) >= 65) return "Gute Verteilbarkeit";
-  if ((score ?? 0) >= 45) return "Prüfung empfohlen";
-  return "Schwieriges Gebiet";
+  if (!Number.isFinite(score ?? NaN)) return "Gebiet wird noch geprüft";
+  if ((score ?? 0) >= 82) return "Sehr gut erreichbar";
+  if ((score ?? 0) >= 65) return "Gut erreichbar";
+  if ((score ?? 0) >= 45) return "Wir prüfen die Erreichbarkeit";
+  return "Gebiet wird vorab geprüft";
 }
 
 function loadGoogleMaps() {
@@ -492,9 +492,9 @@ function loadGoogleMaps() {
 
 function MiniMapFallback() {
   return (
-    <div className="orderMapFallback" role="status" aria-label="Live-Karte nicht verfügbar">
-      <strong>Live-Karte nicht verfügbar</strong>
-      <span>Die Gebietsdaten bleiben erhalten. Du kannst die Anfrage trotzdem vorbereiten.</span>
+    <div className="orderMapFallback" role="status" aria-label="Karte gerade nicht verfügbar">
+      <strong>Karte gerade nicht verfügbar</strong>
+      <span>Dein Gebiet bleibt erhalten. Du kannst die Anfrage trotzdem vorbereiten.</span>
     </div>
   );
 }
@@ -973,7 +973,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             body: JSON.stringify({ eventType: "ORDER_REPEATED", orderId: repeatFrom, source: "customer-order-repeat" }),
           });
           setActiveStep(1);
-          setDraftStatus("Kampagne übernommen");
+          setDraftStatus("Planung übernommen");
         })
         .catch(() => undefined);
     }, 0);
@@ -1518,8 +1518,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (!mapsReady || !drawingManagerRef.current || !drawing) {
       setMapNotice(
         mapsBrowserKeyConfigured
-          ? "Die Zeichenfunktion lädt noch. Bitte kurz warten und erneut versuchen."
-          : "Die Live-Karte ist gerade nicht verfügbar. Sie können die Anfrage trotzdem senden oder FLYERO hilft bei der Gebietsauswahl.",
+          ? "Die Karte lädt noch. Bitte kurz warten und erneut versuchen."
+          : "Die Karte ist gerade nicht verfügbar. Du kannst die Anfrage trotzdem senden oder FLYERO bespricht das Gebiet mit dir.",
       );
       return;
     }
@@ -1639,7 +1639,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       });
       const orderResult = await orderResponse.json();
       if (!orderResponse.ok || !orderResult?.data?.id) {
-        throw new Error(orderResult?.error || "Kampagne konnte nicht gespeichert werden.");
+        throw new Error(orderResult?.error || "Deine Planung konnte nicht gespeichert werden.");
       }
 
       if (completionPath === "direct_payment") {
@@ -1670,7 +1670,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       }
 
       window.localStorage.removeItem(ORDER_DRAFT_KEY);
-      setFinishStatus("Deine Anfrage wurde übermittelt. Wir prüfen Gebiet, Druckdaten und Preis und melden uns schnellstmöglich.");
+      setFinishStatus("Deine Anfrage wurde übermittelt. Wir prüfen Gebiet, Druck und Preis und melden uns schnell.");
       window.location.href = `/customer/orders/${orderResult.data.id}?inquiry=success`;
     } catch (error) {
       setFinishStatus(error instanceof Error ? error.message : "Die Anfrage konnte nicht abgeschlossen werden.");
@@ -1684,8 +1684,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     { id: 2, title: "Flyer", detail: "Format, Menge und Druck", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung", detail: "Art und wichtige Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Frühester Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
-    { id: 5, title: "Prüfen", detail: "Gebiet, Preis und Leistungen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Offen" },
-    { id: 6, title: "Abschluss", detail: "Buchen oder unverbindlich anfragen", value: "3 Optionen" },
+    { id: 5, title: "Preis prüfen", detail: "Gebiet, Preis und Leistungen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Noch offen" },
+    { id: 6, title: "Abschluss", detail: "Buchen, anfragen oder Formular senden", value: "3 Wege" },
   ];
   const activeNavItems = isPublicPlanner ? publicPlannerNavItems : orderNavItems;
   const orderNavGroups = Array.from(new Set(activeNavItems.map((item) => item.group)));
@@ -1724,7 +1724,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (stepId === 1) {
       return (
         <section className="orderPanelBlock primary inlineStepBlock">
-          <p className="orderStepHint">Suche deine Adresse oder zeichne das gewünschte Gebiet direkt auf der Karte.</p>
+          <p className="orderStepHint">Gib eine Adresse oder PLZ ein. Danach kannst du das Gebiet direkt auf der Karte anpassen.</p>
           <label>
             PLZ, Ort oder Adresse
             <div className="searchInputShell">
@@ -1752,12 +1752,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           </label>
           <div className="selectedLocationBar">
             <strong>{city ? `${postalCode} ${city}` : "Noch kein Gebiet gewählt"}</strong>
-            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : "Du kannst das Gebiet anschließend auf der Karte anpassen."}</span>
+            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : "Die Grenzen kannst du danach direkt auf der Karte anpassen."}</span>
           </div>
           {pendingLocation ? (
             <div className="replaceAreaNotice" role="alert">
-              <strong>Du hast dein Gebiet manuell angepasst.</strong>
-              <p>Wenn du eine neue PLZ übernimmst, wird das aktuelle Gebiet ersetzt.</p>
+              <strong>Dein Gebiet wurde auf der Karte angepasst.</strong>
+              <p>Wenn du eine neue PLZ übernimmst, ersetzt sie dein aktuelles Gebiet.</p>
               <div>
                 <button type="button" onClick={() => applyLocationResult(pendingLocation, { forceReplace: true })}>Neues Gebiet übernehmen</button>
                 <button type="button" onClick={keepCurrentArea}>Aktuelles Gebiet behalten</button>
@@ -1787,7 +1787,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           </div>
           <div className="orderSegmentList" aria-label="Teilgebiete">
             <div className="orderSegmentListHeader">
-              <span>Teilgebiete dieser Kampagne</span>
+              <span>Teilgebiete deiner Planung</span>
               <strong>{areaSegmentsPayload.length}</strong>
             </div>
             {areaSegments.map((segment, index) => (
@@ -1803,7 +1803,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
               </div>
             ))}
             <button type="button" className="orderSegmentAdd" onClick={addSegment}>Teilgebiet hinzufügen</button>
-            <small className="orderSegmentHint">Mehrere Städte oder Stadtteile bleiben getrennt sichtbar und werden gemeinsam berechnet.</small>
+            <small className="orderSegmentHint">Mehrere Orte und Stadtteile bleiben getrennt sichtbar und werden gemeinsam geplant.</small>
           </div>
         </section>
       );
@@ -1812,7 +1812,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (stepId === 2) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
-          <p className="orderStepHint">Wie sollen deine Flyer vorbereitet werden?</p>
+          <p className="orderStepHint">Wähle Format und Menge. Danach entscheidest du, ob FLYERO den Druck übernimmt.</p>
           <label>
             Flyerformat
             <select value={productFormat} onChange={(event) => setProductFormat(event.target.value)}>
@@ -1830,13 +1830,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             }}>Druck über FLYERO</button>
           </div>
           <div className="modeTabs flyerSourceTabs">
-            <button type="button" className={printDataStatus === "UPLOADED" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOADED")}>Druckdaten sind bereit</button>
-            <button type="button" className={printDataStatus === "UPLOAD_LATER" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOAD_LATER")}>Druckdaten später senden</button>
+            <button type="button" className={printDataStatus === "UPLOADED" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOADED")}>Datei ist bereit</button>
+            <button type="button" className={printDataStatus === "UPLOAD_LATER" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOAD_LATER")}>Datei später senden</button>
           </div>
           <div className="flyerRecommendation">
-            <span>Empfehlung</span>
-            <strong>{formatNumber(recommendedFlyerQuantity)} Flyer inklusive 10 % Reserve</strong>
-            <small>Du kannst die Menge jederzeit anpassen.</small>
+            <span>Unser Vorschlag</span>
+            <strong>{formatNumber(recommendedFlyerQuantity)} Flyer mit 10 % Reserve</strong>
+            <small>Du kannst die Menge jederzeit ändern.</small>
           </div>
           <div className="quantityControl">
             <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
@@ -1858,11 +1858,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (stepId === 3) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
-          <p className="orderStepHint">Lege fest, wo und wie verteilt werden soll. Dein Gebiet bleibt in Schritt 1 gespeichert.</p>
+          <p className="orderStepHint">Wähle, wen du erreichen möchtest. Besondere Wünsche kannst du direkt an FLYERO senden.</p>
           <label className="selectLine">
-            <span>Verteilart</span>
+            <span>Verteilung für</span>
             <select value={distributionType} onChange={(event) => setDistributionType(event.target.value)}>
-              <option value="Haushaltsverteilung">Haushalte</option>
+              <option value="Haushaltsverteilung">Private Haushalte</option>
               <option value="Gewerbegebiet">Gewerbe</option>
               <option value="Eventgebiet">Event- oder Aktionsgebiet</option>
             </select>
@@ -1870,18 +1870,18 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           <label className="selectLine">
             <span>Zielgruppe</span>
             <select value={targetGroup} onChange={(event) => setTargetGroup(event.target.value)}>
-              <option>Alle Haushalte</option>
+              <option>Alle privaten Haushalte</option>
               <option value="Familienhaushalte">Familien und Haushalte</option>
-              <option>Innenstadt & Laufkundschaft</option>
+              <option>Innenstadt und Laufkundschaft</option>
               <option value="Lokale Gewerbe">Lokale Gewerbebetriebe</option>
             </select>
           </label>
           <label>
-            Hinweise an FLYERO
+            Besondere Wünsche
             <textarea
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="z. B. bestimmte Straßen auslassen, Gewerbegebiet bevorzugen, Zugangshinweise, wichtige Bemerkungen"
+              placeholder="z. B. bestimmte Straßen auslassen, Gewerbe bevorzugen oder wichtige Zugangshinweise"
             />
           </label>
         </section>
@@ -1891,9 +1891,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     if (stepId === 4) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
-          <p className="orderStepHint">Eine Verteilung startet frühestens sieben Tage nach deiner Buchung.</p>
+          <p className="orderStepHint">Wähle deinen Zeitraum. Der früheste Start ist sieben Tage nach deiner Buchung.</p>
           <div className="dateGrid">
-            <label>Frühester Start<input type="date" min={minimumStartDate} value={startDate} onChange={(event) => {
+            <label>Frühester möglicher Start<input type="date" min={minimumStartDate} value={startDate} onChange={(event) => {
               const nextStartDate = clampIsoDate(event.target.value, minimumStartDate);
               setStartDate(nextStartDate);
               if (endDate < nextStartDate) setEndDate(nextStartDate);
@@ -1902,7 +1902,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           </div>
           <label className="checkLine">
             <input type="checkbox" checked={flexibleScheduling} onChange={(event) => setFlexibleScheduling(event.target.checked)} />
-            Wunschzeitraum flexibel abstimmen
+            Zeitraum flexibel abstimmen
           </label>
         </section>
       );
@@ -1919,14 +1919,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             <span><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
             <span><strong>{intelligence ? formatCurrency(vatAmount) : "wird berechnet"}</strong>Umsatzsteuer</span>
             <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : "wird berechnet"}</strong>Gesamt brutto</span>
-            <span><strong>{areaStats.warehouseSuggestion ?? "wird geprüft"}</strong>Lager</span>
+            <span><strong>{areaStats.warehouseSuggestion ?? "wird geprüft"}</strong>Nächstes Lager</span>
           </div>
-          <p className="orderReviewNotice">Die Buchung wird nach Zahlung durch FLYERO geprüft. Gebiet, Druckdaten und Zustellbarkeit werden final bestätigt.</p>
+          <p className="orderReviewNotice">Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist. Falls sich etwas ändert, melden wir uns.</p>
           <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
           <div className="proofIncludedList">
-            <span>GPS-Nachweis enthalten</span>
-            <span>Foto-Dokumentation enthalten</span>
-            <span>PDF-Bericht nach Abschluss enthalten</span>
+            <span>GPS-Nachweis nach der Verteilung</span>
+            <span>Foto-Dokumentation nach der Verteilung</span>
+            <span>PDF-Bericht nach Abschluss</span>
           </div>
           <details className="orderDetails inlineDetails">
             <summary>Kontakt & Hinweise</summary>
@@ -1940,15 +1940,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
 
     return (
       <section className="orderPanelBlock inlineStepBlock">
-        <p className="orderStepHint">Wähle jetzt, wie du weitermachen möchtest. Es wird nichts doppelt berechnet und keine Anfrage erzwingt eine Zahlung.</p>
+        <p className="orderStepHint">Wähle, wie du fortfahren möchtest. Eine Anfrage ist unverbindlich und löst keine Zahlung aus.</p>
         <div className="orderFinishChoices">
           <button type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
             Jetzt buchen und bezahlen
-            <small>Gebiet sichern, Kampagne anlegen und Zahlung starten.</small>
+            <small>Buchung anlegen und sicher zur Zahlung weitergehen.</small>
           </button>
           <button type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
             Unverbindlich anfragen
-            <small>Wir prüfen Gebiet, Druckdaten und Preis und melden uns schnellstmöglich.</small>
+            <small>Wir prüfen Gebiet, Druck und Preis und melden uns schnell.</small>
           </button>
           <a href={inquiryFormHref} download>
             <Download aria-hidden="true" />
@@ -1959,7 +1959,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             Per E-Mail anfragen
           </a>
         </div>
-        <p className="orderReviewNotice">Enthalten: GPS-Nachweis, Foto-Dokumentation und PDF-Bericht nach Abschluss. Bericht wird nach der Verteilung erstellt.</p>
+        <p className="orderReviewNotice">Nach der Verteilung erhältst du GPS-Nachweis, Foto-Dokumentation und PDF-Bericht.</p>
         {finishStatus ? <p className="finishStatus" role="status">{finishStatus}</p> : null}
       </section>
     );
@@ -2066,7 +2066,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           <span>Preis netto zzgl. MwSt.</span>
           <strong>{Number(netPrice) > 0 ? formatCurrency(netPrice) : "wird berechnet"}</strong>
           <button type="button" onClick={() => setActiveStep((step) => Math.min(6, step + 1))}>
-            {activeStep >= 6 ? "Abschluss wählen" : "Weiter"}
+            {activeStep >= 6 ? "Weg auswählen" : "Weiter"}
             <span aria-hidden="true">→</span>
           </button>
         </div>
@@ -2085,11 +2085,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         {!mapsReady ? <MiniMapFallback /> : null}
         {!mapsReady ? (
           <div className="mapConfigNotice" role="status">
-            <strong>{mapsBrowserKeyConfigured ? "Karte wird geladen" : "Live-Karte aktuell nicht verfügbar"}</strong>
+            <strong>{mapsBrowserKeyConfigured ? "Karte wird geladen" : "Karte gerade nicht verfügbar"}</strong>
             <span>
               {mapsBrowserKeyConfigured
-                ? "Einen Moment bitte. Falls die Karte nicht erscheint, können Sie die Anfrage trotzdem senden."
-                : "Sie können die Anfrage trotzdem senden. FLYERO prüft das Gebiet anschließend persönlich mit Ihnen."}
+                ? "Einen Moment bitte. Falls die Karte nicht erscheint, kannst du die Anfrage trotzdem senden."
+                : "Du kannst die Anfrage trotzdem senden. FLYERO bespricht das Gebiet anschließend persönlich mit dir."}
             </span>
           </div>
         ) : null}
@@ -2105,8 +2105,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         >
           <div className="overviewHead">
             <div>
-              <h2>Gebietsübersicht</h2>
-              <p>Live aktualisiert, sobald du das Gebiet änderst.</p>
+              <h2>Deine Planung</h2>
+              <p>Aktualisiert sich, sobald du das Gebiet änderst.</p>
             </div>
             <span className={`overviewSyncState ${intelligenceStatus}`}>
               {syncStateLabel(intelligenceStatus, areaStats.confidence, isPending)}

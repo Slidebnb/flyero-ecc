@@ -115,7 +115,7 @@ try {
     "areaCalculationSnapshot",
     "mapNotice",
     "setMapTypeId",
-    "Du hast dein Gebiet manuell angepasst.",
+    "Dein Gebiet wurde auf der Karte angepasst.",
     "Neues Gebiet \u00fcbernehmen",
     "Aktuelles Gebiet behalten",
     "orderNavGroups",
@@ -123,7 +123,7 @@ try {
     'className="orderSideNav customerSideNav"',
     "overviewDragHandle",
     "onPointerMove={moveOverviewDrag}",
-    "Live aktualisiert, sobald du das Gebiet",
+    "Aktualisiert sich, sobald du das Gebiet",
   ]);
   assert(!wizard.includes("Math.random"), "Wizard darf keine Zufallswerte fuer Gebietsuebersicht nutzen.");
   for (const forbidden of ["8.414", "8414", "1.249,50", "1249.50", "FeatureCollection</", "GeoJSON</"]) {
