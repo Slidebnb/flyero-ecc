@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 const siteName = "FLYERO";
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "https://flyero.de";
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "https://flyero.org";
 export const siteUrl = baseUrl.replace(/\/$/, "");
 
 type SeoInput = {

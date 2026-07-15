@@ -25,7 +25,7 @@ function provider(): EmailProvider {
 }
 
 function fromAddress() {
-  return process.env.EMAIL_FROM || process.env.SMTP_FROM || "noreply@flyero.local";
+  return process.env.EMAIL_FROM || process.env.SMTP_FROM || "hallo@flyero.org";
 }
 
 function requireEnv(name: string) {

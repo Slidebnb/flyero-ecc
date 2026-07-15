@@ -30,7 +30,7 @@ const validEnvironment = {
   STRIPE_WEBHOOK_SECRET: "whsec_synthetic_123456",
   INTERNAL_API_TOKEN: "i".repeat(64),
   EMAIL_PROVIDER: "resend",
-  EMAIL_FROM: "FLYERO <noreply@flyero.org>",
+  EMAIL_FROM: "FLYERO <hallo@flyero.org>",
   RESEND_API_KEY: "re_synthetic_123456",
   NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY: "browser-synthetic-key",
   GOOGLE_MAPS_SERVER_KEY: "server-synthetic-key",

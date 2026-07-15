@@ -188,7 +188,8 @@ try {
     "Direkt online buchen",
     "Unverbindlich anfragen",
     "Anfrageformular nutzen",
-    "/downloads/flyero-anfrageformular.html",
+    "/downloads/flyero-anfrageformular.pdf",
+    "hallo@flyero.org",
     "mailto:",
   ]);
   includes("public/downloads/flyero-anfrageformular.html", [
@@ -240,8 +241,8 @@ try {
   assert(manualOrder?.payments[0]?.amount.toString() === "1190", "Checkout darf beim individuellen Nettopreis nicht die Netto-Summe abbuchen.");
   assert(manualOrder?.priceRuleSnapshot?.manualCalculatedGross === "1190", "Individueller Bruttopreis fehlt im Snapshot.");
 
-  const download = await fetchWithTimeout(`${baseUrl}/downloads/flyero-anfrageformular.html`);
-  assert(download.status === 200, `Anfrageformular Download liefert ${download.status}`);
+  const download = await fetchWithTimeout(`${baseUrl}/downloads/flyero-anfrageformular.pdf`);
+  assert(download.status === 200, `Anfrageformular PDF liefert ${download.status}`);
 
   console.log("Customer Order Checkout Smoke-Test erfolgreich abgeschlossen.");
 } finally {

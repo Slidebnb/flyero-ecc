@@ -15,7 +15,7 @@ export default function ImprintPage() {
         <div className="legalText">
           <p><strong>FLYERO GmbH i.G.</strong></p>
           <p>Musterstraße 1, 56068 Koblenz, Deutschland</p>
-          <p>E-Mail: hello@flyero.de</p>
+          <p>E-Mail: hallo@flyero.org</p>
           <p>Telefon: +49 261 000000</p>
           <p>Vertreten durch die Geschäftsführung der FLYERO GmbH i.G.</p>
           <p>Umsatzsteuer-ID wird nach Gründung ergänzt.</p>

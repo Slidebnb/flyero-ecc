@@ -99,10 +99,10 @@ export default function DistributionRequestPage() {
               Lieber klassisch anfragen? Lade das Formular herunter oder sende uns die Eckdaten direkt per E-Mail.
             </p>
             <div className="mkBookingActions">
-              <MarketingButton href="/downloads/flyero-anfrageformular.html" variant="ghost">
+              <MarketingButton href="/downloads/flyero-anfrageformular.pdf" variant="ghost">
                 Anfrageformular herunterladen
               </MarketingButton>
-              <MarketingButton href="mailto:anfrage@flyero.de?subject=Flyerverteilung%20anfragen" variant="ghost">
+              <MarketingButton href="mailto:hallo@flyero.org?subject=Flyerverteilung%20anfragen" variant="ghost">
                 Per E-Mail anfragen
               </MarketingButton>
             </div>

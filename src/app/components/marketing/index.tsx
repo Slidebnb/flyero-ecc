@@ -92,6 +92,7 @@ export function PublicFooter() {
       <div className="mkFooterBrand">
         <FlyeroLogo />
         <p>Flyerverteilung mit GPS-Nachweis, Foto-Dokumentation und Kundenbericht.</p>
+        <a className="mkFooterEmail" href="mailto:hallo@flyero.org">hallo@flyero.org</a>
         <p className="mkFooterTrust">
           Für Unternehmen, Vereine und lokale Kampagnen, die nicht nur verteilt, sondern sauber belegt werden sollen.
         </p>

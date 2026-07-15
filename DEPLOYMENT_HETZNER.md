@@ -98,7 +98,7 @@ Für echte Registrierungs-E-Mails:
 
 ```env
 EMAIL_PROVIDER="resend"
-EMAIL_FROM="FLYERO <noreply@flyero.org>"
+EMAIL_FROM="FLYERO <hallo@flyero.org>"
 RESEND_API_KEY="..."
 ```
 
@@ -110,7 +110,7 @@ SMTP_HOST="..."
 SMTP_PORT="587"
 SMTP_USER="..."
 SMTP_PASS="..."
-SMTP_FROM="FLYERO <noreply@flyero.org>"
+SMTP_FROM="FLYERO <hallo@flyero.org>"
 ```
 
 ## Updates
