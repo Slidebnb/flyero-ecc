@@ -16,6 +16,7 @@ export type SmartPlaceSuggestion = {
   street?: string | null;
   lat: number;
   lng: number;
+  placeId?: string;
   source: "local" | "google";
 };
 
@@ -83,11 +84,12 @@ export async function getPlaceAutocomplete(query: string, options?: { publicOnly
   return [...local, ...google].slice(0, 8);
 }
 
-async function googleGeocode(query: string) {
+async function googleGeocode(query: string, placeId?: string) {
   const key = process.env.GOOGLE_MAPS_SERVER_KEY;
   if (!key || query.trim().length < 3) return null;
   const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-  url.searchParams.set("address", query);
+  if (placeId) url.searchParams.set("place_id", placeId);
+  else url.searchParams.set("address", query);
   url.searchParams.set("key", key);
   url.searchParams.set("components", "country:DE");
   url.searchParams.set("language", "de");
@@ -109,6 +111,7 @@ async function googleGeocode(query: string) {
   const component = (type: string) => first.address_components.find((item) => item.types.includes(type));
   return {
     label: first.formatted_address,
+    placeId: (first as { place_id?: string }).place_id ?? placeId ?? null,
     city: component("locality")?.long_name ?? component("postal_town")?.long_name ?? "",
     postalCode: component("postal_code")?.long_name ?? "",
     street: component("route")?.long_name ?? "",
@@ -125,9 +128,10 @@ export async function geocodeSmartAddress(input: {
   city?: string;
   street?: string;
   houseNumber?: string;
+  placeId?: string;
 }, options?: { publicOnly?: boolean }) {
   const query = input.query || [input.street, input.houseNumber, input.postalCode, input.city, "Deutschland"].filter(Boolean).join(" ");
-  const google = await googleGeocode(query).catch(() => null);
+  const google = await googleGeocode(query, input.placeId).catch(() => null);
   if (google) return google;
   if (options?.publicOnly) return null;
   const sourceFilter = process.env.NODE_ENV === "production" ? { dataSourceType: { not: AreaDataSourceType.SEED } } : {};

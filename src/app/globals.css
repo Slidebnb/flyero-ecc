@@ -5746,6 +5746,52 @@ body {
   min-width: 168px;
 }
 
+.customerCampaignActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.customerOrderDeleteAction {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.customerOrderDeleteAction button {
+  min-width: 0;
+}
+
+.customerOrderDeleteAction small {
+  max-width: 220px;
+  color: #ff9f9f;
+  line-height: 1.35;
+}
+
+.repeatPrintNotice {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(167, 255, 0, 0.35);
+  border-radius: 14px;
+  background: rgba(167, 255, 0, 0.08);
+}
+
+.repeatPrintNotice p {
+  margin: 0;
+  color: #c5d0dc;
+  line-height: 1.45;
+}
+
+.repeatPrintActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .customerCampaignItem p,
 .customerMessageItem p,
 .customerPreferenceList p {

@@ -43,6 +43,7 @@ type LocationResult = {
   street?: string | null;
   houseNumber?: string | null;
   label?: string | null;
+  placeId?: string | null;
   lat: number;
   lng: number;
 };
@@ -251,16 +252,7 @@ declare global {
   }
 }
 
-const DEFAULT_CENTER = { lat: 50.3569, lng: 7.589 };
 const PUBLIC_DEFAULT_CENTER: LatLng = { lat: 51.1657, lng: 10.4515 };
-const DEFAULT_POLYGON: LatLng[] = [
-  { lat: 50.3602, lng: 7.5852 },
-  { lat: 50.3618, lng: 7.5934 },
-  { lat: 50.3567, lng: 7.5988 },
-  { lat: 50.3515, lng: 7.596 },
-  { lat: 50.3502, lng: 7.5873 },
-  { lat: 50.3548, lng: 7.5818 },
-];
 
 const ORDER_DRAFT_KEY = "flyero:order-planner:draft:v2";
 const PUBLIC_ORDER_DRAFT_KEY = "flyero:order-planner:public-draft:v2";
@@ -345,13 +337,6 @@ function segmentsToGeoJson(segments: Array<{ points: LatLng[]; name: string; cit
         };
       }),
   };
-}
-
-function polygonAroundCenter(nextCenter: LatLng) {
-  return DEFAULT_POLYGON.map((point) => ({
-    lat: point.lat + (nextCenter.lat - DEFAULT_CENTER.lat),
-    lng: point.lng + (nextCenter.lng - DEFAULT_CENTER.lng),
-  }));
 }
 
 function polygonAreaSqm(points: LatLng[]) {
@@ -553,6 +538,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const selectedBoundaryPlaceIdsRef = useRef<string[]>([]);
   const areaSegmentsRef = useRef<OrderAreaSegmentDraft[]>([]);
   const selectBoundaryAreaRef = useRef<(placeId: string) => void>(() => undefined);
+  const applyLocationResultRef = useRef<(result: LocationResult, options?: { forceReplace?: boolean }) => void>(() => undefined);
   const overviewDragRef = useRef<OverviewDragState | null>(null);
   const initialSearchRef = useRef<string | null>(null);
   const trackedPublicStepsRef = useRef(new Set<number>());
@@ -560,31 +546,22 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [mapsReady, setMapsReady] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
-  const [query, setQuery] = useState(isPublicPlanner ? "" : "Koblenz, Deutschland");
+  const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState("");
-  const [city, setCity] = useState(isPublicPlanner ? "" : "Koblenz");
-  const [postalCode, setPostalCode] = useState(isPublicPlanner ? "" : "56068");
+  const [city, setCity] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [street, setStreet] = useState("");
   const [houseNumber, setHouseNumber] = useState("");
-  const [targetAreaName, setTargetAreaName] = useState(isPublicPlanner ? "" : "Koblenz Zentrum");
-  const [center, setCenter] = useState<LatLng>(isPublicPlanner ? PUBLIC_DEFAULT_CENTER : DEFAULT_CENTER);
-  const [polygon, setPolygon] = useState<LatLng[]>(isPublicPlanner ? [] : DEFAULT_POLYGON);
+  const [targetAreaName, setTargetAreaName] = useState("");
+  const [center, setCenter] = useState<LatLng>(PUBLIC_DEFAULT_CENTER);
+  const [polygon, setPolygon] = useState<LatLng[]>([]);
   const [polygonSource, setPolygonSource] = useState<PolygonSource>("postal_code");
-  const [areaSegments, setAreaSegments] = useState<OrderAreaSegmentDraft[]>(isPublicPlanner ? [] : [{
-    id: "segment-default",
-    name: "Koblenz Zentrum",
-    city: "Koblenz",
-    postalCode: "56068",
-    district: "",
-    country: "DE",
-    points: DEFAULT_POLYGON,
-    polygonSource: "postal_code",
-  }]);
-  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(isPublicPlanner ? null : "segment-default");
+  const [areaSegments, setAreaSegments] = useState<OrderAreaSegmentDraft[]>([]);
+  const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
-  const [, setHistory] = useState<LatLng[][]>(isPublicPlanner ? [] : [DEFAULT_POLYGON]);
+  const [, setHistory] = useState<LatLng[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [flyerQuantity, setFlyerQuantity] = useState(isPublicPlanner ? 500 : 10_000);
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
@@ -610,6 +587,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [draftStatus, setDraftStatus] = useState("Entwurf wird vorbereitet");
   const [finishStatus, setFinishStatus] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
+  const [repeatPrintChoice, setRepeatPrintChoice] = useState<"pending" | "same" | "changed" | null>(null);
+  const [repeatOriginalPrintDataStatus, setRepeatOriginalPrintDataStatus] = useState("UPLOAD_LATER");
   const [overviewOffset, setOverviewOffset] = useState({ x: 0, y: 0 });
   const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
   const mapsBoundaryMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "";
@@ -807,7 +786,21 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const selectBoundaryArea = useCallback((placeId: string) => {
     const area = areas.find((candidate) => candidate.googlePlaceId === placeId);
     if (!area) {
-      setMapNotice("Dieses Gebiet ist noch nicht als FLYERO-Gebiet hinterlegt. Du kannst es zeichnen oder als Anfrage zur Prüfung senden.");
+      const endpoint = isPublicPlanner ? "/api/public/planner/geocode" : "/api/maps/geocode";
+      fetch(`${endpoint}?${new URLSearchParams({ placeId }).toString()}`)
+        .then((response) => response.ok ? response.json() : null)
+        .then((payload) => {
+          const result = payload?.data as LocationResult | null;
+          if (!result) {
+            setMapNotice("Dieses Gebiet konnte nicht geladen werden. Zeichne die genaue Fläche bitte direkt auf der Karte.");
+            return;
+          }
+          setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
+          applyLocationResultRef.current(result, { forceReplace: true });
+          setAreaSelectionMode("boundary");
+          setMapNotice("Ort ausgewählt. Zeichne jetzt die genaue Verteilfläche ein oder wähle ein bereits geprüftes Gebiet.");
+        })
+        .catch(() => setMapNotice("Dieses Gebiet konnte nicht geladen werden. Zeichne die genaue Fläche bitte direkt auf der Karte."));
       return;
     }
     const points = featurePoints(area.geoJson);
@@ -851,7 +844,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setAreaSelectionMode("boundary");
     setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
-  }, [areas]);
+  }, [areas, isPublicPlanner]);
 
   useEffect(() => {
     selectBoundaryAreaRef.current = selectBoundaryArea;
@@ -1052,7 +1045,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
           setFlyerQuantityTouched(true);
           if (draft.flyerSource) setFlyerSource(draft.flyerSource);
-          if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
+          const repeatedPrintDataStatus = draft.printDataStatus ?? "UPLOAD_LATER";
+          setRepeatOriginalPrintDataStatus(repeatedPrintDataStatus);
+          setRepeatPrintChoice("pending");
+          setPrintDataStatus(repeatedPrintDataStatus);
           const repeatedStartDate = clampIsoDate(draft.startDate, minimumStartDate);
           const repeatedEndDate = clampIsoDate(draft.endDate, repeatedStartDate);
           setStartDate(repeatedStartDate);
@@ -1166,28 +1162,53 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         setCenter(matchedCenter);
         setSelectedAreaId(matchedArea.area.id);
         setTargetAreaName(matchedArea.area.name);
+        const currentSegments = areaSegmentsRef.current;
+        const existingSegment = currentSegments.find((segment) => segment.distributionAreaId === matchedArea.area.id);
+        const segmentId = existingSegment?.id ?? activeSegmentId ?? `segment-${Date.now()}`;
+        const nextSegment: OrderAreaSegmentDraft = {
+          id: segmentId,
+          name: matchedArea.area.name,
+          city: matchedArea.area.city ?? "",
+          postalCode: matchedArea.area.postalCode ?? "",
+          district: matchedArea.area.district ?? "",
+          country: "DE",
+          points: matchedArea.points,
+          polygonSource: "saved_area",
+          distributionAreaId: matchedArea.area.id,
+        };
+        const nextSegments = existingSegment
+          ? currentSegments.map((segment) => segment.id === existingSegment.id ? { ...segment, ...nextSegment } : segment)
+          : [...currentSegments, nextSegment];
+        areaSegmentsRef.current = nextSegments;
+        setAreaSegments(nextSegments);
+        setActiveSegmentId(segmentId);
         pushPolygon(matchedArea.points, "saved_area");
         if (!flyerQuantityTouched && matchedArea.area.estimatedFlyers) setFlyerQuantity(matchedArea.area.estimatedFlyers);
       } else {
         setCenter(nextCenter);
         setSelectedAreaId("");
         setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
-        if (isPublicPlanner) {
-          setPolygon([]);
-          setPolygonSource("postal_code");
-          setHistory([]);
-          setHistoryIndex(0);
-          setMapNotice("Gebiet gefunden. Zeichne jetzt den gewünschten Bereich direkt auf der Karte.");
-        } else {
-          pushPolygon(polygonAroundCenter(nextCenter), "postal_code");
-        }
+        setPolygon([]);
+        setPolygonSource("postal_code");
+        setHistory([]);
+        setHistoryIndex(0);
+        setAreaSegments((current) => activeSegmentId
+          ? current.map((segment) => segment.id === activeSegmentId
+            ? { ...segment, points: [], distributionAreaId: undefined, polygonSource: "drawn" }
+            : segment)
+          : current);
+        setMapNotice("Ort gefunden. Klicke jetzt eine markierte Grenze an oder zeichne dein genaues Verteilgebiet auf der Karte.");
         setFlyerQuantityTouched(false);
       }
     }
     setPendingLocation(null);
-  }, [findAreaForLocation, flyerQuantityTouched, isPublicPlanner, polygonSource, pushPolygon]);
+  }, [activeSegmentId, findAreaForLocation, flyerQuantityTouched, polygonSource, pushPolygon]);
 
-  const geocodeAddress = useCallback((input?: string) => {
+  useEffect(() => {
+    applyLocationResultRef.current = applyLocationResult;
+  }, [applyLocationResult]);
+
+  const geocodeAddress = useCallback((input?: string, placeId?: string) => {
     const currentQuery = input ?? searchInputRef.current?.value ?? query;
     const params = new URLSearchParams({
       q: currentQuery,
@@ -1196,6 +1217,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       street,
       houseNumber,
     });
+    if (placeId) params.set("placeId", placeId);
     fetch(`${geocodeEndpoint}?${params.toString()}`)
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => {
@@ -1636,7 +1658,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         lng: suggestion.lng,
       });
     } else {
-      geocodeAddress(suggestion.label);
+      geocodeAddress(suggestion.label, suggestion.source === "google" ? suggestion.id : undefined);
     }
   }
 
@@ -1763,6 +1785,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   }
 
   async function finishOrder(completionPath: "direct_payment" | "inquiry") {
+    if (repeatPrintChoice === "pending") {
+      setActiveStep(2);
+      setFinishStatus("Bitte bestätige zuerst, ob deine Druckdaten unverändert sind.");
+      return;
+    }
     if (isFinishing) return;
     if (!isPublicPlanner && (
       intelligenceStatus !== "live" ||
@@ -1901,7 +1928,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
                 }}
                 onFocus={openSuggestions}
                 onBlur={closeSuggestionsSoon}
-                placeholder="z. B. 56068 Koblenz"
+                placeholder="z. B. PLZ, Ort oder Straße"
                 autoComplete="off"
               />
               <button type="button" onClick={() => geocodeAddress(searchInputRef.current?.value)} aria-label="Adresse suchen"><Search aria-hidden="true" /></button>
@@ -1989,6 +2016,22 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       return (
         <section className="orderPanelBlock inlineStepBlock">
           <p className="orderStepHint">Wähle Format und Menge. Danach entscheidest du, ob FLYERO den Druck übernimmt.</p>
+          {repeatPrintChoice === "pending" ? (
+            <div className="repeatPrintNotice" role="alert">
+              <strong>Sind deine Druckdaten noch aktuell?</strong>
+              <p>Gebiet, Flyerzahl und Format wurden von der letzten Kampagne übernommen.</p>
+              <div className="repeatPrintActions">
+                <button type="button" className="primaryButton" onClick={() => {
+                  setRepeatPrintChoice("same");
+                  setPrintDataStatus(repeatOriginalPrintDataStatus);
+                }}>Druckdaten sind unverändert</button>
+                <button type="button" className="secondaryButton" onClick={() => {
+                  setRepeatPrintChoice("changed");
+                  setPrintDataStatus(flyerSource === "PRINT_SERVICE" ? "PRINT_REQUESTED" : "UPLOAD_LATER");
+                }}>Druckdaten haben sich geändert</button>
+              </div>
+            </div>
+          ) : null}
           <label>
             Flyerformat
             <select value={productFormat} onChange={(event) => setProductFormat(event.target.value)}>

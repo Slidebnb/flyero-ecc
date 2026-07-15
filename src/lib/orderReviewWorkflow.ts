@@ -1,168 +1,137 @@
 import { createAuditLog } from "@/lib/audit";
-import { createInvoiceForOrder } from "@/lib/invoices";
-import { ensurePrintOrderForOrder } from "@/lib/documents";
-import { ensureShipmentForCustomerFlyers } from "@/lib/logistics";
+import { createCheckoutForOrder, refundPayment } from "@/lib/payments";
 import { createNotification } from "@/lib/notifications";
-import { createOrderStatusEvent } from "@/lib/orders";
 import { assertOrderTransition } from "@/lib/orders";
-import { createCheckoutForOrder } from "@/lib/payments";
+import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
+import { approvePaidOrder } from "@/lib/orderApproval";
 import { prisma } from "@/lib/prisma";
 
-function snapshotValue(snapshot: unknown, key: string) {
-  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
-  const value = (snapshot as Record<string, unknown>)[key];
-  return typeof value === "string" ? value : null;
+async function notifyOnce(input: {
+  orderId: string;
+  userId: string;
+  type: string;
+  title: string;
+  message: string;
+}) {
+  const existing = await prisma.notificationMessage.findFirst({
+    where: { userId: input.userId, type: input.type, data: { path: ["orderId"], equals: input.orderId } },
+    select: { id: true },
+  });
+  if (existing) return null;
+  return createNotification({
+    userId: input.userId,
+    type: input.type,
+    title: input.title,
+    message: input.message,
+    data: { orderId: input.orderId },
+  });
 }
 
-function orderNotificationData(order: {
-  id: string;
-  orderNumber: string;
-  targetAreaName: string;
-  city: string;
-  postalCode: string;
-  flyerQuantity: number;
-  calculatedNetPrice: unknown;
-  calculatedVat: unknown;
-  calculatedGrossPrice: unknown;
-  customer: { companyName: string; contactName: string };
-}) {
-  const appUrl = process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  return {
-    customerName: order.customer.contactName,
-    companyName: order.customer.companyName,
-    orderNumber: order.orderNumber,
-    areaName: order.targetAreaName,
-    city: order.city,
-    postalCode: order.postalCode,
-    flyerQuantity: order.flyerQuantity,
-    netAmount: String(order.calculatedNetPrice),
-    vatAmount: String(order.calculatedVat),
-    grossAmount: String(order.calculatedGrossPrice),
-    campaignUrl: `${appUrl}/customer/orders/${order.id}`,
-    paymentUrl: `${appUrl}/customer/payments`,
-    invoiceUrl: `${appUrl}/customer/invoices`,
-    dashboardUrl: `${appUrl}/customer/dashboard`,
-    nextStep: "Bitte oeffne dein Kundenportal.",
-    supportEmail: process.env.SUPPORT_EMAIL ?? "support@flyero.org",
-  };
+async function assertCriticalIntegrity(orderId: string) {
+  const integrity = await getOrderIntegrityCheck(orderId);
+  if (!integrity.quoteMatchesOrder || !integrity.pricingMatchesSnapshot || !integrity.flyerQuantityConsistent || !integrity.polygonReferenceMatches) {
+    const error = new Error("ORDER_INTEGRITY_FAILED");
+    (error as Error & { code?: string }).code = "ORDER_INTEGRITY_FAILED";
+    throw error;
+  }
 }
 
 export async function reviewOrder(input: {
   orderId: string;
   adminUserId: string;
+  adminTenantId?: string | null;
   action: "approve" | "clarification" | "reject";
   note?: string;
   customerMessage?: string;
+  rejectionReason?: string;
 }) {
-  const order = await prisma.order.findUnique({
-    where: { id: input.orderId },
+  const order = await prisma.order.findFirst({
+    where: {
+      id: input.orderId,
+      ...(input.adminTenantId ? { tenantId: input.adminTenantId } : {}),
+    },
     include: { customer: true, payments: { orderBy: { createdAt: "desc" } } },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
-  if ((input.action === "clarification" || input.action === "reject") && !input.customerMessage?.trim() && !input.note?.trim()) {
-    throw new Error("Eine Nachricht für den Kunden ist bei Rückfrage oder Ablehnung erforderlich.");
+  if ((input.action === "clarification" || input.action === "reject") && !input.customerMessage?.trim() && !input.note?.trim() && !input.rejectionReason?.trim()) {
+    throw new Error("Eine Nachricht fuer den Kunden ist bei Rueckfrage oder Ablehnung erforderlich.");
   }
-  if (input.action === "approve" && order.status === "APPROVED") {
-    const paid = order.payments.some((payment) => payment.status === "PAID");
-    if (paid) {
-      await createInvoiceForOrder({ orderId: order.id, adminUserId: input.adminUserId });
-      if (order.customerOwnFlyers) await ensureShipmentForCustomerFlyers({ orderId: order.id, userId: input.adminUserId });
-      if (order.needsPrintService) await ensurePrintOrderForOrder({ orderId: order.id, adminUserId: input.adminUserId });
-    }
-    return order;
-  }
+
   if (input.action === "clarification") {
     assertOrderTransition(order.status, "WAITING_FOR_CUSTOMER");
-    const updated = await prisma.order.update({
-      where: { id: order.id },
-      data: { status: "WAITING_FOR_CUSTOMER", adminCustomerMessage: input.customerMessage ?? input.note },
-    });
-    await createOrderStatusEvent({ orderId: order.id, fromStatus: order.status, toStatus: updated.status, changedBy: input.adminUserId, note: input.note ?? input.customerMessage });
-    await createAuditLog({ userId: input.adminUserId, action: "order.clarification_requested", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: updated.status, message: input.customerMessage ?? input.note } });
-    await createNotification({ userId: order.customer.userId, type: "ORDER_CLARIFICATION_REQUESTED", title: "Rückfrage zu deiner Kampagne", message: input.customerMessage ?? input.note ?? "Bitte ergänze noch Angaben zu deiner Kampagne." });
-    return updated;
-  }
-  if (input.action === "reject") {
-    assertOrderTransition(order.status, "REJECTED");
-    const updated = await prisma.order.update({
-      where: { id: order.id },
-      data: { status: "REJECTED", adminCustomerMessage: input.customerMessage ?? input.note },
-    });
-    await createOrderStatusEvent({ orderId: order.id, fromStatus: order.status, toStatus: updated.status, changedBy: input.adminUserId, note: input.note ?? input.customerMessage });
-    await createAuditLog({ userId: input.adminUserId, action: "order.rejected", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: updated.status }, metadata: { reason: input.customerMessage ?? input.note } });
-    await createNotification({ userId: order.customer.userId, type: "ORDER_REJECTED", title: "Kampagne nicht angenommen", message: input.customerMessage ?? input.note ?? "Deine Kampagne konnte nicht angenommen werden." });
-    return updated;
-  }
-
-  const snapshot = order.priceRuleSnapshot;
-  const paid = order.payments.some((payment) => payment.status === "PAID");
-  const completionPath = snapshotValue(snapshot, "completionPath");
-  const targetStatus = paid ? "APPROVED" : "PAYMENT_PENDING";
-  assertOrderTransition(order.status, targetStatus);
-  const updated = await prisma.$transaction(async (tx) => {
-    const changed = await tx.order.update({
-      where: { id: order.id },
-      data: { status: targetStatus, adminCustomerMessage: input.customerMessage ?? order.adminCustomerMessage },
-    });
-    await tx.orderStatusEvent.create({
-      data: { orderId: order.id, fromStatus: order.status, toStatus: targetStatus, changedBy: input.adminUserId, note: input.note ?? "Adminprüfung abgeschlossen." },
-    });
-    return changed;
-  });
-  await createAuditLog({ userId: input.adminUserId, action: paid ? "order.approved" : "order.accepted_payment_required", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: targetStatus, completionPath } });
-
-  if (paid) {
-    await createInvoiceForOrder({ orderId: order.id, adminUserId: input.adminUserId });
-    let shipmentWarehouse: { name: string; address: unknown } | null = null;
-    if (order.customerOwnFlyers) {
-      const shipment = await ensureShipmentForCustomerFlyers({ orderId: order.id, userId: input.adminUserId });
-      shipmentWarehouse = await prisma.warehouse.findUnique({ where: { id: shipment.warehouseId }, select: { name: true, address: true } });
-    } else {
-      const printOrder = await ensurePrintOrderForOrder({ orderId: order.id, adminUserId: input.adminUserId });
-      await createAuditLog({
-        userId: input.adminUserId,
-        action: "print.order_created_from_approval",
-        entityType: "PrintOrder",
-        entityId: printOrder.id,
-        newValues: { orderId: order.id, quantity: printOrder.quantity },
+    const updated = await prisma.$transaction(async (tx) => {
+      const changed = await tx.order.update({
+        where: { id: order.id },
+        data: { status: "WAITING_FOR_CUSTOMER", adminCustomerMessage: input.customerMessage ?? input.note },
       });
-    }
-    await createNotification({
-      userId: order.customer.userId,
-      type: order.customerOwnFlyers ? "ORDER_APPROVED_CUSTOMER_FLYERS" : "ORDER_APPROVED_PRINT_SERVICE",
-      title: "Deine Kampagne wurde angenommen",
-      message: order.customerOwnFlyers
-        ? `Auftrag ${order.orderNumber} ist angenommen. Bitte sende deine Flyer an das zugewiesene Lager.`
-        : `Auftrag ${order.orderNumber} ist angenommen. FLYERO startet jetzt den Druckprozess.`,
-      data: {
-        ...orderNotificationData(order),
-        warehouseName: shipmentWarehouse?.name ?? null,
-        warehouseAddress: shipmentWarehouse?.address ? JSON.stringify(shipmentWarehouse.address) : null,
-        packageReference: order.orderNumber,
-        nextStep: order.customerOwnFlyers ? "Bitte sende deine Flyer an das zugewiesene Lager." : "FLYERO bereitet den Druck vor.",
-      },
+      await tx.orderStatusEvent.create({
+        data: { orderId: order.id, fromStatus: order.status, toStatus: changed.status, changedBy: input.adminUserId, note: input.note ?? input.customerMessage },
+      });
+      return changed;
     });
-  } else {
-    let paymentUrl: string | null = null;
+    await createAuditLog({ userId: input.adminUserId, action: "order.clarification_requested", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: updated.status } });
+    await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_CLARIFICATION_REQUESTED", title: "Rueckfrage zu deiner Kampagne", message: input.customerMessage ?? input.note ?? "Bitte ergaenze noch Angaben zu deiner Kampagne." });
+    return updated;
+  }
+
+  if (input.action === "reject") {
+    const paidPayment = order.payments.find((payment) => payment.status === "PAID" || payment.status === "PARTIALLY_REFUNDED");
+    if (paidPayment) {
+      await refundPayment({ paymentId: paidPayment.id, adminUserId: input.adminUserId, reason: input.rejectionReason ?? input.customerMessage ?? input.note });
+      await createAuditLog({ userId: input.adminUserId, action: "order.rejected_after_refund", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: "REJECTED" }, metadata: { reason: input.rejectionReason ?? input.customerMessage ?? input.note } });
+      return prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+    }
+    assertOrderTransition(order.status, "REJECTED");
+    const updated = await prisma.$transaction(async (tx) => {
+      const changed = await tx.order.update({
+        where: { id: order.id },
+        data: { status: "REJECTED", adminCustomerMessage: input.customerMessage ?? input.rejectionReason ?? input.note },
+      });
+      await tx.orderStatusEvent.create({
+        data: { orderId: order.id, fromStatus: order.status, toStatus: changed.status, changedBy: input.adminUserId, note: input.note ?? input.customerMessage ?? input.rejectionReason },
+      });
+      return changed;
+    });
+    await createAuditLog({ userId: input.adminUserId, action: "order.rejected", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: updated.status } });
+    await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_REJECTED", title: "Kampagne nicht angenommen", message: input.customerMessage ?? input.rejectionReason ?? input.note ?? "Deine Kampagne konnte nicht angenommen werden." });
+    return updated;
+  }
+
+  await assertCriticalIntegrity(order.id);
+  const paid = order.payments.some((payment) => payment.status === "PAID");
+  if (paid) return approvePaidOrder({ orderId: order.id, actorId: input.adminUserId, reason: input.note });
+  if (order.status === "ACCEPTED_AWAITING_PAYMENT") {
+    let paymentUrl: string | null = order.payments.find((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING"].includes(payment.status))?.checkoutUrl ?? null;
     try {
       const payment = await createCheckoutForOrder({ orderId: order.id, customerUserId: order.customer.userId, tenantId: order.tenantId });
       paymentUrl = payment.checkoutUrl;
     } catch (error) {
-      await createAuditLog({
-        userId: input.adminUserId,
-        action: "order.payment_link_deferred",
-        entityType: "Order",
-        entityId: order.id,
-        newValues: { reason: error instanceof Error ? error.message : "Checkout konnte nicht vorbereitet werden." },
-      });
+      await createAuditLog({ userId: input.adminUserId, action: "order.payment_link_deferred", entityType: "Order", entityId: order.id, newValues: { reason: error instanceof Error ? error.message : "Checkout konnte nicht vorbereitet werden." } });
     }
-    await createNotification({
-      userId: order.customer.userId,
-      type: "ORDER_ACCEPTED_PAYMENT_REQUIRED",
-      data: { ...orderNotificationData(order), paymentUrl: paymentUrl ?? `${process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? ""}/customer/payments`, nextStep: "Zahlung abschließen." },
-      title: "Deine Anfrage wurde angenommen",
-      message: `Auftrag ${order.orderNumber} wurde geprüft. Bitte schließe jetzt die Zahlung im Kundenportal ab, damit die Umsetzung starten kann.`,
-    });
+    await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_ACCEPTED_PAYMENT_REQUIRED", title: "Deine Anfrage wurde angenommen", message: `Auftrag ${order.orderNumber} wurde geprueft. Bitte schliesse jetzt die Zahlung im Kundenportal ab, damit die Umsetzung starten kann.` });
+    return { ...order, paymentUrl };
   }
-  return updated;
+
+  assertOrderTransition(order.status, "ACCEPTED_AWAITING_PAYMENT");
+  const updated = await prisma.$transaction(async (tx) => {
+    const changed = await tx.order.update({
+      where: { id: order.id },
+      data: { status: "ACCEPTED_AWAITING_PAYMENT", adminCustomerMessage: input.customerMessage ?? order.adminCustomerMessage },
+    });
+    await tx.orderStatusEvent.create({
+      data: { orderId: order.id, fromStatus: order.status, toStatus: changed.status, changedBy: input.adminUserId, note: input.note ?? "Anfrage fachlich angenommen; Zahlung steht noch aus." },
+    });
+    return changed;
+  });
+  await createAuditLog({ userId: input.adminUserId, action: "order.accepted_payment_required", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: updated.status } });
+
+  let paymentUrl: string | null = null;
+  try {
+    const payment = await createCheckoutForOrder({ orderId: order.id, customerUserId: order.customer.userId, tenantId: order.tenantId });
+    paymentUrl = payment.checkoutUrl;
+  } catch (error) {
+    await createAuditLog({ userId: input.adminUserId, action: "order.payment_link_deferred", entityType: "Order", entityId: order.id, newValues: { reason: error instanceof Error ? error.message : "Checkout konnte nicht vorbereitet werden." } });
+  }
+  await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_ACCEPTED_PAYMENT_REQUIRED", title: "Deine Anfrage wurde angenommen", message: `Auftrag ${order.orderNumber} wurde geprueft. Bitte schliesse jetzt die Zahlung im Kundenportal ab, damit die Umsetzung starten kann.` });
+  return { ...updated, paymentUrl };
 }

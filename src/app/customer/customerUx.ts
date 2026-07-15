@@ -15,6 +15,7 @@ export const CUSTOMER_ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PAYMENT_FAILED: "Zahlung fehlgeschlagen",
   SUBMITTED: "Anfrage eingereicht",
   UNDER_REVIEW: "Wird geprüft",
+  ACCEPTED_AWAITING_PAYMENT: "Angenommen, Zahlung offen",
   PAID_WAITING_FOR_ADMIN_REVIEW: "Bezahlt, wird geprüft",
   WAITING_FOR_CUSTOMER: "Rückfrage offen",
   APPROVED: "Freigegeben",
@@ -139,13 +140,14 @@ export function customerTicketName(ticketNumber: string) {
 export function customerOrderTone(status: OrderStatus): CustomerTone {
   if (["DISTRIBUTION_APPROVED", "REPORT_READY_PREVIEW"].includes(status)) return "success";
   if (["PAYMENT_FAILED", "REJECTED", "CANCELLED"].includes(status)) return "danger";
-  if (["PAYMENT_PENDING", "WAITING_FOR_CUSTOMER", "PAID_WAITING_FOR_ADMIN_REVIEW", "READY_FOR_FLYERS"].includes(status)) return "warning";
+  if (["PAYMENT_PENDING", "ACCEPTED_AWAITING_PAYMENT", "WAITING_FOR_CUSTOMER", "PAID_WAITING_FOR_ADMIN_REVIEW", "READY_FOR_FLYERS"].includes(status)) return "warning";
   return "neutral";
 }
 
 export function customerOrderAction(status: OrderStatus, orderId: string) {
   if (status === "READY_FOR_FLYERS") return { href: "/customer/documents", label: "Druckdaten hochladen" };
   if (status === "PAYMENT_PENDING") return { href: `/customer/orders/${orderId}`, label: "Zahlung abschließen" };
+  if (status === "ACCEPTED_AWAITING_PAYMENT") return { href: `/customer/orders/${orderId}`, label: "Zahlung abschließen" };
   if (status === "PAYMENT_FAILED") return { href: `/customer/orders/${orderId}`, label: "Zahlung erneut versuchen" };
   if (status === "REPORT_READY_PREVIEW" || status === "DISTRIBUTION_APPROVED") return { href: "/customer/reports", label: "Bericht ansehen" };
   if (status === "READY_FOR_DISTRIBUTION" || status === "READY_FOR_PICKUP") return { href: `/customer/orders/${orderId}`, label: "Fortschritt ansehen" };
@@ -155,6 +157,7 @@ export function customerOrderAction(status: OrderStatus, orderId: string) {
 
 export function customerOrderPlainNextStep(status: OrderStatus) {
   if (status === "PAYMENT_PENDING") return "Zahlung abschließen, damit FLYERO prüfen kann.";
+  if (status === "ACCEPTED_AWAITING_PAYMENT") return "Deine Anfrage ist angenommen. Schließe jetzt die Zahlung ab.";
   if (status === "PAYMENT_FAILED") return "Zahlung erneut versuchen oder Anfrage senden.";
   if (status === "READY_FOR_FLYERS") return "Flyerdatei hochladen oder Druck über FLYERO anfragen.";
   if (status === "WAITING_FOR_CUSTOMER") return "FLYERO wartet auf eine Rückmeldung von Ihnen.";

@@ -5,6 +5,9 @@ const files = [
   "src/app/api/customer/orders/route.ts",
   "src/app/api/payments/checkout/route.ts",
   "src/app/api/admin/orders/[id]/status/route.ts",
+  "src/lib/orderReviewWorkflow.ts",
+  "src/lib/orderApproval.ts",
+  "src/lib/payments.ts",
   "src/lib/reports.ts",
   "src/lib/dispatch.ts",
 ];

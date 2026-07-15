@@ -145,10 +145,16 @@ export async function sendNotificationMessage(queueId: string) {
     return markAsFailed(queue.id, new Error("Maximale Retry-Anzahl erreicht."));
   }
 
-  await prisma.notificationQueue.update({
-    where: { id: queue.id },
+  const claim = await prisma.notificationQueue.updateMany({
+    where: {
+      id: queue.id,
+      status: { in: sendableStatuses },
+    },
     data: { status: NotificationQueueStatus.SENDING },
   });
+  if (claim.count !== 1) {
+    return (await getQueueItem(queue.id)) ?? queue;
+  }
 
   try {
     const payload = queuePayload(queue);

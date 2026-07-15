@@ -95,6 +95,7 @@ enum OrderStatus {
   PAYMENT_FAILED
   SUBMITTED
   UNDER_REVIEW
+  ACCEPTED_AWAITING_PAYMENT
   PAID_WAITING_FOR_ADMIN_REVIEW
   WAITING_FOR_CUSTOMER
   APPROVED
@@ -1163,6 +1164,7 @@ model OrderDistributionSegment {
   distributionArea  DistributionArea? @relation(fields: [distributionAreaId], references: [id], onDelete: SetNull)
   assignedWarehouse Warehouse?       @relation("AssignedWarehouseSegments", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
   tours             DistributionTour[]
+  assignments       DispatchAssignment[]
 
   @@unique([orderId, sortOrder])
   @@index([orderId, sortOrder])
@@ -1498,6 +1500,7 @@ model DistributionTour {
 model DispatchAssignment {
   id                  String                   @id @default(cuid())
   orderId             String
+  segmentId           String?
   inventoryId         String?
   distributorId       String
   assignedBy          String?
@@ -1515,11 +1518,13 @@ model DispatchAssignment {
   updatedAt           DateTime                 @updatedAt
 
   order          Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  segment        OrderDistributionSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
   inventory      WarehouseInventory? @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
   distributor    DistributorProfile  @relation(fields: [distributorId], references: [id], onDelete: Restrict)
   assignedByUser User?               @relation("DispatchAssignedBy", fields: [assignedBy], references: [id], onDelete: SetNull)
 
   @@index([orderId, status])
+  @@index([segmentId, status])
   @@index([inventoryId, status])
   @@index([distributorId, status])
   @@index([assignedBy, assignedAt])

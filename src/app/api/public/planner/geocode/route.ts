@@ -14,12 +14,14 @@ export async function GET(request: Request) {
       city: z.string().trim().max(80).optional(),
       street: z.string().trim().max(120).optional(),
       houseNumber: z.string().trim().max(20).optional(),
+      placeId: z.string().trim().max(160).optional(),
     }).safeParse({
       q: params.get("q") ?? undefined,
       postalCode: params.get("postalCode") ?? undefined,
       city: params.get("city") ?? undefined,
       street: params.get("street") ?? undefined,
       houseNumber: params.get("houseNumber") ?? undefined,
+      placeId: params.get("placeId") ?? undefined,
     });
     if (!query.success) return errorResponse("Die Adresse konnte nicht verarbeitet werden.", 400);
     const data = await geocodeSmartAddress({
@@ -28,6 +30,7 @@ export async function GET(request: Request) {
       city: query.data.city,
       street: query.data.street,
       houseNumber: query.data.houseNumber,
+      placeId: query.data.placeId,
     }, { publicOnly: true });
     if (!data) return errorResponse("Diese Adresse konnte nicht gefunden werden. Bitte prüfe die Eingabe oder zeichne das Gebiet direkt auf der Karte.", 422);
     return Response.json({ ok: true, data });

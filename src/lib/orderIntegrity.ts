@@ -52,12 +52,18 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
   const currentPrice = await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity });
   const quoteInput = record(snapshot.quote.input);
   const quoteFingerprint = typeof snapshot.quote.fingerprint === "string" ? snapshot.quote.fingerprint : "";
+  const targetAddress = record(order.targetAddress);
+  const targetAddressStreet = typeof targetAddress.street === "string" ? targetAddress.street : null;
+  const quotedStreet = typeof quoteInput.street === "string" ? quoteInput.street : null;
+  const normalizedStreet = quotedStreet === "" && targetAddressStreet === order.targetAreaName
+    ? ""
+    : targetAddressStreet;
   const currentFingerprint = buildPlanningInputFingerprint({
     flyerQuantity: order.flyerQuantity,
     city: order.city,
     postalCode: order.postalCode,
-    street: typeof record(order.targetAddress).street === "string" ? record(order.targetAddress).street as string : null,
-    houseNumber: typeof record(order.targetAddress).houseNumber === "string" ? record(order.targetAddress).houseNumber as string : null,
+    street: normalizedStreet,
+    houseNumber: typeof targetAddress.houseNumber === "string" ? targetAddress.houseNumber as string : null,
     flyerSource: order.customerOwnFlyers ? "CUSTOMER_OWN" : "PRINT_SERVICE",
     productFormat: typeof snapshot.root.productFormat === "string" ? snapshot.root.productFormat : null,
     pricingRuleSignature: currentPrice.snapshot.pricingRuleSignature,

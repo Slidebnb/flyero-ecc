@@ -409,9 +409,12 @@ export async function assignOrderToDistributor(input: {
   }
 
   const recommendation = await distributorSnapshot(distributor, inventory);
+  const segmentCount = await prisma.orderDistributionSegment.count({ where: { orderId: input.orderId } });
+  const isMultiSegmentOrder = segmentCount > 1;
   const previousActive = await prisma.dispatchAssignment.findMany({
     where: {
       orderId: input.orderId,
+      ...(input.segmentId ? { segmentId: input.segmentId } : {}),
       status: { in: ACTIVE_ASSIGNMENT_STATUSES },
     },
   });
@@ -435,6 +438,7 @@ export async function assignOrderToDistributor(input: {
     await tx.distributionTour.updateMany({
       where: {
         orderId: input.orderId,
+        ...(input.segmentId ? { segmentId: input.segmentId } : {}),
         status: { in: [...ACTIVE_TOUR_STATUSES] },
       },
       data: { status: "CANCELLED" },
@@ -443,6 +447,7 @@ export async function assignOrderToDistributor(input: {
     const nextAssignment = await tx.dispatchAssignment.create({
       data: {
         orderId: input.orderId,
+        segmentId: input.segmentId ?? null,
         inventoryId: inventory.id,
         distributorId: input.distributorId,
         assignedBy: input.adminUserId,
@@ -464,13 +469,13 @@ export async function assignOrderToDistributor(input: {
 
     await tx.order.update({
       where: { id: input.orderId },
-      data: { assignedDistributorId: input.distributorId },
+      data: { assignedDistributorId: isMultiSegmentOrder ? null : input.distributorId },
     });
 
     await tx.warehouseInventory.update({
       where: { id: inventory.id },
       data: {
-        reservedDistributorId: input.distributorId,
+        reservedDistributorId: isMultiSegmentOrder ? null : input.distributorId,
         pickupStatus: "RESERVED",
       },
     });
@@ -535,7 +540,9 @@ export async function acceptDispatchOrder(input: { orderId: string; distributorU
     throw new Error("Keine offene Dispatch-Anfrage gefunden.");
   }
   if (assignment.status === "ACCEPTED") return assignment;
-  if (assignment.inventory?.reservedDistributorId && assignment.inventory.reservedDistributorId !== profile.id) {
+  const segmentCount = await prisma.orderDistributionSegment.count({ where: { orderId: input.orderId } });
+  const isMultiSegmentOrder = segmentCount > 1;
+  if (!isMultiSegmentOrder && assignment.inventory?.reservedDistributorId && assignment.inventory.reservedDistributorId !== profile.id) {
     throw new Error("Dieser Auftrag ist bereits für einen anderen Verteiler reserviert.");
   }
 
@@ -544,7 +551,7 @@ export async function acceptDispatchOrder(input: { orderId: string; distributorU
       where: { id: assignment.id },
       data: { status: "ACCEPTED", acceptedAt: new Date() },
     });
-    if (assignment.inventoryId) {
+    if (assignment.inventoryId && !isMultiSegmentOrder) {
       await tx.warehouseInventory.update({
         where: { id: assignment.inventoryId },
         data: { reservedDistributorId: profile.id, pickupStatus: "RESERVED" },
@@ -554,13 +561,14 @@ export async function acceptDispatchOrder(input: { orderId: string; distributorU
       where: {
         orderId: input.orderId,
         distributorId: profile.id,
+        ...(assignment.segmentId ? { segmentId: assignment.segmentId } : {}),
         status: "ASSIGNED",
       },
       data: { status: "READY" },
     });
     await tx.order.update({
       where: { id: input.orderId },
-      data: { assignedDistributorId: profile.id },
+      data: { assignedDistributorId: isMultiSegmentOrder ? null : profile.id },
     });
     return accepted;
   });
@@ -601,6 +609,8 @@ export async function rejectDispatchOrder(input: {
     throw new Error("Keine offene Dispatch-Anfrage gefunden.");
   }
   if (assignment.status === "REJECTED") return assignment;
+  const segmentCount = await prisma.orderDistributionSegment.count({ where: { orderId: input.orderId } });
+  const isMultiSegmentOrder = segmentCount > 1;
 
   const updated = await prisma.$transaction(async (tx) => {
     const rejected = await tx.dispatchAssignment.update({
@@ -616,7 +626,7 @@ export async function rejectDispatchOrder(input: {
       where: { id: input.orderId },
       data: { assignedDistributorId: null },
     });
-    if (assignment.inventoryId) {
+    if (assignment.inventoryId && !isMultiSegmentOrder) {
       await tx.warehouseInventory.update({
         where: { id: assignment.inventoryId },
         data: { reservedDistributorId: null, pickupStatus: "PREPARED" },
@@ -626,6 +636,7 @@ export async function rejectDispatchOrder(input: {
       where: {
         orderId: input.orderId,
         distributorId: profile.id,
+        ...(assignment.segmentId ? { segmentId: assignment.segmentId } : {}),
         status: { in: ["ASSIGNED", "READY"] },
       },
       data: { status: "CANCELLED" },

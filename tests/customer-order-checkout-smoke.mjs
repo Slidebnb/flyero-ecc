@@ -179,7 +179,7 @@ try {
     "Jetzt buchen und bezahlen",
     "Unverbindlich anfragen",
     "Anfrageformular herunterladen",
-    "Die Buchung wird nach Zahlung durch FLYERO geprüft.",
+    "Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist.",
     "GPS-Nachweis",
     "Foto-Dokumentation",
     "PDF-Bericht",

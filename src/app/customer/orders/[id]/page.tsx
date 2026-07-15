@@ -18,7 +18,7 @@ import {
 } from "@/lib/constants";
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { warehouseAddressText } from "@/lib/logistics";
-import { getOrderGrossPrice } from "@/lib/pricing";
+import { getOrderPriceBreakdown } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 type PageProps = {
@@ -56,6 +56,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
   if (!order) notFound();
 
   const latestPayment = order.payments[0] ?? null;
+  const price = getOrderPriceBreakdown(order);
   const customerShipment = order.logisticsShipments[0] ?? null;
   const action = customerOrderAction(order.status, order.id);
   const warehouseLabel = order.assignedWarehouse ? `${order.assignedWarehouse.name}, ${warehouseAddressText(order.assignedWarehouse)}` : "Wird von FLYERO zugewiesen";
@@ -129,8 +130,16 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
           <strong><StatusBadge tone={customerOrderTone(order.status)}>{CUSTOMER_ORDER_STATUS_LABELS[order.status]}</StatusBadge></strong>
         </article>
         <article>
-          <span>Preis</span>
-          <strong>{formatCurrency(getOrderGrossPrice(order))}</strong>
+          <span>Gesamt brutto</span>
+          <strong>{formatCurrency(price.gross)}</strong>
+        </article>
+        <article>
+          <span>Netto</span>
+          <strong>{formatCurrency(price.net)}</strong>
+        </article>
+        <article>
+          <span>MwSt. 19 %</span>
+          <strong>{formatCurrency(price.vat)}</strong>
         </article>
         <article>
           <span>Flyer</span>
@@ -178,7 +187,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
       </div>
 
       <DataSection title="Verteilgebiet" description="Gebietsdaten werden vor der Verteilung durch FLYERO geprüft.">
-        <DistributionAreaPreviewMap geoJson={order.distributionArea?.geoJson ?? order.targetAreaGeoJson} />
+        <DistributionAreaPreviewMap geoJson={order.targetAreaGeoJson ?? order.distributionArea?.geoJson} />
         <div className="customerFactList compact">
           <p><span>Haushalte</span><strong>{order.estimatedHouseholds ?? order.distributionArea?.estimatedHouseholds ?? "Wird geprüft"}</strong></p>
           <p><span>Fläche</span><strong>{order.coverageAreaSqm ? `${Number(order.coverageAreaSqm).toLocaleString("de-DE")} m²` : "Wird geprüft"}</strong></p>

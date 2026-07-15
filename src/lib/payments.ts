@@ -9,6 +9,8 @@ import { calculateOrderPrice, calculatePriceFromNet, withCurrentPricingSnapshot 
 import { getVatRate } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getCustomerProfileCompleteness, type BillingProfileField } from "@/lib/customerProfileCompleteness";
+import { approvePaidOrder } from "@/lib/orderApproval";
+import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
 
 const PROVIDER_CODE = "stripe";
 
@@ -183,11 +185,17 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
+  const integrity = await getOrderIntegrityCheck(order.id);
+  if (!integrity.quoteMatchesOrder || !integrity.pricingMatchesSnapshot || !integrity.flyerQuantityConsistent || !integrity.polygonReferenceMatches) {
+    const error = new Error("ORDER_INTEGRITY_FAILED");
+    (error as Error & { code?: string }).code = "ORDER_INTEGRITY_FAILED";
+    throw error;
+  }
   const profileCompleteness = getCustomerProfileCompleteness(order.customer);
   if (!profileCompleteness.complete) {
     throw new CustomerProfileIncompleteError(order.id, profileCompleteness.missingFields);
   }
-  if (!["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "SUBMITTED"].includes(order.status)) {
+  if (!["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "SUBMITTED", "ACCEPTED_AWAITING_PAYMENT"].includes(order.status)) {
     throw new Error("Fuer diesen Auftrag kann kein neuer Checkout gestartet werden.");
   }
 
@@ -321,7 +329,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
   });
   await addPaymentHistory({ paymentId: payment.id, fromStatus: payment.status, toStatus: "CHECKOUT_CREATED", reason: "stripe_checkout_created" });
 
-  if (order.status !== "PAYMENT_PENDING") {
+  if (order.status !== "PAYMENT_PENDING" && order.status !== "ACCEPTED_AWAITING_PAYMENT") {
     await prisma.order.update({ where: { id: order.id }, data: { status: "PAYMENT_PENDING" } });
     await createOrderStatusEvent({
       orderId: order.id,
@@ -385,8 +393,9 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
       metadata: toJson(session.metadata ?? {}),
     },
   });
+  const wasAlreadyPaid = currentPayment.status === "PAID";
 
-  const paidPayment = await prisma.payment.update({
+  const paidPayment = wasAlreadyPaid ? currentPayment : await prisma.payment.update({
     where: { id: currentPayment.id },
     data: {
       status: "PAID",
@@ -399,11 +408,14 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
       metadata: toJson(session.metadata ?? {}),
     },
   });
-  if (currentPayment.status !== "PAID") {
+  if (!wasAlreadyPaid) {
     await addPaymentHistory({ paymentId: paidPayment.id, fromStatus: currentPayment.status, toStatus: "PAID", reason: "checkout.session.completed" });
   }
 
-  if (order.status !== "PAID_WAITING_FOR_ADMIN_REVIEW" && order.status !== "APPROVED") {
+  const acceptedAwaitingPayment = order.status === "ACCEPTED_AWAITING_PAYMENT";
+  if (acceptedAwaitingPayment) {
+    await approvePaidOrder({ orderId: order.id, reason: "Zahlung nach fachlicher Anfrageannahme." });
+  } else if (!wasAlreadyPaid && order.status !== "PAID_WAITING_FOR_ADMIN_REVIEW" && order.status !== "APPROVED") {
     await prisma.order.update({ where: { id: order.id }, data: { status: "PAID_WAITING_FOR_ADMIN_REVIEW" } });
     await createOrderStatusEvent({
       orderId: order.id,
@@ -419,17 +431,21 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     entityId: paidPayment.id,
     newValues: { orderId: order.id, sessionId: session.id, amount: paidPayment.amount.toString() },
   });
-  await createNotification({
+  if (!wasAlreadyPaid) {
+    await createNotification({
     userId: order.customer.userId,
     type: "PAYMENT_SUCCESS",
     title: "Zahlung erfolgreich",
     message: `Deine Zahlung für ${order.orderNumber} ist eingegangen.`,
   });
-  await notifyAdmins({
+    await notifyAdmins({
     type: "PAYMENT_COMPLETED",
-    title: "Neue bezahlte Bestellung",
-    message: `Auftrag ${order.orderNumber} wurde bezahlt und wartet auf Prüfung.`,
-  });
+    title: acceptedAwaitingPayment ? "Angenommene Kampagne bezahlt" : "Neue bezahlte Bestellung",
+    message: acceptedAwaitingPayment
+      ? `Auftrag ${order.orderNumber} wurde bezahlt und automatisch freigegeben.`
+      : `Auftrag ${order.orderNumber} wurde bezahlt und wartet auf Prüfung.`,
+    });
+  }
 
   return paidPayment;
 }
@@ -448,7 +464,7 @@ export async function markPaymentFailed(input: { orderId?: string; sessionId?: s
   });
   if (!payment) return null;
   const failed = await updatePaymentStatus(payment, "FAILED", input.reason);
-  if (payment.order.status !== "PAYMENT_FAILED") {
+  if (payment.order.status !== "PAYMENT_FAILED" && payment.order.status !== "ACCEPTED_AWAITING_PAYMENT") {
     await prisma.order.update({ where: { id: payment.orderId }, data: { status: "PAYMENT_FAILED" } });
     await createOrderStatusEvent({
       orderId: payment.orderId,

@@ -138,6 +138,31 @@ export function getOrderGrossPrice(input: {
   return calculatePriceFromNet(String(input.manualPriceOverride), vatRate).gross;
 }
 
+export function getOrderPriceBreakdown(input: {
+  calculatedNetPrice: unknown;
+  calculatedVat: unknown;
+  calculatedGrossPrice: unknown;
+  manualPriceOverride?: unknown;
+  priceRuleSnapshot?: unknown;
+}) {
+  const snapshot = input.priceRuleSnapshot && typeof input.priceRuleSnapshot === "object" && !Array.isArray(input.priceRuleSnapshot)
+    ? input.priceRuleSnapshot as Record<string, unknown>
+    : {};
+  if (input.manualPriceOverride !== null && input.manualPriceOverride !== undefined) {
+    const vatRate = typeof snapshot.manualVatRate === "string" || typeof snapshot.manualVatRate === "number"
+      ? snapshot.manualVatRate
+      : typeof snapshot.vatRate === "string" || typeof snapshot.vatRate === "number" ? snapshot.vatRate : "0.19";
+    const manual = calculatePriceFromNet(String(input.manualPriceOverride), vatRate);
+    return { ...manual, isManualOverride: true };
+  }
+  return {
+    net: decimal(String(input.calculatedNetPrice ?? "0")),
+    vat: decimal(String(input.calculatedVat ?? "0")),
+    gross: decimal(String(input.calculatedGrossPrice ?? "0")),
+    isManualOverride: false,
+  };
+}
+
 function activeRuleValidationMessage(rules: PricingRuleChange[]) {
   const ordered = [...rules].sort((left, right) => left.minQuantity - right.minQuantity);
   if (!ordered.length) return "Mindestens eine aktive Preisregel ist erforderlich.";

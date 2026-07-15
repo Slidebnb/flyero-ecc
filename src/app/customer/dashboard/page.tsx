@@ -74,12 +74,12 @@ function evidenceState(order: DashboardOrder | null, report: DashboardReport | n
 }
 
 function evidenceGeoJson(order: DashboardOrder | null, report: DashboardReport | null) {
-  return report?.order.distributionArea?.geoJson
+  return report?.order.targetAreaGeoJson
+    ?? report?.order.distributionArea?.geoJson
     ?? report?.order.distributionArea?.geometryGeoJson
-    ?? report?.order.targetAreaGeoJson
+    ?? order?.targetAreaGeoJson
     ?? order?.distributionArea?.geoJson
     ?? order?.distributionArea?.geometryGeoJson
-    ?? order?.targetAreaGeoJson
     ?? null;
 }
 

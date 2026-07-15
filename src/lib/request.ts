@@ -65,5 +65,9 @@ export function routeErrorResponse(error: unknown) {
     return errorResponse(error.message, error.status);
   }
 
+  if (error instanceof Error && (error as Error & { code?: string }).code === "ORDER_INTEGRITY_FAILED") {
+    return Response.json({ ok: false, code: "ORDER_INTEGRITY_FAILED", error: "Die Kampagne konnte nicht freigegeben werden, weil gespeicherte Gebiets- oder Preisdaten nicht mehr zusammenpassen. Bitte lasse sie durch FLYERO prüfen." }, { status: 409 });
+  }
+
   throw error;
 }

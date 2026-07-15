@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { createDistributionArea, linkAreaReferenceToOrder } from "@/lib/areas";
@@ -9,6 +10,7 @@ import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderUpdateSchema } from "@/lib/validators";
+import { notifyAdmins } from "@/lib/notifications";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -17,7 +19,10 @@ type RouteContext = {
 async function getCustomerOrder(userId: string, tenantId: string, orderId: string) {
   return prisma.order.findFirst({
     where: { id: orderId, tenantId, customer: { userId, tenantId } },
-    include: { statusEvents: { orderBy: { createdAt: "asc" } } },
+    include: {
+      statusEvents: { orderBy: { createdAt: "asc" } },
+      payments: { select: { id: true, status: true, stripeCheckoutSessionId: true } },
+    },
   });
 }
 
@@ -47,6 +52,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return errorResponse("Auftrag wurde nicht gefunden.", 404);
     }
 
+    const paid = order.payments.some((payment) => ["PAID", "PARTIALLY_REFUNDED", "REFUNDED"].includes(payment.status));
+    if (paid) {
+      return Response.json({ ok: false, code: "PAID_ORDER_REQUIRES_ADMIN_CHANGE", error: "Diese Kampagne wurde bereits bezahlt. Änderungen an Gebiet, Menge oder Leistung müssen durch das FLYERO-Team geprüft werden." }, { status: 409 });
+    }
     if (order.status !== "DRAFT" && order.status !== "WAITING_FOR_CUSTOMER") {
       return errorResponse("Dieser Auftrag kann vom Kunden nicht mehr bearbeitet werden.", 409);
     }
@@ -57,6 +66,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     const data = parsed.data;
+    const isCustomerCorrection = order.status === "WAITING_FOR_CUSTOMER";
     let areaSelection = null;
     try {
       areaSelection = data.areaSegments ? aggregateOrderAreaSegments(data.areaSegments) : null;
@@ -91,13 +101,13 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         data: { quote: intelligence.metrics.quote },
       }, { status: 409 });
     }
-    let distributionAreaId = data.distributionAreaId ?? order.distributionAreaId ?? null;
+    let distributionAreaId = isCustomerCorrection ? null : data.distributionAreaId ?? order.distributionAreaId ?? null;
     const customer = await prisma.customerProfile.findUnique({
       where: { userId: session.id, tenantId: session.tenantId },
       select: { id: true },
     });
 
-    if (!distributionAreaId && customer) {
+    if (!distributionAreaId && customer && !isCustomerCorrection) {
       const area = await createDistributionArea({
         userId: session.id,
         customerId: customer.id,
@@ -124,11 +134,12 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       serviceType: data.serviceType,
       flyerQuantity: data.flyerQuantity,
     });
-    const nextStatus = data.status ?? "PAYMENT_PENDING";
+    const nextStatus = isCustomerCorrection ? "UNDER_REVIEW" : data.status ?? "PAYMENT_PENDING";
 
-    const updated = await prisma.order.update({
-      where: { id },
-      data: {
+    const updated = await prisma.$transaction(async (tx) => {
+      const changed = await tx.order.update({
+        where: { id },
+        data: {
         status: nextStatus,
         serviceType: data.serviceType,
         city: primarySegment?.city ?? data.city,
@@ -144,7 +155,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         targetLng: data.centerLng ?? undefined,
         distributionAreaId,
         targetAreaName: data.targetAreaName,
-        targetAreaGeoJson: targetAreaGeoJson ?? undefined,
+        targetAreaGeoJson: isCustomerCorrection ? targetAreaGeoJson ?? Prisma.JsonNull : targetAreaGeoJson ?? undefined,
         estimatedHouseholds: intelligence.metrics.households ?? null,
         estimatedFlyers: data.flyerQuantity,
         estimatedDistanceMeters: intelligence.metrics.routeDistanceMeters ?? null,
@@ -178,7 +189,63 @@ export async function PUT(request: NextRequest, context: RouteContext) {
             productFormat: data.productFormat,
           },
         }),
-      },
+        },
+      });
+      if (isCustomerCorrection) {
+        const openPayments = await tx.payment.findMany({
+          where: { orderId: id, status: { in: ["CREATED", "CHECKOUT_CREATED", "PENDING"] } },
+          select: { id: true, status: true },
+        });
+        if (openPayments.length) {
+          await tx.payment.updateMany({
+            where: { id: { in: openPayments.map((payment) => payment.id) } },
+            data: { status: "CANCELLED", cancelledAt: new Date() },
+          });
+          await tx.paymentStatusHistory.createMany({
+            data: openPayments.map((payment) => ({
+              paymentId: payment.id,
+              fromStatus: payment.status,
+              toStatus: "CANCELLED" as const,
+              reason: "Kundenkorrektur hat den bisherigen Zahlungslink ungueltig gemacht.",
+            })),
+          });
+        }
+        await tx.orderDistributionSegment.deleteMany({ where: { orderId: id } });
+        if (areaSelection) {
+          await tx.orderDistributionSegment.createMany({
+            data: areaSelection.segments.map((segment, index) => {
+              const intelligenceSegment = intelligence.metrics.segments?.[index];
+              const warehouseMatch = intelligence.metrics.warehouseMatches?.[index];
+              return {
+                orderId: id,
+                sortOrder: segment.sortOrder,
+                name: segment.name,
+                city: segment.city,
+                postalCode: segment.postalCode,
+                district: segment.district,
+                country: segment.country,
+                geometryGeoJson: segment.geometryGeoJson as Prisma.InputJsonValue,
+                centerLat: segment.centerLat,
+                centerLng: segment.centerLng,
+                areaSqm: new Prisma.Decimal(segment.areaSqm),
+                estimatedHouseholds: intelligenceSegment?.households ?? null,
+                flyerQuantity: segment.flyerQuantity,
+                dataSource: intelligenceSegment?.householdCountSource ?? null,
+                dataSourceType: "ESTIMATED" as const,
+                confidence: intelligenceSegment?.confidence === "high"
+                  ? new Prisma.Decimal("1")
+                  : intelligenceSegment?.confidence === "medium" ? new Prisma.Decimal("0.6") : new Prisma.Decimal("0.3"),
+                warehouseMatchStatus: warehouseMatch?.matchedRegion ? "MATCHED" : "MANUAL_REVIEW",
+                warehouseAssignmentReason: warehouseMatch?.reason ?? null,
+                assignedWarehouseId: warehouseMatch?.matchedRegion ? warehouseMatch.warehouse?.id ?? null : null,
+                distributionAreaId: null,
+                notes: segment.notes,
+              };
+            }),
+          });
+        }
+      }
+      return changed;
     });
 
     if (order.status !== updated.status) {
@@ -187,6 +254,24 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         fromStatus: order.status,
         toStatus: updated.status,
         changedBy: session.id,
+      });
+    }
+
+    if (isCustomerCorrection) {
+      await createAuditLog({
+        userId: session.id,
+        action: "order.customer_correction_submitted",
+        entityType: "Order",
+        entityId: updated.id,
+        oldValues: { status: order.status, distributionAreaId: order.distributionAreaId },
+        newValues: { status: updated.status, distributionAreaId: null, segmentCount: areaSelection?.segments.length ?? 0 },
+        tenantId: session.tenantId,
+      });
+      await notifyAdmins({
+        type: "ORDER_CORRECTION_SUBMITTED",
+        title: "Kundenkorrektur eingegangen",
+        message: `${updated.orderNumber}: Der Kunde hat Gebiet oder Auftragsdaten korrigiert. Neue Prüfung erforderlich.`,
+        data: { orderId: updated.id },
       });
     }
 
@@ -199,7 +284,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       newValues: { status: updated.status, flyerQuantity: updated.flyerQuantity },
       tenantId: session.tenantId,
     });
-    if (distributionAreaId) {
+    if (distributionAreaId && !isCustomerCorrection) {
       await linkAreaReferenceToOrder({ orderId: updated.id, areaId: distributionAreaId, userId: session.id });
     }
 
@@ -225,8 +310,13 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       return errorResponse("Auftrag wurde nicht gefunden.", 404);
     }
 
-    if (order.status !== "DRAFT") {
-      return errorResponse("Nur Entwürfe können gelöscht werden.", 409);
+    const settledPayment = order.payments.some((payment) => ["PAID", "PARTIALLY_REFUNDED", "REFUNDED"].includes(payment.status));
+    if (settledPayment) {
+      return errorResponse("Bezahlte Kampagnen können nicht gelöscht werden.", 409);
+    }
+
+    if (!["DRAFT", "PAYMENT_PENDING", "PAYMENT_FAILED"].includes(order.status)) {
+      return errorResponse("Diese Kampagne kann nicht mehr gelöscht werden.", 409);
     }
 
     await prisma.order.delete({ where: { id } });

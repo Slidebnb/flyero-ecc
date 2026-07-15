@@ -1,6 +1,7 @@
 import { SmartOrderWizard } from "@/app/customer/orders/new/SmartOrderWizard";
 import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
+import { productionAreaWhere } from "@/lib/productionData";
 import { MobileMenu } from "@/app/components/MobileMenu";
 
 export default async function NewCustomerOrderPage() {
@@ -11,6 +12,7 @@ export default async function NewCustomerOrderPage() {
       reusable: true,
       status: "ACTIVE",
       OR: [{ tenantId: null }, { tenantId: session.tenantId }],
+      ...productionAreaWhere(),
     },
     orderBy: [{ city: "asc" }, { name: "asc" }],
     select: {

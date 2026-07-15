@@ -13,6 +13,7 @@ import { requireTenantSession } from "@/lib/tenant";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { getOrderGrossPrice } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { OrderDeleteButton } from "@/app/customer/orders/OrderDeleteButton";
 
 export default async function CustomerOrdersPage() {
   const session = await requireTenantSession();
@@ -58,7 +59,12 @@ export default async function CustomerOrdersPage() {
                     <span>{formatCurrency(getOrderGrossPrice(order))}</span>
                   </div>
                 </div>
-                <Link className="primaryButton" href={action.href}>{action.label}</Link>
+                <div className="customerCampaignActions">
+                  <Link className="primaryButton" href={action.href}>{action.label}</Link>
+                  {["DRAFT", "PAYMENT_PENDING", "PAYMENT_FAILED"].includes(order.status) ? (
+                    <OrderDeleteButton orderId={order.id} orderLabel={customerOrderName(order.orderNumber)} />
+                  ) : null}
+                </div>
               </article>
             );
           })}

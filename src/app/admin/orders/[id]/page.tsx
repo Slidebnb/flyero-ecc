@@ -12,7 +12,7 @@ import {
 import { getSuitableDistributors } from "@/lib/dispatch";
 import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
-import { getOrderGrossPrice } from "@/lib/pricing";
+import { getOrderPriceBreakdown } from "@/lib/pricing";
 import { productionDistributorWhere, productionOrderWhere } from "@/lib/productionData";
 
 type PageProps = {
@@ -60,7 +60,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         },
       },
       dispatchAssignments: {
-        include: { distributor: true },
+        include: { distributor: true, segment: { select: { id: true, name: true, city: true, postalCode: true } } },
         orderBy: { updatedAt: "desc" },
       },
       payments: { include: { refunds: true }, orderBy: { createdAt: "desc" } },
@@ -82,6 +82,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const latestPayment = order.payments[0] ?? null;
   const snapshot = order.priceRuleSnapshot as OrderSnapshot;
   const areaSnapshot = snapshot.areaCalculationSnapshot;
+  const price = getOrderPriceBreakdown(order);
   const distributorRecommendations =
     order.warehouseInventory?.status === "READY_FOR_PICKUP"
       ? await getSuitableDistributors(order.id)
@@ -98,8 +99,16 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
       <section className="gridCards">
         <article className="card">
-          <strong>{formatCurrency(getOrderGrossPrice(order))}</strong>
-          <span>Aktueller Preis</span>
+          <strong>{formatCurrency(price.gross)}</strong>
+          <span>Gesamt brutto{price.isManualOverride ? " · manuell angepasst" : ""}</span>
+        </article>
+        <article className="card">
+          <strong>{formatCurrency(price.net)}</strong>
+          <span>Netto</span>
+        </article>
+        <article className="card">
+          <strong>{formatCurrency(price.vat)}</strong>
+          <span>MwSt. 19 %</span>
         </article>
         <article className="card">
           <strong>{order.flyerQuantity}</strong>
@@ -138,7 +147,13 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           <div className="reviewActions">
             <form action={`/api/admin/orders/${order.id}/status`} method="post" className="form">
               <input type="hidden" name="status" value="APPROVED" />
-              <textarea name="adminCustomerMessage" placeholder="Kundenhinweis: Bitte Flyer einsenden." defaultValue="Bitte senden Sie die Flyer an das Lager." />
+              <textarea
+                name="adminCustomerMessage"
+                placeholder="Kundenhinweis"
+                defaultValue={order.customerOwnFlyers
+                  ? "Bitte senden Sie die Flyer unter Angabe der Auftragsnummer an das zugewiesene Lager."
+                  : "FLYERO bereitet den Druckauftrag vor. Eine Eigenanlieferung ist nicht erforderlich."}
+              />
               <button type="submit">Genehmigen</button>
             </form>
             <form action={`/api/admin/orders/${order.id}/status`} method="post" className="form">
@@ -186,6 +201,14 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
               <button type="submit">Anfrage ablehnen</button>
             </form>
           </div>
+        </section>
+      ) : null}
+
+      {order.status === "ACCEPTED_AWAITING_PAYMENT" ? (
+        <section className="panel stack widePanel" style={{ marginTop: 18 }}>
+          <p className="eyebrow">Anfrage angenommen</p>
+          <h2 className="sectionTitle">Zahlung steht noch aus</h2>
+          <p className="muted">Die Anfrage wurde einmal fachlich angenommen. Nach erfolgreicher Zahlung wird sie automatisch freigegeben; eine zweite Adminprüfung ist nicht erforderlich.</p>
         </section>
       ) : null}
 
@@ -403,6 +426,18 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                       <form action={`/api/admin/orders/${order.id}/assign`} method="post">
                         <input type="hidden" name="distributorId" value={recommendation.distributorId} />
                         <input type="hidden" name="returnTo" value={`/admin/orders/${order.id}?assignment=success`} />
+                        {order.distributionSegments.length > 1 ? (
+                          <label>
+                            <span className="srOnly">Teilgebiet</span>
+                            <select name="segmentId" defaultValue={order.distributionSegments[0]?.id ?? ""}>
+                              {order.distributionSegments.map((segment) => (
+                                <option key={segment.id} value={segment.id}>
+                                  {segment.name}{segment.city ? ` / ${segment.city}` : ""}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : null}
                         <button type="submit">Zuweisen</button>
                       </form>
                     </td>
@@ -424,7 +459,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                   <tr key={assignment.id}>
                     <td>{formatDateTime(assignment.updatedAt)}</td>
                     <td>{assignment.distributor.firstName} {assignment.distributor.lastName}</td>
-                    <td>{DISPATCH_STATUS_LABELS[assignment.status]}</td>
+                    <td>{DISPATCH_STATUS_LABELS[assignment.status]}{assignment.segment ? ` / ${assignment.segment.name}` : ""}</td>
                     <td>{assignment.rejectionReason ?? "-"}</td>
                   </tr>
                 ))}

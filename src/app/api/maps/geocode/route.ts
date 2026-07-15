@@ -16,6 +16,7 @@ export async function GET(request: Request) {
       city: params.get("city") ?? undefined,
       street: params.get("street") ?? undefined,
       houseNumber: params.get("houseNumber") ?? undefined,
+      placeId: params.get("placeId") ?? undefined,
     });
     return Response.json({ ok: true, data: result });
   } catch (error) {

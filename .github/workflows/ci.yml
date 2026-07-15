@@ -31,6 +31,7 @@ env:
   WAREHOUSE_SCOPE_BASE_URL: http://127.0.0.1:3000
   DISTRIBUTOR_PRIVACY_BASE_URL: http://127.0.0.1:3000
   RETENTION_HOLD_BASE_URL: http://127.0.0.1:3000
+  MODULE27_1_BASE_URL: http://127.0.0.1:3000
 
 jobs:
   quality:
@@ -134,6 +135,9 @@ jobs:
           done
           cat /tmp/flyero-dev.log
           exit 1
+
+      - name: Module 27.1 runtime closure
+        run: npm run test:module27-1-runtime
 
       - name: Authentication UX smoke
         run: npm run test:auth-ux
