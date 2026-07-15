@@ -11,6 +11,7 @@ import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderUpdateSchema } from "@/lib/validators";
 import { notifyAdmins } from "@/lib/notifications";
+import { warehouseSourceWhere } from "@/lib/warehouse";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -66,6 +67,22 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     }
 
     const data = parsed.data;
+    if (data.flyerSource === "PRINT_SERVICE") {
+      return Response.json({
+        ok: false,
+        code: "PRINT_SERVICE_CONTACT_ONLY",
+        error: "FLYERO bietet im Online-Auftrag keinen Druckservice an. Bitte besprich den Druck separat über den Kontakt zu uns.",
+      }, { status: 422 });
+    }
+    const selectedWarehouse = data.warehouseId
+      ? await prisma.warehouse.findFirst({
+          where: { id: data.warehouseId, isActive: true, ...warehouseSourceWhere() },
+          select: { id: true, name: true },
+        })
+      : null;
+    if (data.warehouseId && !selectedWarehouse) {
+      return errorResponse("Das ausgewählte Empfangslager ist nicht verfügbar. Bitte wähle ein anderes Lager.", 422);
+    }
     const isCustomerCorrection = order.status === "WAITING_FOR_CUSTOMER";
     let areaSelection = null;
     try {
@@ -163,6 +180,11 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         flyerQuantity: data.flyerQuantity,
         customerOwnFlyers: data.flyerSource === "CUSTOMER_OWN",
         needsPrintService: data.flyerSource === "PRINT_SERVICE",
+        ...(selectedWarehouse ? {
+          assignedWarehouseId: selectedWarehouse.id,
+          warehouseAssignedAt: new Date(),
+          warehouseAssignmentReason: "Vom Kunden ausgewähltes Empfangslager für eigene Flyer.",
+        } : {}),
         preferredStartDate: data.preferredStartDate,
         preferredEndDate: data.preferredEndDate,
         flexibleScheduling: data.flexibleScheduling,

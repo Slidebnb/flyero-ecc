@@ -170,7 +170,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
           <div className="customerFactList">
             <p><span>Gebiet</span><strong>{customerAreaName(order.targetAreaName)}</strong></p>
             <p><span>Ort</span><strong>{order.postalCode} {order.city}</strong></p>
-            <p><span>Druckdaten</span><strong>{order.customerOwnFlyers ? "Flyer werden angeliefert" : "Druck über FLYERO"}</strong></p>
+            <p><span>Flyer</span><strong>{order.customerOwnFlyers ? "Bereits gedruckt, wird an das Lager gesendet" : "Druck separat mit FLYERO besprechen"}</strong></p>
             <p><span>Zahlung</span><strong>{latestPayment ? `${paymentLabel(latestPayment.status)} · ${formatCurrency(latestPayment.amount)}` : "Noch keine Zahlung"}</strong></p>
             {order.customerOwnFlyers ? <p><span>Lager</span><strong>{warehouseLabel}</strong></p> : null}
             <p><span>Hinweis vom FLYERO-Team</span><strong>{order.adminCustomerMessage || "Aktuell kein Hinweis nötig."}</strong></p>

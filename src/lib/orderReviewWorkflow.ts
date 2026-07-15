@@ -142,13 +142,17 @@ export async function reviewOrder(input: {
   if (paid) return approvePaidOrder({ orderId: order.id, actorId: input.adminUserId, reason: input.note });
   if (order.status === "ACCEPTED_AWAITING_PAYMENT") {
     let paymentUrl: string | null = order.payments.find((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING"].includes(payment.status))?.checkoutUrl ?? null;
-    try {
-      const payment = await createCheckoutForOrder({ orderId: order.id, customerUserId: order.customer.userId, tenantId: order.tenantId });
-      paymentUrl = payment.checkoutUrl;
-    } catch (error) {
-      await createAuditLog({ userId: input.adminUserId, action: "order.payment_link_deferred", entityType: "Order", entityId: order.id, newValues: { reason: error instanceof Error ? error.message : "Checkout konnte nicht vorbereitet werden." } });
+    if (!order.needsPrintService) {
+      try {
+        const payment = await createCheckoutForOrder({ orderId: order.id, customerUserId: order.customer.userId, tenantId: order.tenantId });
+        paymentUrl = payment.checkoutUrl;
+      } catch (error) {
+        await createAuditLog({ userId: input.adminUserId, action: "order.payment_link_deferred", entityType: "Order", entityId: order.id, newValues: { reason: error instanceof Error ? error.message : "Checkout konnte nicht vorbereitet werden." } });
+      }
     }
-    await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_ACCEPTED_PAYMENT_REQUIRED", title: "Deine Anfrage wurde angenommen", message: `Auftrag ${order.orderNumber} wurde geprueft. Bitte schliesse jetzt die Zahlung im Kundenportal ab, damit die Umsetzung starten kann.` });
+    await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_ACCEPTED_PAYMENT_REQUIRED", title: "Deine Anfrage wurde angenommen", message: order.needsPrintService
+      ? `Auftrag ${order.orderNumber} wurde geprueft. FLYERO bespricht den Druck separat mit dir.`
+      : `Auftrag ${order.orderNumber} wurde geprueft. Bitte schliesse jetzt die Zahlung im Kundenportal ab, damit die Umsetzung starten kann.` });
     return { ...order, paymentUrl };
   }
 
@@ -170,12 +174,16 @@ export async function reviewOrder(input: {
   await createAuditLog({ userId: input.adminUserId, action: "order.accepted_payment_required", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: updated.status } });
 
   let paymentUrl: string | null = null;
-  try {
-    const payment = await createCheckoutForOrder({ orderId: order.id, customerUserId: order.customer.userId, tenantId: order.tenantId });
-    paymentUrl = payment.checkoutUrl;
-  } catch (error) {
-    await createAuditLog({ userId: input.adminUserId, action: "order.payment_link_deferred", entityType: "Order", entityId: order.id, newValues: { reason: error instanceof Error ? error.message : "Checkout konnte nicht vorbereitet werden." } });
+  if (!order.needsPrintService) {
+    try {
+      const payment = await createCheckoutForOrder({ orderId: order.id, customerUserId: order.customer.userId, tenantId: order.tenantId });
+      paymentUrl = payment.checkoutUrl;
+    } catch (error) {
+      await createAuditLog({ userId: input.adminUserId, action: "order.payment_link_deferred", entityType: "Order", entityId: order.id, newValues: { reason: error instanceof Error ? error.message : "Checkout konnte nicht vorbereitet werden." } });
+    }
   }
-  await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_ACCEPTED_PAYMENT_REQUIRED", title: "Deine Anfrage wurde angenommen", message: `Auftrag ${order.orderNumber} wurde geprueft. Bitte schliesse jetzt die Zahlung im Kundenportal ab, damit die Umsetzung starten kann.` });
+  await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_ACCEPTED_PAYMENT_REQUIRED", title: "Deine Anfrage wurde angenommen", message: order.needsPrintService
+    ? `Auftrag ${order.orderNumber} wurde geprueft. FLYERO bespricht den Druck separat mit dir.`
+    : `Auftrag ${order.orderNumber} wurde geprueft. Bitte schliesse jetzt die Zahlung im Kundenportal ab, damit die Umsetzung starten kann.` });
   return { ...updated, paymentUrl };
 }

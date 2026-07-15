@@ -111,7 +111,13 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
           )}
         </DataSection>
 
-      <details className="customerSoftDetails">
+      <section className="customerSoftDetails">
+        <h2>Druck separat besprechen</h2>
+        <p>FLYERO bietet keinen Druckservice im Online-Auftrag an. Wenn wir den Druck für dich organisieren sollen, besprechen wir Papier, Format und Menge persönlich.</p>
+        <a href="/kontakt?topic=druck">Druck mit FLYERO besprechen</a>
+      </section>
+
+      <details className="customerSoftDetails" hidden>
         <summary>Druck über FLYERO anfragen</summary>
         <div>
           <p>Nur öffnen, wenn FLYERO den Druck zusätzlich organisieren soll.</p>

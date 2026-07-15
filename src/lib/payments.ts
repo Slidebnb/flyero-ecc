@@ -185,6 +185,11 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
+  if (order.needsPrintService) {
+    const error = new Error("PRINT_SERVICE_CONTACT_ONLY");
+    (error as Error & { code?: string }).code = "PRINT_SERVICE_CONTACT_ONLY";
+    throw error;
+  }
   const integrity = await getOrderIntegrityCheck(order.id);
   if (!integrity.quoteMatchesOrder || !integrity.pricingMatchesSnapshot || !integrity.flyerQuantityConsistent || !integrity.polygonReferenceMatches) {
     const error = new Error("ORDER_INTEGRITY_FAILED");

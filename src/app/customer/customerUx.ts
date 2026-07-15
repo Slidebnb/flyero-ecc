@@ -159,7 +159,7 @@ export function customerOrderPlainNextStep(status: OrderStatus) {
   if (status === "PAYMENT_PENDING") return "Zahlung abschließen, damit FLYERO prüfen kann.";
   if (status === "ACCEPTED_AWAITING_PAYMENT") return "Deine Anfrage ist angenommen. Schließe jetzt die Zahlung ab.";
   if (status === "PAYMENT_FAILED") return "Zahlung erneut versuchen oder Anfrage senden.";
-  if (status === "READY_FOR_FLYERS") return "Flyerdatei hochladen oder Druck über FLYERO anfragen.";
+  if (status === "READY_FOR_FLYERS") return "Deine bereits gedruckten Flyer an das ausgewählte Empfangslager senden.";
   if (status === "WAITING_FOR_CUSTOMER") return "FLYERO wartet auf eine Rückmeldung von Ihnen.";
   if (status === "PAID_WAITING_FOR_ADMIN_REVIEW" || status === "UNDER_REVIEW") return "FLYERO prüft Gebiet, Druckdaten und Zustellbarkeit.";
   if (status === "READY_FOR_DISTRIBUTION" || status === "READY_FOR_PICKUP") return "Die Verteilung wird vorbereitet.";

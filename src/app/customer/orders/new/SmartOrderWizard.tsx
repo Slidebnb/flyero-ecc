@@ -66,6 +66,15 @@ type Suggestion = {
   source: "local" | "google";
 };
 
+type CustomerWarehouse = {
+  id: string;
+  name: string;
+  code: string;
+  city: string;
+  postalCode: string;
+  country: string;
+};
+
 type Intelligence = {
   suggestions: ReusableAreaOption[];
   metrics: {
@@ -167,6 +176,7 @@ type OrderDraft = {
     };
   };
   flyerQuantity?: number;
+  warehouseId?: string;
   flyerQuantityTouched?: boolean;
   productFormat?: string;
   flyerSource?: string;
@@ -564,6 +574,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [, setHistory] = useState<LatLng[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [flyerQuantity, setFlyerQuantity] = useState(isPublicPlanner ? 500 : 10_000);
+  const [warehouseOptions, setWarehouseOptions] = useState<CustomerWarehouse[]>([]);
+  const [warehouseOptionsStatus, setWarehouseOptionsStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
   const [productFormat, setProductFormat] = useState(productOptions[0].value);
   const [flyerSource, setFlyerSource] = useState("CUSTOMER_OWN");
@@ -602,6 +615,38 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     selectedBoundaryPlaceIdsRef.current = selectedBoundaryPlaceIds;
   }, [selectedBoundaryPlaceIds]);
 
+  useEffect(() => {
+    if (isPublicPlanner) {
+      setWarehouseOptionsStatus("ready");
+      return;
+    }
+    let active = true;
+    setWarehouseOptionsStatus("loading");
+    fetch("/api/customer/warehouses")
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (!active) return;
+        const warehouses = Array.isArray(payload?.data) ? payload.data as CustomerWarehouse[] : [];
+        setWarehouseOptions(warehouses);
+        setWarehouseOptionsStatus("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+        setWarehouseOptions([]);
+        setWarehouseOptionsStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [isPublicPlanner]);
+
+  useEffect(() => {
+    if (isPublicPlanner || selectedWarehouseId || !intelligence?.warehouse?.id) return;
+    if (warehouseOptions.some((warehouse) => warehouse.id === intelligence.warehouse?.id)) {
+      setSelectedWarehouseId(intelligence.warehouse.id);
+    }
+  }, [intelligence?.warehouse?.id, isPublicPlanner, selectedWarehouseId, warehouseOptions]);
+
   const areaSegmentsPayload = useMemo(() => {
     const currentSegments = areaSegments.map((segment) => ({ ...segment, points: [...segment.points] }));
     if (polygon.length < 3) return currentSegments.filter((segment) => segment.points.length >= 3);
@@ -639,6 +684,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     [flyerQuantity, localHouseholds, localRouteDistanceMeters],
   );
   const households = intelligence?.metrics.households ?? localHouseholds;
+  const selectedWarehouse = warehouseOptions.find((warehouse) => warehouse.id === selectedWarehouseId) ?? null;
   const routeDistanceMeters = intelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
   const routeDurationMinutes = intelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
   const netPrice = intelligence?.metrics.netPrice ?? "0";
@@ -975,8 +1021,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       if (draft.polygonSource) setPolygonSource(draft.polygonSource);
       if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
       if (typeof draft.flyerQuantityTouched === "boolean") setFlyerQuantityTouched(draft.flyerQuantityTouched);
-      if (draft.productFormat) setProductFormat(draft.productFormat);
-      if (draft.flyerSource) setFlyerSource(draft.flyerSource);
+      if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
+      setFlyerSource("CUSTOMER_OWN");
       if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
       if (draft.targetGroup) setTargetGroup(draft.targetGroup);
       if (draft.distributionType) setDistributionType(draft.distributionType);
@@ -1044,7 +1090,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           }
           if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
           setFlyerQuantityTouched(true);
-          if (draft.flyerSource) setFlyerSource(draft.flyerSource);
+          setFlyerSource("CUSTOMER_OWN");
+          if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
           const repeatedPrintDataStatus = draft.printDataStatus ?? "UPLOAD_LATER";
           setRepeatOriginalPrintDataStatus(repeatedPrintDataStatus);
           setRepeatPrintChoice("pending");
@@ -1087,6 +1134,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       areaSegments: areaSegmentsPayload,
       areaStats,
       flyerQuantity,
+      warehouseId: selectedWarehouseId,
       flyerQuantityTouched,
       productFormat,
       flyerSource,
@@ -1118,6 +1166,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     flexibleScheduling,
     flyerQuantityTouched,
     flyerQuantity,
+    selectedWarehouseId,
     flyerSource,
     houseNumber,
     notes,
@@ -1771,6 +1820,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       centerLng: center.lng,
       flyerQuantity,
       flyerSource,
+      warehouseId: isPublicPlanner ? undefined : selectedWarehouseId || undefined,
       productFormat,
       printDataStatus,
       completionPath,
@@ -1779,7 +1829,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       flexibleScheduling,
       contactPerson,
       contactPhone,
-      notes: `${notes}${notes ? "\n" : ""}Produkt: ${productFormat}. Zielgruppe: ${targetGroup}. Verteilung: ${distributionType}.`,
+      notes: `${notes}${notes ? "\n" : ""}Zielgruppe: ${targetGroup}. Verteilung: ${distributionType}.`,
       quoteFingerprint: intelligence?.metrics.fingerprint ?? "",
     };
   }
@@ -1791,6 +1841,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       return;
     }
     if (isFinishing) return;
+    if (!isPublicPlanner && !selectedWarehouseId) {
+      setActiveStep(2);
+      setFinishStatus("Bitte wähle zuerst das Empfangslager für deine bereits gedruckten Flyer.");
+      return;
+    }
     if (!isPublicPlanner && (
       intelligenceStatus !== "live" ||
       confirmedIntelligenceRequestRef.current !== intelligenceRequestQuery ||
@@ -1863,13 +1918,22 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     }
   }
 
-  const stepState = [
+  const legacyStepState = [
     { id: 1, title: "Gebiet", detail: "Wo soll verteilt werden?", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Noch offen" },
     { id: 2, title: "Flyer", detail: "Format, Menge und Druck", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung", detail: "Art und wichtige Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Frühester Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
     { id: 5, title: "Preis prüfen", detail: "Gebiet, Preis und Leistungen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Noch offen" },
     { id: 6, title: "Abschluss", detail: "Buchen, anfragen oder Formular senden", value: "3 Wege" },
+  ];
+  void legacyStepState;
+  const stepState = [
+    { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Noch offen" },
+    { id: 2, title: "Flyer & Lager", detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
+    { id: 3, title: "Verteilung", detail: "Ziel und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
+    { id: 4, title: "Zeitraum", detail: `Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
+    { id: 5, title: "Zusammenfassung", detail: "Preis und Leistungen prüfen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Noch offen" },
+    { id: 6, title: "Abschluss", detail: "Buchen oder unverbindlich anfragen", value: "Bereit" },
   ];
   const activeNavItems = isPublicPlanner ? publicPlannerNavItems : orderNavItems;
   const orderNavGroups = Array.from(new Set(activeNavItems.map((item) => item.group)));
@@ -2015,6 +2079,75 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
 
     if (stepId === 2) {
       return (
+        <section className="orderPanelBlock inlineStepBlock" data-testid="customer-own-flyer-step">
+          <p className="orderStepHint">Lege die Flyerzahl fest. Deine Flyer sind bereits gedruckt und werden an das ausgewählte FLYERO-Lager gesendet.</p>
+          {repeatPrintChoice === "pending" ? (
+            <div className="repeatPrintNotice" role="alert">
+              <strong>Ist deine Flyerauflage noch aktuell?</strong>
+              <p>Gebiet und Flyerzahl wurden von deiner letzten Kampagne übernommen.</p>
+              <div className="repeatPrintActions">
+                <button type="button" className="primaryButton" onClick={() => {
+                  setRepeatPrintChoice("same");
+                  setPrintDataStatus("UPLOAD_LATER");
+                }}>Ja, ich sende dieselben Flyer</button>
+                <button type="button" className="secondaryButton" onClick={() => {
+                  setRepeatPrintChoice("changed");
+                  setPrintDataStatus("UPLOAD_LATER");
+                }}>Nein, ich sende neue Flyer</button>
+              </div>
+            </div>
+          ) : null}
+          {!isPublicPlanner ? (
+            <label className="selectLine">
+              <span>Empfangslager für deine Flyer</span>
+              <select
+                data-testid="order-warehouse-select"
+                value={selectedWarehouseId}
+                onChange={(event) => setSelectedWarehouseId(event.target.value)}
+                disabled={warehouseOptionsStatus === "loading"}
+              >
+                <option value="">
+                  {warehouseOptionsStatus === "loading" ? "Lager werden geladen ..." : "Lager auswählen"}
+                </option>
+                {warehouseOptions.map((warehouse) => (
+                  <option key={warehouse.id} value={warehouse.id}>
+                    {warehouse.name} · {warehouse.postalCode} {warehouse.city}
+                  </option>
+                ))}
+              </select>
+              <small>
+                Du sendest die bereits gedruckten Flyer nach der Buchung an dieses Lager.
+                {warehouseOptionsStatus === "error" ? " Die Lager konnten gerade nicht geladen werden." : ""}
+              </small>
+            </label>
+          ) : (
+            <p className="orderReviewNotice">Nach deiner Registrierung wählst du das Empfangslager für deine bereits gedruckten Flyer aus.</p>
+          )}
+          <div className="flyerRecommendation">
+            <span>Unser Vorschlag</span>
+            <strong>{formatNumber(recommendedFlyerQuantity)} Flyer mit 10 % Reserve</strong>
+            <small>Du kannst die Menge jederzeit ändern.</small>
+          </div>
+          <div className="quantityControl">
+            <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
+            <input
+              data-testid="order-flyer-quantity"
+              value={flyerQuantity}
+              onChange={(event) => {
+                setFlyerQuantityTouched(true);
+                setFlyerQuantity(Number(event.target.value) || 0);
+              }}
+              inputMode="numeric"
+            />
+            <button type="button" onClick={() => moveQuantity(1000)}>+</button>
+            <span>Stück</span>
+          </div>
+        </section>
+      );
+    }
+
+    if (stepId === 2 && flyerSource === "PRINT_SERVICE") {
+      return (
         <section className="orderPanelBlock inlineStepBlock">
           <p className="orderStepHint">Wähle Format und Menge. Danach entscheidest du, ob FLYERO den Druck übernimmt.</p>
           {repeatPrintChoice === "pending" ? (
@@ -2033,14 +2166,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
               </div>
             </div>
           ) : null}
-          <label>
-            Flyerformat
-            <select value={productFormat} onChange={(event) => setProductFormat(event.target.value)}>
-              {productOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
+          {flyerSource === "PRINT_SERVICE" ? (
+            <label>
+              Flyerformat
+              <select value={productFormat} onChange={(event) => setProductFormat(event.target.value)}>
+                {productOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
+          ) : null}
           <div className="modeTabs flyerSourceTabs">
-            <button type="button" className={flyerSource === "CUSTOMER_OWN" ? "selected" : ""} onClick={() => {
+            <button type="button" className="selected" onClick={() => {
               setFlyerSource("CUSTOMER_OWN");
               setPrintDataStatus("UPLOAD_LATER");
             }}>Flyer sind vorhanden</button>
@@ -2129,7 +2264,36 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       );
     }
 
-    if (stepId === 5) {
+    if (stepId === 5 && flyerSource === "CUSTOMER_OWN") {
+      return (
+        <section className="orderPanelBlock inlineStepBlock" data-testid="customer-own-flyer-summary">
+          <div className="summaryMiniGrid">
+            <span><strong>{postalCode} {city}</strong>Gebiet</span>
+            <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
+            <span><strong>{formatNumber(flyerQuantity)}</strong>Flyer</span>
+            <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
+            <span><strong>{intelligence ? formatCurrency(vatAmount) : "wird berechnet"}</strong>Umsatzsteuer</span>
+            <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : "wird berechnet"}</strong>Gesamt brutto</span>
+            <span><strong>{selectedWarehouse?.name ?? "Bitte auswählen"}</strong>Empfangslager</span>
+          </div>
+          <p className="orderReviewNotice">Deine Flyer sind bereits gedruckt und werden nach der Buchung an das ausgewählte Empfangslager gesendet. FLYERO prüft Gebiet und Zustellbarkeit vor der Durchführung.</p>
+          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
+          <div className="proofIncludedList">
+            <span>GPS-Nachweis nach der Verteilung</span>
+            <span>Foto-Dokumentation nach der Verteilung</span>
+            <span>PDF-Bericht nach Abschluss</span>
+          </div>
+          <details className="orderDetails inlineDetails">
+            <summary>Kontakt & Hinweise</summary>
+            <label>Kontaktperson<input value={contactPerson} onChange={(event) => setContactPerson(event.target.value)} /></label>
+            <label>Telefon<input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} /></label>
+            <label>Hinweise<textarea value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
+          </details>
+        </section>
+      );
+    }
+
+    if (stepId === 5 && flyerSource !== "CUSTOMER_OWN") {
       return (
         <section className="orderPanelBlock inlineStepBlock">
           <div className="summaryMiniGrid">
@@ -2163,12 +2327,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       <section className="orderPanelBlock inlineStepBlock">
         <p className="orderStepHint">Wähle, wie du fortfahren möchtest. Eine Anfrage ist unverbindlich und löst keine Zahlung aus.</p>
         <div className="orderFinishChoices">
-          <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
-            Jetzt buchen und bezahlen
-            <small>Buchung anlegen und sicher zur Zahlung weitergehen.</small>
-          </button>
+          {flyerSource === "CUSTOMER_OWN" ? (
+            <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
+              Jetzt buchen und bezahlen
+              <small>Buchung anlegen und sicher zur Zahlung weitergehen.</small>
+            </button>
+          ) : null}
           <button data-testid="order-finish-inquiry" type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
-            Unverbindlich anfragen
+            {flyerSource === "PRINT_SERVICE" ? "Druckangebot anfragen" : "Unverbindlich anfragen"}
             <small>Wir prüfen Gebiet, Druck und Preis und melden uns schnell.</small>
           </button>
           <a href={inquiryFormHref} download>
@@ -2222,6 +2388,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       <input type="hidden" name="centerLng" value={center.lng} />
       <input type="hidden" name="flyerQuantity" value={flyerQuantity} />
       <input type="hidden" name="flyerSource" value={flyerSource} />
+      <input type="hidden" name="warehouseId" value={selectedWarehouseId} />
       <input type="hidden" name="productFormat" value={productFormat} />
       <input type="hidden" name="printDataStatus" value={printDataStatus} />
       <input type="hidden" name="preferredStartDate" value={startDate} />
@@ -2229,7 +2396,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       <input type="hidden" name="flexibleScheduling" value={flexibleScheduling ? "true" : "false"} />
       <input type="hidden" name="contactPerson" value={contactPerson} />
       <input type="hidden" name="contactPhone" value={contactPhone} />
-      <input type="hidden" name="notes" value={`${notes}${notes ? "\n" : ""}Produkt: ${productFormat}. Zielgruppe: ${targetGroup}.`} />
+      <input type="hidden" name="notes" value={`${notes}${notes ? "\n" : ""}Zielgruppe: ${targetGroup}.`} />
 
       <aside className="orderSideNav customerSideNav" aria-label="Kundennavigation">
         <OrderLogo />

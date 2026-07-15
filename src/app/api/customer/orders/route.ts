@@ -12,6 +12,7 @@ import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderCreateSchema } from "@/lib/validators";
+import { warehouseSourceWhere } from "@/lib/warehouse";
 
 export async function GET() {
   try {
@@ -67,6 +68,22 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+    if (data.flyerSource === "PRINT_SERVICE") {
+      return Response.json({
+        ok: false,
+        code: "PRINT_SERVICE_CONTACT_ONLY",
+        error: "FLYERO bietet im Online-Auftrag keinen Druckservice an. Bitte besprich den Druck separat über den Kontakt zu uns.",
+      }, { status: 422 });
+    }
+    const selectedWarehouse = data.warehouseId
+      ? await prisma.warehouse.findFirst({
+          where: { id: data.warehouseId, isActive: true, ...warehouseSourceWhere() },
+          select: { id: true, name: true, code: true, city: true },
+        })
+      : null;
+    if (data.warehouseId && !selectedWarehouse) {
+      return errorResponse("Das ausgewählte Empfangslager ist nicht verfügbar. Bitte wähle ein anderes Lager.", 422);
+    }
     let areaSelection = null;
     try {
       areaSelection = data.areaSegments ? aggregateOrderAreaSegments(data.areaSegments) : null;
@@ -161,6 +178,9 @@ export async function POST(request: NextRequest) {
       : data.printDataStatus === "PRINT_REQUESTED"
         ? "Druck über FLYERO angefragt"
         : "Druckdaten werden später bereitgestellt";
+    const fulfillmentLabel = data.flyerSource === "CUSTOMER_OWN"
+      ? "Eigene, bereits gedruckte Flyer werden an das ausgewählte Empfangslager gesendet."
+      : printDataLabel;
 
     let order: Awaited<ReturnType<typeof prisma.order.create>> | null = null;
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -193,10 +213,13 @@ export async function POST(request: NextRequest) {
             flyerQuantity: data.flyerQuantity,
             customerOwnFlyers: data.flyerSource === "CUSTOMER_OWN",
             needsPrintService: data.flyerSource === "PRINT_SERVICE",
+            assignedWarehouseId: selectedWarehouse?.id ?? undefined,
+            warehouseAssignedAt: selectedWarehouse ? new Date() : undefined,
+            warehouseAssignmentReason: selectedWarehouse ? "Vom Kunden ausgewähltes Empfangslager für eigene Flyer." : undefined,
             preferredStartDate: data.preferredStartDate,
             preferredEndDate: data.preferredEndDate,
             flexibleScheduling: data.flexibleScheduling,
-            notes: [customerNotePrefix, printDataLabel, data.notes].filter(Boolean).join("\n"),
+            notes: [customerNotePrefix, fulfillmentLabel, data.notes].filter(Boolean).join("\n"),
             contactPerson: data.contactPerson || null,
             contactPhone: data.contactPhone || null,
             calculatedNetPrice: price.net,
@@ -208,6 +231,8 @@ export async function POST(request: NextRequest) {
               snapshot: {
               ...price.snapshot,
               completionPath: data.completionPath,
+              selectedWarehouseId: selectedWarehouse?.id ?? null,
+              selectedWarehouseName: selectedWarehouse?.name ?? null,
               productFormat: data.productFormat,
               printDataStatus: data.printDataStatus,
               customerFacingPriceLabel: data.completionPath === "direct_payment"
