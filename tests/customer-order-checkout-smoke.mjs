@@ -229,7 +229,7 @@ try {
   assert(inquiryOrder?.payments.length === 0, "Anfrage darf keine Zahlung erzwingen.");
   assert(inquiryOrder?.priceRuleSnapshot?.completionPath === "inquiry", "Abschlussweg inquiry fehlt.");
 
-  const manual = await postJson("/api/customer/orders", orderPayload("Manual", "inquiry", await planningQuote("inquiry")), customerCookie);
+  const manual = await postJson("/api/customer/orders", orderPayload("Manual", "direct_payment", await planningQuote("direct_payment")), customerCookie);
   await postJson(`/api/admin/orders/${manual.data.id}/price`, { manualPriceOverride: "1000", note: "Manual pricing smoke." }, adminCookie);
   const manualCheckout = await postJson("/api/payments/checkout", { orderId: manual.data.id }, customerCookie);
   assert(manualCheckout.data.checkoutUrl, "Checkout fuer individuellen Nettopreis fehlt.");

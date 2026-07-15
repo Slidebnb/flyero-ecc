@@ -79,7 +79,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                 <th>Status</th>
                 <th>Stadt</th>
                 <th>Datum</th>
-                <th>Preis</th>
+                <th>Gesamt brutto</th>
                 <th>Aktion</th>
               </tr>
             </thead>

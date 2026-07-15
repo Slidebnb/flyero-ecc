@@ -172,7 +172,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
             <p><span>Ort</span><strong>{order.postalCode} {order.city}</strong></p>
             <p><span>Druckdaten</span><strong>{order.customerOwnFlyers ? "Flyer werden angeliefert" : "Druck über FLYERO"}</strong></p>
             <p><span>Zahlung</span><strong>{latestPayment ? `${paymentLabel(latestPayment.status)} · ${formatCurrency(latestPayment.amount)}` : "Noch keine Zahlung"}</strong></p>
-            <p><span>Lager</span><strong>{warehouseLabel}</strong></p>
+            {order.customerOwnFlyers ? <p><span>Lager</span><strong>{warehouseLabel}</strong></p> : null}
             <p><span>Hinweis vom FLYERO-Team</span><strong>{order.adminCustomerMessage || "Aktuell kein Hinweis nötig."}</strong></p>
           </div>
         </DataSection>
@@ -187,7 +187,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
       </div>
 
       <DataSection title="Verteilgebiet" description="Gebietsdaten werden vor der Verteilung durch FLYERO geprüft.">
-        <DistributionAreaPreviewMap geoJson={order.targetAreaGeoJson ?? order.distributionArea?.geoJson} />
+        <DistributionAreaPreviewMap geoJson={order.targetAreaGeoJson ?? order.distributionArea?.geoJson ?? order.distributionArea?.geometryGeoJson} />
         <div className="customerFactList compact">
           <p><span>Haushalte</span><strong>{order.estimatedHouseholds ?? order.distributionArea?.estimatedHouseholds ?? "Wird geprüft"}</strong></p>
           <p><span>Fläche</span><strong>{order.coverageAreaSqm ? `${Number(order.coverageAreaSqm).toLocaleString("de-DE")} m²` : "Wird geprüft"}</strong></p>

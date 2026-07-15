@@ -37,6 +37,45 @@ const suffix = randomUUID().slice(0, 8);
 const orderNumber = `TEST-MODULE27-DISPATCH-${suffix}`;
 let orderId;
 
+function segmentGeometry(left, bottom) {
+  return {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: { type: "Polygon", coordinates: [[[left, bottom], [left + 0.01, bottom], [left + 0.01, bottom + 0.01], [left, bottom + 0.01], [left, bottom]]] },
+    }],
+  };
+}
+
+function geometryAreaSqm(geometry) {
+  const ring = geometry.features[0].geometry.coordinates[0];
+  const metersPerDegree = 111320;
+  const averageLatitude = ring.reduce((sum, point) => sum + point[1], 0) / ring.length;
+  const metersPerLongitudeDegree = Math.cos((averageLatitude * Math.PI) / 180) * metersPerDegree;
+  let area = 0;
+  for (let index = 0; index < ring.length - 1; index += 1) {
+    const current = ring[index];
+    const next = ring[index + 1];
+    area += current[0] * metersPerLongitudeDegree * (next[1] * metersPerDegree) - next[0] * metersPerLongitudeDegree * (current[1] * metersPerDegree);
+  }
+  return Math.round(Math.abs(area / 2));
+}
+
+function geometryPerimeterMeters(geometry) {
+  const metersPerDegree = 111320;
+  return Math.round(geometry.features.reduce((featureTotal, feature) => {
+    const ring = feature.geometry.coordinates[0];
+    return featureTotal + ring.slice(1).reduce((sum, point, index) => {
+      const previous = ring[index];
+      const latitude = ((point[1] + previous[1]) / 2) * Math.PI / 180;
+      const dx = (point[0] - previous[0]) * Math.cos(latitude) * metersPerDegree;
+      const dy = (point[1] - previous[1]) * metersPerDegree;
+      return sum + Math.sqrt(dx * dx + dy * dy);
+    }, 0);
+  }, 0));
+}
+
 try {
   const customer = await prisma.customerProfile.findFirst({ where: { user: { email: "kunde.immobilien@example.com" } } });
   const warehouse = await prisma.warehouse.findFirst({ include: { locations: true } });
@@ -50,6 +89,49 @@ try {
   assert.equal(distributors.length, 2, "Mindestens zwei aktive Verteiler werden für Mehrgebiets-Dispatch benötigt.");
 
   const now = new Date();
+  const preferredStartDate = new Date(now.getTime() + 8 * 86400000);
+  const preferredEndDate = new Date(now.getTime() + 15 * 86400000);
+  const geometryA = segmentGeometry(7.58, 50.35);
+  const geometryB = segmentGeometry(7.61, 50.354);
+  const targetAreaGeoJson = { type: "FeatureCollection", features: [...geometryA.features, ...geometryB.features] };
+  const coverageAreaSqm = geometryAreaSqm(geometryA) + geometryAreaSqm(geometryB);
+  const quoteResponse = await fetch(`${baseUrl}/api/public/planner/quote`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      city: "Koblenz",
+      postalCode: "56068",
+      flyerQuantity: 8000,
+      coverageAreaSqm,
+      flyerSource: "CUSTOMER_OWN",
+      printDataStatus: "UPLOAD_LATER",
+      preferredStartDate: preferredStartDate.toISOString(),
+      preferredEndDate: preferredEndDate.toISOString(),
+      segments: [
+        { name: "Koblenz Segment", city: "Koblenz", postalCode: "56068", geometryGeoJson: geometryA, flyerQuantity: 1200 },
+        { name: "Bendorf Segment", city: "Bendorf", postalCode: "56170", geometryGeoJson: geometryB, flyerQuantity: 6800 },
+      ],
+    }),
+  });
+  const quotePayload = await quoteResponse.json();
+  assert.equal(quoteResponse.status, 200, `Gebietsquote fuer Dispatch-Test fehlgeschlagen: ${JSON.stringify(quotePayload)}`);
+  const quote = quotePayload.data.quote;
+  const quoteInput = {
+    flyerQuantity: 8000,
+    polygonHash: quote.polygonHash,
+    city: "Koblenz",
+    postalCode: "56068",
+    street: "",
+    houseNumber: "",
+    coverageAreaSqm,
+    flyerSource: "CUSTOMER_OWN",
+    printDataStatus: "UPLOAD_LATER",
+    productFormat: "DIN Lang (99 x 210 mm)",
+    pricingRuleSignature: quote.pricingRuleSignature,
+    preferredStartDate: preferredStartDate.toISOString(),
+    preferredEndDate: preferredEndDate.toISOString(),
+    perimeterMeters: geometryPerimeterMeters(targetAreaGeoJson),
+  };
   const order = await prisma.order.create({
     data: {
       orderNumber,
@@ -60,23 +142,41 @@ try {
       postalCode: "56068",
       targetAddress: { city: "Koblenz", postalCode: "56068", country: "DE" },
       targetAreaName: "Test Mehrgebiets-Dispatch",
-      targetAreaGeoJson: { type: "FeatureCollection", features: [] },
+      targetAreaGeoJson,
       estimatedHouseholds: 2000,
       estimatedFlyers: 8000,
-      coverageAreaSqm: 1200000,
+      coverageAreaSqm,
       flyerQuantity: 8000,
       customerOwnFlyers: true,
       needsPrintService: false,
-      preferredStartDate: new Date(now.getTime() + 8 * 86400000),
-      preferredEndDate: new Date(now.getTime() + 15 * 86400000),
-      calculatedNetPrice: 3040,
-      calculatedVat: 577.6,
-      calculatedGrossPrice: 3617.6,
-      priceRuleSnapshot: { pricingVersion: "module27-dispatch-test", areaCalculationSnapshot: { polygonHash: "test-dispatch" } },
+      preferredStartDate,
+      preferredEndDate,
+      calculatedNetPrice: quote.net,
+      calculatedVat: quote.vat,
+      calculatedGrossPrice: quote.gross,
+      priceRuleSnapshot: {
+        pricingVersion: quote.pricingVersion,
+        productFormat: "DIN Lang (99 x 210 mm)",
+        printDataStatus: "UPLOAD_LATER",
+        areaCalculationSnapshot: {
+          quote: {
+            ...quoteInput,
+            input: quoteInput,
+            fingerprint: quote.fingerprint,
+            netPrice: quote.net,
+            vatAmount: quote.vat,
+            grossPrice: quote.gross,
+            quoteConfidence: quote.confidenceByMetric,
+          },
+          polygonHash: quote.polygonHash,
+          quoteFingerprint: quote.fingerprint,
+          coverageAreaSqm,
+        },
+      },
       distributionSegments: {
         create: [
-          { name: "Koblenz Segment", city: "Koblenz", postalCode: "56068", country: "DE", geometryGeoJson: { type: "FeatureCollection", features: [] }, areaSqm: 600000, flyerQuantity: 1200, sortOrder: 0 },
-          { name: "Bendorf Segment", city: "Bendorf", postalCode: "56170", country: "DE", geometryGeoJson: { type: "FeatureCollection", features: [] }, areaSqm: 600000, flyerQuantity: 6800, sortOrder: 1 },
+          { name: "Koblenz Segment", city: "Koblenz", postalCode: "56068", country: "DE", geometryGeoJson: geometryA, areaSqm: geometryAreaSqm(geometryA), flyerQuantity: 1200, sortOrder: 0 },
+          { name: "Bendorf Segment", city: "Bendorf", postalCode: "56170", country: "DE", geometryGeoJson: geometryB, areaSqm: geometryAreaSqm(geometryB), flyerQuantity: 6800, sortOrder: 1 },
         ],
       },
       warehouseInventory: {
@@ -107,6 +207,28 @@ try {
   assert.equal(storedB.length, 0, "Empfehlungen für Segment A dürfen Segment B nicht verändern.");
 
   const firstDistributor = storedA[0].distributorId;
+  const tamperedTargetAreaGeoJson = {
+    ...targetAreaGeoJson,
+    features: targetAreaGeoJson.features.map((feature, index) => index === 0
+      ? {
+          ...feature,
+          geometry: {
+            ...feature.geometry,
+            coordinates: [feature.geometry.coordinates[0].map(([longitude, latitude]) => [longitude + 0.001, latitude])],
+          },
+        }
+      : feature),
+  };
+  await prisma.order.update({ where: { id: order.id }, data: { targetAreaGeoJson: tamperedTargetAreaGeoJson } });
+  const tamperedAssignment = await fetch(`${baseUrl}/api/admin/orders/${order.id}/assign`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json", cookie },
+    body: new URLSearchParams({ distributorId: firstDistributor, segmentId: segmentA.id }),
+  });
+  assert.equal(tamperedAssignment.status, 409, "Eine manipulierte Gebietsreferenz darf keine Dispatch-Zuweisung erlauben.");
+  const tamperedPayload = await tamperedAssignment.json();
+  assert.equal(tamperedPayload.code, "ORDER_INTEGRITY_FAILED", "Dispatch-Integritaetsfehler muss fachlich codiert sein.");
+  await prisma.order.update({ where: { id: order.id }, data: { targetAreaGeoJson } });
   const assignedA = await postForm(`/api/admin/orders/${order.id}/assign`, { distributorId: firstDistributor, segmentId: segmentA.id, returnTo: "/admin/dispatch" }, cookie);
   assert.ok(assignedA?.data?.id, "Segment A wurde nicht zugewiesen.");
 

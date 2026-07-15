@@ -21,9 +21,9 @@ assert.match(logistics, /export async function createWarehouseStockCount\([^)]*t
 for (const route of [dashboardRoute, shipmentsRoute, transfersRoute, stockCountsRoute, page, shipmentPage, warehouseDetailPage]) {
   assert.match(route, /session\.role === UserRole\.ADMIN \? undefined : session\.tenantId/);
 }
-assert.match(shipmentPage, /order: \{ tenantId: tenantId \?\? "__no_tenant__" \}/);
-assert.match(shipmentPage, /where: tenantId === undefined \? \{\} : \{ tenantId: tenantId \?\? "__no_tenant__" \}/);
-assert.match(warehouseDetailPage, /const orderTenantWhere = tenantId === undefined \? \{\} : \{ tenantId: tenantId \?\? "__no_tenant__" \}/);
+assert.match(shipmentPage, /order: \{ \.\.\.productionOrderWhere\(\), \.\.\.\(tenantId === undefined \? \{\} : \{ tenantId: tenantId \?\? "__no_tenant__" \}\) \}/);
+assert.match(shipmentPage, /where: \{ \.\.\.productionOrderWhere\(\), \.\.\.\(tenantId === undefined \? \{\} : \{ tenantId: tenantId \?\? "__no_tenant__" \}\) \}/);
+assert.match(warehouseDetailPage, /const orderTenantWhere = \{ \.\.\.productionOrderWhere\(\), \.\.\.\(tenantId === undefined \? \{\} : \{ tenantId: tenantId \?\? "__no_tenant__" \}\) \}/);
 assert.match(warehouseDetailPage, /inventories: \{ where: \{ order: orderTenantWhere \}/);
 assert.match(warehouseDetailPage, /stockCounts: \{ where: \{ inventory: \{ order: orderTenantWhere \} \}/);
 assert.match(warehouseDetailRoute, /inventories: \{[\s\S]*where: \{ order: orderTenantWhere \}/);

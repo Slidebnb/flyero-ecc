@@ -75,9 +75,9 @@ function evidenceState(order: DashboardOrder | null, report: DashboardReport | n
 
 function evidenceGeoJson(order: DashboardOrder | null, report: DashboardReport | null) {
   return report?.order.targetAreaGeoJson
+    ?? order?.targetAreaGeoJson
     ?? report?.order.distributionArea?.geoJson
     ?? report?.order.distributionArea?.geometryGeoJson
-    ?? order?.targetAreaGeoJson
     ?? order?.distributionArea?.geoJson
     ?? order?.distributionArea?.geometryGeoJson
     ?? null;
@@ -287,7 +287,7 @@ export default async function CustomerDashboardPage() {
                 <div><dt>Kampagne</dt><dd>{customerOrderName(lastOrder.orderNumber)}</dd></div>
                 <div><dt>Start</dt><dd>{formatDate(lastOrder.preferredStartDate)}</dd></div>
                 <div><dt>Flyer</dt><dd>{formatNumber(lastOrder.flyerQuantity)}</dd></div>
-                <div><dt>Preis</dt><dd>{formatCurrency(getOrderGrossPrice(lastOrder))}</dd></div>
+                <div><dt>Gesamt brutto</dt><dd>{formatCurrency(getOrderGrossPrice(lastOrder))}</dd></div>
               </dl>
               <Link className="customerPanelLink" href={`/customer/orders/${lastOrder.id}`}>Kampagne öffnen<ArrowRight aria-hidden="true" /></Link>
             </>

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { getSystemSettings } from "@/lib/settings";
 import { warehouseSourceWhere } from "@/lib/warehouse";
 import { productionOrderWhere, productionUserWhere } from "@/lib/productionData";
+import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
 
 const ACTIVE_ASSIGNMENT_STATUSES: DispatchAssignmentStatus[] = ["ASSIGNED", "ACCEPTED"];
 const ACTIVE_TOUR_STATUSES = ["ASSIGNED", "READY", "PICKED_UP", "STARTED", "PAUSED", "RESUMED"] as const;
@@ -400,6 +401,12 @@ export async function assignOrderToDistributor(input: {
   }
   if (inventory.pickupStatus !== "PREPARED" && inventory.pickupStatus !== "RESERVED") {
     throw new Error("Der Lagerbestand muss vorbereitet sein, bevor er disponiert wird.");
+  }
+  const integrity = await getOrderIntegrityCheck(input.orderId);
+  if (!integrity.quoteMatchesOrder || !integrity.pricingMatchesSnapshot || !integrity.flyerQuantityConsistent || !integrity.polygonReferenceMatches) {
+    const error = new Error("ORDER_INTEGRITY_FAILED");
+    (error as Error & { code?: string }).code = "ORDER_INTEGRITY_FAILED";
+    throw error;
   }
 
   const distributor = await prisma.distributorProfile.findFirst({

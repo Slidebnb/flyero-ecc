@@ -63,10 +63,14 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         include: { distributor: true, segment: { select: { id: true, name: true, city: true, postalCode: true } } },
         orderBy: { updatedAt: "desc" },
       },
+      tours: {
+        include: { distributor: true, segment: { select: { id: true, name: true, city: true, postalCode: true } } },
+        orderBy: { updatedAt: "desc" },
+      },
       payments: { include: { refunds: true }, orderBy: { createdAt: "desc" } },
       documents: { orderBy: { uploadedAt: "desc" } },
       reports: { orderBy: { updatedAt: "desc" } },
-      distributionSegments: { orderBy: { sortOrder: "asc" } },
+      distributionSegments: { orderBy: { sortOrder: "asc" }, include: { assignedWarehouse: true } },
       statusEvents: {
         orderBy: { createdAt: "asc" },
         include: { user: { select: { id: true, email: true, role: true } } },
@@ -369,6 +373,36 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
 
       <section className="panel" style={{ marginTop: 18 }}>
         <h2 className="sectionTitle">Status ändern</h2>
+        {order.distributionSegments.length > 0 ? (
+          <div className="stack" style={{ marginTop: 24 }}>
+            <h2 className="sectionTitle">Teilgebiete und Umsetzung</h2>
+            <p className="muted">Jedes Teilgebiet bleibt in Lager, Disposition und Touren separat nachvollziehbar.</p>
+            <div className="tableWrap">
+              <table>
+                <thead>
+                  <tr><th>Teilgebiet</th><th>PLZ / Ort</th><th>Flaeche</th><th>Haushalte</th><th>Lager</th><th>Verteiler / Zuweisung</th><th>Tour</th></tr>
+                </thead>
+                <tbody>
+                  {order.distributionSegments.map((segment) => {
+                    const assignments = order.dispatchAssignments.filter((assignment) => assignment.segment?.id === segment.id);
+                    const tours = order.tours.filter((tour) => tour.segment?.id === segment.id);
+                    return (
+                      <tr key={segment.id}>
+                        <td><strong>{segment.name}</strong></td>
+                        <td>{segment.postalCode || "-"} / {segment.city || "-"}</td>
+                        <td>{Number(segment.areaSqm).toLocaleString("de-DE")} m2</td>
+                        <td>{segment.estimatedHouseholds ?? "Nach Pruefung"}</td>
+                        <td>{segment.assignedWarehouse?.name ?? "Manuelle Pruefung"}</td>
+                        <td>{assignments.length ? assignments.map((assignment) => `${assignment.distributor.firstName} ${assignment.distributor.lastName} (${DISPATCH_STATUS_LABELS[assignment.status]})`).join(", ") : "Noch keine"}</td>
+                        <td>{tours.length ? tours.map((tour) => `${tour.status}${tour.deliveredFlyerQuantity !== null ? ` / ${tour.deliveredFlyerQuantity} Flyer` : ""}`).join(", ") : "Noch keine"}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : null}
         <form action={`/api/admin/orders/${order.id}/status`} method="post" className="form grid">
           <input type="hidden" name="_method" value="PATCH" />
           <label>

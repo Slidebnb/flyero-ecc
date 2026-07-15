@@ -12,6 +12,8 @@ const customerCorrection = read("src/app/api/customer/orders/[id]/route.ts");
 const customerDetail = read("src/app/customer/orders/[id]/page.tsx");
 const customerDashboard = read("src/app/customer/dashboard/page.tsx");
 const adminStatus = read("src/app/api/admin/orders/[id]/status/route.ts");
+const payments = read("src/lib/payments.ts");
+const dispatch = read("src/lib/dispatch.ts");
 const ci = read(".github/workflows/ci.yml");
 
 expect(schema.includes("ACCEPTED_AWAITING_PAYMENT"), "Der Annahme-Status fehlt im Prisma-Schema.");
@@ -27,6 +29,9 @@ expect(customerCorrection.includes("orderDistributionSegment.deleteMany"), "Kund
 expect(customerCorrection.includes('isCustomerCorrection ? "UNDER_REVIEW"'), "Kundenkorrektur muss erneut in die Adminpruefung gehen.");
 expect(customerDetail.includes("order.targetAreaGeoJson ?? order.distributionArea?.geoJson"), "Kundenkarte muss den Auftragssnapshot priorisieren.");
 expect(customerDashboard.includes("report?.order.targetAreaGeoJson") && customerDashboard.includes("order?.targetAreaGeoJson"), "Dashboardkarte muss den Auftragssnapshot priorisieren.");
+expect(customerDashboard.indexOf("?? order?.targetAreaGeoJson") < customerDashboard.indexOf("?? report?.order.distributionArea?.geoJson"), "Dashboard darf keine alte Gebietrelation vor den Auftragssnapshot setzen.");
+expect(!payments.includes('"PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "SUBMITTED"'), "Unverbindliche Anfragen duerfen nicht vor Adminannahme zahlbar sein.");
+expect(dispatch.includes("getOrderIntegrityCheck") && dispatch.includes("ORDER_INTEGRITY_FAILED"), "Dispatch muss vor der Zuweisung den Order-Integritaetscheck erzwingen.");
 expect(existsSync("src/app/api/admin/orders/[id]/review/route.ts"), "Dedizierter Review-Endpunkt fehlt.");
 expect(!adminStatus.includes("refundPayment"), "Die generische Statusroute darf den Refundpfad nicht parallel implementieren.");
 expect(review.includes("getOrderIntegrityCheck"), "Review-Service muss vor der Entscheidung die Order-Integritaet pruefen.");

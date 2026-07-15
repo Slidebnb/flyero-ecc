@@ -11,7 +11,8 @@ const routing = await readFile("src/lib/routing.ts", "utf8");
 
 assert.match(dispatch, /tenantId\?: string \| null/);
 assert.match(dispatch, /tenantId: tenantId \?\? "__no_tenant__"/);
-assert.match(dispatch, /user: \{ tenantId: tenantId \?\? "__no_tenant__" \}/);
+assert.match(dispatch, /function distributorTenantWhere[\s\S]*tenantId: tenantId \?\? "__no_tenant__"/);
+assert.match(dispatch, /id: input\.distributorId, \.\.\.distributorTenantWhere\(input\.tenantId\)/);
 assert.match(dispatch, /ensureOrderAccess/);
 assert.match(dispatch, /getDispatchDashboard\([^)]*tenantId/);
 assert.match(routing, /tenantId\?: string \| null/);

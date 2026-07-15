@@ -56,7 +56,7 @@ export default async function CustomerOrdersPage() {
                     <span>{customerAreaName(order.targetAreaName)}</span>
                     <span>{formatDate(order.createdAt)}</span>
                     <span>{order.flyerQuantity.toLocaleString("de-DE")} Flyer</span>
-                    <span>{formatCurrency(getOrderGrossPrice(order))}</span>
+                    <span>Gesamt brutto {formatCurrency(getOrderGrossPrice(order))}</span>
                   </div>
                 </div>
                 <div className="customerCampaignActions">

@@ -67,7 +67,7 @@ async function requestJson(path, options = {}) {
   return body;
 }
 
-function orderPayload() {
+function orderPayload(completionPath = "inquiry") {
   const geometryGeoJson = {
     type: "FeatureCollection",
     features: [{
@@ -99,7 +99,7 @@ function orderPayload() {
     flyerQuantity: 2000,
     flyerSource: "CUSTOMER_OWN",
     printDataStatus: "UPLOAD_LATER",
-    completionPath: "inquiry",
+    completionPath,
     preferredStartDate: "2026-08-03",
     preferredEndDate: "2026-08-10",
     flexibleScheduling: true,
@@ -109,8 +109,8 @@ function orderPayload() {
   };
 }
 
-async function orderPayloadWithCurrentQuote() {
-  const payload = orderPayload();
+async function orderPayloadWithCurrentQuote(completionPath = "inquiry") {
+  const payload = orderPayload(completionPath);
   const quote = await requestJson("/api/public/planner/quote", {
     method: "POST",
     body: JSON.stringify({
@@ -211,7 +211,7 @@ try {
   const created = await requestJson("/api/customer/orders", {
     method: "POST",
     headers: { cookie: customerCookie },
-    body: JSON.stringify(await orderPayloadWithCurrentQuote()),
+    body: JSON.stringify(await orderPayloadWithCurrentQuote("direct_payment")),
   });
   assert.equal(created.data.calculatedNetPrice, "2000", "Neue Order uebernimmt die Admin-Preisregel nicht.");
 

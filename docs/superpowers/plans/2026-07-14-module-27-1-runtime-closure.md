@@ -114,3 +114,32 @@ Falls lokale Voraussetzungen fuer einen Test fehlen, wird er explizit als blocki
 9. Segmentbezogene Dispatch-Korrekturen.
 10. Audit-/Repair-Script und Playwright-Pruefung.
 
+## Abschlussstand 2026-07-15
+
+Die P0-Laufzeit-Haertung ist implementiert und lokal gegen PostgreSQL, HTTP, Prisma,
+Mock-Payment und Mock-Mail verarbeitet worden.
+
+Abgeschlossen:
+
+- Netto, MwSt. und Brutto werden in Kunden- und Admin-Ansichten explizit beschriftet.
+- Der Order-Snapshot `targetAreaGeoJson` ist in Kunden-, Admin- und Reportpfaden die primaere Gebietsquelle; historische Relationdaten bleiben nur Fallback.
+- Preispropagierung aktualisiert auch den verschachtelten Quote-/Gebiets-Snapshot und dessen Fingerprint. Offene Checkout-Zahlungen werden bei Preis- oder Gebietskorrekturen invalidiert.
+- Direkter Checkout bleibt moeglich; eine Anfrage wird vor Adminannahme mit `PAYMENT_NOT_ALLOWED_BEFORE_REVIEW` blockiert.
+- Unbezahlte Korrekturen ersetzen Snapshot, Segmente und Relation atomar. Bezahlte Orders bleiben gesperrt.
+- Refund-Fehler werden als `FAILED` gespeichert und nicht als Erfolg gemeldet. Ablehnung und Kundenbenachrichtigung sind idempotent.
+- Kritische Dispatch-Zuweisungen werden bei Quote-, Preis-, Mengen- oder Gebietsabweichung mit `ORDER_INTEGRITY_FAILED` blockiert.
+- Multi-Segment-Dispatch prueft getrennte Segmente, Mengen und Zuweisungen. Eine gueltige, aber manipulierte Gebietsreferenz wird im Runtime-Test mit 409 abgewiesen.
+- Die Admin-Auftragsansicht zeigt Teilgebiete, Lager, Zuweisung, Tourstatus und Mengen ohne die Kunden-/Print-Fulfillment-Pfade zu vermischen.
+
+Nachweise:
+
+- Prisma Validate/Generate, TypeScript, Lint und Produktions-Build sind gruen.
+- Modul-27.1-Contract, Dispatch-Contract, Runtime, Playwright, Customer Order Area/Checkout, Module 16, Module 24, Module 27, Pricing-Propagation und die relevanten Tenant-/Payment-/Warehouse-/Logistics-Tests sind gruen.
+- Der A/B-IDOR-Test wurde gegen den bereits laufenden lokalen Server ausgefuehrt, weil ein zweiter Next-Dev-Server den gemeinsamen `.next/dev`-Lock nicht verwenden kann.
+
+Offene Betriebsrisiken:
+
+- Playwright meldet weiterhin `map=fallback-observed`. Eine echte Google-Maps-Browserkarte wurde in dieser lokalen Testumgebung nicht verifiziert; dafuer muessen Produktions-Key, Map-ID, Boundary-Layer und erlaubte Domain aktiv konfiguriert sein.
+- Stripe wurde lokal nur ueber den vorhandenen Mock-/Contract-Pfad geprueft. Ein echter Live-Checkout, Webhook-Signatur-Flow und Provider-Refund muessen mit Stripe-Testmodus bzw. kontrolliertem Live-Run separat nachgewiesen werden.
+- Der Notification-Worker ist mit `EMAIL_PROVIDER=mock` nachgewiesen. SMTP/Resend-Zustellung und Zustellbarkeit sind extern noch nicht verifiziert.
+- Die laufenden Runtime-Tests verwenden die lokale Seed-/Testdatenbank und sind kein Beleg fuer produktive Datenqualitaet oder echte Google-/Haushaltsdaten.

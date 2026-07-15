@@ -195,8 +195,10 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
   if (!profileCompleteness.complete) {
     throw new CustomerProfileIncompleteError(order.id, profileCompleteness.missingFields);
   }
-  if (!["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "SUBMITTED", "ACCEPTED_AWAITING_PAYMENT"].includes(order.status)) {
-    throw new Error("Fuer diesen Auftrag kann kein neuer Checkout gestartet werden.");
+  if (!["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "ACCEPTED_AWAITING_PAYMENT"].includes(order.status)) {
+    const error = new Error("Eine unverbindliche Anfrage muss zuerst durch FLYERO angenommen werden.");
+    (error as Error & { code?: string }).code = "PAYMENT_NOT_ALLOWED_BEFORE_REVIEW";
+    throw error;
   }
 
   const existing = order.payments.find((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING", "PAID"].includes(payment.status));
@@ -562,6 +564,8 @@ export async function refundPayment(input: {
   if (!payment) throw new Error("Zahlung wurde nicht gefunden.");
   const completedRefund = payment.refunds.find((refund) => refund.status === "SUCCEEDED" && refund.type === "FULL");
   if (payment.status === "REFUNDED" && completedRefund) return completedRefund;
+  const pendingRefund = payment.refunds.find((refund) => refund.status === "PENDING");
+  if (pendingRefund) throw new Error("Fuer diese Zahlung wird bereits eine Erstattung verarbeitet.");
   if (!["PAID", "PARTIALLY_REFUNDED"].includes(payment.status)) {
     throw new Error("Nur bezahlte Zahlungen können erstattet werden.");
   }
@@ -596,14 +600,37 @@ export async function refundPayment(input: {
     },
   });
 
-  const stripeRefund = isMockStripe()
-    ? { id: `re_mock_${refund.id}`, status: "succeeded" }
-    : await stripeClient().refunds.create({
-        payment_intent: payment.stripePaymentIntentId ?? undefined,
-        amount: toCents(amount),
-        reason: "requested_by_customer",
-        metadata: { paymentId: payment.id, orderId: payment.orderId, refundId: refund.id },
-      });
+  let stripeRefund: { id: string; status: string | null };
+  try {
+    stripeRefund = isMockStripe()
+      ? { id: `re_mock_${refund.id}`, status: "succeeded" }
+      : await stripeClient().refunds.create({
+          payment_intent: payment.stripePaymentIntentId ?? undefined,
+          amount: toCents(amount),
+          reason: "requested_by_customer",
+          metadata: { paymentId: payment.id, orderId: payment.orderId, refundId: refund.id },
+        });
+  } catch (error) {
+    const failureMessage = error instanceof Error ? error.message.slice(0, 500) : "Der Zahlungsanbieter hat die Erstattung abgelehnt.";
+    await prisma.refund.update({
+      where: { id: refund.id },
+      data: { status: "FAILED", reason: `${input.reason ?? ""}${input.reason ? " | " : ""}Erstattung fehlgeschlagen: ${failureMessage}`, processedAt: new Date() },
+    });
+    await createAuditLog({
+      userId: input.adminUserId,
+      action: "payment.refund_failed",
+      entityType: "Payment",
+      entityId: payment.id,
+      newValues: { refundId: refund.id, reason: failureMessage },
+    });
+    await notifyAdmins({
+      type: "PAYMENT_REFUND_FAILED",
+      title: "Erstattung fehlgeschlagen",
+      message: `${payment.order.orderNumber}: Die Erstattung konnte nicht abgeschlossen werden. Retry erforderlich.`,
+      data: { orderId: payment.orderId, paymentId: payment.id, refundId: refund.id },
+    });
+    throw new Error("Die Erstattung konnte beim Zahlungsanbieter nicht abgeschlossen werden. Der Auftrag wurde nicht als erfolgreich erstattet markiert.");
+  }
 
   const updatedRefund = await prisma.refund.update({
     where: { id: refund.id },

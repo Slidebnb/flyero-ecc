@@ -5,6 +5,7 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { ensureDefaultPricingSettings, getSystemSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
+import { buildPlanningInputFingerprint } from "@/lib/planningQuote";
 
 const VAT_SETTING_KEY = PRICING_SETTING_KEYS.vatRate;
 const PREMIUM_PRICING_VERSION = "premium-distribution-v4";
@@ -268,9 +269,20 @@ export function withCurrentPricingSnapshot(input: {
   price: PriceCalculation;
   snapshot?: unknown;
   areaCalculationSnapshot?: unknown;
+  targetAreaGeoJson?: unknown;
 }) {
   const existing = jsonRecord(input.snapshot);
   const areaSnapshotValue = input.areaCalculationSnapshot ?? existing.areaCalculationSnapshot;
+  const existingAreaSnapshot = jsonRecord(areaSnapshotValue);
+  const existingQuote = jsonRecord(existingAreaSnapshot.quote);
+  const existingQuoteInput = jsonRecord(existingQuote.input);
+  const refreshedQuote = input.targetAreaGeoJson && Object.keys(existingQuoteInput).length > 0
+    ? buildPlanningInputFingerprint({
+        ...existingQuoteInput,
+        targetAreaGeoJson: input.targetAreaGeoJson,
+        pricingRuleSignature: input.price.snapshot.pricingRuleSignature,
+      } as Parameters<typeof buildPlanningInputFingerprint>[0])
+    : null;
   const areaSnapshot = areaSnapshotValue && typeof areaSnapshotValue === "object" && !Array.isArray(areaSnapshotValue)
     ? {
         ...areaSnapshotValue as Record<string, unknown>,
@@ -280,6 +292,21 @@ export function withCurrentPricingSnapshot(input: {
         pricingVatRate: input.price.snapshot.vatRate,
         pricingGrossPrice: input.price.gross.toString(),
         pricingCalculatedAt: input.price.snapshot.calculatedAt,
+        quote: (() => {
+          const quote = (areaSnapshotValue as Record<string, unknown>).quote;
+          if (!quote || typeof quote !== "object" || Array.isArray(quote)) return quote;
+          return {
+            ...(quote as Record<string, unknown>),
+            ...(refreshedQuote ? { input: refreshedQuote.input, fingerprint: refreshedQuote.fingerprint, polygonHash: refreshedQuote.polygonHash } : {}),
+            netPrice: input.price.net.toString(),
+            vatAmount: input.price.vat.toString(),
+            grossPrice: input.price.gross.toString(),
+            pricingVersion: input.price.snapshot.pricingVersion,
+            pricingRuleSignature: input.price.snapshot.pricingRuleSignature,
+            calculatedAt: input.price.snapshot.calculatedAt,
+          };
+        })(),
+        ...(refreshedQuote ? { quoteFingerprint: refreshedQuote.fingerprint, polygonHash: refreshedQuote.polygonHash } : {}),
       }
     : null;
 
@@ -308,6 +335,7 @@ export async function syncOpenOrderPrices() {
       calculatedVat: true,
       calculatedGrossPrice: true,
       priceRuleSnapshot: true,
+      targetAreaGeoJson: true,
       customer: { select: { userId: true } },
       payments: {
         where: { status: { in: OPEN_CHECKOUT_PAYMENT_STATUSES } },
@@ -356,9 +384,10 @@ export async function syncOpenOrderPrices() {
         calculatedVat: price.vat,
         calculatedGrossPrice: price.gross,
         priceRuleSnapshot: withCurrentPricingSnapshot({
-          price,
-          snapshot: existingSnapshot,
-        }),
+        price,
+        snapshot: existingSnapshot,
+        targetAreaGeoJson: order.targetAreaGeoJson,
+      }),
       },
     });
 

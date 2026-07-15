@@ -118,6 +118,7 @@ export async function reviewOrder(input: {
     if (paidPayment) {
       await refundPayment({ paymentId: paidPayment.id, adminUserId: input.adminUserId, reason: input.rejectionReason ?? input.customerMessage ?? input.note });
       await createAuditLog({ userId: input.adminUserId, action: "order.rejected_after_refund", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: "REJECTED" }, metadata: { reason: input.rejectionReason ?? input.customerMessage ?? input.note } });
+      await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_REJECTED", title: "Kampagne nicht angenommen", message: input.customerMessage ?? input.rejectionReason ?? input.note ?? "Deine Kampagne konnte nicht angenommen werden." });
       return prisma.order.findUniqueOrThrow({ where: { id: order.id } });
     }
     assertOrderTransition(order.status, "REJECTED");

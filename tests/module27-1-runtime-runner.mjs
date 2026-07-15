@@ -135,7 +135,7 @@ async function quote(segments, flyerQuantity, completionPath) {
     }),
   });
   assertOk(result.response.ok && result.data?.data?.metrics?.fingerprint, `Quote fehlgeschlagen: ${result.response.status} ${result.text}`);
-  return { fingerprint: result.data.data.metrics.fingerprint, date };
+  return { fingerprint: result.data.data.metrics.fingerprint, date, netPrice: result.data.data.metrics.netPrice };
 }
 
 function orderPayload({ suffix, segments, flyerQuantity, completionPath, quoteFingerprint, date }) {
@@ -183,6 +183,10 @@ async function runCoreFlow() {
     segment("Koblenz Innenstadt", "Koblenz", "56068", 0),
     segment("Bendorf Zentrum", "Bendorf", "56170", 0.03),
   ];
+  const tier10000 = await quote([multi[0]], 10000, "direct_payment");
+  const tier10001 = await quote([multi[0]], 10001, "direct_payment");
+  assert.equal(String(tier10000.netPrice), "3600", "10.000 Flyer muessen 3.600 EUR netto ergeben.");
+  assert.equal(String(tier10001.netPrice), "3600.31", "10.001 Flyer muessen marginal 3.600,31 EUR netto ergeben.");
   const multiQuote = await quote(multi, 3000, "inquiry");
   const inquiry = await createOrder(customerCookie, orderPayload({
     suffix: "Mehrgebiet",
@@ -201,6 +205,15 @@ async function runCoreFlow() {
   assert.equal(stored.calculatedVat.toString(), "216.6", "MwSt. muss serverseitig aus dem Netto-Preis kommen.");
   assert.equal(stored.calculatedGrossPrice.toString(), "1356.6", "Brutto-Preis muss Netto plus MwSt. sein.");
   assertOk(stored.targetAreaGeoJson && stored.priceRuleSnapshot?.areaCalculationSnapshot, "Order-Snapshot fehlt.");
+
+  const inquiryCheckout = await request(`/api/payments/checkout`, {
+    method: "POST",
+    headers: { "content-type": "application/json", cookie: customerCookie },
+    body: JSON.stringify({ orderId: inquiry.id }),
+  });
+  assert.equal(inquiryCheckout.response.status, 409, "Eine unverbindliche Anfrage darf vor der Adminannahme keinen Checkout starten.");
+  assert.equal(inquiryCheckout.data?.code, "PAYMENT_NOT_ALLOWED_BEFORE_REVIEW", "Checkout-Gate muss den fachlichen Grund zurueckgeben.");
+  assert.equal(await prisma.payment.count({ where: { orderId: inquiry.id } }), 0, "Das Checkout-Gate darf keinen Payment-Datensatz anlegen.");
 
   const accepted = await jsonRequest(`/api/admin/orders/${inquiry.id}/review`, "POST", { action: "approve" }, adminCookie);
   assert.equal(accepted.data.status, "ACCEPTED_AWAITING_PAYMENT", "Annahme muss Zahlung ausstehend markieren.");
@@ -241,6 +254,21 @@ async function runCoreFlow() {
     date: multiQuote.date,
   }));
   await jsonRequest(`/api/admin/orders/${correction.id}/review`, "POST", { action: "clarification", customerMessage: "Bitte pruefe das Gebiet noch einmal." }, adminCookie);
+  const correctionProvider = await prisma.paymentProvider.findFirst({ where: { code: "stripe" } });
+  assertOk(correctionProvider, "Stripe-Provider fuer die Korrekturpruefung fehlt.");
+  await prisma.payment.create({
+    data: {
+      orderId: correction.id,
+      customerId: correction.customerId,
+      tenantId: correction.tenantId,
+      providerId: correctionProvider.id,
+      status: "CHECKOUT_CREATED",
+      amount: correction.calculatedGrossPrice,
+      currency: "EUR",
+      description: "Stale checkout fuer Korrekturpruefung",
+      checkoutUrl: "https://checkout.invalid/runtime-correction",
+    },
+  });
   const corrected = await jsonRequest(`/api/customer/orders/${correction.id}`, "PUT", orderPayload({
     suffix: "Korrektur neu",
     segments: correctionSegments,
@@ -288,6 +316,12 @@ async function runCoreFlow() {
   const rejectedRefunds = await prisma.refund.findMany({ where: { orderId: direct.id } });
   assert.equal(rejectedDirect.status, "REJECTED", "Bezahlte Ablehnung muss den Auftrag fachlich ablehnen.");
   assert.equal(rejectedDirect.payments.filter((item) => item.status === "REFUNDED").length, 1, "Bezahlte Ablehnung muss die Zahlung vollständig erstatten.");
+  const directCustomer = await prisma.customerProfile.findUnique({ where: { id: direct.customerId }, select: { userId: true } });
+  const rejectionMessages = await prisma.notificationMessage.findMany({
+    where: { userId: directCustomer.userId, type: "ORDER_REJECTED", data: { path: ["orderId"], equals: direct.id } },
+  });
+  assert.equal(rejectionMessages.length, 1, "Eine bezahlte Ablehnung muss genau eine Kundenbenachrichtigung erzeugen.");
+  assert.ok(rejectionMessages[0].body.includes("Runtime-Rueckabwicklung"), "Der Ablehnungsgrund muss in der Kundenbenachrichtigung ankommen.");
   const refundCount = rejectedRefunds.length;
   await jsonRequest(`/api/admin/orders/${direct.id}/review`, "POST", { action: "reject", rejectionReason: "Runtime-Rueckabwicklung" }, adminCookie);
   const repeatedRejection = await prisma.refund.count({ where: { orderId: direct.id } });
