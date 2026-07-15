@@ -1,6 +1,6 @@
 import { ErrorSeverity, NotificationQueueStatus, SystemLogLevel } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
-import { sendEmail } from "@/lib/email";
+import { EmailResult, sendEmail } from "@/lib/email";
 import {
   createErrorLog,
   createSystemLog,
@@ -39,7 +39,7 @@ function queuePayload(queue: NonNullable<QueueWithRelations>) {
   };
 }
 
-export async function markAsSent(queueId: string, providerMessageId?: string) {
+export async function markAsSent(queueId: string, result: Pick<EmailResult, "provider" | "messageId">) {
   const queue = await prisma.notificationQueue.update({
     where: { id: queueId },
     data: {
@@ -47,7 +47,8 @@ export async function markAsSent(queueId: string, providerMessageId?: string) {
       sentAt: new Date(),
       failedAt: null,
       lastError: null,
-      providerMessageId,
+      provider: result.provider,
+      providerMessageId: result.messageId,
     },
   });
 
@@ -59,7 +60,7 @@ export async function markAsSent(queueId: string, providerMessageId?: string) {
       userId: queue.userId,
       action: "email.sent",
       status: queue.status,
-      detail: providerMessageId ? `Provider-ID: ${providerMessageId}` : "E-Mail wurde versendet.",
+      detail: `Provider: ${result.provider}; Provider-ID: ${result.messageId}`,
     },
   });
   await createAuditLog({
@@ -67,13 +68,13 @@ export async function markAsSent(queueId: string, providerMessageId?: string) {
     action: "email.sent",
     entityType: "NotificationQueue",
     entityId: queue.id,
-    newValues: { providerMessageId },
+    newValues: { provider: result.provider, providerMessageId: result.messageId },
   });
   await createSystemLog({
     level: SystemLogLevel.INFO,
     source: "email.queue",
     message: "E-Mail versendet.",
-    metadata: { queueId: queue.id, providerMessageId },
+    metadata: { queueId: queue.id, provider: result.provider, providerMessageId: result.messageId },
   });
 
   return queue;
@@ -171,7 +172,7 @@ export async function sendNotificationMessage(queueId: string) {
         data: payload.data,
       },
     });
-    return markAsSent(queue.id, result.messageId);
+    return markAsSent(queue.id, result);
   } catch (error) {
     return markAsFailed(queue.id, error);
   }
@@ -221,16 +222,30 @@ export async function processPendingNotifications(input: { limit?: number; trigg
   let failed = 0;
 
   try {
-    const queues = await prisma.notificationQueue.findMany({
-      where: {
-        ...productionNotificationQueueWhere(),
-        channel: "EMAIL",
-        status: { in: [NotificationQueueStatus.PENDING, NotificationQueueStatus.RETRY] },
-        scheduledAt: { lte: new Date() },
-      },
-      orderBy: [{ scheduledAt: "asc" }, { createdAt: "asc" }],
+    const queueFilter = {
+      ...productionNotificationQueueWhere(),
+      channel: "EMAIL" as const,
+      status: { in: [NotificationQueueStatus.PENDING, NotificationQueueStatus.RETRY] },
+      scheduledAt: { lte: new Date() },
+    };
+    const orderBy = [{ scheduledAt: "asc" as const }, { createdAt: "asc" as const }];
+    const operationQueues = await prisma.notificationQueue.findMany({
+      where: { ...queueFilter, userId: null, recipientEmail: { not: null } },
+      orderBy,
       take: limit,
     });
+    const remaining = limit - operationQueues.length;
+    const regularQueues = remaining > 0
+      ? await prisma.notificationQueue.findMany({
+          where: {
+            ...queueFilter,
+            OR: [{ userId: { not: null } }, { recipientEmail: null }],
+          },
+          orderBy,
+          take: remaining,
+        })
+      : [];
+    const queues = [...operationQueues, ...regularQueues];
 
     for (const queue of queues) {
       processed += 1;

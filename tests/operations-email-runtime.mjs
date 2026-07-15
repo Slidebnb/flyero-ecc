@@ -137,6 +137,7 @@ try {
   assert.ok(processed, `Test-Queue nicht gefunden. Worker-Antwort: ${processBody}`);
   assert.equal(processed?.recipientEmail, "hallo@flyero.org");
   assert.equal(processed?.status, "SENT", `Worker-Antwort: ${processBody}`);
+  assert.equal(processed?.provider, "mock", "Der verwendete E-Mail-Provider muss in der Queue gespeichert werden.");
   assert.match(processed?.providerMessageId || "", /^mock_/);
   console.log("Operations email runtime checks passed.");
 } finally {

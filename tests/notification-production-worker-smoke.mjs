@@ -17,7 +17,7 @@ assert.match(worker, /api\/internal\/notifications\/process/, "Worker muss den b
 assert.match(worker, /https:\/\//, "Worker darf nicht unverschluesselt auf den Produktions-Endpoint zugreifen.");
 assert.match(service, /User=flyero/, "Worker darf nicht als root laufen.");
 assert.match(service, /flock/, "Worker muss parallele Ausfuehrungen verhindern.");
-assert.match(timer, /OnUnitActiveSec=1min/, "Worker-Timer muss regelmaessig laufen.");
+assert.match(timer, /OnUnitActiveSec=15s/, "Worker-Timer muss neue Betriebs-E-Mails zeitnah verarbeiten.");
 assert.match(installer, /flyero-notification-worker\.timer/, "Installer muss den Notification-Timer aktivieren.");
 assert.match(preflight, /INTERNAL_API_TOKEN/, "Produktions-Preflight muss den Worker-Token erzwingen.");
 assert.match(envExample, /^INTERNAL_API_TOKEN=/m, "ENV-Vorlage muss den Worker-Token dokumentieren.");

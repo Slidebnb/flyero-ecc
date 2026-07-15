@@ -1,9 +1,9 @@
 [Unit]
-Description=FLYERO E-Mail-Benachrichtigungen jede Minute verarbeiten
+Description=FLYERO E-Mail-Benachrichtigungen zeitnah verarbeiten
 
 [Timer]
-OnBootSec=1min
-OnUnitActiveSec=1min
+OnBootSec=15s
+OnUnitActiveSec=15s
 Persistent=true
 Unit=flyero-notification-worker.service
 
