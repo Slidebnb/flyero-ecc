@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import {
@@ -243,61 +242,37 @@ export function TrustBadge({ children, icon: Icon = ShieldCheck }: { children: R
 
 export function HeroVisual() {
   return (
-    <div className="mkHeroVisual" aria-label="FLYERO Flyer, GPS-Spur und Kundenbericht">
-      <div className="mkHeroGlow" aria-hidden="true" />
-      <Image
-        src="/marketing/flyero-hero-proof.png"
-        alt="Flyer, Kartenroute und FLYERO Plattformmotiv"
-        width={1600}
-        height={1000}
-        className="mkHeroImage"
-        priority
-      />
-      <div className="mkHeroProofStack" aria-hidden="true">
-        <span>GPS-Nachweis</span>
-        <span>Foto-Nachweise</span>
-        <span>PDF-Bericht</span>
-        <span>Tour geprüft</span>
-      </div>
-      <div className="mkHeroFloat mkHeroFloatGps">
-        <span>GPS-Nachweis aktiv</span>
-        <strong>Tour wird geprüft</strong>
-      </div>
-      <div className="mkHeroFloat mkHeroFloatReport">
-        <span>Bericht freigegeben</span>
-        <strong>PDF + Fotos</strong>
-      </div>
+    <div className="mkHeroVisual" aria-label="FLYERO Prozess der Nachweiserstellung">
+      <ProcessPreview />
     </div>
   );
 }
 
-export function ProofMockup({ area = "Koblenz Süd" }: { area?: string }) {
-  const proofItems = ["GPS-Nachweis", "Foto-Dokumentation", "PDF-Bericht", "FLYERO Prüfung"];
+export function ProcessPreview() {
+  const processItems = [
+    ["01", "Gebiet geplant", "Gebiet und Menge werden vorab festgelegt."],
+    ["02", "Verteilung durchgeführt", "Die operative Durchführung wird dokumentiert."],
+    ["03", "Nachweise geprüft", "GPS-Bericht, Fotos und Angaben werden intern geprüft."],
+    ["04", "Bericht freigegeben", "Erst danach erscheint der Bericht im Kundenkonto."],
+  ] as const;
 
   return (
-    <div className="mkProofMockup" aria-label={`FLYERO Nachweisvorschau für ${area}`}>
+    <div className="mkProcessPreview" aria-label="Beispielhafter FLYERO Nachweisablauf">
       <div className="mkProofBrand">
         <FlyeroLogo dark />
-        <span>Nachweisportal</span>
+        <span>Nachweisprozess</span>
       </div>
-      <div className="mkProofMap" aria-hidden="true">
-        <span className="mkProofPin mkProofPin-a" />
-        <span className="mkProofPin mkProofPin-b" />
-        <span className="mkProofPin mkProofPin-c" />
-        <span className="mkProofPin mkProofPin-d" />
-      </div>
-      <div className="mkProofChecklist">
-        {proofItems.map((item) => (
-          <span key={item}>
-            <Check aria-hidden="true" />
-            {item}
-          </span>
+      <p className="mkProcessPreviewDisclosure">Beispielhafter Ablauf · keine echte Kampagne</p>
+      <div className="mkProcessPreviewList">
+        {processItems.map(([number, title, text]) => (
+          <div className="mkProcessPreviewRow" key={number}>
+            <span>{number}</span>
+            <div>
+              <strong>{title}</strong>
+              <small>{text}</small>
+            </div>
+          </div>
         ))}
-      </div>
-      <div className="mkProofReport">
-        <span>Bericht freigegeben</span>
-        <strong>Tour {area}</strong>
-        <p>GPS-Punkte, Fotos, Zeiten und Zustellquote geprüft.</p>
       </div>
     </div>
   );

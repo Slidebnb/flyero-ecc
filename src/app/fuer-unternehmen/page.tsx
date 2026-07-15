@@ -7,7 +7,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
-  ProofMockup,
+  ProcessPreview,
   PremiumFlyerField,
   StepCard,
   TrustBadge,
@@ -69,7 +69,7 @@ export default function BusinessPage() {
               <TrustBadge icon={defaultProofIcons.report}>Kundenbericht</TrustBadge>
             </div>
           </div>
-          <ProofMockup area="Koblenz Süd" />
+          <ProcessPreview />
         </MarketingContainer>
       </section>
 

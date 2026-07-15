@@ -4,6 +4,7 @@
 
 import { type PointerEvent, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { hasExplicitPublicLocationContext, isGermanPostalCode, normalizePublicLocationContext, type PublicLocationContext } from "@/lib/publicLocationContext";
 import {
   CircleHelp,
   Download,
@@ -265,7 +266,7 @@ declare global {
 const PUBLIC_DEFAULT_CENTER: LatLng = { lat: 51.1657, lng: 10.4515 };
 
 const ORDER_DRAFT_KEY = "flyero:order-planner:draft:v2";
-const PUBLIC_ORDER_DRAFT_KEY = "flyero:order-planner:public-draft:v2";
+const PUBLIC_ORDER_DRAFT_KEY = "flyero:order-planner:public-draft:v3";
 const LEGACY_ORDER_DRAFT_KEY = "flyero:customer:new-order-draft";
 const MINIMUM_FLYER_QUANTITY = 500;
 const MAXIMUM_FLYER_QUANTITY = 250_000;
@@ -535,6 +536,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const forceLocationReplaceRef = useRef(false);
   const lastIntelligenceRequestRef = useRef<string | null>(null);
   const intelligenceAbortRef = useRef<AbortController | null>(null);
+  const locationAbortRef = useRef<AbortController | null>(null);
+  const locationRequestSequenceRef = useRef(0);
   const confirmedIntelligenceRequestRef = useRef<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const mapElementRef = useRef<HTMLDivElement | null>(null);
@@ -553,7 +556,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const selectBoundaryAreaRef = useRef<(placeId: string) => void>(() => undefined);
   const applyLocationResultRef = useRef<(result: LocationResult, options?: { forceReplace?: boolean }) => void>(() => undefined);
   const overviewDragRef = useRef<OverviewDragState | null>(null);
-  const initialSearchRef = useRef<string | null>(null);
+  const initialSearchRef = useRef<PublicLocationContext | null>(null);
   const trackedPublicStepsRef = useRef(new Set<number>());
   const [isPending, startTransition] = useTransition();
   const [mapsReady, setMapsReady] = useState(false);
@@ -990,11 +993,23 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     });
   }, [activeSegmentId]);
 
-  // Restore customer draft once from localStorage before the user continues editing.
+  // Explicit public navigation data wins over any saved browser state.
   useEffect(() => {
     try {
-      const queryParameter = isPublicPlanner ? new URLSearchParams(window.location.search).get("query") : null;
-      if (queryParameter) initialSearchRef.current = queryParameter;
+      const params = new URLSearchParams(window.location.search);
+      const initialLocation = isPublicPlanner
+        ? normalizePublicLocationContext({
+            query: params.get("query"),
+            placeId: params.get("placeId"),
+            postalCode: params.get("postalCode"),
+            city: params.get("city"),
+            lat: params.get("lat"),
+            lng: params.get("lng"),
+            source: params.get("source"),
+          })
+        : null;
+      const hasExplicitLocation = hasExplicitPublicLocationContext(initialLocation);
+      if (initialLocation) initialSearchRef.current = initialLocation;
       const rawDraft = window.localStorage.getItem(draftStorageKey) ?? (!isPublicPlanner ? window.localStorage.getItem(LEGACY_ORDER_DRAFT_KEY) : null);
       if (!rawDraft) {
         draftRestoredRef.current = true;
@@ -1004,15 +1019,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       }
       const draft = JSON.parse(rawDraft) as OrderDraft;
       if (draft.activeStep && draft.activeStep >= 1 && draft.activeStep <= 6) setActiveStep(draft.activeStep);
-      if (draft.query) setQuery(draft.query);
-      if (draft.selectedAreaId) setSelectedAreaId(draft.selectedAreaId);
-      if (draft.city) setCity(draft.city);
-      if (draft.postalCode) setPostalCode(draft.postalCode);
-      if (draft.street) setStreet(draft.street);
-      if (draft.houseNumber) setHouseNumber(draft.houseNumber);
-      if (draft.targetAreaName) setTargetAreaName(draft.targetAreaName);
-      if (draft.center && Number.isFinite(draft.center.lat) && Number.isFinite(draft.center.lng)) setCenter(draft.center);
-      if (Array.isArray(draft.areaSegments) && draft.areaSegments.length > 0) {
+      const restoreLocation = !hasExplicitLocation;
+      if (restoreLocation && draft.query) setQuery(draft.query);
+      if (restoreLocation && draft.selectedAreaId) setSelectedAreaId(draft.selectedAreaId);
+      if (restoreLocation && draft.city) setCity(draft.city);
+      if (restoreLocation && draft.postalCode) setPostalCode(draft.postalCode);
+      if (restoreLocation && draft.street) setStreet(draft.street);
+      if (restoreLocation && draft.houseNumber) setHouseNumber(draft.houseNumber);
+      if (restoreLocation && draft.targetAreaName) setTargetAreaName(draft.targetAreaName);
+      if (restoreLocation && draft.center && Number.isFinite(draft.center.lat) && Number.isFinite(draft.center.lng)) setCenter(draft.center);
+      if (restoreLocation && Array.isArray(draft.areaSegments) && draft.areaSegments.length > 0) {
         const restoredSegments = draft.areaSegments.filter((segment) => Array.isArray(segment.points));
         if (restoredSegments.length > 0) {
           setAreaSegments(restoredSegments);
@@ -1024,11 +1040,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           setPolygonSource(restoredSegments[0].polygonSource);
           setHistory([restoredSegments[0].points]);
         }
-      } else if (Array.isArray(draft.polygon) && draft.polygon.length >= 3) {
+      } else if (restoreLocation && Array.isArray(draft.polygon) && draft.polygon.length >= 3) {
         setPolygon(draft.polygon);
         setHistory([draft.polygon]);
       }
-      if (draft.polygonSource) setPolygonSource(draft.polygonSource);
+      if (restoreLocation && draft.polygonSource) setPolygonSource(draft.polygonSource);
+      if (hasExplicitLocation && rawDraft) {
+        window.localStorage.removeItem(draftStorageKey);
+        const discardedPayload = JSON.stringify({ eventType: "PUBLIC_STALE_DRAFT_DISCARDED", source: "public-planner", reason: "explicit-location-navigation" });
+        navigator.sendBeacon?.(experienceEndpoint, new Blob([discardedPayload], { type: "application/json" }));
+      }
       const restoredQuantityTouched = draft.flyerQuantityTouched === true;
       setFlyerQuantityTouched(restoredQuantityTouched);
       if (restoredQuantityTouched && draft.flyerQuantity) {
@@ -1050,8 +1071,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       if (draft.contactPhone) setContactPhone(draft.contactPhone);
       if (draft.notes) setNotes(draft.notes);
       setDraftStatus("Entwurf geladen");
-      const restoredPayload = JSON.stringify({ eventType: "DRAFT_RESTORED", city: draft.city, postalCode: draft.postalCode, source: isPublicPlanner ? "public-planner" : "customer-planner" });
-      navigator.sendBeacon?.(experienceEndpoint, new Blob([restoredPayload], { type: "application/json" }));
+      if (!hasExplicitLocation) {
+        const restoredPayload = JSON.stringify({ eventType: "DRAFT_RESTORED", city: draft.city, postalCode: draft.postalCode, source: isPublicPlanner ? "public-planner" : "customer-planner" });
+        navigator.sendBeacon?.(experienceEndpoint, new Blob([restoredPayload], { type: "application/json" }));
+      }
     } catch {
       window.localStorage.removeItem(draftStorageKey);
       setDraftStatus("Entwurf wird automatisch gespeichert");
@@ -1133,7 +1156,22 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   }, [isPublicPlanner, minimumStartDate]);
 
   useEffect(() => {
-    if (!draftRestoredRef.current) return;
+    if (!draftRestoredRef.current || !draftRestored) return;
+    if (isPublicPlanner) {
+      const navigationLocation = normalizePublicLocationContext({
+        query: new URLSearchParams(window.location.search).get("query"),
+        placeId: new URLSearchParams(window.location.search).get("placeId"),
+        postalCode: new URLSearchParams(window.location.search).get("postalCode"),
+        city: new URLSearchParams(window.location.search).get("city"),
+        lat: new URLSearchParams(window.location.search).get("lat"),
+        lng: new URLSearchParams(window.location.search).get("lng"),
+        source: new URLSearchParams(window.location.search).get("source"),
+      });
+      const expectedPostalCode = navigationLocation?.postalCode
+        ?? (navigationLocation?.query && isGermanPostalCode(navigationLocation.query) ? navigationLocation.query : undefined);
+      if (expectedPostalCode && postalCode !== expectedPostalCode) return;
+      if (navigationLocation?.city && city !== navigationLocation.city) return;
+    }
     const draft: OrderDraft = {
       activeStep,
       query,
@@ -1197,10 +1235,21 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     targetAreaName,
     targetGroup,
     draftStorageKey,
+    draftRestored,
     isPublicPlanner,
   ]);
 
   const applyLocationResult = useCallback((result: LocationResult, options?: { forceReplace?: boolean }) => {
+    if (options?.forceReplace) {
+      areaSegmentsRef.current = [];
+      setAreaSegments([]);
+      setActiveSegmentId(null);
+      setSelectedBoundaryPlaceIds([]);
+      setSelectedAreaId("");
+      setPolygon([]);
+      setHistory([]);
+      setHistoryIndex(0);
+    }
     if (options?.forceReplace) {
       forceLocationReplaceRef.current = true;
       window.setTimeout(() => {
@@ -1226,7 +1275,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         setCenter(matchedCenter);
         setSelectedAreaId(matchedArea.area.id);
         setTargetAreaName(matchedArea.area.name);
-        const currentSegments = areaSegmentsRef.current;
+        const currentSegments = options?.forceReplace ? [] : areaSegmentsRef.current;
         const existingSegment = currentSegments.find((segment) => segment.distributionAreaId === matchedArea.area.id);
         const segmentId = existingSegment?.id ?? activeSegmentId ?? `segment-${Date.now()}`;
         const nextSegment: OrderAreaSegmentDraft = {
@@ -1255,11 +1304,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         setPolygonSource("postal_code");
         setHistory([]);
         setHistoryIndex(0);
-        setAreaSegments((current) => activeSegmentId
-          ? current.map((segment) => segment.id === activeSegmentId
-            ? { ...segment, points: [], distributionAreaId: undefined, polygonSource: "drawn" }
-            : segment)
-          : current);
+        areaSegmentsRef.current = [];
+        setAreaSegments([]);
         setMapNotice("Ort gefunden. Klicke jetzt eine markierte Grenze an oder zeichne dein genaues Verteilgebiet auf der Karte.");
       }
     }
@@ -1270,20 +1316,37 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     applyLocationResultRef.current = applyLocationResult;
   }, [applyLocationResult]);
 
-  const geocodeAddress = useCallback((input?: string, placeId?: string) => {
+  const geocodeAddress = useCallback((input?: string, placeId?: string, expectedLocation?: Pick<PublicLocationContext, "postalCode" | "city">) => {
     const currentQuery = input ?? searchInputRef.current?.value ?? query;
-    const params = new URLSearchParams({
-      q: currentQuery,
-      city,
-      postalCode,
-      street,
-      houseNumber,
-    });
+    const requestId = ++locationRequestSequenceRef.current;
+    locationAbortRef.current?.abort();
+    const controller = new AbortController();
+    locationAbortRef.current = controller;
+    const params = new URLSearchParams({ q: currentQuery.trim() });
+    if (!isPublicPlanner) {
+      params.set("city", city);
+      params.set("postalCode", postalCode);
+      params.set("street", street);
+      params.set("houseNumber", houseNumber);
+    } else if (expectedLocation?.postalCode) {
+      params.set("postalCode", expectedLocation.postalCode);
+    }
     if (placeId) params.set("placeId", placeId);
-    fetch(`${geocodeEndpoint}?${params.toString()}`)
+    fetch(`${geocodeEndpoint}?${params.toString()}`, { signal: controller.signal })
       .then((response) => response.ok ? response.json() : null)
       .then((payload) => {
+        if (requestId !== locationRequestSequenceRef.current) return;
         const result = payload?.data;
+        const expectedPostalCode = expectedLocation?.postalCode ?? (isGermanPostalCode(currentQuery) ? currentQuery.trim() : undefined);
+        if (isPublicPlanner && isGermanPostalCode(expectedPostalCode) && result?.postalCode !== expectedPostalCode) {
+          setMapNotice("Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wÃ¤hlen Sie den passenden Ort aus den VorschlÃ¤gen.");
+          void fetch(experienceEndpoint, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ eventType: "PUBLIC_GEOCODE_POSTAL_MISMATCH", source: "public-planner", requestedPostalCode: expectedPostalCode, returnedPostalCode: result?.postalCode ?? null }),
+          });
+          return;
+        }
         if (!result) {
           setMapNotice("Diese Adresse wurde nicht gefunden. Bitte prüfe die Eingabe oder zeichne das Gebiet direkt auf der Karte.");
           return;
@@ -1295,17 +1358,20 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             body: JSON.stringify({ eventType: "LOCATION_SEARCH_COMPLETED", city: result.city, postalCode: result.postalCode, usedAutocomplete }),
           });
         }
-        applyLocationResult(result, { forceReplace: forceLocationReplaceRef.current });
+        applyLocationResult(result, { forceReplace: isPublicPlanner ? true : forceLocationReplaceRef.current });
       })
-      .catch(() => undefined);
+      .catch((error) => {
+        if (requestId === locationRequestSequenceRef.current && error?.name !== "AbortError") setMapNotice("Die Standortsuche konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.");
+      });
   }, [applyLocationResult, city, experienceEndpoint, geocodeEndpoint, houseNumber, isPublicPlanner, postalCode, query, street, usedAutocomplete]);
 
   useEffect(() => {
     if (!isPublicPlanner || !draftRestored || !draftRestoredRef.current || !initialSearchRef.current) return;
-    const initialQuery = initialSearchRef.current;
+    const initialLocation = initialSearchRef.current;
     initialSearchRef.current = null;
-    setQuery(initialQuery);
-    const timer = window.setTimeout(() => geocodeAddress(initialQuery), 0);
+    if (!initialLocation) return;
+    setQuery(initialLocation.query);
+    const timer = window.setTimeout(() => geocodeAddress(initialLocation.query, initialLocation.placeId, initialLocation), 0);
     return () => window.clearTimeout(timer);
   }, [draftRestored, geocodeAddress, isPublicPlanner]);
 
@@ -1713,18 +1779,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     setUsedAutocomplete(true);
     setShowSuggestions(false);
     setSuggestions([]);
-    if (suggestion.lat && suggestion.lng) {
-      applyLocationResult({
-        city: suggestion.city,
-        postalCode: suggestion.postalCode,
-        street: suggestion.street,
-        label: suggestion.label,
-        lat: suggestion.lat,
-        lng: suggestion.lng,
-      });
-    } else {
-      geocodeAddress(suggestion.label, suggestion.source === "google" ? suggestion.id : undefined);
-    }
+    geocodeAddress(suggestion.label, suggestion.source === "google" ? suggestion.id : undefined, {
+      postalCode: suggestion.postalCode,
+      city: suggestion.city,
+    });
   }
 
   function openSuggestions() {

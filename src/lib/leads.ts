@@ -1,7 +1,8 @@
-import { LeadStatus, LeadType } from "@prisma/client";
+import { LeadStatus, LeadType, Prisma } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
-import { notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins, notifyEmailRecipient } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { leadScopeWhere, type LeadScope } from "@/lib/leadScope";
 import { productionLeadWhere } from "@/lib/productionData";
@@ -12,6 +13,16 @@ const leadStatusValues = Object.values(LeadStatus) as [LeadStatus, ...LeadStatus
 const optionalText = z
   .preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), z.string().trim().max(180).optional());
 
+const optionalInteger = z.preprocess(
+  (value) => (value === undefined || value === null || value === "" ? undefined : Number(value)),
+  z.number().int().min(1).max(1_000_000).optional(),
+);
+
+const optionalBoolean = z.preprocess(
+  (value) => (value === undefined || value === null || value === "" ? undefined : value === true || value === "true" || value === "on" || value === "1"),
+  z.boolean().optional(),
+);
+
 export const createLeadSchema = z.object({
   type: z.enum(leadTypeValues).default(LeadType.CUSTOMER),
   name: z.string().trim().min(2).max(120),
@@ -19,6 +30,18 @@ export const createLeadSchema = z.object({
   email: z.string().trim().email().max(180),
   phone: optionalText,
   city: optionalText,
+  postalCode: z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), z.string().regex(/^\d{5}$/, "Bitte gib eine fÃ¼nfstellige PLZ ein.").optional()),
+  streetAddress: optionalText,
+  flyerQuantity: optionalInteger,
+  startDate: optionalText,
+  endDate: optionalText,
+  flexibleSchedule: optionalBoolean,
+  flyersAlreadyPrinted: optionalBoolean,
+  flyerFormat: optionalText,
+  targetGroup: optionalText,
+  distributionMode: optionalText,
+  campaignGoal: optionalText,
+  idempotencyKey: z.string().trim().min(16).max(120).optional(),
   message: z.string().trim().min(5).max(3000),
   source: z.string().trim().min(2).max(80).default("website"),
   sourceCampaign: optionalText,
@@ -36,7 +59,42 @@ export const updateLeadSchema = z.object({
 
 export async function createLead(input: z.input<typeof createLeadSchema>) {
   const data = createLeadSchema.parse(input);
-  const lead = await prisma.lead.create({ data });
+  if (data.idempotencyKey) {
+    const existing = await prisma.lead.findUnique({ where: { idempotencyKey: data.idempotencyKey } });
+    if (existing) return existing;
+  }
+
+  const { postalCode, streetAddress, flyerQuantity, startDate, endDate, flexibleSchedule, flyersAlreadyPrinted, flyerFormat, targetGroup, distributionMode, campaignGoal, idempotencyKey, ...leadData } = data;
+  let lead: Awaited<ReturnType<typeof prisma.lead.create>>;
+  try {
+    lead = await prisma.lead.create({
+      data: {
+        ...leadData,
+        inquiryNumber: `ANF-${new Date().getUTCFullYear()}-${randomUUID().slice(0, 8).toUpperCase()}`,
+        idempotencyKey,
+        expectedFlyerQuantity: flyerQuantity,
+        inquiryData: {
+          postalCode: postalCode ?? null,
+          streetAddress: streetAddress ?? null,
+          flyerQuantity: flyerQuantity ?? null,
+          startDate: startDate ?? null,
+          endDate: endDate ?? null,
+          flexibleSchedule: flexibleSchedule ?? null,
+          flyersAlreadyPrinted: flyersAlreadyPrinted ?? null,
+          flyerFormat: flyerFormat ?? null,
+          targetGroup: targetGroup ?? null,
+          distributionMode: distributionMode ?? null,
+          campaignGoal: campaignGoal ?? null,
+        },
+      },
+    });
+  } catch (error) {
+    if (idempotencyKey && error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const concurrentLead = await prisma.lead.findUnique({ where: { idempotencyKey } });
+      if (concurrentLead) return concurrentLead;
+    }
+    throw error;
+  }
   await prisma.leadActivity.create({
     data: {
       leadId: lead.id,
@@ -72,6 +130,30 @@ export async function createLead(input: z.input<typeof createLeadSchema>) {
       phone: lead.phone,
       leadCity: lead.city,
       message: lead.message,
+      inquiryNumber: lead.inquiryNumber,
+      postalCode,
+      streetAddress,
+      flyerQuantity,
+      startDate,
+      endDate,
+      flexibleSchedule,
+      flyersAlreadyPrinted,
+      flyerFormat,
+      targetGroup,
+      distributionMode,
+      campaignGoal,
+    },
+  });
+
+  await notifyEmailRecipient({
+    recipientEmail: lead.email,
+    type: "INQUIRY_RECEIVED_CUSTOMER",
+    subject: "Ihre FLYERO Anfrage ist eingegangen",
+    body: `Vielen Dank fÃ¼r Ihre Anfrage. Ihre Anfragenummer lautet ${lead.inquiryNumber ?? lead.id}. Wir prÃ¼fen Gebiet, Ablauf und Preis und melden uns schnellstmÃ¶glich.`,
+    data: {
+      inquiryNumber: lead.inquiryNumber,
+      leadId: lead.id,
+      leadEmail: lead.email,
     },
   });
 

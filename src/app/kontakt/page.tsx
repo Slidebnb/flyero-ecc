@@ -5,7 +5,7 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
-  ProofMockup,
+  ProcessPreview,
   PremiumFlyerField,
   TrustBadge,
   defaultProofIcons,
@@ -48,7 +48,7 @@ export default function ContactPage() {
               <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweis möglich</TrustBadge>
             </div>
           </div>
-          <ProofMockup area="Anfrage" />
+          <ProcessPreview />
         </MarketingContainer>
       </section>
 

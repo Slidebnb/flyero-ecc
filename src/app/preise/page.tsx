@@ -5,14 +5,16 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
-  ProofMockup,
+  ProcessPreview,
   PremiumFlyerField,
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
 import { ServiceType } from "@prisma/client";
 import { createSeoMetadata } from "@/app/seo";
+import { calculateOrderPrice } from "@/lib/pricing";
 import { getPricingSettings } from "@/lib/settings";
+import { getPublicPrintMessage } from "@/lib/publicCapabilities";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +43,8 @@ const priceDetails = [
 
 export default async function PricingPage() {
   const pricing = await getPricingSettings();
+  const exampleQuantities = [500, 3000, 10000] as const;
+  const examplePrices = await Promise.all(exampleQuantities.map((flyerQuantity) => calculateOrderPrice({ serviceType: ServiceType.FLYER_DISTRIBUTION, flyerQuantity })));
   const distributionRules = pricing.rules
     .filter((rule) => rule.serviceType === ServiceType.FLYER_DISTRIBUTION)
     .sort((left, right) => left.minQuantity - right.minQuantity);
@@ -81,7 +85,7 @@ export default async function PricingPage() {
               <TrustBadge icon={defaultProofIcons.gps}>Gebietsbasiert</TrustBadge>
             </div>
           </div>
-          <ProofMockup area="Preisprüfung" />
+          <ProcessPreview />
         </MarketingContainer>
       </section>
 
@@ -104,11 +108,24 @@ export default async function PricingPage() {
         </div>
       </MarketingSection>
 
+      <MarketingSection eyebrow="Beispiele" title="Netto, MwSt. und Brutto aus der aktuellen Kalkulation.">
+        <div className="mkPriceSystem">
+          {examplePrices.map((price, index) => (
+            <article key={exampleQuantities[index]}>
+              <span>{exampleQuantities[index].toLocaleString("de-DE")} Flyer</span>
+              <p>
+                Netto: {formatNet(price.net)} · MwSt.: {formatNet(price.vat)} · Brutto: {formatNet(price.gross)}
+              </p>
+            </article>
+          ))}
+        </div>
+      </MarketingSection>
+
       <MarketingSection tone="green">
         <div className="mkChoiceGrid">
           <CTAChoiceCard
             title="Unverbindlich kalkulieren lassen"
-            text="Für individuelle Kampagnen mit Gebiet, Zeitraum, Druck oder besonderem Ablauf."
+            text={`Für individuelle Kampagnen mit Gebiet, Zeitraum oder besonderem Ablauf. ${getPublicPrintMessage()}`}
             bullets={["Persönliche Einschätzung", "Keine Registrierung nötig", "Passende Startempfehlung"]}
             href="/verteilung-planen"
             buttonLabel="Anfrage senden"

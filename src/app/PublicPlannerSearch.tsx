@@ -2,6 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
+import { publicLocationSearchParams } from "@/lib/publicLocationContext";
 
 type Suggestion = {
   id: string;
@@ -9,6 +10,10 @@ type Suggestion = {
   description?: string | null;
   city?: string | null;
   postalCode?: string | null;
+  street?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  source?: "google" | "local" | "manual";
 };
 
 export function PublicPlannerSearch() {
@@ -51,7 +56,20 @@ export function PublicPlannerSearch() {
     if (!query.trim()) {
       event.preventDefault();
       setOpen(true);
+      return;
     }
+    event.preventDefault();
+    const selectedForQuery = selected?.label === query.trim() ? selected : null;
+    const params = publicLocationSearchParams({
+      query: query.trim(),
+      placeId: selectedForQuery?.source === "google" ? selectedForQuery.id : undefined,
+      postalCode: selectedForQuery?.postalCode ?? undefined,
+      city: selectedForQuery?.city ?? undefined,
+      lat: selectedForQuery?.lat ?? undefined,
+      lng: selectedForQuery?.lng ?? undefined,
+      source: selectedForQuery?.source,
+    });
+    window.location.assign(`/verteilung-planen?${params.toString()}`);
   }
 
   return (

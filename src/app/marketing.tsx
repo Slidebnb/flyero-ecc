@@ -9,7 +9,7 @@ export {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
-  ProofMockup,
+  ProcessPreview,
   ProofStatusPanel,
   PremiumFlyerField,
   PublicFooter,
@@ -19,8 +19,6 @@ export {
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
-
-export const regions = ["Koblenz", "Neuwied", "Bendorf", "Lahnstein", "Vallendar", "Andernach", "Mülheim-Kärlich"];
 
 export const featureCards = [
   ["GPS-Nachweis", "Externe GPS-Berichte oder geprüfte Tourdaten werden dem Auftrag zugeordnet."],

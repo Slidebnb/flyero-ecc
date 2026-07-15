@@ -23,8 +23,9 @@ export async function POST(request: NextRequest) {
     return successResponse(
       {
         id: lead.id,
+        inquiryNumber: lead.inquiryNumber ?? lead.id,
         status: lead.status,
-        message: "Danke, wir haben deine Anfrage erhalten.",
+        message: "Danke, Ihre Anfrage ist eingegangen.",
       },
       201,
     );

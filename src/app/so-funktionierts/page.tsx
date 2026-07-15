@@ -5,13 +5,14 @@ import {
   MarketingContainer,
   MarketingPage,
   MarketingSection,
-  ProofMockup,
+  ProcessPreview,
   PremiumFlyerField,
   StepCard,
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
+import { getPublicPrintMessage } from "@/lib/publicCapabilities";
 
 export const metadata = createSeoMetadata({
   title: "So funktioniert FLYERO",
@@ -23,7 +24,7 @@ export const metadata = createSeoMetadata({
 
 const steps = [
   ["Gebiet wählen", "PLZ, Ort oder Wunschgebiet festlegen."],
-  ["Flyer hochladen", "Druckdaten bereitstellen oder Druckoption wählen."],
+  ["Flyer bereitstellen", "Bereits gedruckte Flyer an das ausgewählte Lager senden."],
   ["Online bezahlen", "Preis, Zeitraum und Menge prüfen."],
   ["GPS-Nachweis", "Externen GPS-Bericht, Fotos und Ist-Werte prüfen."],
   ["Bericht erhalten", "Admin-Prüfung, PDF, Fotos und Rechnung abrufen."],
@@ -57,7 +58,7 @@ export default function HowItWorksPage() {
               <TrustBadge icon={defaultProofIcons.report}>PDF-Bericht</TrustBadge>
             </div>
           </div>
-          <ProofMockup area="Koblenz Süd" />
+          <ProcessPreview />
         </MarketingContainer>
       </section>
 
@@ -81,7 +82,7 @@ export default function HowItWorksPage() {
         <div className="mkChoiceGrid">
           <CTAChoiceCard
             title="Unverbindlich anfragen"
-            text="Wenn Gebiet, Auflage oder Timing noch offen sind."
+            text={`Wenn Gebiet, Auflage oder Timing noch offen sind. ${getPublicPrintMessage()}`}
             bullets={["Beratung erhalten", "Ablauf klären", "Ohne Registrierung starten"]}
             href="/verteilung-anfragen"
             buttonLabel="Anfrage starten"

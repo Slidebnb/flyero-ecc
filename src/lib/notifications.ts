@@ -31,7 +31,7 @@ export const TEMPLATE_PLACEHOLDERS = [
   "nextStep",
 ] as const;
 
-type PlaceholderData = Record<string, string | number | null | undefined>;
+type PlaceholderData = Record<string, string | number | boolean | null | undefined>;
 
 type NotificationInput = {
   userId: string;
@@ -297,6 +297,46 @@ export async function notifyOperations(input: OperationsNotificationInput) {
       status: queue?.status,
       detail: `Betriebsbenachrichtigung fuer ${recipient} vorgemerkt.`,
       metadata: { type: input.type, channel, recipientEmail: recipient },
+    },
+  });
+  return { message, queue };
+}
+
+export async function notifyEmailRecipient(input: {
+  recipientEmail: string;
+  type: string;
+  subject: string;
+  body: string;
+  data?: PlaceholderData;
+}) {
+  const recipientEmail = input.recipientEmail.trim().toLowerCase();
+  const message = await prisma.notificationMessage.create({
+    data: {
+      type: input.type,
+      audience: NotificationAudience.CUSTOMER,
+      channel: NotificationChannel.IN_APP,
+      subject: input.subject,
+      body: input.body,
+      data: input.data ?? {},
+    },
+  });
+  const queue = await prisma.notificationQueue.create({
+    data: {
+      messageId: message.id,
+      recipientEmail,
+      channel: NotificationChannel.EMAIL,
+      status: NotificationQueueStatus.PENDING,
+      payload: { subject: input.subject, body: input.body, data: input.data ?? {} },
+    },
+  });
+  await prisma.notificationLog.create({
+    data: {
+      messageId: message.id,
+      queueId: queue.id,
+      action: "customer.email.queued",
+      status: queue.status,
+      detail: `KundenbestÃ¤tigung fÃ¼r ${recipientEmail} vorgemerkt.`,
+      metadata: { type: input.type, recipientEmail },
     },
   });
   return { message, queue };

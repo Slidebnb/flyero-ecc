@@ -17,7 +17,10 @@ assert.doesNotMatch(
   "Eine Google-Geocodierung darf kein erfundenes Ersatzpolygon erzeugen.",
 );
 assert.doesNotMatch(wizard, /Koblenz|56068/, "Der Kundenwizard darf keine feste lokale Startregion enthalten.");
-assert.match(wizard, /geocodeAddress\(suggestion\.label, suggestion\.source === "google" \? suggestion\.id : undefined\)/);
+assert.match(wizard, /geocodeAddress\(suggestion\.label, suggestion\.source === "google" \? suggestion\.id : undefined, \{/);
+assert.match(wizard, /postalCode: suggestion\.postalCode/);
+assert.match(wizard, /locationRequestSequenceRef/);
+assert.match(wizard, /PUBLIC_GEOCODE_POSTAL_MISMATCH/);
 assert.match(maps, /placeId\?: string/);
 assert.match(maps, /url\.searchParams\.set\("place_id", placeId\)/);
 assert.match(publicGeocodeRoute, /placeId: z\.string\(\)\.trim\(\)\.max\(160\)\.optional\(\)/);

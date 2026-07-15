@@ -9,6 +9,7 @@ import {
   defaultProofIcons,
 } from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
+import { getPublicPrintMessage } from "@/lib/publicCapabilities";
 
 const directBookingNext = "/customer/orders/new";
 const directBookingParam = encodeURIComponent(directBookingNext);
@@ -35,7 +36,7 @@ export default function DistributionRequestPage() {
           <h1>Online buchen, Angebot anfragen oder klassisch senden.</h1>
           <p>
             Wählen Sie den passenden Start: direkt online buchen und bezahlen, unverbindlich anfragen
-            oder das Anfrageformular klassisch per E-Mail senden.
+            oder das Anfrageformular klassisch per E-Mail senden. {getPublicPrintMessage()}
           </p>
         </MarketingContainer>
       </section>
@@ -85,9 +86,9 @@ export default function DistributionRequestPage() {
             </span>
             <h3>Unverbindlich anfragen</h3>
             <p>
-              Wir prüfen dein Gebiet und melden uns mit einer Rückmeldung zu Preis, Ablauf und Druckdaten.
+              Wir prüfen Ihr Gebiet und melden uns mit einer Rückmeldung zu Preis, Ablauf und Druckdaten.
             </p>
-            <LeadForm source="verteilung-anfragen" />
+            <LeadForm source="verteilung-anfragen" inquiry />
           </article>
 
           <article className="mkClassicPanel">

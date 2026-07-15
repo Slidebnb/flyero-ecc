@@ -15,6 +15,7 @@ import {
 import { BriefcaseBusiness } from "lucide-react";
 import { createSeoMetadata } from "@/app/seo";
 import { PublicPlannerSearch } from "@/app/PublicPlannerSearch";
+import { getPublicPrintMessage } from "@/lib/publicCapabilities";
 
 export const metadata = createSeoMetadata({
   title: "Flyerverteilung mit GPS-Nachweis und Kundenbericht",
@@ -51,7 +52,7 @@ const audiences = [
 
 const steps = [
   ["Gebiet wählen", "Ort, PLZ oder Wunschgebiet festlegen."],
-  ["Flyer hochladen", "Druckdaten oder Druckoption übergeben."],
+  ["Flyer bereitstellen", "Bereits gedruckte Flyer an das ausgewählte Lager senden."],
   ["Online bezahlen", "Preis prüfen und Auftrag buchen."],
   ["GPS-Nachweis", "Externen GPS-Bericht, Fotos und Ist-Werte prüfen."],
   ["Bericht erhalten", "PDF, Fotos und Rechnung im Portal sehen."],
@@ -61,17 +62,17 @@ const advantages = [
   ["Ein Ablauf", "Auftrag, Zahlung, Lager, Dispatch und Bericht laufen im gleichen System."],
   ["Prüfbare Arbeit", "GPS-Bericht, Fotos und Zeiten machen die Verteilung nachvollziehbar."],
   ["Weniger Rückfragen", "Kunden sehen Status, Rechnung und Bericht zentral im Portal."],
-  ["Skalierbar", "Startregion Koblenz, vorbereitet für weitere Gebiete und Lager."],
+  ["Skalierbar", "Deutschlandweit planen; Gebiet und Logistik werden je Auftrag geprüft."],
 ] as const;
 
 const faqs = [
   ["Muss ich mich registrieren, um anzufragen?", "Nein. Eine unverbindliche Anfrage ist öffentlich möglich. Für eine direkte Buchung und den späteren Bericht wird ein Kundenkonto benötigt."],
   ["Wie entsteht der Nachweis?", "Im MVP nutzt FLYERO professionelle GPS-Trackingsysteme. Der externe GPS-Bericht, Fotos und Ist-Werte werden danach durch das Admin-Team geprüft."],
-  ["Kann ich Druck und Verteilung zusammen buchen?", "Ja. Druckdaten, Lagerung und Verteilung können im Ablauf zusammen geplant werden. Bei individuellen Druckanforderungen klären wir die Details vor der Buchung."],
+  ["Kann ich Druck und Verteilung zusammen buchen?", getPublicPrintMessage()],
   ["Wie schnell kann eine Verteilung starten?", "Das hängt von Gebiet, Auflage, Druckdaten und Verfügbarkeit der Verteiler ab. Für einfache Kampagnen kann die Planung kurzfristig starten, sobald Daten und Gebiet klar sind."],
   ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Der Nachweis besteht aus dem GPS-Bericht des eingesetzten Trackingsystems, Foto-Dokumentation und einem geprüften Bericht, sobald die Verteilung freigegeben wurde."],
   ["Kann ich den Preis vorher sehen?", "Ja. Bei der direkten Online-Buchung werden Gebiet, Menge und Zeitraum vor der Zahlung geprüft."],
-  ["Ist FLYERO nur für Koblenz gedacht?", "Die Startregion ist Koblenz und Umgebung. Die Plattform ist aber für weitere Regionen, Lager und Teams vorbereitet."],
+  ["Ist FLYERO nur für Koblenz gedacht?", "Nein. Sie können Gebiete in ganz Deutschland planen. Ob eine direkte Durchführung möglich ist, prüfen wir je Gebiet und Logistik."],
 ] as const;
 
 export default function HomePage() {
@@ -240,7 +241,7 @@ export default function HomePage() {
             <span className="mkEditorialIndex">02</span>
             <div>
               <h3>Online buchen</h3>
-              <p>Gebiet wählen, Preis prüfen und den Auftrag geschützt über dein Kundenkonto abschließen.</p>
+              <p>Gebiet wählen, Preis prüfen und den Auftrag geschützt über Ihr Kundenkonto abschließen.</p>
             </div>
             <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="dark">Buchung starten</MarketingButton>
           </article>

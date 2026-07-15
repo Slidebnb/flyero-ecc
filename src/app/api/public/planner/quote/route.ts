@@ -2,6 +2,7 @@ import { z } from "zod";
 import { NextRequest } from "next/server";
 import { getOrderIntelligence } from "@/lib/smartMaps";
 import { enforcePublicRateLimit, publicRateLimitResponse } from "@/lib/publicAbuseProtection";
+import { publicCapabilities } from "@/lib/publicCapabilities";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 
 const quoteInputSchema = z.object({
@@ -66,6 +67,10 @@ async function createPublicQuote(input: unknown) {
 
   if (!value.city || !value.postalCode || !coverageAreaSqm || coverageAreaSqm <= 0) {
     return errorResponse("Bitte wähle zuerst ein Verteilgebiet aus.", 400);
+  }
+
+  if (value.flyerSource === "PRINT_SERVICE" && !publicCapabilities.onlinePrintServiceEnabled) {
+    return errorResponse("Druck wird aktuell separat mit FLYERO besprochen. Bitte wähle bereits gedruckte Flyer aus.", 422);
   }
 
   const data = await getOrderIntelligence({

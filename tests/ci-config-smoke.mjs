@@ -67,6 +67,8 @@ for (const script of [
   "test:customer-order-checkout",
   "test:distribution-reports",
   "test:external-distribution-report",
+  "test:module28-public-runtime",
+  "test:module28-public-playwright",
 ]) {
   assert.ok(ci.includes(`npm run ${script}`), `CI muss ${script} ausfuehren.`);
 }

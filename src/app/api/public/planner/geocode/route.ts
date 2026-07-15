@@ -2,6 +2,7 @@ import { z } from "zod";
 import { geocodeSmartAddress } from "@/lib/smartMaps";
 import { enforcePublicRateLimit, publicRateLimitResponse } from "@/lib/publicAbuseProtection";
 import { errorResponse, routeErrorResponse } from "@/lib/request";
+import { isGermanPostalCode } from "@/lib/publicLocationContext";
 
 export async function GET(request: Request) {
   try {
@@ -32,6 +33,13 @@ export async function GET(request: Request) {
       houseNumber: query.data.houseNumber,
       placeId: query.data.placeId,
     }, { publicOnly: true });
+    const requestedPostalCode = query.data.postalCode ?? (query.data.q && isGermanPostalCode(query.data.q) ? query.data.q : undefined);
+    if (!data && isGermanPostalCode(requestedPostalCode)) {
+      return Response.json({ ok: false, code: "PUBLIC_GEOCODE_POSTAL_MISMATCH", error: "Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wÃ¤hlen Sie den passenden Ort aus den VorschlÃ¤gen." }, { status: 422 });
+    }
+    if (data && isGermanPostalCode(requestedPostalCode) && data.postalCode !== requestedPostalCode) {
+      return Response.json({ ok: false, code: "PUBLIC_GEOCODE_POSTAL_MISMATCH", error: "Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wÃ¤hlen Sie den passenden Ort aus den VorschlÃ¤gen." }, { status: 422 });
+    }
     if (!data) return errorResponse("Diese Adresse konnte nicht gefunden werden. Bitte prüfe die Eingabe oder zeichne das Gebiet direkt auf der Karte.", 422);
     return Response.json({ ok: true, data });
   } catch (error) {

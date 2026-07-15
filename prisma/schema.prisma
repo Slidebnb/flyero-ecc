@@ -2252,6 +2252,8 @@ model TicketAttachment {
 
 model Lead {
   id                    String       @id @default(cuid())
+  inquiryNumber         String?      @unique
+  idempotencyKey        String?      @unique
   tenantId              String?
   type                  LeadType
   name                  String
@@ -2260,6 +2262,7 @@ model Lead {
   phone                 String?
   city                  String?
   message               String
+  inquiryData           Json?
   status                LeadStatus   @default(NEW)
   priority              LeadPriority @default(NORMAL)
   source                String       @default("website")
