@@ -118,8 +118,8 @@ function warehouseCity(inventory: ReadyInventory) {
 async function syncDistributorCapacity(distributorId: string) {
   const [assignments, activeTours, completedTours] = await Promise.all([
     prisma.dispatchAssignment.findMany({
-      where: { distributorId, status: { in: ACTIVE_ASSIGNMENT_STATUSES }, order: productionOrderWhere() },
-      include: { order: true },
+    where: { distributorId, status: { in: ACTIVE_ASSIGNMENT_STATUSES }, order: productionOrderWhere() },
+      include: { order: true, segment: { select: { flyerQuantity: true } } },
     }),
     prisma.distributionTour.count({
       where: { distributorId, status: { in: [...ACTIVE_TOUR_STATUSES] }, order: productionOrderWhere() },
@@ -129,7 +129,7 @@ async function syncDistributorCapacity(distributorId: string) {
     }),
   ]);
 
-  const currentAssignedFlyers = assignments.reduce((sum, assignment) => sum + assignment.order.flyerQuantity, 0);
+  const currentAssignedFlyers = assignments.reduce((sum, assignment) => sum + (assignment.segment?.flyerQuantity ?? assignment.order.flyerQuantity), 0);
   const currentAssignedTours = Math.max(activeTours, assignments.length);
 
   await prisma.distributorProfile.update({
@@ -144,7 +144,7 @@ async function syncDistributorCapacity(distributorId: string) {
   return { currentAssignedFlyers, currentAssignedTours, completedTours };
 }
 
-async function distributorSnapshot(distributor: DistributorWithUser, inventory: ReadyInventory) {
+async function distributorSnapshot(distributor: DistributorWithUser, inventory: ReadyInventory, flyerQuantityOverride?: number | null) {
   const capacity = await syncDistributorCapacity(distributor.id);
   const city = addressCity(distributor.address);
   const distributorCoordinates = addressCoordinates(distributor.address);
@@ -155,7 +155,8 @@ async function distributorSnapshot(distributor: DistributorWithUser, inventory: 
     ? haversineKm(distributorCoordinates, warehouseCoordinates)
     : cityDistanceKm(city, warehouseCity(inventory));
   const distanceSource = distributorCoordinates && warehouseCoordinates ? "address-geodesic-estimate" : "regional-estimate";
-  const futureFlyers = capacity.currentAssignedFlyers + inventory.order.flyerQuantity;
+  const requestedFlyers = flyerQuantityOverride ?? inventory.order.flyerQuantity;
+  const futureFlyers = capacity.currentAssignedFlyers + requestedFlyers;
   const futureTours = capacity.currentAssignedTours + 1;
   const rejectedAssignments = await prisma.dispatchAssignment.count({ where: { distributorId: distributor.id, status: "REJECTED", order: productionOrderWhere() } });
   const totalAssignments = await prisma.dispatchAssignment.count({ where: { distributorId: distributor.id, order: productionOrderWhere() } });
@@ -224,11 +225,17 @@ export async function getReadyInventoryForOrder(orderId: string, tenantId?: stri
   });
 }
 
-export async function getSuitableDistributors(orderId: string, tenantId?: string | null) {
+export async function getSuitableDistributors(orderId: string, tenantId?: string | null, segmentId?: string | null) {
   await ensureOrderAccess(orderId, tenantId);
   const inventory = await getReadyInventoryForOrder(orderId, tenantId);
   if (!inventory) {
     return [];
+  }
+  let segmentFlyerQuantity: number | null = null;
+  if (segmentId) {
+    const segment = await prisma.orderDistributionSegment.findFirst({ where: { id: segmentId, orderId }, select: { flyerQuantity: true } });
+    if (!segment) throw new Error("Teilgebiet gehÃ¶rt nicht zu diesem Auftrag.");
+    segmentFlyerQuantity = segment.flyerQuantity;
   }
 
   const distributors = await prisma.distributorProfile.findMany({
@@ -242,7 +249,7 @@ export async function getSuitableDistributors(orderId: string, tenantId?: string
 
   const recommendations = await Promise.all(
     distributors.map(async (distributor) => {
-      const recommendation = await distributorSnapshot(distributor, inventory);
+      const recommendation = await distributorSnapshot(distributor, inventory, segmentFlyerQuantity);
       const withinRadius = recommendation.distanceKm <= distributor.serviceRadiusKm;
       const preferredAreaMatch = distributor.preferredAreas.some(
         (area) => normalizeCity(area) === normalizeCity(targetCity(inventory)),
@@ -256,36 +263,30 @@ export async function getSuitableDistributors(orderId: string, tenantId?: string
     .sort((a, b) => Number(a.capacityWarning) - Number(b.capacityWarning) || b.score - a.score || a.distanceKm - b.distanceKm);
 }
 
-export async function createAutoDispatchRecommendations(input: { orderId: string; adminUserId: string; tenantId?: string | null }) {
+export async function createAutoDispatchRecommendations(input: { orderId: string; adminUserId: string; tenantId?: string | null; segmentId?: string | null }) {
   await ensureOrderAccess(input.orderId, input.tenantId);
-  const suitable = (await getSuitableDistributors(input.orderId, input.tenantId)).slice(0, 5);
+  const suitable = (await getSuitableDistributors(input.orderId, input.tenantId, input.segmentId)).slice(0, 5);
   await prisma.autoDispatchRecommendation.updateMany({
-    where: { orderId: input.orderId, status: AutoDispatchRecommendationStatus.SUGGESTED },
+    where: { orderId: input.orderId, ...(input.segmentId ? { segmentId: input.segmentId } : {}), status: AutoDispatchRecommendationStatus.SUGGESTED },
     data: { status: AutoDispatchRecommendationStatus.EXPIRED },
   });
 
   const recommendations = [];
   for (const recommendation of suitable) {
-    const created = await prisma.autoDispatchRecommendation.upsert({
-      where: { orderId_distributorId: { orderId: input.orderId, distributorId: recommendation.distributorId } },
-      update: {
-        score: recommendation.score,
-        reasons: recommendation.reasons,
-        warnings: recommendation.warnings,
-        status: AutoDispatchRecommendationStatus.SUGGESTED,
-      },
-      create: {
-        orderId: input.orderId,
-        distributorId: recommendation.distributorId,
-        score: recommendation.score,
-        reasons: recommendation.reasons,
-        warnings: recommendation.warnings,
-      },
-      include: {
-        distributor: { include: { user: { select: { id: true, status: true, tenantId: true } } } },
-        order: { select: { id: true, orderNumber: true, tenantId: true } },
-      },
+    const existing = await prisma.autoDispatchRecommendation.findFirst({
+      where: { orderId: input.orderId, distributorId: recommendation.distributorId, segmentId: input.segmentId ?? null },
+      select: { id: true },
     });
+    const created = existing
+      ? await prisma.autoDispatchRecommendation.update({
+          where: { id: existing.id },
+          data: { score: recommendation.score, reasons: recommendation.reasons, warnings: recommendation.warnings, status: AutoDispatchRecommendationStatus.SUGGESTED },
+          include: { distributor: { include: { user: { select: { id: true, status: true, tenantId: true } } } }, order: { select: { id: true, orderNumber: true, tenantId: true } } },
+        })
+      : await prisma.autoDispatchRecommendation.create({
+          data: { orderId: input.orderId, distributorId: recommendation.distributorId, segmentId: input.segmentId ?? null, score: recommendation.score, reasons: recommendation.reasons, warnings: recommendation.warnings },
+          include: { distributor: { include: { user: { select: { id: true, status: true, tenantId: true } } } }, order: { select: { id: true, orderNumber: true, tenantId: true } } },
+        });
     recommendations.push(created);
   }
 
@@ -323,7 +324,7 @@ export async function dismissAutoDispatchRecommendation(input: { recommendationI
   return updated;
 }
 
-export async function autoAssignRecommendedDistributor(input: { orderId: string; adminUserId: string; tenantId?: string | null }) {
+export async function autoAssignRecommendedDistributor(input: { orderId: string; adminUserId: string; tenantId?: string | null; segmentId?: string | null }) {
   const system = await getSystemSettings();
   const recommendations = await createAutoDispatchRecommendations(input);
   const best = recommendations[0];
@@ -348,6 +349,7 @@ export async function autoAssignRecommendedDistributor(input: { orderId: string;
     distributorId: best.distributorId,
     adminUserId: input.adminUserId,
     tenantId: input.tenantId,
+    segmentId: input.segmentId,
   });
   await prisma.autoDispatchRecommendation.update({
     where: { id: best.id },
@@ -388,7 +390,7 @@ export async function assignOrderToDistributor(input: {
   distributorId: string;
   adminUserId: string;
   tenantId?: string | null;
-  segmentId?: string;
+  segmentId?: string | null;
 }) {
   await ensureOrderAccess(input.orderId, input.tenantId);
   const inventory = await getReadyInventoryForOrder(input.orderId, input.tenantId);
@@ -408,9 +410,16 @@ export async function assignOrderToDistributor(input: {
     throw new Error("Verteiler ist nicht freigegeben oder nicht aktiv.");
   }
 
-  const recommendation = await distributorSnapshot(distributor, inventory);
   const segmentCount = await prisma.orderDistributionSegment.count({ where: { orderId: input.orderId } });
   const isMultiSegmentOrder = segmentCount > 1;
+  if (isMultiSegmentOrder && !input.segmentId) {
+    throw new Error("MehrgebietsauftrÃ¤ge benÃ¶tigen ein ausgewÃ¤hltes Teilgebiet.");
+  }
+  const segment = input.segmentId
+    ? await prisma.orderDistributionSegment.findFirst({ where: { id: input.segmentId, orderId: input.orderId }, select: { flyerQuantity: true } })
+    : null;
+  if (input.segmentId && !segment) throw new Error("Teilgebiet gehÃ¶rt nicht zu diesem Auftrag.");
+  const segmentAwareRecommendation = await distributorSnapshot(distributor, inventory, segment?.flyerQuantity);
   const previousActive = await prisma.dispatchAssignment.findMany({
     where: {
       orderId: input.orderId,
@@ -451,9 +460,9 @@ export async function assignOrderToDistributor(input: {
         inventoryId: inventory.id,
         distributorId: input.distributorId,
         assignedBy: input.adminUserId,
-        capacityWarning: recommendation.capacityWarning,
-        recommendationScore: recommendation.score,
-        distanceMeters: Math.round(recommendation.distanceKm * 1000),
+        capacityWarning: segmentAwareRecommendation.capacityWarning,
+        recommendationScore: segmentAwareRecommendation.score,
+        distanceMeters: Math.round(segmentAwareRecommendation.distanceKm * 1000),
       },
     });
 
@@ -494,9 +503,9 @@ export async function assignOrderToDistributor(input: {
       distributorId: input.distributorId,
       inventoryId: inventory.id,
       tourId: tour.id,
-      capacityWarning: recommendation.capacityWarning,
+      capacityWarning: segmentAwareRecommendation.capacityWarning,
       distanceMeters: assignment.distanceMeters,
-      distanceSource: recommendation.distanceSource,
+      distanceSource: segmentAwareRecommendation.distanceSource,
     },
   });
 
@@ -507,7 +516,7 @@ export async function assignOrderToDistributor(input: {
     message: `Auftrag ${inventory.order.orderNumber} wartet auf deine Annahme.`,
     data: {
       orderNumber: inventory.order.orderNumber,
-      flyerQuantity: inventory.order.flyerQuantity,
+      flyerQuantity: segment?.flyerQuantity ?? inventory.order.flyerQuantity,
       areaName: inventory.order.targetAreaName,
       city: inventory.order.city,
       postalCode: inventory.order.postalCode,
@@ -515,7 +524,7 @@ export async function assignOrderToDistributor(input: {
     },
   });
 
-  if (recommendation.capacityWarning) {
+  if (segmentAwareRecommendation.capacityWarning) {
     await notifyAdmins({
       type: "DISPATCH_CAPACITY_EXCEEDED",
       title: "Kapazität überschritten",
@@ -526,14 +535,19 @@ export async function assignOrderToDistributor(input: {
   return assignment;
 }
 
-export async function acceptDispatchOrder(input: { orderId: string; distributorUserId: string }) {
+export async function acceptDispatchOrder(input: { orderId: string; distributorUserId: string; assignmentId?: string }) {
   const profile = await prisma.distributorProfile.findUnique({ where: { userId: input.distributorUserId } });
   if (!profile || profile.reviewStatus !== "APPROVED") {
     throw new Error("Verteilerprofil ist nicht freigegeben.");
   }
 
   const assignment = await prisma.dispatchAssignment.findFirst({
-    where: { orderId: input.orderId, distributorId: profile.id, status: { in: ["ASSIGNED", "ACCEPTED"] } },
+    where: {
+      ...(input.assignmentId ? { id: input.assignmentId } : {}),
+      orderId: input.orderId,
+      distributorId: profile.id,
+      status: { in: ["ASSIGNED", "ACCEPTED"] },
+    },
     include: { order: true, inventory: true },
   });
   if (!assignment) {
@@ -593,6 +607,7 @@ export async function acceptDispatchOrder(input: { orderId: string; distributorU
 export async function rejectDispatchOrder(input: {
   orderId: string;
   distributorUserId: string;
+  assignmentId?: string;
   reason: "KEINE_ZEIT" | "KRANK" | "ZU_WEIT" | "SONSTIGES";
   note?: string;
 }) {
@@ -602,7 +617,12 @@ export async function rejectDispatchOrder(input: {
   }
 
   const assignment = await prisma.dispatchAssignment.findFirst({
-    where: { orderId: input.orderId, distributorId: profile.id, status: { in: ["ASSIGNED", "REJECTED"] } },
+    where: {
+      ...(input.assignmentId ? { id: input.assignmentId } : {}),
+      orderId: input.orderId,
+      distributorId: profile.id,
+      status: { in: ["ASSIGNED", "REJECTED"] },
+    },
     include: { order: true },
   });
   if (!assignment) {
@@ -701,7 +721,13 @@ export async function getDispatchDashboard(filters: {
       prisma.warehouseInventory.findMany({
         where: inventoryWhere,
         include: {
-          order: { include: { customer: true, dispatchAssignments: { where: { status: { in: ACTIVE_ASSIGNMENT_STATUSES } } } } },
+          order: {
+            include: {
+              customer: true,
+              distributionSegments: { orderBy: { sortOrder: "asc" } },
+              dispatchAssignments: { where: { status: { in: ACTIVE_ASSIGNMENT_STATUSES } } },
+            },
+          },
           warehouseLocation: { include: { warehouse: true } },
         },
         orderBy: { updatedAt: "desc" },
@@ -742,11 +768,17 @@ export async function getDispatchDashboard(filters: {
   const recommendationsByOrderId: Record<string, DistributorRecommendation[]> = {};
   const persistedRecommendations = await prisma.autoDispatchRecommendation.findMany({
     where: { orderId: { in: unassignedInventories.map((inventory) => inventory.orderId) }, status: "SUGGESTED" },
-    include: { distributor: true },
+    include: { distributor: true, segment: { select: { id: true, name: true, city: true, postalCode: true, flyerQuantity: true } } },
     orderBy: [{ score: "desc" }, { createdAt: "desc" }],
   });
   for (const inventory of unassignedInventories) {
-    recommendationsByOrderId[inventory.orderId] = await getSuitableDistributors(inventory.orderId, tenantId);
+    if (inventory.order.distributionSegments.length > 1) {
+      for (const segment of inventory.order.distributionSegments) {
+        recommendationsByOrderId[`${inventory.orderId}:${segment.id}`] = await getSuitableDistributors(inventory.orderId, tenantId, segment.id);
+      }
+    } else {
+      recommendationsByOrderId[inventory.orderId] = await getSuitableDistributors(inventory.orderId, tenantId, inventory.order.distributionSegments[0]?.id ?? null);
+    }
   }
 
   return {

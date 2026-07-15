@@ -560,6 +560,8 @@ export async function refundPayment(input: {
     include: { order: { include: { customer: true } }, refunds: true },
   });
   if (!payment) throw new Error("Zahlung wurde nicht gefunden.");
+  const completedRefund = payment.refunds.find((refund) => refund.status === "SUCCEEDED" && refund.type === "FULL");
+  if (payment.status === "REFUNDED" && completedRefund) return completedRefund;
   if (!["PAID", "PARTIALLY_REFUNDED"].includes(payment.status)) {
     throw new Error("Nur bezahlte Zahlungen können erstattet werden.");
   }

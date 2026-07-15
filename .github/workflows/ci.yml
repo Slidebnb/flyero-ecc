@@ -31,7 +31,7 @@ env:
   WAREHOUSE_SCOPE_BASE_URL: http://127.0.0.1:3000
   DISTRIBUTOR_PRIVACY_BASE_URL: http://127.0.0.1:3000
   RETENTION_HOLD_BASE_URL: http://127.0.0.1:3000
-  MODULE27_1_BASE_URL: http://127.0.0.1:3000
+  MODULE27_1_BASE_URL: http://localhost:3000
 
 jobs:
   quality:
@@ -138,6 +138,12 @@ jobs:
 
       - name: Module 27.1 runtime closure
         run: npm run test:module27-1-runtime
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Module 27.1 browser smoke
+        run: npm run test:module27-1-playwright
 
       - name: Authentication UX smoke
         run: npm run test:auth-ux

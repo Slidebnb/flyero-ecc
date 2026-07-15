@@ -27,6 +27,7 @@ export default async function DistributorDashboardPage() {
         include: {
           order: { select: distributorOrderSelect },
           inventory: { select: distributorInventorySelect },
+          segment: { select: { name: true, city: true, postalCode: true, flyerQuantity: true } },
         },
         orderBy: { assignedAt: "desc" },
       },
@@ -101,15 +102,20 @@ export default async function DistributorDashboardPage() {
               <p className="muted">
                 {assignment.order.city} / {assignment.order.flyerQuantity} Flyer
               </p>
+              {assignment.segment ? (
+                <small>Teilgebiet: {assignment.segment.name} / {assignment.segment.city} / {assignment.segment.flyerQuantity ?? assignment.order.flyerQuantity} Flyer</small>
+              ) : null}
               <small>
                 {assignment.inventory?.warehouseLocation?.warehouse.name ?? "Lager"} /
                 {" "}{assignment.inventory?.warehouseLocation?.fullLabel ?? "-"}
               </small>
             </div>
             <form action={`/api/distributor/orders/${assignment.orderId}/accept`} method="post">
+              <input type="hidden" name="assignmentId" value={assignment.id} />
               <button type="submit">Annehmen</button>
             </form>
             <form action={`/api/distributor/orders/${assignment.orderId}/reject`} method="post" className="form grid">
+              <input type="hidden" name="assignmentId" value={assignment.id} />
               <label>
                 Ablehnungsgrund
                 <select name="reason" required defaultValue="KEINE_ZEIT">

@@ -365,6 +365,7 @@ export const adminDispatchAssignSchema = z.object({
 });
 
 export const distributorDispatchRejectSchema = z.object({
+  assignmentId: z.string().min(1).optional(),
   reason: z.enum(["KEINE_ZEIT", "KRANK", "ZU_WEIT", "SONSTIGES"]),
   note: optionalText,
 });

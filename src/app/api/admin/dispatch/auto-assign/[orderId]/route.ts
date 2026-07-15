@@ -1,13 +1,16 @@
 import { UserRole } from "@prisma/client";
+import { NextRequest } from "next/server";
 import { autoAssignRecommendedDistributor } from "@/lib/dispatch";
 import { Permission, requirePermission } from "@/lib/permissions";
-import { routeErrorResponse, successResponse } from "@/lib/request";
+import { readBody, routeErrorResponse, successResponse } from "@/lib/request";
 
-export async function POST(_request: Request, context: { params: Promise<{ orderId: string }> }) {
+export async function POST(request: NextRequest, context: { params: Promise<{ orderId: string }> }) {
   try {
     const session = await requirePermission(Permission.DISPATCH_AUTO_ASSIGN);
     const { orderId } = await context.params;
-    return successResponse(await autoAssignRecommendedDistributor({ orderId, adminUserId: session.id, tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId }));
+    const body = await readBody(request);
+    const segmentId = typeof body.segmentId === "string" ? body.segmentId : null;
+    return successResponse(await autoAssignRecommendedDistributor({ orderId, adminUserId: session.id, tenantId: session.role === UserRole.ADMIN ? undefined : session.tenantId, segmentId }));
   } catch (error) {
     return routeErrorResponse(error);
   }

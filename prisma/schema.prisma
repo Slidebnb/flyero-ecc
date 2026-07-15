@@ -1165,6 +1165,7 @@ model OrderDistributionSegment {
   assignedWarehouse Warehouse?       @relation("AssignedWarehouseSegments", fields: [assignedWarehouseId], references: [id], onDelete: SetNull)
   tours             DistributionTour[]
   assignments       DispatchAssignment[]
+  autoDispatchRecommendations AutoDispatchRecommendation[]
 
   @@unique([orderId, sortOrder])
   @@index([orderId, sortOrder])
@@ -1534,6 +1535,7 @@ model DispatchAssignment {
 model AutoDispatchRecommendation {
   id            String                           @id @default(cuid())
   orderId       String
+  segmentId     String?
   distributorId String
   score         Int
   reasons       Json
@@ -1543,10 +1545,12 @@ model AutoDispatchRecommendation {
   updatedAt     DateTime                         @updatedAt
 
   order       Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  segment     OrderDistributionSegment? @relation(fields: [segmentId], references: [id], onDelete: Cascade)
   distributor DistributorProfile @relation(fields: [distributorId], references: [id], onDelete: Cascade)
 
-  @@unique([orderId, distributorId])
+  @@unique([orderId, distributorId, segmentId])
   @@index([orderId, status])
+  @@index([segmentId, status])
   @@index([distributorId, status])
   @@index([score])
 }

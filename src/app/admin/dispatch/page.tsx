@@ -91,7 +91,8 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
       <section className="panel stack widePanel" style={{ marginTop: 18 }}>
         <h2 className="sectionTitle">Nicht zugewiesene Aufträge</h2>
         {dashboard.unassignedInventories.map((inventory) => {
-          const recommendations = dashboard.recommendationsByOrderId[inventory.orderId] ?? [];
+          const isMultiSegmentOrder = inventory.order.distributionSegments.length > 1;
+          const recommendations = isMultiSegmentOrder ? [] : dashboard.recommendationsByOrderId[inventory.orderId] ?? [];
           return (
             <article className="stack" key={inventory.id} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 18 }}>
               <div className="splitHeader">
@@ -105,12 +106,25 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
               </div>
               <div className="inlineActions">
                 <form action={`/api/admin/dispatch/recommend/${inventory.orderId}`} method="post">
+                  {isMultiSegmentOrder ? (
+                    <select name="segmentId" required defaultValue="">
+                      <option value="" disabled>Teilgebiet auswählen</option>
+                      {inventory.order.distributionSegments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name} ({segment.flyerQuantity ?? inventory.expectedFlyers} Flyer)</option>)}
+                    </select>
+                  ) : null}
                   <button type="submit">Empfehlungen erstellen</button>
                 </form>
                 <form action={`/api/admin/dispatch/auto-assign/${inventory.orderId}`} method="post">
+                  {isMultiSegmentOrder ? (
+                    <select name="segmentId" required defaultValue="">
+                      <option value="" disabled>Teilgebiet auswählen</option>
+                      {inventory.order.distributionSegments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name} ({segment.flyerQuantity ?? inventory.expectedFlyers} Flyer)</option>)}
+                    </select>
+                  ) : null}
                   <button type="submit">Auto-Zuweisung prüfen</button>
                 </form>
               </div>
+              {isMultiSegmentOrder ? <p className="muted">Dieser Auftrag wird je Teilgebiet disponiert. Wähle zuerst ein Teilgebiet, damit Kapazität und Empfehlungen mit dessen Flyerzahl berechnet werden.</p> : null}
               {dashboard.persistedRecommendations.filter((item) => item.orderId === inventory.orderId).length > 0 ? (
                 <div className="tableWrap">
                   <table>
@@ -126,6 +140,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                             <div className="inlineActions">
                               <form action={`/api/admin/orders/${inventory.orderId}/assign`} method="post">
                                 <input type="hidden" name="distributorId" value={item.distributorId} />
+                                {item.segmentId ? <input type="hidden" name="segmentId" value={item.segmentId} /> : null}
                                 <input type="hidden" name="returnTo" value="/admin/dispatch?assignment=success" />
                                 <button type="submit">Empfohlenen Verteiler zuweisen</button>
                               </form>
@@ -182,6 +197,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                         <td>
                           <form action={`/api/admin/orders/${inventory.orderId}/assign`} method="post">
                             <input type="hidden" name="distributorId" value={recommendation.distributorId} />
+                            {isMultiSegmentOrder ? <input type="hidden" name="segmentId" value={inventory.order.distributionSegments[0]?.id} /> : null}
                             <input type="hidden" name="returnTo" value="/admin/dispatch?assignment=success" />
                             <button type="submit">Zuweisen</button>
                           </form>

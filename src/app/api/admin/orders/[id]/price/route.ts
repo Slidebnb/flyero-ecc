@@ -28,15 +28,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       where: { id, ...productionOrderWhere() },
       include: {
         customer: { select: { userId: true } },
-        payments: { where: { status: { in: ["CHECKOUT_CREATED", "PENDING", "PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } } },
+        payments: { where: { status: { in: ["CREATED", "CHECKOUT_CREATED", "PENDING", "PAID", "REFUNDED", "PARTIALLY_REFUNDED"] } } },
       },
     });
     if (!order) {
       return errorResponse("Auftrag wurde nicht gefunden.", 404);
     }
-    if (order.payments.length > 0) {
+    if (order.payments.some((payment) => ["PAID", "REFUNDED", "PARTIALLY_REFUNDED"].includes(payment.status))) {
       return errorResponse("Der Preis kann nach gestarteter oder erfolgreicher Zahlung nicht mehr geaendert werden.", 409);
     }
+    const invalidatesAcceptedPayment = order.status === "ACCEPTED_AWAITING_PAYMENT";
 
     const override = new Prisma.Decimal(parsed.data.manualPriceOverride).toDecimalPlaces(2);
     const currentSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
@@ -44,24 +45,45 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       : {};
     const manualVatRate = await getVatRate();
     const manualPrice = calculatePriceFromNet(override, manualVatRate);
-    const updated = await prisma.order.update({
-      where: { id },
-      data: {
-        manualPriceOverride: override,
-        calculatedNetPrice: manualPrice.net,
-        calculatedVat: manualPrice.vat,
-        calculatedGrossPrice: manualPrice.gross,
-        priceRuleSnapshot: {
-          ...currentSnapshot,
-          manualPriceOverride: override.toString(),
-          manualVatRate: manualVatRate.toString(),
-          manualVat: manualPrice.vat.toString(),
-          manualCalculatedGross: manualPrice.gross.toString(),
-          customerFacingPriceLabel: "Individuelles Angebot",
-          manualPriceNote: parsed.data.note || null,
-          manualPriceUpdatedAt: new Date().toISOString(),
-        } as Prisma.InputJsonValue,
-      },
+    const updated = await prisma.$transaction(async (tx) => {
+      if (invalidatesAcceptedPayment) {
+        for (const payment of order.payments.filter((candidate) => ["CREATED", "CHECKOUT_CREATED", "PENDING"].includes(candidate.status))) {
+          const existingMetadata = payment.metadata && typeof payment.metadata === "object" && !Array.isArray(payment.metadata)
+            ? payment.metadata as Record<string, unknown>
+            : {};
+          await tx.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: "CANCELLED",
+              cancelledAt: new Date(),
+              metadata: { ...existingMetadata, invalidatedBy: "admin_price_change", invalidatedAt: new Date().toISOString() } as Prisma.InputJsonValue,
+            },
+          });
+        }
+        await tx.orderStatusEvent.create({
+          data: { orderId: id, fromStatus: order.status, toStatus: "UNDER_REVIEW", changedBy: session.id, note: "Preisänderung invalidiert die bisherige Annahme und Zahlungsaufforderung." },
+        });
+      }
+      return tx.order.update({
+        where: { id },
+        data: {
+          status: invalidatesAcceptedPayment ? "UNDER_REVIEW" : undefined,
+          manualPriceOverride: override,
+          calculatedNetPrice: manualPrice.net,
+          calculatedVat: manualPrice.vat,
+          calculatedGrossPrice: manualPrice.gross,
+          priceRuleSnapshot: {
+            ...currentSnapshot,
+            manualPriceOverride: override.toString(),
+            manualVatRate: manualVatRate.toString(),
+            manualVat: manualPrice.vat.toString(),
+            manualCalculatedGross: manualPrice.gross.toString(),
+            customerFacingPriceLabel: "Individuelles Angebot",
+            manualPriceNote: parsed.data.note || null,
+            manualPriceUpdatedAt: new Date().toISOString(),
+          } as Prisma.InputJsonValue,
+        },
+      });
     });
 
     await createAuditLog({

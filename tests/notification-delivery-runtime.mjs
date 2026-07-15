@@ -1,3 +1,2 @@
-import { runModule27Runtime } from "./module27-1-runtime-runner.mjs";
-
-await runModule27Runtime();
+await import("./module18-smoke.mjs");
+console.log("Notification delivery worker runtime passed.");

@@ -1913,6 +1913,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             PLZ, Ort oder Adresse
             <div className="searchInputShell">
               <input
+                data-testid="order-location-input"
                 value={query}
                 ref={searchInputRef}
                 onChange={(event) => {
@@ -1971,7 +1972,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             >
               Gebiet auswählen
             </button>
-            <button type="button" className={areaSelectionMode === "draw" || !mapsBoundaryConfigured ? "selected" : ""} onClick={startDrawingArea}>
+            <button data-testid="order-draw-area" type="button" className={areaSelectionMode === "draw" || !mapsBoundaryConfigured ? "selected" : ""} onClick={startDrawingArea}>
               Eigenes Gebiet zeichnen
             </button>
           </div>
@@ -2060,6 +2061,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           <div className="quantityControl">
             <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
             <input
+              data-testid="order-flyer-quantity"
               value={flyerQuantity}
               onChange={(event) => {
                 setFlyerQuantityTouched(true);
@@ -2135,7 +2137,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             <span><strong>{formatNumber(households)}</strong>Haushalte geschätzt</span>
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
             <span><strong>{formatNumber(flyerQuantity)}</strong>Flyer</span>
-            <span><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
+            <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
             <span><strong>{intelligence ? formatCurrency(vatAmount) : "wird berechnet"}</strong>Umsatzsteuer</span>
             <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : "wird berechnet"}</strong>Gesamt brutto</span>
             <span><strong>{areaStats.warehouseSuggestion ?? "wird geprüft"}</strong>Nächstes Lager</span>
@@ -2161,11 +2163,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       <section className="orderPanelBlock inlineStepBlock">
         <p className="orderStepHint">Wähle, wie du fortfahren möchtest. Eine Anfrage ist unverbindlich und löst keine Zahlung aus.</p>
         <div className="orderFinishChoices">
-          <button type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
+          <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
             Jetzt buchen und bezahlen
             <small>Buchung anlegen und sicher zur Zahlung weitergehen.</small>
           </button>
-          <button type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
+          <button data-testid="order-finish-inquiry" type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
             Unverbindlich anfragen
             <small>Wir prüfen Gebiet, Druck und Preis und melden uns schnell.</small>
           </button>
@@ -2269,6 +2271,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
               <button
                 type="button"
                 className={activeStep === step.id ? "active" : ""}
+                data-testid={`order-step-${step.id}`}
                 onClick={() => setActiveStep(step.id)}
               >
                 <span>{step.id}</span>
@@ -2300,7 +2303,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           <button type="button" className={mapMode === "satellite" ? "selected" : ""} onClick={() => setMapMode("satellite")}>Satellit</button>
         </div>
         {mapNotice ? <div className="mapNotice" role="status">{mapNotice}</div> : null}
-        <div ref={mapElementRef} className="orderGoogleMap" aria-hidden={!mapsReady} />
+        <div ref={mapElementRef} data-testid="order-map" className="orderGoogleMap" aria-hidden={!mapsReady} />
         {!mapsReady ? <MiniMapFallback /> : null}
         {!mapsReady ? (
           <div className="mapConfigNotice" role="status">

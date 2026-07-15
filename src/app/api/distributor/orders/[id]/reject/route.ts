@@ -21,6 +21,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const assignment = await rejectDispatchOrder({
       orderId: id,
       distributorUserId: session.id,
+      assignmentId: parsed.data.assignmentId,
       reason: parsed.data.reason,
       note: parsed.data.note,
     });

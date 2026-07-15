@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createCheckoutForOrder, refundPayment } from "@/lib/payments";
 import { createNotification } from "@/lib/notifications";
@@ -34,6 +35,41 @@ async function assertCriticalIntegrity(orderId: string) {
     (error as Error & { code?: string }).code = "ORDER_INTEGRITY_FAILED";
     throw error;
   }
+}
+
+function acceptanceSnapshot(order: {
+  priceRuleSnapshot: unknown;
+  flyerQuantity: number;
+  calculatedNetPrice: Prisma.Decimal;
+  calculatedVat: Prisma.Decimal;
+  calculatedGrossPrice: Prisma.Decimal;
+  customerOwnFlyers: boolean;
+  needsPrintService: boolean;
+  preferredStartDate: Date;
+  preferredEndDate: Date;
+}, adminUserId: string) {
+  const current = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
+    ? order.priceRuleSnapshot as Record<string, unknown>
+    : {};
+  const area = current.areaCalculationSnapshot && typeof current.areaCalculationSnapshot === "object" && !Array.isArray(current.areaCalculationSnapshot)
+    ? current.areaCalculationSnapshot as Record<string, unknown>
+    : {};
+  return {
+    ...current,
+    reviewDecisionSnapshot: {
+      adminUserId,
+      acceptedAt: new Date().toISOString(),
+      quoteFingerprint: typeof area.quoteFingerprint === "string" ? area.quoteFingerprint : null,
+      polygonHash: typeof area.polygonHash === "string" ? area.polygonHash : null,
+      flyerQuantity: order.flyerQuantity,
+      netPrice: order.calculatedNetPrice.toString(),
+      vat: order.calculatedVat.toString(),
+      grossPrice: order.calculatedGrossPrice.toString(),
+      flyerSource: order.customerOwnFlyers ? "CUSTOMER_OWN" : order.needsPrintService ? "PRINT_SERVICE" : "UNSPECIFIED",
+      preferredStartDate: order.preferredStartDate.toISOString(),
+      preferredEndDate: order.preferredEndDate.toISOString(),
+    },
+  } satisfies Prisma.InputJsonValue;
 }
 
 export async function reviewOrder(input: {
@@ -75,6 +111,9 @@ export async function reviewOrder(input: {
   }
 
   if (input.action === "reject") {
+    if (order.status === "REJECTED" && order.payments.some((payment) => payment.status === "REFUNDED")) {
+      return order;
+    }
     const paidPayment = order.payments.find((payment) => payment.status === "PAID" || payment.status === "PARTIALLY_REFUNDED");
     if (paidPayment) {
       await refundPayment({ paymentId: paidPayment.id, adminUserId: input.adminUserId, reason: input.rejectionReason ?? input.customerMessage ?? input.note });
@@ -114,9 +153,13 @@ export async function reviewOrder(input: {
 
   assertOrderTransition(order.status, "ACCEPTED_AWAITING_PAYMENT");
   const updated = await prisma.$transaction(async (tx) => {
-    const changed = await tx.order.update({
-      where: { id: order.id },
-      data: { status: "ACCEPTED_AWAITING_PAYMENT", adminCustomerMessage: input.customerMessage ?? order.adminCustomerMessage },
+      const changed = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: "ACCEPTED_AWAITING_PAYMENT",
+          adminCustomerMessage: input.customerMessage ?? order.adminCustomerMessage,
+          priceRuleSnapshot: acceptanceSnapshot(order, input.adminUserId),
+        },
     });
     await tx.orderStatusEvent.create({
       data: { orderId: order.id, fromStatus: order.status, toStatus: changed.status, changedBy: input.adminUserId, note: input.note ?? "Anfrage fachlich angenommen; Zahlung steht noch aus." },

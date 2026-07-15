@@ -10,6 +10,7 @@ const smokeIp = process.env.MODULE27_1_SMOKE_IP || `198.51.100.${(Date.now() % 2
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+let serverOutput = "";
 
 function assertOk(condition, message) {
   assert.equal(Boolean(condition), true, message);
@@ -44,9 +45,11 @@ async function ensureServer() {
   const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
     cwd: process.cwd(),
     env: { ...process.env, PORT: port },
-    stdio: "ignore",
+    stdio: ["ignore", "pipe", "pipe"],
     shell: process.platform === "win32",
   });
+  child.stdout?.on("data", (chunk) => { serverOutput += chunk.toString(); });
+  child.stderr?.on("data", (chunk) => { serverOutput += chunk.toString(); });
   for (let attempt = 0; attempt < 60; attempt += 1) {
     await sleep(1000);
     try {
@@ -55,6 +58,7 @@ async function ensureServer() {
     } catch {}
   }
   child.kill();
+  if (serverOutput) console.error(serverOutput);
   throw new Error(`Testserver ${baseUrl} konnte nicht gestartet werden.`);
 }
 
@@ -203,6 +207,7 @@ async function runCoreFlow() {
   stored = await prisma.order.findUnique({ where: { id: inquiry.id }, include: { payments: true } });
   assert.equal(stored.payments.length, 1, "Annahme muss genau einen Zahlungsdatensatz vorbereiten.");
   assert.equal(stored.payments[0].status, "CHECKOUT_CREATED", "Checkout muss nach Annahme vorbereitet sein.");
+  assertOk(typeof stored.priceRuleSnapshot?.reviewDecisionSnapshot?.adminUserId === "string", "Annahme-Snapshot fehlt.");
 
   await jsonRequest(`/api/admin/orders/${inquiry.id}/review`, "POST", { action: "approve" }, adminCookie);
   const paymentCountBeforePayment = await prisma.payment.count({ where: { orderId: inquiry.id } });
@@ -249,6 +254,12 @@ async function runCoreFlow() {
   assert.equal(correctionStored.distributionAreaId, null, "Alte DistributionArea-Relation darf bei der Korrektur nicht weiterleben.");
   assert.equal(correctionStored.distributionSegments.length, 1, "Kundenkorrektur muss alte Teilgebiete atomar ersetzen.");
   assert.equal(correctionStored.payments.filter((item) => ["CREATED", "CHECKOUT_CREATED", "PENDING"].includes(item.status)).length, 0, "Offene Zahlungen muessen bei der Korrektur invalidiert werden.");
+  const correctionAccepted = await jsonRequest(`/api/admin/orders/${correction.id}/review`, "POST", { action: "approve" }, adminCookie);
+  assert.equal(correctionAccepted.data.status, "ACCEPTED_AWAITING_PAYMENT", "Korrigierter Auftrag muss erneut angenommen werden koennen.");
+  const changedPrice = await jsonRequest(`/api/admin/orders/${correction.id}/price`, "PATCH", { manualPriceOverride: 1300, note: "Runtime-Preispruefung" }, adminCookie);
+  assert.equal(changedPrice.data.status, "UNDER_REVIEW", "Preisänderung muss eine neue Prüfung erzwingen.");
+  const priceChangedOrder = await prisma.order.findUnique({ where: { id: correction.id }, include: { payments: true } });
+  assert.equal(priceChangedOrder.payments.filter((item) => ["CREATED", "CHECKOUT_CREATED", "PENDING"].includes(item.status)).length, 0, "Preisänderung darf keinen alten Zahlungslink offen lassen.");
 
   const directSegments = [segment("Koblenz Sued", "Koblenz", "56068", 0.06)];
   const directQuote = await quote(directSegments, 3000, "direct_payment");
@@ -272,6 +283,15 @@ async function runCoreFlow() {
   const directApproved = await prisma.order.findUnique({ where: { id: direct.id }, include: { invoice: true } });
   assert.equal(directApproved.status, "APPROVED", "Direktzahlung muss erst nach Adminfreigabe operativ freigegeben werden.");
   assertOk(directApproved.invoice, "Direktzahlung muss nach Adminfreigabe eine Rechnung erzeugen.");
+  await jsonRequest(`/api/admin/orders/${direct.id}/review`, "POST", { action: "reject", rejectionReason: "Runtime-Rueckabwicklung" }, adminCookie);
+  const rejectedDirect = await prisma.order.findUnique({ where: { id: direct.id }, include: { payments: true } });
+  const rejectedRefunds = await prisma.refund.findMany({ where: { orderId: direct.id } });
+  assert.equal(rejectedDirect.status, "REJECTED", "Bezahlte Ablehnung muss den Auftrag fachlich ablehnen.");
+  assert.equal(rejectedDirect.payments.filter((item) => item.status === "REFUNDED").length, 1, "Bezahlte Ablehnung muss die Zahlung vollständig erstatten.");
+  const refundCount = rejectedRefunds.length;
+  await jsonRequest(`/api/admin/orders/${direct.id}/review`, "POST", { action: "reject", rejectionReason: "Runtime-Rueckabwicklung" }, adminCookie);
+  const repeatedRejection = await prisma.refund.count({ where: { orderId: direct.id } });
+  assert.equal(repeatedRejection, refundCount, "Wiederholte bezahlte Ablehnung darf keine zweite Erstattung erzeugen.");
 
   return { inquiryId: inquiry.id, directId: direct.id };
 }
@@ -281,6 +301,9 @@ export async function runModule27Runtime() {
   try {
     const result = await runCoreFlow();
     console.log(`Module 27.1 runtime checks passed: inquiry=${result.inquiryId}, direct=${result.directId}`);
+  } catch (error) {
+    if (serverOutput) console.error(serverOutput);
+    throw error;
   } finally {
     await prisma.$disconnect();
     if (server) server.kill();
