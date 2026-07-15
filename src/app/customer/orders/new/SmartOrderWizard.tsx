@@ -267,6 +267,8 @@ const PUBLIC_DEFAULT_CENTER: LatLng = { lat: 51.1657, lng: 10.4515 };
 const ORDER_DRAFT_KEY = "flyero:order-planner:draft:v2";
 const PUBLIC_ORDER_DRAFT_KEY = "flyero:order-planner:public-draft:v2";
 const LEGACY_ORDER_DRAFT_KEY = "flyero:customer:new-order-draft";
+const MINIMUM_FLYER_QUANTITY = 500;
+const MAXIMUM_FLYER_QUANTITY = 250_000;
 
 const productOptions = [
   { value: "DIN Lang (99 × 210 mm)", label: "DIN Lang (99 × 210 mm)" },
@@ -573,7 +575,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
   const [, setHistory] = useState<LatLng[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
-  const [flyerQuantity, setFlyerQuantity] = useState(isPublicPlanner ? 500 : 10_000);
+  const [flyerQuantity, setFlyerQuantity] = useState(MINIMUM_FLYER_QUANTITY);
   const [warehouseOptions, setWarehouseOptions] = useState<CustomerWarehouse[]>([]);
   const [warehouseOptionsStatus, setWarehouseOptionsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
@@ -749,7 +751,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     pricePreview: netPrice,
     walkingDistanceKm: routeDistanceMeters / 1000,
     deliveryDurationMinutes: routeDurationMinutes,
-    warehouseSuggestion: intelligence?.metrics.needsManualReview ? null : intelligence?.warehouse?.city ?? null,
+    warehouseSuggestion: selectedWarehouse
+      ? `${selectedWarehouse.name} · ${selectedWarehouse.postalCode} ${selectedWarehouse.city}`
+      : intelligence?.metrics.needsManualReview ? null : intelligence?.warehouse?.city ?? null,
     distributorDemand: distributorNeed,
     deliverabilityScore,
     source: calculationSource,
@@ -805,6 +809,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     recommendedFlyerQuantity,
     routeDistanceMeters,
     routeDurationMinutes,
+    selectedWarehouse,
     targetAreaName,
   ]);
 
@@ -1019,8 +1024,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         setHistory([draft.polygon]);
       }
       if (draft.polygonSource) setPolygonSource(draft.polygonSource);
-      if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
-      if (typeof draft.flyerQuantityTouched === "boolean") setFlyerQuantityTouched(draft.flyerQuantityTouched);
+      const restoredQuantityTouched = draft.flyerQuantityTouched === true;
+      setFlyerQuantityTouched(restoredQuantityTouched);
+      if (restoredQuantityTouched && draft.flyerQuantity) {
+        setFlyerQuantity(Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, draft.flyerQuantity)));
+      } else {
+        setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
+      }
       if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
       setFlyerSource("CUSTOMER_OWN");
       if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
@@ -1232,7 +1242,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         setAreaSegments(nextSegments);
         setActiveSegmentId(segmentId);
         pushPolygon(matchedArea.points, "saved_area");
-        if (!flyerQuantityTouched && matchedArea.area.estimatedFlyers) setFlyerQuantity(matchedArea.area.estimatedFlyers);
       } else {
         setCenter(nextCenter);
         setSelectedAreaId("");
@@ -1247,11 +1256,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             : segment)
           : current);
         setMapNotice("Ort gefunden. Klicke jetzt eine markierte Grenze an oder zeichne dein genaues Verteilgebiet auf der Karte.");
-        setFlyerQuantityTouched(false);
       }
     }
     setPendingLocation(null);
-  }, [activeSegmentId, findAreaForLocation, flyerQuantityTouched, polygonSource, pushPolygon]);
+  }, [activeSegmentId, findAreaForLocation, polygonSource, pushPolygon]);
 
   useEffect(() => {
     applyLocationResultRef.current = applyLocationResult;
@@ -1725,7 +1733,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
 
   function moveQuantity(delta: number) {
     setFlyerQuantityTouched(true);
-    setFlyerQuantity((value) => Math.max(500, Math.min(250_000, value + delta)));
+    setFlyerQuantity((value) => Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, value + delta)));
   }
 
   function polygonSourceLabel() {
@@ -1835,6 +1843,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   }
 
   async function finishOrder(completionPath: "direct_payment" | "inquiry") {
+    if (flyerQuantity < MINIMUM_FLYER_QUANTITY) {
+      setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
+      setFlyerQuantityTouched(true);
+      setActiveStep(2);
+      setFinishStatus(`Bitte gib mindestens ${formatNumber(MINIMUM_FLYER_QUANTITY)} Flyer an.`);
+      return;
+    }
     if (repeatPrintChoice === "pending") {
       setActiveStep(2);
       setFinishStatus("Bitte bestätige zuerst, ob deine Druckdaten unverändert sind.");
@@ -1969,6 +1984,36 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   }
 
   function renderStepContent(stepId: number) {
+    if (stepId === 6) {
+      return (
+        <section className="orderPanelBlock inlineStepBlock" data-testid="order-completion-step">
+          <p className="orderStepHint">Fast geschafft. Prüfe deine Angaben und entscheide, wie du fortfahren möchtest.</p>
+          <div className="orderFinishChoices">
+            {flyerSource === "CUSTOMER_OWN" ? (
+              <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
+                Jetzt buchen und bezahlen
+                <small>Auftrag anlegen und sicher zur Zahlung weitergehen.</small>
+              </button>
+            ) : null}
+            <button data-testid="order-finish-inquiry" type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
+              Unverbindlich anfragen
+              <small>Wir prüfen Gebiet, Zustellbarkeit und deine Flyer und melden uns schnell.</small>
+            </button>
+            <a href={inquiryFormHref} download>
+              <Download aria-hidden="true" />
+              Anfrageformular herunterladen
+            </a>
+            <a href={inquiryMailHref}>
+              <Mail aria-hidden="true" />
+              Per E-Mail anfragen
+            </a>
+          </div>
+          <p className="orderReviewNotice">Deine Flyer sind bereits gedruckt. Nach der Verteilung erhältst du GPS-Nachweis, Foto-Dokumentation und PDF-Bericht.</p>
+          {finishStatus ? <p className="finishStatus" role="status">{finishStatus}</p> : null}
+        </section>
+      );
+    }
+
     if (stepId === 1) {
       return (
         <section className="orderPanelBlock primary inlineStepBlock">
@@ -2135,8 +2180,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
               value={flyerQuantity}
               onChange={(event) => {
                 setFlyerQuantityTouched(true);
-                setFlyerQuantity(Number(event.target.value) || 0);
+                setFlyerQuantity(Number(event.target.value) || MINIMUM_FLYER_QUANTITY);
               }}
+              onBlur={() => setFlyerQuantity((value) => Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, value)))}
               inputMode="numeric"
             />
             <button type="button" onClick={() => moveQuantity(1000)}>+</button>
@@ -2200,8 +2246,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
               value={flyerQuantity}
               onChange={(event) => {
                 setFlyerQuantityTouched(true);
-                setFlyerQuantity(Number(event.target.value) || 0);
+                setFlyerQuantity(Number(event.target.value) || MINIMUM_FLYER_QUANTITY);
               }}
+              onBlur={() => setFlyerQuantity((value) => Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, value)))}
               inputMode="numeric"
             />
             <button type="button" onClick={() => moveQuantity(1000)}>+</button>
@@ -2442,9 +2489,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
                 onClick={() => setActiveStep(step.id)}
               >
                 <span>{step.id}</span>
-                <strong>{step.title}</strong>
-                <small>{step.detail}</small>
-                <em>{step.value}</em>
+                <strong>{step.id === 6 ? "Abschluss" : step.title}</strong>
+                <small>{step.id === 6 ? "Weg auswählen und absenden" : step.detail}</small>
+                <em>{step.id === 6 ? "Fast fertig" : step.value}</em>
               </button>
               {activeStep === step.id ? renderStepContent(step.id) : null}
             </article>

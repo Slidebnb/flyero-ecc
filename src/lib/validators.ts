@@ -207,7 +207,7 @@ export const orderCreateSchema = z
       centerLat: z.coerce.number().optional(),
     centerLng: z.coerce.number().optional(),
     radiusMeters: optionalNonNegativeInt,
-    flyerQuantity: z.coerce.number().int().positive(),
+    flyerQuantity: z.coerce.number().int().min(500, "Die Mindestmenge beträgt 500 Flyer."),
     flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]),
     warehouseId: z.string().trim().min(1).optional(),
     productFormat: z.string().trim().min(2).max(80).optional().default("DIN Lang (99 x 210 mm)"),
