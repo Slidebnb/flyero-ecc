@@ -137,6 +137,8 @@
     "production:preflight": "node scripts/production-preflight.mjs",
     "test:production-preflight": "node tests/production-preflight-smoke.mjs",
     "test:notification-production-worker": "node tests/notification-production-worker-smoke.mjs",
+    "test:operations-email-routing": "node tests/operations-email-routing-smoke.mjs",
+    "test:operations-email-runtime": "node -r dotenv/config tests/operations-email-runtime.mjs",
     "test:single-area-logistics-gate": "node tests/single-area-logistics-gate-smoke.mjs",
     "test:print-service-payment-gate": "node tests/print-service-payment-gate-smoke.mjs",
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",

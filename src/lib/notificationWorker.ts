@@ -159,7 +159,7 @@ export async function sendNotificationMessage(queueId: string) {
   try {
     const payload = queuePayload(queue);
     const result = await sendEmail({
-      to: queue.user.email,
+      to: queue.recipientEmail ?? queue.user?.email ?? "",
       subject: payload.subject,
       text: payload.body,
       html: payload.body.includes("<") ? payload.body : undefined,

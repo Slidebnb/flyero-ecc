@@ -23,6 +23,7 @@ const validEnvironment = {
   AUTH_SECRET: "a".repeat(64),
   APP_URL: "https://flyero.org",
   NEXT_PUBLIC_SITE_URL: "https://flyero.org",
+  OPERATIONS_EMAIL: "hallo@flyero.org",
   DATABASE_URL: "postgresql://flyero:secret@postgres:5432/flyero?schema=public",
   ENABLE_MOCK_PAYMENTS: "false",
   SEED_DEMO_DATA: "false",
@@ -75,5 +76,11 @@ assert.match(`${missingMockFlag.stdout}\n${missingMockFlag.stderr}`, /ENABLE_MOC
 const enabledMock = run({ ...validEnvironment, ENABLE_MOCK_PAYMENTS: "true" });
 assert.notEqual(enabledMock.status, 0, "Aktive Mock-Payments dürfen den Produktions-Preflight nicht bestehen.");
 assert.match(`${enabledMock.stdout}\n${enabledMock.stderr}`, /ENABLE_MOCK_PAYMENTS/);
+
+const missingOperationsEmail = { ...validEnvironment };
+delete missingOperationsEmail.OPERATIONS_EMAIL;
+const missingOperationsEmailResult = run(missingOperationsEmail);
+assert.notEqual(missingOperationsEmailResult.status, 0, "Eine fehlende Betriebs-E-Mail darf den Produktions-Preflight nicht bestehen.");
+assert.match(`${missingOperationsEmailResult.stdout}\n${missingOperationsEmailResult.stderr}`, /OPERATIONS_EMAIL/);
 
 console.log("Production preflight smoke checks passed.");

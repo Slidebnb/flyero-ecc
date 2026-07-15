@@ -26,6 +26,7 @@ requireValue("AUTH_SECRET", (value) => value.length >= 32 && !value.includes("re
 requireValue("APP_URL", isHttps, "muss eine HTTPS-URL sein.");
 requireValue("NEXT_PUBLIC_SITE_URL", isHttps, "muss eine HTTPS-URL sein.");
 requireValue("DATABASE_URL", (value) => value.startsWith("postgresql://") && !value.includes("replace-"), "muss eine konfigurierte PostgreSQL-URL sein.");
+requireValue("OPERATIONS_EMAIL", (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value), "muss eine gueltige Betriebs-E-Mail-Adresse sein.");
 
 requireValue("ENABLE_MOCK_PAYMENTS", (value) => value === "false", "muss in Produktion explizit false sein.");
 requireValue("SEED_DEMO_DATA", (value) => value === "false", "muss in Produktion explizit false sein.");

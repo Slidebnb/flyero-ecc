@@ -28,7 +28,14 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
   const createdAt = dateFilter(filters.date);
   const [messages, queues, templates, logs, preferences] = await Promise.all([
     prisma.notificationMessage.findMany({
-      where: { audience: { in: ["ADMIN", "INTERNAL"] }, ...productionNotificationMessageWhere(), user: productionUserWhere(), ...readFilter, ...typeFilter, ...(createdAt ? { createdAt } : {}) },
+      where: {
+        audience: { in: ["ADMIN", "INTERNAL"] },
+        ...productionNotificationMessageWhere(),
+        OR: [{ user: productionUserWhere() }, { userId: null }],
+        ...readFilter,
+        ...typeFilter,
+        ...(createdAt ? { createdAt } : {}),
+      },
       include: { user: true, template: true },
       orderBy: { createdAt: "desc" },
       take: 100,
@@ -96,7 +103,7 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
                 {messages.map((message) => (
                   <tr key={message.id}>
                     <td>{formatDateTime(message.createdAt)}</td>
-                    <td>{message.user.email}</td>
+                    <td>{message.user?.email ?? "hallo@flyero.org"}</td>
                     <td>{message.type}</td>
                     <td>{message.subject}</td>
                     <td>{message.readAt ? "gelesen" : "ungelesen"}</td>
@@ -146,7 +153,7 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
                 <tr key={queue.id}>
                   <td>{queue.status}</td>
                   <td>{queue.channel}</td>
-                  <td>{queue.user.email}</td>
+                  <td>{queue.recipientEmail ?? queue.user?.email ?? "hallo@flyero.org"}</td>
                   <td>{queue.template?.name ?? "-"}</td>
                   <td>{formatDateTime(queue.scheduledAt)}</td>
                   <td>{queue.lastError ?? "-"}</td>

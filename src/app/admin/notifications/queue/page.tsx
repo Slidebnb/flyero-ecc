@@ -153,7 +153,7 @@ export default async function AdminNotificationQueuePage() {
               {queues.map((queue) => (
                 <tr key={queue.id}>
                   <td><StatusBadge tone={queueTone(queue.status)}>{queue.status}</StatusBadge></td>
-                  <td>{queue.user.email}<br /><small>{queue.user.role}</small></td>
+                  <td>{queue.recipientEmail ?? queue.user?.email ?? "hallo@flyero.org"}<br /><small>{queue.user?.role ?? "Betriebsadresse"}</small></td>
                   <td>{queue.template?.name ?? "-"}</td>
                   <td>{queue.message.subject}<br /><small>{queue.message.type}</small></td>
                   <td>{queue.attempts}/{queue.maxAttempts}</td>

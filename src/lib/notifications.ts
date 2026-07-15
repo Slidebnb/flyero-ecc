@@ -43,6 +43,8 @@ type NotificationInput = {
   channel?: NotificationChannel;
 };
 
+type OperationsNotificationInput = Omit<NotificationInput, "userId">;
+
 export type TemplateInput = {
   key: string;
   audience: NotificationAudience;
@@ -236,13 +238,79 @@ export async function createNotification(input: NotificationInput) {
   return { message, queue, notification: legacyNotification };
 }
 
+function operationsEmail() {
+  return (process.env.OPERATIONS_EMAIL || "hallo@flyero.org").trim().toLowerCase();
+}
+
+function operationsDetails(data: PlaceholderData) {
+  return Object.entries(data)
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .map(([key, value]) => `${key}: ${typeof value === "object" ? JSON.stringify(value) : String(value)}`)
+    .join("\n");
+}
+
+export async function notifyOperations(input: OperationsNotificationInput) {
+  // Die Betriebsadresse bekommt immer eine E-Mail-Kopie, auch wenn die
+  // zugehoerige interne Benachrichtigung einen anderen Kanal verwendet.
+  const channel = NotificationChannel.EMAIL;
+  const template = input.templateKey
+    ? await prisma.notificationTemplate.findUnique({ where: { key: input.templateKey } })
+    : await prisma.notificationTemplate.findFirst({
+        where: { key: input.type, isActive: true },
+        orderBy: { updatedAt: "desc" },
+      });
+  const data = input.data ?? {};
+  const subject = template ? renderTemplateText(template.subject, { ...data, title: input.title }) : input.title;
+  const baseBody = template ? renderTemplateText(template.body, { ...data, message: input.message }) : input.message;
+  const details = operationsDetails(data);
+  const body = details ? `${baseBody}\n\nVollständige Vorgangsdaten:\n${details}` : baseBody;
+  const recipient = operationsEmail();
+  const message = await prisma.notificationMessage.create({
+    data: {
+      templateId: template?.id,
+      type: input.type,
+      audience: NotificationAudience.INTERNAL,
+      channel: NotificationChannel.IN_APP,
+      subject,
+      body,
+      data,
+    },
+  });
+  const queue = channel === NotificationChannel.EMAIL
+    ? await prisma.notificationQueue.create({
+        data: {
+          messageId: message.id,
+          templateId: template?.id,
+          recipientEmail: recipient,
+          channel,
+          status: NotificationQueueStatus.PENDING,
+          payload: { subject, body, data },
+        },
+      })
+    : null;
+  await prisma.notificationLog.create({
+    data: {
+      messageId: message.id,
+      queueId: queue?.id,
+      templateId: template?.id,
+      action: "operations.notification.created",
+      status: queue?.status,
+      detail: `Betriebsbenachrichtigung fuer ${recipient} vorgemerkt.`,
+      metadata: { type: input.type, channel, recipientEmail: recipient },
+    },
+  });
+  return { message, queue };
+}
+
 export async function notifyAdmins(input: Omit<NotificationInput, "userId">) {
   const admins = await prisma.user.findMany({
     where: { ...productionUserWhere(), role: { in: [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER] } },
     select: { id: true },
   });
 
-  return Promise.all(admins.map((admin) => createNotification({ userId: admin.id, ...input })));
+  const adminNotifications = await Promise.all(admins.map((admin) => createNotification({ userId: admin.id, ...input })));
+  const operationsNotification = await notifyOperations(input);
+  return [...adminNotifications, { message: operationsNotification.message, queue: operationsNotification.queue, notification: null }];
 }
 
 export async function markNotificationQueueSent(queueId: string, providerMessageId?: string) {

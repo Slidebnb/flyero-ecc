@@ -354,6 +354,20 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     entityId: updated.id,
     newValues: { orderId: order.id, amount: amount.toString(), checkoutSessionId: updated.stripeCheckoutSessionId },
   });
+  await notifyAdmins({
+    type: "PAYMENT_CHECKOUT_CREATED",
+    title: "Zahlung gestartet",
+    message: `Für Auftrag ${order.orderNumber} wurde der Zahlungsvorgang gestartet.`,
+    data: {
+      orderNumber: order.orderNumber,
+      customerEmail: order.customer.user.email,
+      paymentId: updated.id,
+      checkoutSessionId: updated.stripeCheckoutSessionId,
+      grossAmount: updated.amount.toString(),
+      currency: updated.currency,
+      paymentStatus: updated.status,
+    },
+  });
 
   return updated;
 }
@@ -381,7 +395,10 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     });
     return payment;
   }
-  const order = await prisma.order.findUnique({ where: { id: orderId }, include: { customer: true } });
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: { customer: { include: { user: { select: { email: true } } } } },
+  });
   if (!order) throw new Error("Auftrag für Zahlung wurde nicht gefunden.");
 
   const currentPayment = payment ?? await prisma.payment.create({
@@ -448,9 +465,18 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     await notifyAdmins({
     type: "PAYMENT_COMPLETED",
     title: acceptedAwaitingPayment ? "Angenommene Kampagne bezahlt" : "Neue bezahlte Bestellung",
-    message: acceptedAwaitingPayment
-      ? `Auftrag ${order.orderNumber} wurde bezahlt und automatisch freigegeben.`
-      : `Auftrag ${order.orderNumber} wurde bezahlt und wartet auf Prüfung.`,
+      message: acceptedAwaitingPayment
+        ? `Auftrag ${order.orderNumber} wurde bezahlt und automatisch freigegeben.`
+        : `Auftrag ${order.orderNumber} wurde bezahlt und wartet auf Prüfung.`,
+      data: {
+        orderNumber: order.orderNumber,
+        customerEmail: order.customer?.user?.email,
+        paymentId: paidPayment.id,
+        stripeCheckoutSessionId: paidPayment.stripeCheckoutSessionId,
+        grossAmount: paidPayment.amount.toString(),
+        currency: paidPayment.currency,
+        paymentStatus: paidPayment.status,
+      },
     });
   }
 
@@ -466,10 +492,11 @@ export async function markPaymentFailed(input: { orderId?: string; sessionId?: s
         input.orderId ? { orderId: input.orderId } : {},
       ].filter((value) => Object.keys(value).length > 0),
     },
-    include: { order: { include: { customer: true } } },
+    include: { order: { include: { customer: { include: { user: { select: { email: true } } } } } } },
     orderBy: { createdAt: "desc" },
   });
   if (!payment) return null;
+  const wasAlreadyFailed = payment.status === "FAILED";
   const failed = await updatePaymentStatus(payment, "FAILED", input.reason);
   if (payment.order.status !== "PAYMENT_FAILED" && payment.order.status !== "ACCEPTED_AWAITING_PAYMENT") {
     await prisma.order.update({ where: { id: payment.orderId }, data: { status: "PAYMENT_FAILED" } });
@@ -487,6 +514,24 @@ export async function markPaymentFailed(input: { orderId?: string; sessionId?: s
     title: "Zahlung fehlgeschlagen",
     message: `Die Zahlung für ${payment.order.orderNumber} ist fehlgeschlagen. Du kannst erneut bezahlen.`,
   });
+  if (!wasAlreadyFailed) {
+    await notifyAdmins({
+      type: "PAYMENT_FAILED",
+      title: "Zahlung fehlgeschlagen",
+      message: `Die Zahlung für Auftrag ${payment.order.orderNumber} ist fehlgeschlagen.`,
+      data: {
+        orderNumber: payment.order.orderNumber,
+        customerEmail: payment.order.customer.user.email,
+        paymentId: payment.id,
+        stripeCheckoutSessionId: payment.stripeCheckoutSessionId,
+        stripePaymentIntentId: payment.stripePaymentIntentId,
+        grossAmount: payment.amount.toString(),
+        currency: payment.currency,
+        paymentStatus: failed.status,
+        reason: input.reason,
+      },
+    });
+  }
   return failed;
 }
 

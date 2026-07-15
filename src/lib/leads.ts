@@ -67,7 +67,11 @@ export async function createLead(input: z.input<typeof createLeadSchema>) {
       leadId: lead.id,
       leadType: lead.type,
       leadEmail: lead.email,
+      name: lead.name,
+      companyName: lead.companyName,
+      phone: lead.phone,
       leadCity: lead.city,
+      message: lead.message,
     },
   });
 

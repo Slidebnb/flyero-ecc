@@ -204,8 +204,16 @@ export function productionNotificationMessageWhere(): Prisma.NotificationMessage
 export function productionNotificationQueueWhere(): Prisma.NotificationQueueWhereInput {
   if (!isProductionRuntime) return {};
   return {
-    user: productionUserWhere(),
-    message: productionNotificationMessageWhere(),
+    OR: [
+      {
+        user: productionUserWhere(),
+        message: productionNotificationMessageWhere(),
+      },
+      {
+        userId: null,
+        recipientEmail: { not: null },
+      },
+    ],
   };
 }
 

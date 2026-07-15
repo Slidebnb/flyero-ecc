@@ -2393,7 +2393,7 @@ model NotificationTemplate {
 
 model NotificationMessage {
   id         String               @id @default(cuid())
-  userId     String
+  userId     String?
   templateId String?
   type       String
   audience   NotificationAudience
@@ -2404,7 +2404,7 @@ model NotificationMessage {
   readAt     DateTime?
   createdAt  DateTime             @default(now())
 
-  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   template NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
   queues   NotificationQueue[]
   logs     NotificationLog[]
@@ -2418,7 +2418,8 @@ model NotificationQueue {
   id                String                  @id @default(cuid())
   messageId         String
   templateId        String?
-  userId            String
+  userId            String?
+  recipientEmail    String?
   channel           NotificationChannel
   status            NotificationQueueStatus @default(PENDING)
   attempts          Int                     @default(0)
@@ -2435,11 +2436,12 @@ model NotificationQueue {
 
   message  NotificationMessage   @relation(fields: [messageId], references: [id], onDelete: Cascade)
   template NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  user     User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User?                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   logs     NotificationLog[]
 
   @@index([status, scheduledAt])
   @@index([userId, status])
+  @@index([recipientEmail, status])
   @@index([channel, status])
 }
 
