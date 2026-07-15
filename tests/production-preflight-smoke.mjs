@@ -28,6 +28,7 @@ const validEnvironment = {
   SEED_DEMO_DATA: "false",
   STRIPE_SECRET_KEY: "sk_test_synthetic_123456",
   STRIPE_WEBHOOK_SECRET: "whsec_synthetic_123456",
+  INTERNAL_API_TOKEN: "i".repeat(64),
   EMAIL_PROVIDER: "resend",
   EMAIL_FROM: "FLYERO <noreply@flyero.org>",
   RESEND_API_KEY: "re_synthetic_123456",

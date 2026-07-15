@@ -31,6 +31,7 @@ requireValue("ENABLE_MOCK_PAYMENTS", (value) => value === "false", "muss in Prod
 requireValue("SEED_DEMO_DATA", (value) => value === "false", "muss in Produktion explizit false sein.");
 requireValue("STRIPE_SECRET_KEY", (value) => /^(?:sk|rk)_(?:test|live)_/.test(value), "muss ein Stripe-Secret oder eingeschraenkter Stripe-Schluessel im Test- oder Live-Modus sein.");
 requireValue("STRIPE_WEBHOOK_SECRET", (value) => value.startsWith("whsec_"), "muss ein signierter Stripe-Webhook-Secret sein.");
+requireValue("INTERNAL_API_TOKEN", (value) => value.length >= 32 && !value.includes("replace-") && !value.includes("example"), "muss fuer den Produktions-Worker mindestens 32 Zeichen haben.");
 
 const emailProvider = (process.env.EMAIL_PROVIDER || "").toLowerCase();
 if (emailProvider === "mock") {

@@ -51,6 +51,39 @@ sudo systemctl status flyero-backup.timer
 
 Ohne `/etc/flyero/backup.env` und `/etc/flyero/restic-password` bricht der Installer ab. Ein erfolgreicher GitHub-Push oder ein laufender App-Container ist kein Backupnachweis.
 
+## Automatischer E-Mail-Worker
+
+Benachrichtigungen werden zuerst dauerhaft in der Datenbank-Queue gespeichert. In
+Produktion verarbeitet ein eigener Systemd-Timer diese Queue jede Minute. Der
+Worker ruft den bestehenden internen Endpoint auf; der Token darf niemals in
+GitHub, Logs oder Chat kopiert werden.
+
+Beim ersten Einrichten auf dem Server:
+
+```bash
+cd /opt/flyero
+grep -q '^INTERNAL_API_TOKEN=' .env.production || printf 'INTERNAL_API_TOKEN="%s"\n' "$(openssl rand -hex 32)" >> .env.production
+chmod +x scripts/process-notifications.sh scripts/install-notification-worker-systemd.sh
+docker compose --env-file .env.production -f docker-compose.production.yml build app
+docker compose --env-file .env.production -f docker-compose.production.yml up -d app
+docker compose --env-file .env.production -f docker-compose.production.yml exec app node scripts/production-preflight.mjs
+sudo bash scripts/install-notification-worker-systemd.sh
+sudo systemctl status flyero-notification-worker.timer --no-pager
+sudo systemctl start flyero-notification-worker.service
+sudo journalctl -u flyero-notification-worker.service -n 80 --no-pager
+```
+
+Bei kuenftigen Updates reichen Pull, Build und eine erneute Aktivierung des
+Timers:
+
+```bash
+cd /opt/flyero
+git pull --ff-only
+docker compose --env-file .env.production -f docker-compose.production.yml build app
+docker compose --env-file .env.production -f docker-compose.production.yml up -d app
+sudo bash scripts/install-notification-worker-systemd.sh
+```
+
 ## ENV-Pflichtwerte
 
 ```env

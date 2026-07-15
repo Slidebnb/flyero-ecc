@@ -1,0 +1,16 @@
+[Unit]
+Description=FLYERO E-Mail-Benachrichtigungen verarbeiten
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=flyero
+Group=flyero
+WorkingDirectory=/opt/flyero
+Environment=APP_ROOT=/opt/flyero
+Environment=ENV_FILE=/opt/flyero/.env.production
+ExecStart=/usr/bin/flock --nonblock /tmp/flyero-notification-worker.lock /usr/bin/env bash /opt/flyero/scripts/process-notifications.sh
+PrivateTmp=true
+NoNewPrivileges=true
+TimeoutStartSec=90s

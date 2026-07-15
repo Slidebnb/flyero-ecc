@@ -1,0 +1,11 @@
+[Unit]
+Description=FLYERO E-Mail-Benachrichtigungen jede Minute verarbeiten
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=1min
+Persistent=true
+Unit=flyero-notification-worker.service
+
+[Install]
+WantedBy=timers.target

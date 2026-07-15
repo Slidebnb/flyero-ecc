@@ -132,6 +132,7 @@
     "test:request-id-propagation": "node tests/request-id-propagation-smoke.mjs",
     "production:preflight": "node scripts/production-preflight.mjs",
     "test:production-preflight": "node tests/production-preflight-smoke.mjs",
+    "test:notification-production-worker": "node tests/notification-production-worker-smoke.mjs",
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",
     "test:tenant-ab-idor": "node -r dotenv/config tests/tenant-ab-idor-smoke.mjs",
     "test:warehouse-scope": "node -r dotenv/config tests/warehouse-scope-smoke.mjs",
