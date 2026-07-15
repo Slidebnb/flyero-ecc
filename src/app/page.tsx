@@ -14,6 +14,7 @@ import {
 } from "@/app/components/marketing";
 import { BriefcaseBusiness } from "lucide-react";
 import { createSeoMetadata } from "@/app/seo";
+import { PublicPlannerSearch } from "@/app/PublicPlannerSearch";
 
 export const metadata = createSeoMetadata({
   title: "Flyerverteilung mit GPS-Nachweis und Kundenbericht",
@@ -87,13 +88,7 @@ export default function HomePage() {
               FLYERO verbindet Gebietsauswahl, Zahlung, Lager, GPS-Nachweis, Foto-Dokumentation und Kundenbericht
               in einem professionellen Ablauf für lokale Kampagnen.
             </p>
-            <form className="mkPlannerSearch" action="/verteilung-planen" method="get">
-              <label htmlFor="public-planner-query">Adresse, Ort oder PLZ</label>
-              <div>
-                <input id="public-planner-query" name="query" placeholder="z. B. 56068 Koblenz" autoComplete="street-address" />
-                <button type="submit">Gebiet ansehen</button>
-              </div>
-            </form>
+            <PublicPlannerSearch />
             <div className="mkHeroActions">
               <MarketingButton href="/verteilung-anfragen">Verteilung anfragen</MarketingButton>
               <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="ghost">Online buchen</MarketingButton>

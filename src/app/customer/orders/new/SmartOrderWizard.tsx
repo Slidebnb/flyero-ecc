@@ -540,6 +540,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
+  const polygonStateRef = useRef<LatLng[]>([]);
   const polygonListenerHandlesRef = useRef<GoogleEventListener[]>([]);
   const drawingManagerListenerRef = useRef<GoogleEventListener | null>(null);
   const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
@@ -598,6 +599,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [usedAutocomplete, setUsedAutocomplete] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
+
+  useEffect(() => {
+    polygonStateRef.current = polygon;
+  }, [polygon]);
   const [intelligenceStatus, setIntelligenceStatus] = useState<"local" | "updating" | "live" | "error">("local");
   const [draftStatus, setDraftStatus] = useState("Entwurf wird vorbereitet");
   const [finishStatus, setFinishStatus] = useState("");
@@ -1486,10 +1491,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
         };
       }
     }
-    if (!polygonRef.current && polygon.length >= 3) {
+    if (!polygonRef.current && polygonStateRef.current.length >= 3) {
       try {
         polygonRef.current = new maps.Polygon({
-          paths: polygon,
+          paths: polygonStateRef.current,
           strokeColor: "#4a90ff",
           strokeOpacity: 1,
           strokeWeight: 3,
@@ -1499,10 +1504,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           draggable: true,
         });
         polygonRef.current.setMap(mapRef.current);
-        attachPolygonListeners(polygonRef.current);
       } catch {
         polygonRef.current = null;
       }
+    }
+    if (polygonRef.current) {
+      attachPolygonListeners(polygonRef.current);
     }
     if (!drawingManagerRef.current && maps.drawing && mapRef.current) {
       let drawingManager: GoogleDrawingManager | null = null;
@@ -1578,8 +1585,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     }
     return () => {
       isActive = false;
+      clearPolygonListeners();
     };
-  }, [activeSegmentId, center, city, mapMode, mapsBoundaryMapId, mapsReady, polygon, postalCode, targetAreaName]);
+  }, [activeSegmentId, center, city, mapMode, mapsBoundaryMapId, mapsReady, postalCode, targetAreaName]);
 
   useEffect(() => {
     if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps?.FeatureType) return;

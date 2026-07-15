@@ -94,6 +94,7 @@
     "test:multi-area-order-runtime": "node --experimental-strip-types tests/multi-area-order-runtime-smoke.mjs",
     "test:customer-order-checkout": "node -r dotenv/config tests/customer-order-checkout-smoke.mjs",
     "test:inquiry-form-contact": "node tests/inquiry-form-contact-smoke.mjs",
+    "test:seo-sitemap": "node tests/seo-sitemap-smoke.mjs",
     "test:customer-portal-ux": "node -r dotenv/config tests/customer-portal-ux-smoke.mjs",
     "test:auth-ux": "node -r dotenv/config tests/auth-ux-smoke.mjs",
     "test:auth-session": "node -r dotenv/config tests/auth-session-smoke.mjs",

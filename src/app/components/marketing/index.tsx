@@ -246,7 +246,7 @@ export function HeroVisual() {
     <div className="mkHeroVisual" aria-label="FLYERO Flyer, GPS-Spur und Kundenbericht">
       <div className="mkHeroGlow" aria-hidden="true" />
       <Image
-        src="/generated/marketing/flyero-hero-proof.png"
+        src="/marketing/flyero-hero-proof.png"
         alt="Flyer, Kartenroute und FLYERO Plattformmotiv"
         width={1600}
         height={1000}
