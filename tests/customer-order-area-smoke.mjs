@@ -192,10 +192,15 @@ try {
   }
   const households = intelligence.map((item) => item.data.metrics.households);
   const prices = intelligence.map((item) => item.data.metrics.grossPrice);
-  const warehouses = intelligence.map((item) => item.data.warehouse?.city || "");
   assert(new Set(households).size >= 2, "PLZ-Wechsel aendert Haushalte nicht.");
   assert(new Set(prices).size >= 2, "PLZ-Wechsel aendert Preisvorschau nicht.");
-  assert(warehouses.every(Boolean), "Naechstes Lager wird nicht berechnet.");
+  for (const item of intelligence) {
+    if (item.data.metrics.needsManualReview) {
+      assert(item.data.warehouse === null, "Gebiet ohne aktive Logistik darf kein Lager als bestaetigt anzeigen.");
+    } else {
+      assert(item.data.warehouse?.city, "Naechstes Lager wird fuer ein logistisch bestaetigtes Gebiet nicht berechnet.");
+    }
+  }
   for (const item of intelligence) {
     assert(item.data.metrics.confidence, "Confidence fehlt.");
     assert(item.data.metrics.source, "Berechnungsquelle fehlt.");

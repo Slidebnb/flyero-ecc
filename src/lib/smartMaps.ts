@@ -340,6 +340,7 @@ export async function getOrderIntelligence(input: {
   const [matchingAreas, warehouseMatch, combinations, segmentWarehouseMatches] = await Promise.all([
     prisma.distributionArea.findMany({
       where: {
+        ...productionAreaWhere(),
         AND: [
           ...(input.publicOnly
             ? [{ tenantId: null }]
@@ -467,9 +468,11 @@ export async function getOrderIntelligence(input: {
       reason: match?.reason ?? "Kein aktives Lager für dieses Teilgebiet hinterlegt.",
     };
   }) ?? [];
-  const needsManualReview = Boolean(areaSelection && (
+  const segmentNeedsManualReview = Boolean(areaSelection && (
     !segmentWarehouseData.length || segmentWarehouseData.some((item) => !item.matchedRegion)
   ));
+  const singleAreaNeedsManualReview = Boolean(!areaSelection && !warehouseMatch?.matchedRegion);
+  const needsManualReview = Boolean(includeOperationalData && (segmentNeedsManualReview || singleAreaNeedsManualReview));
   const areaConfidence = referenceArea?.dataSourceType === "OFFICIAL" || referenceArea?.dataSourceType === "LICENSED"
     ? "verified" as const
     : effectiveCoverageAreaSqm ? "estimated" as const : "unavailable" as const;
