@@ -136,6 +136,7 @@
     "test:request-id-propagation": "node tests/request-id-propagation-smoke.mjs",
     "production:preflight": "node scripts/production-preflight.mjs",
     "test:production-preflight": "node tests/production-preflight-smoke.mjs",
+    "test:seed-dispatch-linkage": "node tests/seed-dispatch-recommendation-smoke.mjs",
     "test:notification-production-worker": "node tests/notification-production-worker-smoke.mjs",
     "test:operations-email-routing": "node tests/operations-email-routing-smoke.mjs",
     "test:operations-email-runtime": "node -r dotenv/config tests/operations-email-runtime.mjs",

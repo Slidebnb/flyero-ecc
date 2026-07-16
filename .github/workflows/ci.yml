@@ -119,6 +119,9 @@ jobs:
       - name: Apply migrations
         run: npx prisma migrate deploy
 
+      - name: Seed/schema linkage contract
+        run: npm run test:seed-dispatch-linkage
+
       - name: Seed isolated CI database
         run: npm run prisma:seed
 

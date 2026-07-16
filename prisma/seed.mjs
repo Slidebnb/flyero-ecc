@@ -2081,9 +2081,10 @@ for (let orderIndex = 0; orderIndex < recommendationOrders.length; orderIndex +=
         : "SUGGESTED";
     await prisma.autoDispatchRecommendation.upsert({
       where: {
-        orderId_distributorId: {
+        orderId_distributorId_segmentId: {
           orderId: inventory.orderId,
           distributorId: distributor.id,
+          segmentId: null,
         },
       },
       update: {
@@ -2094,6 +2095,7 @@ for (let orderIndex = 0; orderIndex < recommendationOrders.length; orderIndex +=
       },
       create: {
         orderId: inventory.orderId,
+        segmentId: null,
         distributorId: distributor.id,
         score,
         status,
