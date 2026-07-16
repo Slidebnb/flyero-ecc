@@ -103,10 +103,20 @@ Erfolgreich ausgeführt:
 
 Die aktuelle Playwright-Abdeckung prüft zusätzlich `/verteilung-planen`, `/kontakt`, `/so-funktionierts` und `/fuer-unternehmen` auf Desktop und Mobil. Ein aktueller GitHub-Actions-Lauf für Commit `cb67bfd` war zum Auditzeitpunkt über die GitHub-API noch nicht sichtbar; das ist eine externe Verifikationslücke und kein lokaler Testnachweis.
 
+## Nachtraegliche CI-Verifikation
+
+Nach den letzten Vertragskorrekturen ist der vollstaendige GitHub-Actions-Lauf fuer `b8f4c896e5556b2e9edc77632853c270839882da` erfolgreich:
+
+- CI: erfolgreich
+- CodeQL: erfolgreich
+- PostgreSQL-Smoke: erfolgreich, einschliesslich `test:beta`
+- Der Beta-Flow deckt Registrierung, Quote-Fingerprint, Auftrag, Zahlung, Rechnung, Lager, Dispatch, Tour und Nachweisstrecke ab.
+
+Die letzten Korrekturen betrafen ausschliesslich Test-/Vertragskonsistenz und die fachlich korrekte HTTP-Antwort fuer ungueltige Order-Statuswechsel (`409` statt `500`).
+
 ## Offen vor echtem Launch
 
 - Resend-Zustellereignisse für Betriebs-E-Mails optional per Webhook korrelieren, damit Provider-Annahme und tatsächliche Zustellung getrennt sichtbar sind.
 - Einen echten Produktions-Lead mit Testadresse auslösen und `createdAt`, `sentAt`, Resend-Status und Posteingang zeitgleich dokumentieren.
 - Google Maps Browser-Key, Domainrestriktionen und Kostenlimits in der Produktionsumgebung regelmäßig prüfen.
 - Rechtliche Prüfung von Datenschutz, Auftragsverarbeitung, Tracking- und Nachweistexten abschließen.
-
