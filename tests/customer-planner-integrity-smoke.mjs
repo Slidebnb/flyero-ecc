@@ -75,6 +75,14 @@ assertMatch(
   /confidenceLabel\(areaStats\.confidence, coverageAreaSqm > 0\)/,
   "Die Datenbasis muss ohne Flaeche einen klaren naechsten Schritt anzeigen.",
 );
+assertMatch(
+  /function deliverabilityLabel\(score\?: number \| null, hasArea = true\)[\s\S]*?if \(!hasArea\) return "Gebiet auswählen";/,
+  "Ohne Flaeche darf der Verfuegbarkeitsstatus keine laufende Pruefung suggerieren.",
+);
+assertMatch(
+  /deliverabilityLabel\(deliverabilityScore, coverageAreaSqm > 0\)/,
+  "Der Verfuegbarkeitsstatus muss an die aktuelle Flaeche gebunden sein.",
+);
 
 const migrationCommand = "docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy";
 assert.ok(deployment.includes(migrationCommand), "Das Produktions-Deployment muss Prisma-Migrationen vor dem Start ausfuehren.");

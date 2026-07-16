@@ -470,7 +470,8 @@ function clampOverviewOffset(x: number, y: number) {
   };
 }
 
-function deliverabilityLabel(score?: number | null) {
+function deliverabilityLabel(score?: number | null, hasArea = true) {
+  if (!hasArea) return "Gebiet auswählen";
   if (!Number.isFinite(score ?? NaN)) return "Gebiet wird noch geprüft";
   if ((score ?? 0) >= 82) return "Sehr gut erreichbar";
   if ((score ?? 0) >= 65) return "Gut erreichbar";
@@ -2816,7 +2817,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <div><dt>Preis netto zzgl. MwSt.</dt><dd>{pricePreviewText}</dd></div>
             <div><dt>Nächstes Lager</dt><dd>{warehouseSuggestionLabel}</dd></div>
           </dl>
-          <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore)}</p>
+          <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore, coverageAreaSqm > 0)}</p>
         </aside>
       </section>
     </form>
