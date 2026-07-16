@@ -305,6 +305,7 @@ async function main() {
     await jsonRequest(`/api/distributor/orders/${orderId}/accept`, {
       method: "POST",
       cookie: distributorCookie,
+      body: {},
     });
     const assignedTour = await prisma.distributionTour.findFirst({ where: { orderId, distributorId: distributor.id }, orderBy: { createdAt: "desc" } });
     assert(assignedTour, "Tour wurde nach Dispatch-Annahme nicht erzeugt.");
