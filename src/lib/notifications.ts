@@ -1,6 +1,7 @@
 import { ErrorSeverity, NotificationAudience, NotificationChannel, NotificationQueueStatus, UserRole } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createErrorLog } from "@/lib/monitoring";
+import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
 import { prisma } from "@/lib/prisma";
 import { productionUserWhere } from "@/lib/productionData";
 
@@ -299,7 +300,8 @@ export async function notifyOperations(input: OperationsNotificationInput) {
       metadata: { type: input.type, channel, recipientEmail: recipient },
     },
   });
-  return { message, queue };
+  const dispatchedQueue = await dispatchNotificationImmediately(queue?.id);
+  return { message, queue: dispatchedQueue ?? queue };
 }
 
 export async function notifyEmailRecipient(input: {
@@ -339,7 +341,8 @@ export async function notifyEmailRecipient(input: {
       metadata: { type: input.type, recipientEmail },
     },
   });
-  return { message, queue };
+  const dispatchedQueue = await dispatchNotificationImmediately(queue.id);
+  return { message, queue: dispatchedQueue ?? queue };
 }
 
 export async function notifyAdmins(input: Omit<NotificationInput, "userId">) {

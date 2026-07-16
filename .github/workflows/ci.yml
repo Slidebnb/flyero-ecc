@@ -122,6 +122,9 @@ jobs:
       - name: Seed isolated CI database
         run: npm run prisma:seed
 
+      - name: Build production bundle for parity
+        run: npm run build
+
       - name: Start shared test server
         shell: bash
         run: |
@@ -308,6 +311,17 @@ jobs:
 
       - name: Module 28 public browser smoke
         run: npm run test:module28-public-playwright
+
+      - name: Module 28 production parity
+        run: npm run test:module28-public-production-parity
+
+      - name: Upload Module 28 browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: module28-public-playwright
+          path: .tmp/module28-public-playwright
+          if-no-files-found: ignore
 
       - name: Area data import smoke
         run: npm run test:area-data-import

@@ -584,7 +584,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [warehouseOptionsStatus, setWarehouseOptionsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
-  const [productFormat, setProductFormat] = useState(productOptions[0].value);
+  const productFormat = productOptions[0].value;
   const [flyerSource, setFlyerSource] = useState("CUSTOMER_OWN");
   const [printDataStatus, setPrintDataStatus] = useState("UPLOAD_LATER");
   const [targetGroup, setTargetGroup] = useState("Alle Haushalte");
@@ -611,7 +611,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   const [finishStatus, setFinishStatus] = useState("");
   const [isFinishing, setIsFinishing] = useState(false);
   const [repeatPrintChoice, setRepeatPrintChoice] = useState<"pending" | "same" | "changed" | null>(null);
-  const [repeatOriginalPrintDataStatus, setRepeatOriginalPrintDataStatus] = useState("UPLOAD_LATER");
   const [overviewOffset, setOverviewOffset] = useState({ x: 0, y: 0 });
   const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
   const mapsBoundaryMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "";
@@ -1131,7 +1130,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
           setFlyerSource("CUSTOMER_OWN");
           if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
           const repeatedPrintDataStatus = draft.printDataStatus ?? "UPLOAD_LATER";
-          setRepeatOriginalPrintDataStatus(repeatedPrintDataStatus);
           setRepeatPrintChoice("pending");
           setPrintDataStatus(repeatedPrintDataStatus);
           const repeatedStartDate = clampIsoDate(draft.startDate, minimumStartDate);
@@ -2001,7 +1999,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
 
   const legacyStepState = [
     { id: 1, title: "Gebiet", detail: "Wo soll verteilt werden?", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Noch offen" },
-    { id: 2, title: "Flyer", detail: "Format, Menge und Druck", value: `${formatNumber(flyerQuantity)} Stück` },
+    { id: 2, title: "Flyer", detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung", detail: "Art und wichtige Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Frühester Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
     { id: 5, title: "Preis prüfen", detail: "Gebiet, Preis und Leistungen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Noch offen" },
@@ -2258,72 +2256,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       );
     }
 
-    if (stepId === 2 && flyerSource === "PRINT_SERVICE") {
-      return (
-        <section className="orderPanelBlock inlineStepBlock">
-          <p className="orderStepHint">Wähle Format und Menge. Danach entscheidest du, ob FLYERO den Druck übernimmt.</p>
-          {repeatPrintChoice === "pending" ? (
-            <div className="repeatPrintNotice" role="alert">
-              <strong>Sind deine Druckdaten noch aktuell?</strong>
-              <p>Gebiet, Flyerzahl und Format wurden von der letzten Kampagne übernommen.</p>
-              <div className="repeatPrintActions">
-                <button type="button" className="primaryButton" onClick={() => {
-                  setRepeatPrintChoice("same");
-                  setPrintDataStatus(repeatOriginalPrintDataStatus);
-                }}>Druckdaten sind unverändert</button>
-                <button type="button" className="secondaryButton" onClick={() => {
-                  setRepeatPrintChoice("changed");
-                  setPrintDataStatus(flyerSource === "PRINT_SERVICE" ? "PRINT_REQUESTED" : "UPLOAD_LATER");
-                }}>Druckdaten haben sich geändert</button>
-              </div>
-            </div>
-          ) : null}
-          {flyerSource === "PRINT_SERVICE" ? (
-            <label>
-              Flyerformat
-              <select value={productFormat} onChange={(event) => setProductFormat(event.target.value)}>
-                {productOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-          ) : null}
-          <div className="modeTabs flyerSourceTabs">
-            <button type="button" className="selected" onClick={() => {
-              setFlyerSource("CUSTOMER_OWN");
-              setPrintDataStatus("UPLOAD_LATER");
-            }}>Flyer sind vorhanden</button>
-            <button type="button" className={flyerSource === "PRINT_SERVICE" ? "selected" : ""} onClick={() => {
-              setFlyerSource("PRINT_SERVICE");
-              setPrintDataStatus("PRINT_REQUESTED");
-            }}>Druck über FLYERO</button>
-          </div>
-          <div className="modeTabs flyerSourceTabs">
-            <button type="button" className={printDataStatus === "UPLOADED" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOADED")}>Datei ist bereit</button>
-            <button type="button" className={printDataStatus === "UPLOAD_LATER" ? "selected" : ""} onClick={() => setPrintDataStatus("UPLOAD_LATER")}>Datei später senden</button>
-          </div>
-          <div className="flyerRecommendation">
-            <span>Unser Vorschlag</span>
-            <strong>{formatNumber(recommendedFlyerQuantity)} Flyer mit 10 % Reserve</strong>
-            <small>Du kannst die Menge jederzeit ändern.</small>
-          </div>
-          <div className="quantityControl">
-            <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
-            <input
-              data-testid="order-flyer-quantity"
-              value={flyerQuantity}
-              onChange={(event) => {
-                setFlyerQuantityTouched(true);
-                setFlyerQuantity(Number(event.target.value) || MINIMUM_FLYER_QUANTITY);
-              }}
-              onBlur={() => setFlyerQuantity((value) => Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, value)))}
-              inputMode="numeric"
-            />
-            <button type="button" onClick={() => moveQuantity(1000)}>+</button>
-            <span>Stück</span>
-          </div>
-        </section>
-      );
-    }
-
     if (stepId === 3) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
@@ -2447,7 +2379,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
             </button>
           ) : null}
           <button data-testid="order-finish-inquiry" type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
-            {flyerSource === "PRINT_SERVICE" ? "Druckangebot anfragen" : "Unverbindlich anfragen"}
+            Unverbindlich anfragen
             <small>Wir prüfen Gebiet, Druck und Preis und melden uns schnell.</small>
           </button>
           <a href={inquiryFormHref} download>

@@ -158,20 +158,29 @@ async function sendSmtpEmail(input: EmailInput): Promise<EmailResult> {
 
 async function sendResendEmail(input: EmailInput): Promise<EmailResult> {
   const apiKey = requireEnv("RESEND_API_KEY");
-  const response = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${apiKey}`,
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      from: fromAddress(),
-      to: input.to,
-      subject: input.subject,
-      text: input.text,
-      html: input.html,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutMs = Math.max(2_000, Number(process.env.EMAIL_SEND_TIMEOUT_MS || 10_000));
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        from: fromAddress(),
+        to: input.to,
+        subject: input.subject,
+        text: input.text,
+        html: input.html,
+      }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(`Resend Versand fehlgeschlagen: ${response.status}`);

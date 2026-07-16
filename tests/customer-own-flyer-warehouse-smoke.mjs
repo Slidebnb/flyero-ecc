@@ -24,7 +24,7 @@ assert.match(wizard, /api\/customer\/warehouses/);
 assert.match(wizard, /selectedWarehouseId/);
 assert.match(wizard, /warehouseId: selectedWarehouseId/);
 assert.match(wizard, /data-testid=\"customer-own-flyer-step\"/);
-assert.match(wizard, /if \(stepId === 2 && flyerSource === \"PRINT_SERVICE\"\)/);
+assert.doesNotMatch(wizard, /setFlyerSource\("PRINT_SERVICE"\)/);
 assert.match(wizard, /Flyer sind bereits gedruckt/);
 assert.match(wizard, /Empfangslager/);
 

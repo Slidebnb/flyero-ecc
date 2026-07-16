@@ -178,6 +178,25 @@ export async function sendNotificationMessage(queueId: string) {
   }
 }
 
+// Der Queue-Eintrag bleibt verbindlich; hier wird nur ein sofortiger Versandversuch gestartet.
+// Providerfehler werden von sendNotificationMessage als RETRY gespeichert.
+export async function dispatchNotificationImmediately(queueId: string | null | undefined) {
+  if (!queueId) return null;
+
+  try {
+    return await sendNotificationMessage(queueId);
+  } catch (error) {
+    await createErrorLog({
+      severity: ErrorSeverity.MEDIUM,
+      source: "email.immediate",
+      message: error instanceof Error ? error.message : String(error || "Direkter E-Mail-Versuch fehlgeschlagen."),
+      stack: error instanceof Error ? error.stack : undefined,
+      metadata: { queueId },
+    });
+    return null;
+  }
+}
+
 export async function retryFailedNotification(queueId: string, userId?: string | null) {
   const queue = await prisma.notificationQueue.findFirst({ where: { id: queueId, ...productionNotificationQueueWhere() } });
   if (!queue) throw new Error("Queue-Eintrag wurde nicht gefunden.");

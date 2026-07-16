@@ -15,6 +15,7 @@ assert.match(schema, /model NotificationMessage \{[\s\S]*?userId\s+String\?/m, "
 assert.match(schema, /model NotificationQueue \{[\s\S]*?userId\s+String\?[\s\S]*?recipientEmail\s+String\?/m, "NotificationQueue braucht eine direkte Empfaengeradresse.");
 assert.match(notifications, /export async function notifyOperations\(/, "Operations-Benachrichtigung fehlt.");
 assert.match(notifications, /notifyOperations\(input\)/, "notifyAdmins leitet nicht an die Betriebsadresse weiter.");
+assert.match(notifications, /dispatchNotificationImmediately\(queue\?\.id\)/, "Betriebs-E-Mail wird nicht sofort versucht.");
 assert.match(worker, /queue\.recipientEmail \?\? queue\.user\?\.email/, "Worker verwendet die direkte Empfaengeradresse nicht.");
 assert.match(productionData, /recipientEmail|userId: null/, "Produktionsfilter beruecksichtigt direkte Betriebs-Queue-Empfaenger nicht.");
 assert.match(leads, /companyName: lead\.companyName/, "Lead-Mail enthaelt nicht den Firmennamen.");

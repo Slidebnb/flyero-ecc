@@ -3,9 +3,10 @@
 ## Zweck
 
 FLYERO erstellt fuer jeden wichtigen Geschaeftsvorgang eine interne
-Betriebs-E-Mail an `OPERATIONS_EMAIL`. Die Nachricht wird nicht direkt aus dem
-Browser verschickt, sondern ueber die bestehende Notification-Queue und den
-Notification-Worker verarbeitet.
+Betriebs-E-Mail an `OPERATIONS_EMAIL`. Der Queue-Eintrag wird direkt nach dem
+Speichern einmal versucht zu versenden. Die Notification-Queue bleibt trotzdem
+verbindlich: Provider- oder Netzwerkfehler werden als Retry gespeichert und
+spaeter vom Notification-Worker verarbeitet.
 
 ## Abgedeckte Vorgange
 
@@ -47,9 +48,14 @@ werden. Der Produktions-Preflight lehnt eine fehlende oder ungueltige
 
 1. Ein Geschaeftsvorgang ruft `notifyAdmins` auf.
 2. Message und E-Mail-Queue werden in der Datenbank gespeichert.
-3. Der Notification-Worker verarbeitet `PENDING` und `RETRY`.
+3. Direkt danach startet derselbe Request einen begrenzten Versandversuch.
 4. Erfolgreiche Nachrichten erhalten den Status `SENT` und eine Provider-ID.
 5. Fehler werden mit Retry-Zaehler und internem Fehlerstatus protokolliert.
+6. Der Notification-Worker verarbeitet `PENDING` und `RETRY` erneut.
+
+Der direkte Resend-Versuch ist auf `EMAIL_SEND_TIMEOUT_MS` begrenzt (Standard:
+10 Sekunden), damit ein externer Providerfehler keinen Kundenrequest unbegrenzt
+blockiert.
 
 Die Queue kann im Adminbereich unter `/admin/notifications/queue` kontrolliert
 und erneut angestoßen werden. Der systemd-Timer

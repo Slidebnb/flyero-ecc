@@ -145,6 +145,7 @@
     "test:public-capabilities-runtime": "node tests/public-capabilities-runtime.mjs",
     "test:module28-public-runtime": "npm run test:public-location-navigation-runtime && npm run test:public-inquiry-runtime && npm run test:public-pricing-runtime && npm run test:public-capabilities-runtime",
     "test:module28-public-playwright": "node tests/module28-public-playwright.mjs",
+    "test:module28-public-production-parity": "node tests/module28-public-production-parity.mjs",
     "test:single-area-logistics-gate": "node tests/single-area-logistics-gate-smoke.mjs",
     "test:print-service-payment-gate": "node tests/print-service-payment-gate-smoke.mjs",
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",

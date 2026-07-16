@@ -251,9 +251,10 @@ export function HeroVisual() {
 export function ProcessPreview() {
   const processItems = [
     ["01", "Gebiet geplant", "Gebiet und Menge werden vorab festgelegt."],
-    ["02", "Verteilung durchgeführt", "Die operative Durchführung wird dokumentiert."],
-    ["03", "Nachweise geprüft", "GPS-Bericht, Fotos und Angaben werden intern geprüft."],
-    ["04", "Bericht freigegeben", "Erst danach erscheint der Bericht im Kundenkonto."],
+    ["02", "Flyer bereit", "Bereits gedruckte Flyer werden dem Auftrag zugeordnet."],
+    ["03", "Verteilung durchgeführt", "Die operative Durchführung wird dokumentiert."],
+    ["04", "Nachweise geprüft", "GPS-Bericht, Fotos und Angaben werden intern geprüft."],
+    ["05", "Bericht folgt", "Nach der Prüfung erscheint der Bericht im Kundenkonto."],
   ] as const;
 
   return (

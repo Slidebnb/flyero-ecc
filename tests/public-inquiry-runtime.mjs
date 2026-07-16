@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -8,6 +9,9 @@ let baseUrl = process.env.PUBLIC_INQUIRY_BASE_URL || "http://localhost:3000";
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 let child = null;
 let leadId = null;
+const honeypotIp = `198.51.100.${(Date.now() % 200) + 20}`;
+const rateLimitIp = `203.0.113.${(Date.now() % 200) + 20}`;
+const rateLimitBucketId = createHash("sha256").update(`flyero-public-rate-limit:lead:${rateLimitIp}`).digest("hex");
 
 async function waitForServer() {
   try {
@@ -54,6 +58,25 @@ try {
   });
   assert.equal(invalid.response.status, 400, "Ungültige Anfragefelder müssen serverseitig abgelehnt werden.");
 
+  const honeypot = await post({
+    name: "Bot Anfrage",
+    email: `honeypot-${Date.now()}@example.org`,
+    website: "https://spam.example",
+    message: "Diese Anfrage darf nicht gespeichert werden.",
+    source: "public-inquiry-runtime",
+  }, { "x-forwarded-for": honeypotIp });
+  assert.equal(honeypot.response.status, 202, "Honeypot-Anfragen muessen neutral beantwortet werden.");
+  assert.equal(honeypot.body.data.status, "IGNORED");
+  assert.equal(await prisma.lead.count({ where: { email: { startsWith: "honeypot-" } } }), 0, "Honeypot darf keinen Lead speichern.");
+
+  const limitedResponses = [];
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const response = await post({ email: "not-an-email" }, { "x-forwarded-for": rateLimitIp });
+    limitedResponses.push(response.response.status);
+  }
+  assert.deepEqual(limitedResponses.slice(0, 5), [400, 400, 400, 400, 400]);
+  assert.equal(limitedResponses[5], 429, "Lead-Rate-Limit muss auch im Anfrage-Flow greifen.");
+
   const idempotencyKey = `public-inquiry-runtime-${Date.now()}-key`;
   const input = {
     name: "Public Inquiry Runtime",
@@ -85,6 +108,8 @@ try {
   assert.equal(stored?.expectedFlyerQuantity, 3000);
   assert.equal(stored?.inquiryData?.postalCode, "56068");
   assert.equal(stored?.inquiryData?.flyersAlreadyPrinted, true);
+  assert.equal(stored?.tenantId, null, "Oeffentliche Anfragen duerfen keinem fremden Tenant zugeordnet werden.");
+  assert.equal("website" in (stored?.inquiryData ?? {}), false, "Honeypot-Felder duerfen nicht in Anfrage-Daten gespeichert werden.");
 
   const duplicate = await post(input);
   assert.equal(duplicate.response.status, 201, "Ein wiederholter Request muss idempotent beantwortet werden.");
@@ -100,6 +125,16 @@ try {
   const operationsMessage = messages.find((message) => message.subject === "Neuer Lead eingegangen.");
   assert.equal(operationsMessage?.data?.postalCode, "56068", "Betriebs-Mail muss die PLZ der Anfrage enthalten.");
   assert.equal(operationsMessage?.data?.flyerQuantity, 3000, "Betriebs-Mail muss die Flyeranzahl der Anfrage enthalten.");
+  const operationsQueue = messages
+    .flatMap((message) => message.queues)
+    .find((queue) => queue.recipientEmail === "hallo@flyero.org");
+  assert.equal(operationsQueue?.status, "SENT", "Die Betriebs-Mail muss nach dem Request sofort versendet oder zumindest direkt versucht werden.");
+  assert.equal(operationsQueue?.provider, "mock", "Der direkte Versandversuch muss denselben konfigurierten Provider nutzen.");
+  const customerQueue = messages
+    .flatMap((message) => message.queues)
+    .find((queue) => queue.recipientEmail === input.email);
+  assert.equal(customerQueue?.status, "SENT", "Die Kundenbestaetigung muss beim Mock-Provider direkt verarbeitet werden.");
+  assert.equal(customerQueue?.provider, "mock");
   console.log("Public inquiry runtime checks passed.");
 } finally {
   if (leadId) {
@@ -112,6 +147,7 @@ try {
     }
     await prisma.lead.delete({ where: { id: leadId } }).catch(() => undefined);
   }
+  await prisma.publicRateLimitBucket.deleteMany({ where: { id: rateLimitBucketId } });
   await prisma.$disconnect();
   if (child) {
     if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], { stdio: "ignore" });

@@ -36,7 +36,7 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
   }
 
   return (
-    <form className="mkLeadForm" onSubmit={onSubmit}>
+    <form className="mkLeadForm" onSubmit={onSubmit} aria-describedby={state === "error" ? "lead-form-error" : undefined}>
       <input type="hidden" name="source" value={source} />
       <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
       <input
@@ -134,8 +134,11 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
       <button type="submit" disabled={state === "sending"}>
         {state === "sending" ? "Wird gesendet..." : "Anfrage senden"}
       </button>
+      <p className="mkFormPrivacy">
+        Ihre Angaben verwenden wir ausschließlich zur Bearbeitung Ihrer Anfrage. Weitere Informationen finden Sie in der <a href="/datenschutz">Datenschutzerklärung</a>.
+      </p>
       {state === "success" ? <p className="mkFormSuccess" role="status" aria-live="polite">Danke, Ihre Anfrage ist eingegangen.{inquiryNumber ? ` Ihre Anfragenummer: ${inquiryNumber}.` : ""}</p> : null}
-      {state === "error" ? <p className="mkFormError" role="alert">Bitte prüfen Sie die Angaben und versuchen Sie es erneut.</p> : null}
+      {state === "error" ? <p id="lead-form-error" className="mkFormError" role="alert">Bitte prüfen Sie die Angaben und versuchen Sie es erneut.</p> : null}
     </form>
   );
 }

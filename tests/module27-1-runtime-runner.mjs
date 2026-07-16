@@ -24,11 +24,21 @@ function cookieHeader(response) {
 }
 
 async function request(path, options = {}) {
-  const response = await fetch(`${baseUrl}${path}`, {
-    redirect: "manual",
-    ...options,
-    headers: { ...(options.headers ?? {}) },
-  });
+  const controller = options.signal ? null : new AbortController();
+  const timeout = controller ? setTimeout(() => controller.abort(), 15_000) : null;
+  let response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      redirect: "manual",
+      ...options,
+      headers: { ...(options.headers ?? {}) },
+      signal: options.signal ?? controller?.signal,
+    });
+  } catch (error) {
+    throw new Error(`${options.method ?? "GET"} ${path} konnte nicht beantwortet werden: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
   const text = await response.text();
   let data = null;
   try { data = text ? JSON.parse(text) : null; } catch { data = text; }
