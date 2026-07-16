@@ -89,6 +89,7 @@
     "repair:order-integrity:dry-run": "node -r dotenv/config scripts/repair-order-integrity.mjs",
     "test:module27": "npm run test:registration-progressive && npm run test:verification-continuation && npm run test:activation-handoff && npm run test:profile-completion-checkout && npm run test:planner-funnel-events && npm run test:order-quote-consistency && npm run test:order-stale-quote-block && npm run test:order-area-snapshot && npm run test:order-saved-area-edit && npm run test:order-metrics-consistency && npm run test:order-review-workflow && npm run test:order-review-notifications && npm run test:order-notification-templates && npm run test:order-integrity && npm run test:order-fulfillment-branching && npm run test:admin-assignment-return && npm run test:dispatch-distance-source && npm run test:core-order-contract",
     "test:customer-order-area": "node -r dotenv/config tests/customer-order-area-smoke.mjs",
+    "test:geocode-query-normalization": "node --experimental-strip-types tests/geocode-query-normalization-smoke.mjs",
     "test:customer-distribution-flow": "node tests/customer-distribution-flow-contract.mjs",
     "test:multi-area-order": "node tests/multi-area-order-smoke.mjs",
     "test:multi-area-order-runtime": "node --experimental-strip-types tests/multi-area-order-runtime-smoke.mjs",

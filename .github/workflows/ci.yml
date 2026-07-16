@@ -330,6 +330,9 @@ jobs:
       - name: Area data import smoke
         run: npm run test:area-data-import
 
+      - name: Geocode query normalization smoke
+        run: npm run test:geocode-query-normalization
+
       - name: Customer area calculation smoke
         run: npm run test:customer-order-area
 

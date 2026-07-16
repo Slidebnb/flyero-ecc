@@ -6,6 +6,7 @@ import { productionAreaWhere, productionOrderExperienceEventWhere, productionOrd
 import { calculateOrderPrice } from "@/lib/pricing";
 import { aggregateOrderAreaSegments, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
 import { buildAuthoritativePlanningQuote, buildPlanningInputFingerprint, planningGeometry } from "@/lib/planningQuote";
+import { parseGeocodeQuery } from "@/lib/geocodeQuery";
 
 export type SmartPlaceSuggestion = {
   id: string;
@@ -134,6 +135,9 @@ export async function geocodeSmartAddress(input: {
   const google = await googleGeocode(query, input.placeId).catch(() => null);
   if (google) return google;
   if (options?.publicOnly) return null;
+  const parsedQuery = parseGeocodeQuery(query);
+  const requestedPostalCode = input.postalCode ?? parsedQuery.postalCode;
+  const requestedCity = input.city ?? parsedQuery.city;
   const sourceFilter = process.env.NODE_ENV === "production" ? { dataSourceType: { not: AreaDataSourceType.SEED } } : {};
   const area = await prisma.distributionArea.findFirst({
     where: {
@@ -143,10 +147,20 @@ export async function geocodeSmartAddress(input: {
       centerLng: { not: null },
       ...sourceFilter,
       OR: [
-        { name: { contains: query, mode: "insensitive" } },
-        { city: { contains: query, mode: "insensitive" } },
-        { district: { contains: query, mode: "insensitive" } },
-        { postalCode: { startsWith: query.trim() } },
+        ...(requestedPostalCode
+          ? [{ postalCode: { startsWith: requestedPostalCode } }]
+          : [{ postalCode: { startsWith: parsedQuery.normalized } }]),
+        ...(requestedCity
+          ? [
+              { city: { contains: requestedCity, mode: "insensitive" as const } },
+              { district: { contains: requestedCity, mode: "insensitive" as const } },
+              { name: { contains: requestedCity, mode: "insensitive" as const } },
+            ]
+          : [
+              { name: { contains: parsedQuery.normalized, mode: "insensitive" as const } },
+              { city: { contains: parsedQuery.normalized, mode: "insensitive" as const } },
+              { district: { contains: parsedQuery.normalized, mode: "insensitive" as const } },
+            ]),
       ],
     },
     orderBy: { updatedAt: "desc" },
