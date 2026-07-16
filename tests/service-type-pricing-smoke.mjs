@@ -7,8 +7,11 @@ const wizard = fs.readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx
 const pricing = fs.readFileSync("src/lib/pricing.ts", "utf8");
 
 assert.match(smartMaps, /serviceType\?:/);
-assert.match(smartMaps, /calculateOrderPrice\(\{ serviceType: input\.serviceType/);
+assert.match(smartMaps, /calculateOrderPrice\(\{/);
 assert.match(orderRoute, /serviceType: data\.serviceType/);
 assert.match(wizard, /value=\{serviceType\}/);
 assert.match(pricing, /pricingBasisServiceType/);
+assert.match(pricing, /weightFactor/);
+assert.match(pricing, /areaDifficultyFactor/);
+assert.match(pricing, /checkoutAllowed/);
 console.log("service-type-pricing-smoke: ok");

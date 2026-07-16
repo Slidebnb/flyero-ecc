@@ -97,6 +97,23 @@ async function ensurePricing() {
     ["express_surcharge", "49.00", "Optionaler Expresszuschlag netto."],
     ["photo_proof_surcharge", "19.00", "Optionaler Foto-Nachweis-Zuschlag netto."],
     ["warehouse_surcharge", "0.00", "Optionaler Lagerzuschlag netto."],
+    ["express_surcharge_percent", "20.00", "Expresszuschlag bei weniger als sieben Tagen in Prozent."],
+    ["express_72h_surcharge_percent", "35.00", "Expresszuschlag bei weniger als 72 Stunden in Prozent."],
+    ["weekend_surcharge_percent", "25.00", "Wochenend- oder Feiertagszuschlag in Prozent."],
+    ["additional_area_fee_net", "49.00", "Zuschlag je weiterem getrennten Gebiet netto."],
+    ["pickup_fee_net", "49.00", "Abholung beim Kunden netto."],
+    ["storage_fee_net", "29.00", "Lagerung je definierter Einheit netto."],
+    ["handling_fee_net", "0.00", "Allgemeine Bearbeitungsgebühr netto."],
+    ["sampling_handling_fee_per_unit", "0.15", "Handling je Produktprobe netto."],
+    ["weight_factor_light", "1.00", "Gewichtsfaktor LIGHT."],
+    ["weight_factor_standard", "1.08", "Gewichtsfaktor STANDARD."],
+    ["weight_factor_medium", "1.18", "Gewichtsfaktor MEDIUM."],
+    ["weight_factor_heavy", "1.35", "Gewichtsfaktor HEAVY."],
+    ["area_factor_normal", "1.00", "Gebietsfaktor NORMAL."],
+    ["area_factor_mixed", "1.15", "Gebietsfaktor MIXED."],
+    ["area_factor_low_density", "1.25", "Gebietsfaktor LOW_DENSITY."],
+    ["area_factor_rural", "1.40", "Gebietsfaktor RURAL."],
+    ["area_factor_hard", "1.60", "Gebietsfaktor HARD."],
   ]) {
     await prisma.pricingSetting.upsert({
       where: { key },
@@ -146,6 +163,55 @@ async function ensurePricing() {
           isActive: true,
         },
       });
+    }
+  }
+
+  const serviceRules = {
+    FLYER_STANDARD: [
+      [1, 5000, "0.38", "0", "599"], [5001, 10000, "0.34", "1900", "599"], [10001, null, "0.31", "3600", "599"],
+    ],
+    CATALOG_DISTRIBUTION: [
+      [1, 5000, "0.55", "0", "799"], [5001, 10000, "0.49", "2750", "799"], [10001, null, "0.44", "5200", "799"],
+    ],
+    BROCHURE_MAGAZINE: [
+      [1, 5000, "0.46", "0", "699"], [5001, 10000, "0.41", "2300", "699"], [10001, null, "0.37", "4350", "699"],
+    ],
+    VOUCHER_CARD: [
+      [1, 5000, "0.40", "0", "599"], [5001, 10000, "0.36", "2000", "599"], [10001, null, "0.33", "3800", "599"],
+    ],
+    POSTCARD_INVITATION: [
+      [1, 5000, "0.43", "0", "649"], [5001, 10000, "0.39", "2150", "649"], [10001, null, "0.35", "4100", "649"],
+    ],
+    EVENT_INVITATION: [
+      [1, 5000, "0.45", "0", "699"], [5001, 10000, "0.41", "2250", "699"], [10001, null, "0.37", "4300", "699"],
+    ],
+    COMMUNITY_PUBLICATION: [
+      [1, 5000, "0.48", "0", "699"], [5001, 10000, "0.43", "2400", "699"], [10001, null, "0.39", "4550", "699"],
+    ],
+    MENU_DELIVERY_CARD: [
+      [1, 5000, "0.40", "0", "599"], [5001, 10000, "0.36", "2000", "599"], [10001, null, "0.33", "3800", "599"],
+    ],
+    PRODUCT_SAMPLING: [
+      [1, 2000, "1.10", "0", "1499"], [2001, 5000, "0.95", "2200", "1499"], [5001, null, "0.85", "5050", "1499"],
+    ],
+  };
+
+  for (const [serviceType, definitions] of Object.entries(serviceRules)) {
+    for (const [minQuantity, maxQuantity, pricePerUnit, basePrice, minimumNetPrice] of definitions) {
+      const existing = await prisma.pricingRule.findFirst({ where: { serviceType, minQuantity, maxQuantity } });
+      const data = {
+        serviceType,
+        minQuantity,
+        maxQuantity,
+        pricePerUnit: new Prisma.Decimal(pricePerUnit),
+        basePrice: new Prisma.Decimal(basePrice),
+        minimumNetPrice: new Prisma.Decimal(minimumNetPrice),
+        isActive: true,
+        pricingVersion: "service-pricing-v1",
+        configurationVersion: "pricing-config-v1",
+      };
+      if (existing) await prisma.pricingRule.update({ where: { id: existing.id }, data });
+      else await prisma.pricingRule.create({ data });
     }
   }
 }

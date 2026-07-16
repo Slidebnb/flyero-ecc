@@ -6,7 +6,10 @@ import { publicCapabilities } from "@/lib/publicCapabilities";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 
 const quoteInputSchema = z.object({
-  serviceType: z.enum(["FLYER_DISTRIBUTION", "DOOR_HANGER", "BROCHURE", "MAGAZINE"]).default("FLYER_DISTRIBUTION"),
+  // Keep the legacy default for old public planner callers. New wizard
+  // requests send FLYER_STANDARD explicitly, so existing quote fingerprints
+  // remain compatible while the service catalog grows.
+  serviceType: z.enum(["FLYER_DISTRIBUTION", "DOOR_HANGER", "BROCHURE", "MAGAZINE", "FLYER_STANDARD", "CATALOG_DISTRIBUTION", "BROCHURE_MAGAZINE", "VOUCHER_CARD", "POSTCARD_INVITATION", "EVENT_INVITATION", "COMMUNITY_PUBLICATION", "MENU_DELIVERY_CARD", "PRODUCT_SAMPLING"]).default("FLYER_DISTRIBUTION"),
   city: z.string().trim().max(80).default(""),
   postalCode: z.string().trim().max(10).default(""),
   street: z.string().trim().max(120).default(""),
@@ -17,6 +20,9 @@ const quoteInputSchema = z.object({
   perimeterMeters: z.union([z.string(), z.number()]).optional(),
   flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]).optional(),
   productFormat: z.string().trim().max(80).optional(),
+  weightClass: z.enum(["LIGHT", "STANDARD", "MEDIUM", "HEAVY", "CUSTOM"]).optional(),
+  weightInGrams: z.union([z.string(), z.number()]).optional(),
+  areaDifficulty: z.enum(["NORMAL", "MIXED", "LOW_DENSITY", "RURAL", "HARD"]).optional(),
   printDataStatus: z.enum(["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"]).optional(),
   preferredStartDate: z.string().optional(),
   preferredEndDate: z.string().optional(),
@@ -54,6 +60,9 @@ function safeQueryInput(request: Request) {
     perimeterMeters: params.get("perimeterMeters") ?? undefined,
     flyerSource: params.get("flyerSource") ?? undefined,
     productFormat: params.get("productFormat") ?? undefined,
+    weightClass: params.get("weightClass") ?? undefined,
+    weightInGrams: params.get("weightInGrams") ?? undefined,
+    areaDifficulty: params.get("areaDifficulty") ?? undefined,
     printDataStatus: params.get("printDataStatus") ?? undefined,
     preferredStartDate: params.get("preferredStartDate") ?? undefined,
     preferredEndDate: params.get("preferredEndDate") ?? undefined,
@@ -84,6 +93,9 @@ async function createPublicQuote(input: unknown) {
     flyerQuantity: Math.round(boundedNumber(value.flyerQuantity, 200_000) ?? 0) || null,
     flyerSource: value.flyerSource,
     productFormat: value.productFormat,
+    weightClass: value.weightClass,
+    weightInGrams: Math.round(boundedNumber(value.weightInGrams, 10_000) ?? 0) || null,
+    areaDifficulty: value.areaDifficulty,
     printDataStatus: value.printDataStatus,
     preferredStartDate: value.preferredStartDate,
     preferredEndDate: value.preferredEndDate,
@@ -116,6 +128,14 @@ async function createPublicQuote(input: unknown) {
     calculationVersion: safeData.metrics.calculationVersion,
     householdCountSource: safeData.metrics.householdCountSource,
     pricingVersion: safeData.metrics.pricingVersion,
+    serviceLabel: safeData.metrics.serviceLabel,
+    weightClass: safeData.metrics.weightClass,
+    weightInGrams: safeData.metrics.weightInGrams,
+    weightFactor: safeData.metrics.weightFactor,
+    areaDifficulty: safeData.metrics.areaDifficulty,
+    areaDifficultyFactor: safeData.metrics.areaDifficultyFactor,
+    checkoutAllowed: safeData.metrics.checkoutAllowed,
+    manualReviewRequired: safeData.metrics.manualReviewRequired,
     pricingRuleSignature: safeData.metrics.pricingRuleSignature,
     fingerprint: safeData.metrics.fingerprint,
     polygonHash: safeData.metrics.polygonHash,

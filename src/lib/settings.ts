@@ -3,6 +3,7 @@ import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { productionUserWhere } from "@/lib/productionData";
+import { DEFAULT_PRICING_SETTINGS, ensureDefaultServicePricingRules } from "@/lib/servicePricing";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -11,6 +12,23 @@ export const PRICING_SETTING_KEYS = {
   expressSurcharge: "express_surcharge",
   photoProofSurcharge: "photo_proof_surcharge",
   warehouseSurcharge: "warehouse_surcharge",
+  expressSurchargePercent: DEFAULT_PRICING_SETTINGS.expressSurchargePercent.key,
+  express72hSurchargePercent: DEFAULT_PRICING_SETTINGS.express72hSurchargePercent.key,
+  weekendSurchargePercent: DEFAULT_PRICING_SETTINGS.weekendSurchargePercent.key,
+  additionalAreaFeeNet: DEFAULT_PRICING_SETTINGS.additionalAreaFeeNet.key,
+  pickupFeeNet: DEFAULT_PRICING_SETTINGS.pickupFeeNet.key,
+  storageFeeNet: DEFAULT_PRICING_SETTINGS.storageFeeNet.key,
+  handlingFeeNet: DEFAULT_PRICING_SETTINGS.handlingFeeNet.key,
+  samplingHandlingFeePerUnit: DEFAULT_PRICING_SETTINGS.samplingHandlingFeePerUnit.key,
+  weightLightFactor: DEFAULT_PRICING_SETTINGS.weightLightFactor.key,
+  weightStandardFactor: DEFAULT_PRICING_SETTINGS.weightStandardFactor.key,
+  weightMediumFactor: DEFAULT_PRICING_SETTINGS.weightMediumFactor.key,
+  weightHeavyFactor: DEFAULT_PRICING_SETTINGS.weightHeavyFactor.key,
+  areaNormalFactor: DEFAULT_PRICING_SETTINGS.areaNormalFactor.key,
+  areaMixedFactor: DEFAULT_PRICING_SETTINGS.areaMixedFactor.key,
+  areaLowDensityFactor: DEFAULT_PRICING_SETTINGS.areaLowDensityFactor.key,
+  areaRuralFactor: DEFAULT_PRICING_SETTINGS.areaRuralFactor.key,
+  areaHardFactor: DEFAULT_PRICING_SETTINGS.areaHardFactor.key,
 } as const;
 
 export async function getCompanySettings() {
@@ -133,10 +151,10 @@ export async function getSystemSettings() {
 
 export async function getPricingSettings() {
   await ensureDefaultPricingSettings();
+  await ensureDefaultServicePricingRules();
   const [settings, rules] = await Promise.all([
     prisma.pricingSetting.findMany({ orderBy: { key: "asc" } }),
     prisma.pricingRule.findMany({
-      where: { isActive: true },
       orderBy: [{ serviceType: "asc" }, { minQuantity: "asc" }],
     }),
   ]);
@@ -150,6 +168,7 @@ export async function ensureDefaultPricingSettings() {
     [PRICING_SETTING_KEYS.expressSurcharge, new Prisma.Decimal("49.00"), "Optionaler Expresszuschlag netto."],
     [PRICING_SETTING_KEYS.photoProofSurcharge, new Prisma.Decimal("19.00"), "Optionaler Foto-Nachweis-Zuschlag netto."],
     [PRICING_SETTING_KEYS.warehouseSurcharge, new Prisma.Decimal("0.00"), "Optionaler Lagerzuschlag netto."],
+    ...Object.values(DEFAULT_PRICING_SETTINGS).map((item) => [item.key, new Prisma.Decimal(item.value), item.description] as const),
   ] as const;
 
   for (const [key, valueDecimal, description] of defaults) {

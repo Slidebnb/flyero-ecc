@@ -297,6 +297,9 @@ export async function getOrderIntelligence(input: {
   targetAreaGeoJson?: unknown;
   flyerSource?: "CUSTOMER_OWN" | "PRINT_SERVICE";
   productFormat?: string | null;
+  weightClass?: "LIGHT" | "STANDARD" | "MEDIUM" | "HEAVY" | "CUSTOM";
+  weightInGrams?: number | null;
+  areaDifficulty?: "NORMAL" | "MIXED" | "LOW_DENSITY" | "RURAL" | "HARD";
   printDataStatus?: "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED";
   preferredStartDate?: string | Date | null;
   preferredEndDate?: string | Date | null;
@@ -317,6 +320,9 @@ export async function getOrderIntelligence(input: {
     perimeterMeters: input.perimeterMeters,
     flyerSource: input.flyerSource,
     productFormat: input.productFormat,
+    weightClass: input.weightClass,
+    weightInGrams: input.weightInGrams,
+    areaDifficulty: input.areaDifficulty,
     printDataStatus: input.printDataStatus,
     preferredStartDate: input.preferredStartDate,
     preferredEndDate: input.preferredEndDate,
@@ -334,6 +340,9 @@ export async function getOrderIntelligence(input: {
     perimeterMeters: planning.perimeterMeters,
     flyerSource: input.flyerSource,
     productFormat: input.productFormat,
+    weightClass: input.weightClass,
+    weightInGrams: input.weightInGrams,
+    areaDifficulty: input.areaDifficulty,
     printDataStatus: input.printDataStatus,
     preferredStartDate: input.preferredStartDate,
     preferredEndDate: input.preferredEndDate,
@@ -439,7 +448,13 @@ export async function getOrderIntelligence(input: {
     households,
     distributorCount: distributorNeed,
   });
-  const price = await calculateOrderPrice({ serviceType: input.serviceType ?? ServiceType.FLYER_DISTRIBUTION, flyerQuantity });
+  const price = await calculateOrderPrice({
+    serviceType: input.serviceType ?? ServiceType.FLYER_DISTRIBUTION,
+    flyerQuantity,
+    weightClass: input.weightClass,
+    weightInGrams: input.weightInGrams,
+    areaDifficulty: input.areaDifficulty,
+  });
   quoteFingerprint = buildPlanningInputFingerprint({
     serviceType: input.serviceType,
     flyerQuantity,
@@ -453,6 +468,9 @@ export async function getOrderIntelligence(input: {
     perimeterMeters: planning.perimeterMeters,
     flyerSource: input.flyerSource,
     productFormat: input.productFormat,
+    weightClass: input.weightClass,
+    weightInGrams: input.weightInGrams,
+    areaDifficulty: input.areaDifficulty,
     printDataStatus: input.printDataStatus,
     preferredStartDate: input.preferredStartDate,
     preferredEndDate: input.preferredEndDate,
@@ -546,6 +564,14 @@ export async function getOrderIntelligence(input: {
       quote: authoritativeQuote,
       householdCountSource,
       pricingVersion: price.snapshot.pricingVersion,
+      serviceLabel: price.snapshot.serviceLabel,
+      weightClass: price.snapshot.weightClass,
+      weightInGrams: price.snapshot.weightInGrams,
+      weightFactor: price.snapshot.weightFactor,
+      areaDifficulty: price.snapshot.areaDifficulty,
+      areaDifficultyFactor: price.snapshot.areaDifficultyFactor,
+      checkoutAllowed: price.snapshot.checkoutAllowed,
+      manualReviewRequired: price.snapshot.manualReviewRequired,
       areaReference: referenceArea
         ? {
             distributionAreaId: referenceArea.id,

@@ -49,7 +49,13 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
 
   const snapshot = nestedSnapshot(order.priceRuleSnapshot);
-  const currentPrice = await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity });
+  const currentPrice = await calculateOrderPrice({
+    serviceType: order.serviceType,
+    flyerQuantity: order.flyerQuantity,
+    weightClass: order.weightClass,
+    weightInGrams: order.weightInGrams,
+    areaDifficulty: order.areaDifficulty,
+  });
   const quoteInput = record(snapshot.quote.input);
   const quoteFingerprint = typeof snapshot.quote.fingerprint === "string" ? snapshot.quote.fingerprint : "";
   const targetAddress = record(order.targetAddress);
@@ -67,6 +73,9 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     houseNumber: typeof targetAddress.houseNumber === "string" ? targetAddress.houseNumber as string : null,
     flyerSource: order.customerOwnFlyers ? "CUSTOMER_OWN" : "PRINT_SERVICE",
     productFormat: typeof snapshot.root.productFormat === "string" ? snapshot.root.productFormat : null,
+    weightClass: order.weightClass,
+    weightInGrams: order.weightInGrams,
+    areaDifficulty: order.areaDifficulty,
     pricingRuleSignature: currentPrice.snapshot.pricingRuleSignature,
     printDataStatus: snapshot.root.printDataStatus === "UPLOADED" || snapshot.root.printDataStatus === "PRINT_REQUESTED" ? snapshot.root.printDataStatus : "UPLOAD_LATER",
     preferredStartDate: order.preferredStartDate,

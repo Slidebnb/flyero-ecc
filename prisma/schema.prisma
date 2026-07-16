@@ -50,6 +50,31 @@ enum ServiceType {
   DOOR_HANGER
   BROCHURE
   MAGAZINE
+  FLYER_STANDARD
+  CATALOG_DISTRIBUTION
+  BROCHURE_MAGAZINE
+  VOUCHER_CARD
+  POSTCARD_INVITATION
+  EVENT_INVITATION
+  COMMUNITY_PUBLICATION
+  MENU_DELIVERY_CARD
+  PRODUCT_SAMPLING
+}
+
+enum WeightClass {
+  LIGHT
+  STANDARD
+  MEDIUM
+  HEAVY
+  CUSTOM
+}
+
+enum AreaDifficulty {
+  NORMAL
+  MIXED
+  LOW_DENSITY
+  RURAL
+  HARD
 }
 
 enum DistributionAreaType {
@@ -805,6 +830,9 @@ model Order {
   tenantId                  String
   status                    OrderStatus @default(SUBMITTED)
   serviceType               ServiceType @default(FLYER_DISTRIBUTION)
+  weightClass               WeightClass @default(LIGHT)
+  weightInGrams             Int?
+  areaDifficulty            AreaDifficulty @default(NORMAL)
   city                      String
   postalCode                String
   targetAddress             Json
@@ -826,6 +854,7 @@ model Order {
   contactPerson             String?
   contactPhone              String?
   notes                     String?
+  productDetails            Json?
   adminInternalNotes        String?
   adminCustomerMessage      String?
   calculatedNetPrice        Decimal     @db.Decimal(12, 2)
@@ -1065,6 +1094,11 @@ model PricingRule {
   basePrice       Decimal     @db.Decimal(12, 2)
   minimumNetPrice Decimal     @db.Decimal(12, 2)
   isActive        Boolean     @default(true)
+  pricingVersion  String      @default("service-pricing-v1")
+  configurationVersion String @default("pricing-config-v1")
+  validFrom       DateTime?
+  validTo         DateTime?
+  notes           String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 

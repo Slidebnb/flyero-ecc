@@ -214,7 +214,13 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     ? order.priceRuleSnapshot as Record<string, unknown>
     : {};
   const currentPrice = order.manualPriceOverride === null
-    ? await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity })
+    ? await calculateOrderPrice({
+        serviceType: order.serviceType,
+        flyerQuantity: order.flyerQuantity,
+        weightClass: order.weightClass,
+        weightInGrams: order.weightInGrams,
+        areaDifficulty: order.areaDifficulty,
+      })
     : null;
   const currentManualPrice = order.manualPriceOverride !== null
     ? calculatePriceFromNet(order.manualPriceOverride, await getVatRate())

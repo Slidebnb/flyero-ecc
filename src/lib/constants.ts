@@ -61,6 +61,15 @@ export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
   DOOR_HANGER: "Türhänger",
   BROCHURE: "Prospekte",
   MAGAZINE: "Magazine",
+  FLYER_STANDARD: "Prospekte & Angebotsblätter",
+  CATALOG_DISTRIBUTION: "Kataloge",
+  BROCHURE_MAGAZINE: "Broschüren & Magazine",
+  VOUCHER_CARD: "Gutscheinkarten",
+  POSTCARD_INVITATION: "Postkarten & Einladungskarten",
+  EVENT_INVITATION: "Veranstaltungseinladungen",
+  COMMUNITY_PUBLICATION: "Vereins- & Gemeindeblätter",
+  MENU_DELIVERY_CARD: "Speisekarten & Lieferkarten",
+  PRODUCT_SAMPLING: "Produktproben & Sampling",
 };
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {

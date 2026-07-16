@@ -40,6 +40,13 @@ export async function GET(request: Request) {
       segments: jsonParam(params.get("segments")),
       flyerSource: params.get("flyerSource") === "PRINT_SERVICE" ? "PRINT_SERVICE" : "CUSTOMER_OWN",
       productFormat: params.get("productFormat"),
+      weightClass: ["LIGHT", "STANDARD", "MEDIUM", "HEAVY", "CUSTOM"].includes(params.get("weightClass") ?? "")
+        ? params.get("weightClass") as "LIGHT" | "STANDARD" | "MEDIUM" | "HEAVY" | "CUSTOM"
+        : "LIGHT",
+      weightInGrams: numberParam(params.get("weightInGrams")),
+      areaDifficulty: ["NORMAL", "MIXED", "LOW_DENSITY", "RURAL", "HARD"].includes(params.get("areaDifficulty") ?? "")
+        ? params.get("areaDifficulty") as "NORMAL" | "MIXED" | "LOW_DENSITY" | "RURAL" | "HARD"
+        : "NORMAL",
       printDataStatus: ["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"].includes(params.get("printDataStatus") ?? "")
         ? params.get("printDataStatus") as "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED"
         : "UPLOAD_LATER",

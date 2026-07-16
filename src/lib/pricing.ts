@@ -1,11 +1,21 @@
 import { createHash } from "node:crypto";
 import Stripe from "stripe";
-import { PaymentStatus, Prisma, ServiceType } from "@prisma/client";
+import { AreaDifficulty, PaymentStatus, Prisma, ServiceType, WeightClass } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { ensureDefaultPricingSettings, getSystemSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 import { buildPlanningInputFingerprint } from "@/lib/planningQuote";
+import { serviceCatalogLabel } from "@/lib/serviceCatalog";
+import {
+  AREA_DIFFICULTY_FACTORS as DEFAULT_AREA_DIFFICULTY_FACTORS,
+  DEFAULT_PRICING_SETTINGS,
+  ensureDefaultServicePricingRules,
+  PRICING_CONFIGURATION_VERSION,
+  SERVICE_PRICING_VERSION,
+  WEIGHT_FACTORS as DEFAULT_WEIGHT_FACTORS,
+  weightClassFromGrams,
+} from "@/lib/servicePricing";
 
 const VAT_SETTING_KEY = PRICING_SETTING_KEYS.vatRate;
 const PREMIUM_PRICING_VERSION = "premium-distribution-v4";
@@ -15,13 +25,7 @@ const TIER_2_LIMIT = 10000;
 const TIER_1_RATE = new Prisma.Decimal("0.38");
 const TIER_2_RATE = new Prisma.Decimal("0.34");
 const TIER_3_RATE = new Prisma.Decimal("0.31");
-const AREA_DIFFICULTY_FACTORS = {
-  NORMAL: new Prisma.Decimal("1.00"),
-  MIXED: new Prisma.Decimal("1.15"),
-  LOW_DENSITY: new Prisma.Decimal("1.25"),
-  RURAL: new Prisma.Decimal("1.40"),
-  HARD: new Prisma.Decimal("1.60"),
-} as const;
+const AREA_DIFFICULTY_FACTORS = DEFAULT_AREA_DIFFICULTY_FACTORS;
 
 export type PriceCalculation = {
   net: Prisma.Decimal;
@@ -30,6 +34,8 @@ export type PriceCalculation = {
   snapshot: {
     serviceType: ServiceType;
     pricingBasisServiceType: ServiceType;
+    serviceLabel: string;
+    quantity: number;
     flyerQuantity: number;
     basePrice: string;
     pricePerUnit: string;
@@ -44,16 +50,30 @@ export type PriceCalculation = {
     tier3Rate: string;
     tier1Limit: number;
     tier2Limit: number;
+    tierBreakpoints: number[];
+    tierRates: string[];
     baseDistributionNet: string;
+    weightClass: WeightClass;
+    weightInGrams: number | null;
+    weightFactor: string;
     areaDifficultyFactor: string;
-    areaDifficulty: keyof typeof AREA_DIFFICULTY_FACTORS;
+    areaDifficulty: AreaDifficulty;
     surcharges: {
-      expressSurchargePercent: number;
-      weekendSurchargePercent: number;
+      expressSurchargePercent: string;
+      express72hSurchargePercent: string;
+      weekendSurchargePercent: string;
       additionalAreaFeeNet: string;
       pickupFeeNet: string;
       storageFeeNet: string;
+      handlingFeeNet: string;
+      samplingHandlingFeePerUnit: string;
     };
+    handlingFees: string;
+    vatAmount: string;
+    ruleIds: string[];
+    configurationVersion: string;
+    checkoutAllowed: boolean;
+    manualReviewRequired: boolean;
     calculatedNet: string;
     calculatedGross: string;
     calculatedAt: string;
@@ -67,6 +87,8 @@ type PricingRuleLike = {
   pricePerUnit: Prisma.Decimal;
   basePrice: Prisma.Decimal;
   minimumNetPrice: Prisma.Decimal;
+  pricingVersion?: string;
+  configurationVersion?: string;
 };
 
 export type PricingRuleChange = {
@@ -78,6 +100,11 @@ export type PricingRuleChange = {
   basePrice: Prisma.Decimal | string | number;
   minimumNetPrice: Prisma.Decimal | string | number;
   isActive: boolean;
+  pricingVersion?: string;
+  configurationVersion?: string;
+  validFrom?: Date | null;
+  validTo?: Date | null;
+  notes?: string | null;
 };
 
 const OPEN_PRICE_ORDER_STATUSES = [
@@ -330,6 +357,9 @@ export async function syncOpenOrderPrices() {
       tenantId: true,
       customerId: true,
       serviceType: true,
+      weightClass: true,
+      weightInGrams: true,
+      areaDifficulty: true,
       flyerQuantity: true,
       manualPriceOverride: true,
       calculatedNetPrice: true,
@@ -348,7 +378,13 @@ export async function syncOpenOrderPrices() {
   let updatedCount = 0;
   let invalidatedCheckoutCount = 0;
   for (const order of orders) {
-    const configuredPrice = await calculateOrderPrice({ serviceType: order.serviceType, flyerQuantity: order.flyerQuantity });
+    const configuredPrice = await calculateOrderPrice({
+      serviceType: order.serviceType,
+      flyerQuantity: order.flyerQuantity,
+      weightClass: order.weightClass,
+      weightInGrams: order.weightInGrams,
+      areaDifficulty: order.areaDifficulty,
+    });
     const existingSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
       ? order.priceRuleSnapshot as Record<string, unknown>
       : {};
@@ -496,8 +532,16 @@ export async function getActivePricingRule(
 }
 
 export async function getActivePricingRules(serviceType: ServiceType): Promise<PricingRuleLike[]> {
+  await ensureDefaultServicePricingRules();
   return prisma.pricingRule.findMany({
-    where: { serviceType, isActive: true },
+    where: {
+      serviceType,
+      isActive: true,
+      AND: [
+        { OR: [{ validFrom: null }, { validFrom: { lte: new Date() } }] },
+        { OR: [{ validTo: null }, { validTo: { gte: new Date() } }] },
+      ],
+    },
     orderBy: { minQuantity: "asc" },
     select: {
       id: true,
@@ -506,6 +550,8 @@ export async function getActivePricingRules(serviceType: ServiceType): Promise<P
       pricePerUnit: true,
       basePrice: true,
       minimumNetPrice: true,
+      pricingVersion: true,
+      configurationVersion: true,
     },
   });
 }
@@ -533,14 +579,42 @@ export async function getVatRate() {
   return setting?.valueDecimal ?? system.defaultVatRate;
 }
 
+async function getPricingSettingValues() {
+  await ensureDefaultPricingSettings();
+  const settings = await prisma.pricingSetting.findMany({ select: { key: true, valueDecimal: true } });
+  return new Map(settings.map((setting) => [setting.key, setting.valueDecimal]));
+}
+
+function settingValue(settings: Map<string, Prisma.Decimal>, key: string, fallback: string) {
+  return settings.get(key) ?? new Prisma.Decimal(fallback);
+}
+
+function resolveWeightClass(input: { weightClass?: WeightClass; weightInGrams?: number | null }) {
+  // The browser may only preview the class. The server derives the billable
+  // class from the submitted weight so a forged enum cannot change the price.
+  void input.weightClass;
+  return weightClassFromGrams(input.weightInGrams) as WeightClass;
+}
+
 export async function calculateOrderPrice(input: {
   serviceType: ServiceType;
   flyerQuantity: number;
+  weightClass?: WeightClass;
+  weightInGrams?: number | null;
+  areaDifficulty?: AreaDifficulty;
+  express?: boolean;
+  expressWithin72Hours?: boolean;
+  weekendOrHoliday?: boolean;
+  additionalAreaCount?: number;
+  pickupRequired?: boolean;
+  storageUnits?: number;
+  handlingFeeNet?: Prisma.Decimal | string | number;
 }): Promise<PriceCalculation> {
   const [requestedRules, vatRate] = await Promise.all([
     getActivePricingRules(input.serviceType),
     getVatRate(),
   ]);
+  const settings = await getPricingSettingValues();
   const pricingBasisServiceType = requestedRules.length || input.serviceType === ServiceType.FLYER_DISTRIBUTION
     ? input.serviceType
     : ServiceType.FLYER_DISTRIBUTION;
@@ -557,19 +631,76 @@ export async function calculateOrderPrice(input: {
   const baseDistributionNet = rules.length
     ? calculateConfiguredTierNetPrice(input.flyerQuantity, rules)
     : calculatePremiumDistributionTierNetPrice(input.flyerQuantity);
-  const areaDifficulty = "NORMAL" as const;
-  const areaDifficultyFactor = AREA_DIFFICULTY_FACTORS[areaDifficulty];
-  const calculatedNet = baseDistributionNet.mul(areaDifficultyFactor).toDecimalPlaces(2);
-  const net = Prisma.Decimal.max(calculatedNet, minimumNetPrice).toDecimalPlaces(2);
+  const weightClass = resolveWeightClass(input);
+  const areaDifficulty = input.areaDifficulty ?? AreaDifficulty.NORMAL;
+  const configuredWeightFactors = {
+    LIGHT: settingValue(settings, DEFAULT_PRICING_SETTINGS.weightLightFactor.key, DEFAULT_WEIGHT_FACTORS.LIGHT.toString()),
+    STANDARD: settingValue(settings, DEFAULT_PRICING_SETTINGS.weightStandardFactor.key, DEFAULT_WEIGHT_FACTORS.STANDARD.toString()),
+    MEDIUM: settingValue(settings, DEFAULT_PRICING_SETTINGS.weightMediumFactor.key, DEFAULT_WEIGHT_FACTORS.MEDIUM.toString()),
+    HEAVY: settingValue(settings, DEFAULT_PRICING_SETTINGS.weightHeavyFactor.key, DEFAULT_WEIGHT_FACTORS.HEAVY.toString()),
+  } as const;
+  const configuredAreaFactors = {
+    NORMAL: settingValue(settings, DEFAULT_PRICING_SETTINGS.areaNormalFactor.key, AREA_DIFFICULTY_FACTORS.NORMAL.toString()),
+    MIXED: settingValue(settings, DEFAULT_PRICING_SETTINGS.areaMixedFactor.key, AREA_DIFFICULTY_FACTORS.MIXED.toString()),
+    LOW_DENSITY: settingValue(settings, DEFAULT_PRICING_SETTINGS.areaLowDensityFactor.key, AREA_DIFFICULTY_FACTORS.LOW_DENSITY.toString()),
+    RURAL: settingValue(settings, DEFAULT_PRICING_SETTINGS.areaRuralFactor.key, AREA_DIFFICULTY_FACTORS.RURAL.toString()),
+    HARD: settingValue(settings, DEFAULT_PRICING_SETTINGS.areaHardFactor.key, AREA_DIFFICULTY_FACTORS.HARD.toString()),
+  } as const;
+  const weightFactor = weightClass === WeightClass.CUSTOM ? null : configuredWeightFactors[weightClass];
+  const areaDifficultyFactor = configuredAreaFactors[areaDifficulty];
+  const minimumAppliedNet = Prisma.Decimal.max(baseDistributionNet, minimumNetPrice).toDecimalPlaces(2);
+  const weightedNet = weightFactor ? minimumAppliedNet.mul(weightFactor).toDecimalPlaces(2) : minimumAppliedNet;
+  const distributionNet = weightedNet.mul(areaDifficultyFactor).toDecimalPlaces(2);
+  const additionalAreaFeeNet = settingValue(settings, DEFAULT_PRICING_SETTINGS.additionalAreaFeeNet.key, "49").mul(Math.max(0, (input.additionalAreaCount ?? 1) - 1));
+  const pickupFeeNet = input.pickupRequired ? settingValue(settings, DEFAULT_PRICING_SETTINGS.pickupFeeNet.key, "49") : new Prisma.Decimal("0");
+  const storageFeeNet = settingValue(settings, DEFAULT_PRICING_SETTINGS.storageFeeNet.key, "29").mul(Math.max(0, input.storageUnits ?? 0));
+  const handlingFeeNet = input.handlingFeeNet !== undefined
+    ? decimal(input.handlingFeeNet)
+    : settingValue(settings, DEFAULT_PRICING_SETTINGS.handlingFeeNet.key, "0");
+  const expressSurchargePercent = input.expressWithin72Hours
+    ? settingValue(settings, DEFAULT_PRICING_SETTINGS.express72hSurchargePercent.key, "35")
+    : settingValue(settings, DEFAULT_PRICING_SETTINGS.expressSurchargePercent.key, "20");
+  const weekendSurchargePercent = input.weekendOrHoliday
+    ? settingValue(settings, DEFAULT_PRICING_SETTINGS.weekendSurchargePercent.key, "25")
+    : new Prisma.Decimal("0");
+  const percentageSurchargeBase = distributionNet
+    .mul(input.express ? expressSurchargePercent : 0).div(100)
+    .plus(distributionNet.mul(weekendSurchargePercent).div(100));
+  const samplingHandlingFee = input.serviceType === ServiceType.PRODUCT_SAMPLING
+    ? settingValue(settings, DEFAULT_PRICING_SETTINGS.samplingHandlingFeePerUnit.key, "0.15").mul(input.flyerQuantity)
+    : new Prisma.Decimal("0");
+  const handlingFees = additionalAreaFeeNet.plus(pickupFeeNet).plus(storageFeeNet).plus(handlingFeeNet).plus(samplingHandlingFee).plus(percentageSurchargeBase).toDecimalPlaces(2);
+  const net = distributionNet.plus(handlingFees).toDecimalPlaces(2);
   const vat = net.mul(vatRate).toDecimalPlaces(2);
   const gross = net.plus(vat).toDecimalPlaces(2);
+  const pricingVersion = input.serviceType === ServiceType.FLYER_DISTRIBUTION
+    ? PREMIUM_PRICING_VERSION
+    : rule?.pricingVersion ?? SERVICE_PRICING_VERSION;
+  const configurationVersion = input.serviceType === ServiceType.FLYER_DISTRIBUTION
+    ? PRICING_CONFIGURATION_VERSION
+    : rule?.configurationVersion ?? PRICING_CONFIGURATION_VERSION;
   const tier1 = rules[0];
   const tier2 = rules[1];
   const tier3 = rules[2];
   const pricingRuleSignature = createHash("sha256")
     .update(JSON.stringify({
-      pricingVersion: PREMIUM_PRICING_VERSION,
+      pricingVersion,
       vatRate: vatRate.toString(),
+      configurationVersion,
+      weightClass,
+      weightInGrams: input.weightInGrams ?? null,
+      areaDifficulty,
+      weightFactor: weightFactor?.toString() ?? "CUSTOM",
+      areaDifficultyFactor: areaDifficultyFactor.toString(),
+      surcharges: {
+        express: input.express ? expressSurchargePercent.toString() : "0",
+        weekend: weekendSurchargePercent.toString(),
+        additionalAreaFeeNet: additionalAreaFeeNet.toString(),
+        pickupFeeNet: pickupFeeNet.toString(),
+        storageFeeNet: storageFeeNet.toString(),
+        handlingFeeNet: handlingFeeNet.toString(),
+        samplingHandlingFeePerUnit: samplingHandlingFee.toString(),
+      },
       rules: rules.map((candidate) => ({
         id: candidate.id,
         minQuantity: candidate.minQuantity,
@@ -577,6 +708,8 @@ export async function calculateOrderPrice(input: {
         pricePerUnit: candidate.pricePerUnit.toString(),
         basePrice: candidate.basePrice.toString(),
         minimumNetPrice: candidate.minimumNetPrice.toString(),
+        pricingVersion: candidate.pricingVersion ?? null,
+        configurationVersion: candidate.configurationVersion ?? null,
       })),
     }))
     .digest("hex")
@@ -589,13 +722,15 @@ export async function calculateOrderPrice(input: {
     snapshot: {
       serviceType: input.serviceType,
       pricingBasisServiceType,
+      serviceLabel: serviceCatalogLabel(input.serviceType),
+      quantity: input.flyerQuantity,
       flyerQuantity: input.flyerQuantity,
       basePrice: basePrice.toString(),
       pricePerUnit: pricePerUnit.toString(),
       minimumNetPrice: minimumNetPrice.toString(),
       vatRate: vatRate.toString(),
       ruleId: rule?.id ?? null,
-      pricingVersion: PREMIUM_PRICING_VERSION,
+      pricingVersion,
       pricingRuleSignature,
       minimumOrderValueNet: minimumNetPrice.toString(),
       tier1Rate: tier1?.pricePerUnit.toString() ?? TIER_1_RATE.toString(),
@@ -603,18 +738,32 @@ export async function calculateOrderPrice(input: {
       tier3Rate: tier3?.pricePerUnit.toString() ?? TIER_3_RATE.toString(),
       tier1Limit: tier1?.maxQuantity ?? TIER_1_LIMIT,
       tier2Limit: tier2?.maxQuantity ?? TIER_2_LIMIT,
+      tierBreakpoints: rules.map((candidate) => candidate.maxQuantity).filter((value): value is number => value !== null),
+      tierRates: rules.map((candidate) => candidate.pricePerUnit.toString()),
       baseDistributionNet: baseDistributionNet.toString(),
       areaDifficultyFactor: areaDifficultyFactor.toString(),
       areaDifficulty,
+      weightClass,
+      weightInGrams: input.weightInGrams ?? null,
+      weightFactor: weightFactor?.toString() ?? "CUSTOM",
       surcharges: {
-        expressSurchargePercent: 30,
-        weekendSurchargePercent: 25,
-        additionalAreaFeeNet: "49",
-        pickupFeeNet: "49",
-        storageFeeNet: "29",
+        expressSurchargePercent: expressSurchargePercent.toString(),
+        express72hSurchargePercent: settingValue(settings, DEFAULT_PRICING_SETTINGS.express72hSurchargePercent.key, "35").toString(),
+        weekendSurchargePercent: weekendSurchargePercent.toString(),
+        additionalAreaFeeNet: settingValue(settings, DEFAULT_PRICING_SETTINGS.additionalAreaFeeNet.key, "49").toString(),
+        pickupFeeNet: settingValue(settings, DEFAULT_PRICING_SETTINGS.pickupFeeNet.key, "49").toString(),
+        storageFeeNet: settingValue(settings, DEFAULT_PRICING_SETTINGS.storageFeeNet.key, "29").toString(),
+        handlingFeeNet: handlingFeeNet.toString(),
+        samplingHandlingFeePerUnit: settingValue(settings, DEFAULT_PRICING_SETTINGS.samplingHandlingFeePerUnit.key, "0.15").toString(),
       },
+      handlingFees: handlingFees.toString(),
       calculatedNet: net.toString(),
+      vatAmount: vat.toString(),
       calculatedGross: gross.toString(),
+      ruleIds: rules.map((candidate) => candidate.id),
+      configurationVersion,
+      checkoutAllowed: weightClass !== WeightClass.CUSTOM,
+      manualReviewRequired: weightClass === WeightClass.CUSTOM,
       calculatedAt: new Date().toISOString(),
     },
   };
@@ -622,6 +771,7 @@ export async function calculateOrderPrice(input: {
 
 export async function ensureDefaultPricing() {
   await ensureDefaultPricingSettings();
+  await ensureDefaultServicePricingRules();
 
   const rules = [
     { minQuantity: 1, maxQuantity: 5000, pricePerUnit: "0.38", basePrice: "0", minimumNetPrice: "599" },

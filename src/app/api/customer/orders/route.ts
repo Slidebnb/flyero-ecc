@@ -14,6 +14,7 @@ import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderCreateSchema } from "@/lib/validators";
 import { warehouseSourceWhere } from "@/lib/warehouse";
 import { serviceCatalogLabel } from "@/lib/serviceCatalog";
+import { weightClassFromGrams } from "@/lib/servicePricing";
 
 export async function GET() {
   try {
@@ -109,6 +110,9 @@ export async function POST(request: NextRequest) {
       coverageAreaSqm: data.coverageAreaSqm,
       flyerSource: data.flyerSource,
       productFormat: data.productFormat,
+      weightClass: data.weightClass,
+      weightInGrams: data.weightInGrams,
+      areaDifficulty: data.areaDifficulty,
       printDataStatus: data.printDataStatus,
       preferredStartDate: data.preferredStartDate,
       preferredEndDate: data.preferredEndDate,
@@ -166,7 +170,17 @@ export async function POST(request: NextRequest) {
     const price = await calculateOrderPrice({
       serviceType: data.serviceType,
       flyerQuantity: data.flyerQuantity,
+      weightClass: weightClassFromGrams(data.weightInGrams),
+      weightInGrams: data.weightInGrams,
+      areaDifficulty: data.areaDifficulty,
     });
+    if (data.completionPath === "direct_payment" && !price.snapshot.checkoutAllowed) {
+      return Response.json({
+        ok: false,
+        code: "CUSTOM_WEIGHT_MANUAL_REVIEW",
+        error: "Dieses Gewicht benötigt ein individuelles Angebot. Bitte sende uns zuerst eine unverbindliche Anfrage.",
+      }, { status: 422 });
+    }
     const status: OrderStatus = data.completionPath === "direct_payment"
       ? requiresManualReview ? "UNDER_REVIEW" : "PAYMENT_PENDING"
       : "SUBMITTED";
@@ -194,6 +208,9 @@ export async function POST(request: NextRequest) {
             tenantId: session.tenantId,
             status,
             serviceType: data.serviceType,
+            weightClass: weightClassFromGrams(data.weightInGrams),
+            weightInGrams: data.weightInGrams ?? null,
+            areaDifficulty: data.areaDifficulty,
             city: orderCity,
             postalCode: orderPostalCode,
             targetAddress: {
@@ -222,6 +239,7 @@ export async function POST(request: NextRequest) {
             preferredEndDate: data.preferredEndDate,
             flexibleScheduling: data.flexibleScheduling,
             notes: [customerNotePrefix, fulfillmentLabel, data.notes].filter(Boolean).join("\n"),
+            productDetails: data.productDetails ?? undefined,
             contactPerson: data.contactPerson || null,
             contactPhone: data.contactPhone || null,
             calculatedNetPrice: price.net,

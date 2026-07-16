@@ -154,6 +154,7 @@
     "test:occasion-seo": "node tests/occasion-seo-smoke.mjs",
     "test:service-catalog": "node tests/service-catalog-smoke.mjs",
     "test:service-type-pricing": "node tests/service-type-pricing-smoke.mjs",
+    "test:service-pricing": "node tests/service-pricing-smoke.mjs",
     "test:single-area-logistics-gate": "node tests/single-area-logistics-gate-smoke.mjs",
     "test:print-service-payment-gate": "node tests/print-service-payment-gate-smoke.mjs",
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",

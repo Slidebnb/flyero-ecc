@@ -26,6 +26,19 @@ export async function PATCH(request: NextRequest) {
     const settings = body.settings as Record<string, unknown> | undefined;
     const rules = Array.isArray(body.rules) ? body.rules as Record<string, unknown>[] : [];
 
+    const validServiceTypes = new Set(Object.values(ServiceType));
+    for (const rule of rules) {
+      const serviceType = String(rule.serviceType ?? ServiceType.FLYER_DISTRIBUTION);
+      if (!validServiceTypes.has(serviceType as ServiceType)) {
+        return errorResponse("Unbekannter Leistungstyp in der Preisregel.", 422);
+      }
+      for (const field of ["validFrom", "validTo"] as const) {
+        if (rule[field] !== undefined && rule[field] !== null && rule[field] !== "" && Number.isNaN(new Date(String(rule[field])).getTime())) {
+          return errorResponse("Der Gültigkeitszeitraum einer Preisregel ist ungültig.", 422);
+        }
+      }
+    }
+
     if (rules.length) {
       const validationError = await validatePricingRuleChanges(rules.map((rule) => ({
         id: rule.id ? String(rule.id) : undefined,
@@ -36,6 +49,11 @@ export async function PATCH(request: NextRequest) {
         pricePerUnit: String(rule.pricePerUnit ?? "0"),
         minimumNetPrice: String(rule.minimumNetPrice ?? "0"),
         isActive: Boolean(rule.isActive),
+        pricingVersion: rule.pricingVersion ? String(rule.pricingVersion) : undefined,
+        configurationVersion: rule.configurationVersion ? String(rule.configurationVersion) : undefined,
+        validFrom: rule.validFrom ? new Date(String(rule.validFrom)) : null,
+        validTo: rule.validTo ? new Date(String(rule.validTo)) : null,
+        notes: rule.notes ? String(rule.notes) : null,
       })));
       if (validationError) return errorResponse(validationError, 422);
     }
@@ -63,6 +81,11 @@ export async function PATCH(request: NextRequest) {
           pricePerUnit: new Prisma.Decimal(String(rule.pricePerUnit ?? "0")),
           minimumNetPrice: new Prisma.Decimal(String(rule.minimumNetPrice ?? "0")),
           isActive: Boolean(rule.isActive),
+          pricingVersion: rule.pricingVersion ? String(rule.pricingVersion) : "service-pricing-v1",
+          configurationVersion: rule.configurationVersion ? String(rule.configurationVersion) : "pricing-config-v1",
+          validFrom: rule.validFrom ? new Date(String(rule.validFrom)) : null,
+          validTo: rule.validTo ? new Date(String(rule.validTo)) : null,
+          notes: rule.notes ? String(rule.notes) : null,
         };
         if (rule.id) {
           await tx.pricingRule.update({ where: { id: String(rule.id) }, data });

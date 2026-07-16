@@ -20,7 +20,7 @@ import {
   Search,
 } from "lucide-react";
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
-import { distributionServiceCatalog, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
+import { distributionServiceCatalog, normalizeOnlineServiceType, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
 
 type LatLng = { lat: number; lng: number };
 type PolygonSource = "postal_code" | "manual" | "saved_area" | "drawn";
@@ -183,6 +183,8 @@ type OrderDraft = {
   warehouseId?: string;
   flyerQuantityTouched?: boolean;
   productFormat?: string;
+  weightInGrams?: number;
+  productDetails?: Record<string, unknown>;
   flyerSource?: string;
   printDataStatus?: string;
   targetGroup?: string;
@@ -271,7 +273,7 @@ const PUBLIC_DEFAULT_CENTER: LatLng = { lat: 51.1657, lng: 10.4515 };
 const ORDER_DRAFT_KEY = "flyero:order-planner:draft:v2";
 const PUBLIC_ORDER_DRAFT_KEY = "flyero:order-planner:public-draft:v3";
 const LEGACY_ORDER_DRAFT_KEY = "flyero:customer:new-order-draft";
-const MINIMUM_FLYER_QUANTITY = 500;
+const MINIMUM_FLYER_QUANTITY = 100;
 const MAXIMUM_FLYER_QUANTITY = 250_000;
 
 const productOptions = [
@@ -592,15 +594,22 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [, setHistory] = useState<LatLng[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [flyerQuantity, setFlyerQuantity] = useState(MINIMUM_FLYER_QUANTITY);
-  const [serviceType, setServiceType] = useState<OnlineServiceType>("FLYER_DISTRIBUTION");
+  const [serviceType, setServiceType] = useState<OnlineServiceType>("FLYER_STANDARD");
+  const [weightInGrams, setWeightInGrams] = useState("");
+  const [samplingDetails, setSamplingDetails] = useState({ size: "", packaging: "", fragile: false, personalHandover: false, storage: "" });
   const [warehouseOptions, setWarehouseOptions] = useState<CustomerWarehouse[]>([]);
   const [warehouseOptionsStatus, setWarehouseOptionsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
-  const productFormat = serviceType === "FLYER_DISTRIBUTION"
+  const productFormat = serviceType === "FLYER_STANDARD"
     ? productOptions[0].value
     : serviceCatalogItem(serviceType).formatLabel;
   const selectedService = serviceCatalogItem(serviceType);
+  const numericWeightInGrams = weightInGrams ? Number(weightInGrams) : undefined;
+  const effectiveWeightClass = numericWeightInGrams === undefined
+    ? "LIGHT"
+    : numericWeightInGrams <= 20 ? "LIGHT" : numericWeightInGrams <= 50 ? "STANDARD" : numericWeightInGrams <= 100 ? "MEDIUM" : numericWeightInGrams <= 250 ? "HEAVY" : "CUSTOM";
+  const productDetails = serviceType === "PRODUCT_SAMPLING" ? samplingDetails : undefined;
   const [flyerSource, setFlyerSource] = useState("CUSTOMER_OWN");
   const [printDataStatus, setPrintDataStatus] = useState("UPLOAD_LATER");
   const [targetGroup, setTargetGroup] = useState("Alle Haushalte");
@@ -732,6 +741,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     flyerQuantity: String(flyerQuantity),
     flyerSource,
     productFormat,
+    weightClass: effectiveWeightClass,
+    weightInGrams: numericWeightInGrams === undefined ? "" : String(numericWeightInGrams),
+    areaDifficulty: "NORMAL",
     printDataStatus,
     preferredStartDate: startDate,
     preferredEndDate: endDate,
@@ -755,6 +767,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     coverageAreaSqm,
     flyerQuantity,
     flyerSource,
+    effectiveWeightClass,
     houseNumber,
     localRouteDistanceMeters,
     perimeterMeters,
@@ -762,6 +775,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     selectedAreaId,
     printDataStatus,
     productFormat,
+    numericWeightInGrams,
     serviceType,
     street,
     startDate,
@@ -1071,9 +1085,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }
       if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
       setFlyerSource("CUSTOMER_OWN");
-      if (draft.serviceType && distributionServiceCatalog.some((item) => item.serviceType === draft.serviceType)) {
-        setServiceType(draft.serviceType);
-      }
+      if (draft.serviceType) setServiceType(normalizeOnlineServiceType(draft.serviceType));
+      if (draft.weightInGrams) setWeightInGrams(String(draft.weightInGrams));
+      if (draft.productDetails && typeof draft.productDetails === "object") setSamplingDetails((current) => ({ ...current, ...draft.productDetails }));
       if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
       if (draft.targetGroup) setTargetGroup(draft.targetGroup);
       if (draft.distributionType) setDistributionType(draft.distributionType);
@@ -1144,9 +1158,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
           setFlyerQuantityTouched(true);
           setFlyerSource("CUSTOMER_OWN");
-          if (draft.serviceType && distributionServiceCatalog.some((item) => item.serviceType === draft.serviceType)) {
-            setServiceType(draft.serviceType);
-          }
+          if (draft.serviceType) setServiceType(normalizeOnlineServiceType(draft.serviceType));
+          if (draft.weightInGrams) setWeightInGrams(String(draft.weightInGrams));
+          if (draft.productDetails && typeof draft.productDetails === "object") setSamplingDetails((current) => ({ ...current, ...draft.productDetails }));
           if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
           const repeatedPrintDataStatus = draft.printDataStatus ?? "UPLOAD_LATER";
           setRepeatPrintChoice("pending");
@@ -1198,6 +1212,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       flyerQuantity,
       warehouseId: selectedWarehouseId,
       serviceType,
+      weightInGrams: numericWeightInGrams,
+      productDetails,
       flyerQuantityTouched,
       productFormat,
       flyerSource,
@@ -1231,6 +1247,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     flexibleScheduling,
     flyerQuantityTouched,
     flyerQuantity,
+    numericWeightInGrams,
+    productDetails,
     selectedWarehouseId,
     flyerSource,
     houseNumber,
@@ -1998,6 +2016,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       flyerSource,
       warehouseId: isPublicPlanner ? undefined : selectedWarehouseId || undefined,
       productFormat,
+      weightClass: effectiveWeightClass,
+      weightInGrams: numericWeightInGrams,
+      areaDifficulty: "NORMAL",
+      productDetails,
       printDataStatus,
       completionPath,
       preferredStartDate: startDate,
@@ -2103,7 +2125,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   const legacyStepState = [
     { id: 1, title: "Gebiet", detail: "Wo soll verteilt werden?", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Noch offen" },
-    { id: 2, title: "Flyer", detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
+    { id: 2, title: selectedService.shortLabel, detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung", detail: "Art und wichtige Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Frühester Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
     { id: 5, title: "Preis prüfen", detail: "Gebiet, Preis und Leistungen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Noch offen" },
@@ -2112,7 +2134,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   void legacyStepState;
   const stepState = [
     { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Noch offen" },
-    { id: 2, title: "Flyer & Lager", detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
+    { id: 2, title: `${selectedService.shortLabel} & Lager`, detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung", detail: "Ziel und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
     { id: 5, title: "Zusammenfassung", detail: "Preis und Leistungen prüfen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Noch offen" },
@@ -2157,7 +2179,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         <section className="orderPanelBlock inlineStepBlock" data-testid="order-completion-step">
           <p className="orderStepHint">Fast geschafft. Prüfe deine Angaben und entscheide, wie du fortfahren möchtest.</p>
           <div className="orderFinishChoices">
-            {flyerSource === "CUSTOMER_OWN" ? (
+            {flyerSource === "CUSTOMER_OWN" && effectiveWeightClass !== "CUSTOM" ? (
               <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
                 Jetzt buchen und bezahlen
                 <small>Auftrag anlegen und sicher zur Zahlung weitergehen.</small>
@@ -2313,6 +2335,26 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             ))}
           </div>
           <p className="orderReviewNotice">Du sendest deine fertigen Materialien nach der Buchung an das ausgewählte Lager. Den Druck selbst übernimmt FLYERO in diesem Online-Ablauf nicht.</p>
+          <label className="selectLine">
+            <span>Ungefähres Einzelgewicht</span>
+            <input type="number" min="1" max="10000" inputMode="numeric" value={weightInGrams} onChange={(event) => setWeightInGrams(event.target.value)} placeholder="z. B. 35" />
+            <small>{numericWeightInGrams ? `Gewichtsklasse: ${effectiveWeightClass === "CUSTOM" ? "individuelles Angebot" : effectiveWeightClass}` : "Optional. Ohne Angabe kalkulieren wir mit LIGHT."}</small>
+          </label>
+          {effectiveWeightClass === "CUSTOM" ? (
+            <p className="orderReviewNotice" role="status">
+              Bei mehr als 250 g prüfen wir die sichere Zustellung persönlich. Eine direkte Zahlung ist für dieses Gewicht nicht verfügbar; sende uns bitte zuerst eine unverbindliche Anfrage.
+            </p>
+          ) : null}
+          {serviceType === "PRODUCT_SAMPLING" ? (
+            <div className="samplingDetails" data-testid="sampling-details">
+              <strong>Angaben zur Produktprobe</strong>
+              <label>Größe<input value={samplingDetails.size} onChange={(event) => setSamplingDetails((current) => ({ ...current, size: event.target.value }))} placeholder="z. B. 10 ml oder 8 x 5 cm" /></label>
+              <label>Verpackung<input value={samplingDetails.packaging} onChange={(event) => setSamplingDetails((current) => ({ ...current, packaging: event.target.value }))} placeholder="z. B. Beutel, Karton oder Fläschchen" /></label>
+              <label>Lagerbedingungen<input value={samplingDetails.storage} onChange={(event) => setSamplingDetails((current) => ({ ...current, storage: event.target.value }))} placeholder="z. B. trocken lagern" /></label>
+              <label className="checkLine"><input type="checkbox" checked={samplingDetails.fragile} onChange={(event) => setSamplingDetails((current) => ({ ...current, fragile: event.target.checked }))} />Empfindlich oder zerbrechlich</label>
+              <label className="checkLine"><input type="checkbox" checked={samplingDetails.personalHandover} onChange={(event) => setSamplingDetails((current) => ({ ...current, personalHandover: event.target.checked }))} />Persönliche Übergabe erforderlich</label>
+            </div>
+          ) : null}
           {repeatPrintChoice === "pending" ? (
             <div className="repeatPrintNotice" role="alert">
               <strong>Ist deine Flyerauflage noch aktuell?</strong>
@@ -2497,7 +2539,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       <section className="orderPanelBlock inlineStepBlock">
         <p className="orderStepHint">Wähle, wie du fortfahren möchtest. Eine Anfrage ist unverbindlich und löst keine Zahlung aus.</p>
         <div className="orderFinishChoices">
-          {flyerSource === "CUSTOMER_OWN" ? (
+            {flyerSource === "CUSTOMER_OWN" && effectiveWeightClass !== "CUSTOM" ? (
             <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
               Jetzt buchen und bezahlen
               <small>Buchung anlegen und sicher zur Zahlung weitergehen.</small>
@@ -2560,6 +2602,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       <input type="hidden" name="flyerSource" value={flyerSource} />
       <input type="hidden" name="warehouseId" value={selectedWarehouseId} />
       <input type="hidden" name="productFormat" value={productFormat} />
+      <input type="hidden" name="weightClass" value={effectiveWeightClass} />
+      <input type="hidden" name="weightInGrams" value={numericWeightInGrams ?? ""} />
+      <input type="hidden" name="areaDifficulty" value="NORMAL" />
+      <input type="hidden" name="productDetails" value={productDetails ? JSON.stringify(productDetails) : ""} />
       <input type="hidden" name="printDataStatus" value={printDataStatus} />
       <input type="hidden" name="preferredStartDate" value={startDate} />
       <input type="hidden" name="preferredEndDate" value={endDate} />

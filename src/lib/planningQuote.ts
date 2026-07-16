@@ -5,7 +5,7 @@ export const PLANNING_QUOTE_VERSION = "planning-quote-v1";
 export const PLANNING_QUOTE_CHANGED = "PLANNING_QUOTE_CHANGED" as const;
 
 export type PlanningInputFingerprint = {
-  serviceType?: "FLYER_DISTRIBUTION" | "DOOR_HANGER" | "BROCHURE" | "MAGAZINE";
+  serviceType?: "FLYER_DISTRIBUTION" | "DOOR_HANGER" | "BROCHURE" | "MAGAZINE" | "FLYER_STANDARD" | "CATALOG_DISTRIBUTION" | "BROCHURE_MAGAZINE" | "VOUCHER_CARD" | "POSTCARD_INVITATION" | "EVENT_INVITATION" | "COMMUNITY_PUBLICATION" | "MENU_DELIVERY_CARD" | "PRODUCT_SAMPLING";
   flyerQuantity: number;
   polygonHash: string;
   city: string;
@@ -16,6 +16,9 @@ export type PlanningInputFingerprint = {
   flyerSource: "CUSTOMER_OWN" | "PRINT_SERVICE";
   printDataStatus: "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED";
   productFormat: string;
+  weightClass?: "LIGHT" | "STANDARD" | "MEDIUM" | "HEAVY" | "CUSTOM";
+  weightInGrams?: number | null;
+  areaDifficulty?: "NORMAL" | "MIXED" | "LOW_DENSITY" | "RURAL" | "HARD";
   pricingRuleSignature: string;
   preferredStartDate: string;
   preferredEndDate: string;
@@ -65,6 +68,9 @@ export type PlanningQuoteInput = {
   flyerSource?: "CUSTOMER_OWN" | "PRINT_SERVICE";
   printDataStatus?: "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED";
   productFormat?: string | null;
+  weightClass?: PlanningInputFingerprint["weightClass"];
+  weightInGrams?: number | null;
+  areaDifficulty?: PlanningInputFingerprint["areaDifficulty"];
   pricingRuleSignature?: string | null;
   preferredStartDate?: string | Date | null;
   preferredEndDate?: string | Date | null;
@@ -103,6 +109,15 @@ function dateValue(value: string | Date | null | undefined) {
 
 function numeric(value: number | null | undefined) {
   return value != null && Number.isFinite(value) ? Math.round(value) : null;
+}
+
+function weightClassFromInput(weightInGrams: number | null | undefined): NonNullable<PlanningInputFingerprint["weightClass"]> {
+  const grams = numeric(weightInGrams);
+  if (grams === null || grams <= 20) return "LIGHT";
+  if (grams <= 50) return "STANDARD";
+  if (grams <= 100) return "MEDIUM";
+  if (grams <= 250) return "HEAVY";
+  return "CUSTOM";
 }
 
 function geometryPerimeterMeters(geometry: FeatureCollection) {
@@ -161,6 +176,11 @@ export function normalizePlanningInput(input: PlanningQuoteInput): PlanningInput
     flyerSource: input.flyerSource ?? "CUSTOMER_OWN",
     printDataStatus: input.printDataStatus ?? "UPLOAD_LATER",
     productFormat: input.productFormat?.trim() || "DIN Lang (99 x 210 mm)",
+    // Always sign the server-derived class. The client enum is only a preview
+    // and must not create a second fingerprint for the same weight.
+    weightClass: weightClassFromInput(input.weightInGrams),
+    weightInGrams: numeric(input.weightInGrams),
+    areaDifficulty: input.areaDifficulty ?? "NORMAL",
     pricingRuleSignature: input.pricingRuleSignature?.trim() ?? "",
     preferredStartDate: dateValue(input.preferredStartDate),
     preferredEndDate: dateValue(input.preferredEndDate),
