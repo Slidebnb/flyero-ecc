@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { publicLocationSearchParams } from "@/lib/publicLocationContext";
 
 type Suggestion = {
@@ -22,21 +22,39 @@ export function PublicPlannerSearch() {
   const [selected, setSelected] = useState<Suggestion | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const requestSequenceRef = useRef(0);
+
+  function track(eventType: string, data: Record<string, unknown> = {}) {
+    void fetch("/api/public/planner/experience", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventType, ...data }),
+      keepalive: true,
+    }).catch(() => undefined);
+  }
 
   useEffect(() => {
     const value = query.trim();
-    if (value.length < 2 || selected?.label === value) return;
+    const requestSequence = ++requestSequenceRef.current;
+    if (value.length < 2 || selected?.label === value) {
+      return;
+    }
 
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setLoading(true);
       fetch(`/api/public/planner/autocomplete?q=${encodeURIComponent(value)}`, { signal: controller.signal })
         .then((response) => response.ok ? response.json() : null)
-        .then((payload) => setSuggestions(payload?.data ?? []))
-        .catch((error) => {
-          if (error?.name !== "AbortError") setSuggestions([]);
+        .then((payload) => {
+          if (requestSequence !== requestSequenceRef.current) return;
+          setSuggestions(payload?.data ?? []);
         })
-        .finally(() => setLoading(false));
+        .catch((error) => {
+          if (requestSequence === requestSequenceRef.current && error?.name !== "AbortError") setSuggestions([]);
+        })
+        .finally(() => {
+          if (requestSequence === requestSequenceRef.current) setLoading(false);
+        });
     }, 240);
 
     return () => {
@@ -50,6 +68,11 @@ export function PublicPlannerSearch() {
     setSelected(suggestion);
     setSuggestions([]);
     setOpen(false);
+    track("PUBLIC_AUTOCOMPLETE_SELECTED", {
+      postalCode: suggestion.postalCode ?? undefined,
+      city: suggestion.city ?? undefined,
+      usedAutocomplete: true,
+    });
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -60,6 +83,11 @@ export function PublicPlannerSearch() {
     }
     event.preventDefault();
     const selectedForQuery = selected?.label === query.trim() ? selected : null;
+    track("PUBLIC_SEARCH_SUBMITTED", {
+      postalCode: selectedForQuery?.postalCode ?? (/^\d{5}$/.test(query.trim()) ? query.trim() : undefined),
+      city: selectedForQuery?.city ?? undefined,
+      usedAutocomplete: Boolean(selectedForQuery),
+    });
     const params = publicLocationSearchParams({
       query: query.trim(),
       placeId: selectedForQuery?.source === "google" ? selectedForQuery.id : undefined,

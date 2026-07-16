@@ -19,7 +19,7 @@
 | Nachweisvisualisierung | Statische Tour-, GPS- und Freigabestatus wirkten wie echte Ergebnisse. | `ProcessPreview` zeigt nur den gekennzeichneten Ablauf; echte Nachweise kommen aus Kampagnendaten. |
 | Druckfähigkeit | Marketingtexte boten teilweise Online-Druck an, obwohl der Backend-Flow ihn blockiert. | `publicCapabilities` ist die zentrale Quelle; Online-Druck bleibt deaktiviert und wird separat besprochen. |
 | Verteilanfrage | LeadForm war zu allgemein und nicht idempotent. | Strukturierte Anfragefelder, Anfragenummer und Idempotenzschlüssel ergänzt. |
-| Benachrichtigung | Admin-/Betriebs-Mail und Kundenbestätigung waren nicht als einheitlicher Vorgang modelliert. | Beide Nachrichten landen in der vorhandenen NotificationQueue; kein paralleler Versandweg. |
+| Benachrichtigung | Lead-Mails wurden nach dem Datenbankvorgang beziehungsweise nach weiteren Admin-Nachrichten versendet; dadurch entstand unnötige Verzögerung. | Queue-Eintrag bleibt revisionssicher bestehen, der direkte Provider-Versuch startet sofort parallel zu Admin-Nachrichten; Worker bleibt Retry-/Ausfallsicherung. |
 | Preise | Die Preisseite erklärte die aktuelle Staffel nicht anhand echter Berechnung. | Beispiele für 500, 3.000 und 10.000 Flyer nutzen `calculateOrderPrice`. |
 
 ## Datenfluss
@@ -50,6 +50,8 @@ Startseite
 
 Das bestehende `Lead`-Modell bleibt die zentrale Speicherung. `inquiryData` enthält nur die für die öffentliche Anfrage notwendigen Zusatzdaten: PLZ, Adresse, Flyeranzahl, Zeitraum, Flexibilität, Druckstatus, Format, Zielgruppe, Verteilart und Kampagnenziel. `inquiryNumber` wird angezeigt; `idempotencyKey` verhindert doppelte Datensätze und doppelte Benachrichtigungen bei Wiederholungen.
 
+Bei `source=verteilung-anfragen` validiert der Server zusätzlich die strukturierten Pflichtangaben wie Firma, Telefon, Ort, PLZ, Flyeranzahl, Zeitraum, Druckstatus, Zielgruppe und Verteilart. Das Formular kann dadurch keine unvollständigen Leads als vollständige Anfrage ausgeben.
+
 Die Anfrage erzeugt:
 
 1. Lead und LeadActivity
@@ -59,7 +61,9 @@ Die Anfrage erzeugt:
 
 ## E-Mail-Laufzeit
 
-Der Notification-Worker prüft die Queue alle 15 Sekunden. Das ist die maximale planmäßige Wartezeit bis zur Verarbeitung; Resend und der empfangende Mailserver können zusätzlich verzögern. Nach einem Deployment muss der Timer auf dem Produktionsserver neu installiert beziehungsweise neu geladen werden:
+Nach dem Speichern wird der Queue-Eintrag unmittelbar einmal über den konfigurierten Provider versendet. Die Betriebsadresse wird parallel zum Erzeugen der Admin-/In-App-Nachrichten gestartet; sie wartet nicht mehr auf die vorherige Verarbeitung aller Admin-Empfänger. Der Notification-Worker bleibt als Retry- und Ausfallsicherung aktiv und prüft `PENDING`/`RETRY`-Einträge regelmäßig. `EMAIL_SEND_TIMEOUT_MS` begrenzt den direkten Provider-Versuch; Resend und der empfangende Mailserver können nach einer Provider-Annahme weiterhin verzögern. Die Anwendung kann die externe Mailbox- oder Providerlaufzeit nicht beschleunigen, protokolliert den Versand aber separat als Queue-/Providerstatus.
+
+Nach einem Deployment muss der Timer auf dem Produktionsserver neu installiert beziehungsweise neu geladen werden:
 
 ```bash
 sudo bash /opt/flyero/scripts/install-notification-worker-systemd.sh
@@ -74,3 +78,7 @@ sudo systemctl restart flyero-notification-worker.timer
 - Keine Fake-Karte, Fake-GPS-Linie, Fake-Tour oder Fake-Zustellquote.
 - Keine direkte Druckzahlung; Druck bleibt eine separate Anfrage.
 - Keine produktive Migration zu einer nativen Verteiler-App.
+
+## Öffentliche Messpunkte
+
+Die öffentliche Strecke erfasst nur datensparsame Ereignisse ohne vollständige Adressen oder Secrets: Suche abgeschickt, Autocomplete ausgewählt, initiales Geocoding gestartet/aufgelöst/fehlgeschlagen, PLZ-Mismatch, veralteten Entwurf verworfen, Standort ersetzt oder Standortsuche fehlgeschlagen. Diese Ereignisse nutzen ein eigenes Public-Experience-Rate-Limit und konkurrieren nicht mit Geocoding-/Quote-Limits.

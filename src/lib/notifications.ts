@@ -351,8 +351,13 @@ export async function notifyAdmins(input: Omit<NotificationInput, "userId">) {
     select: { id: true },
   });
 
-  const adminNotifications = await Promise.all(admins.map((admin) => createNotification({ userId: admin.id, ...input })));
-  const operationsNotification = await notifyOperations(input);
+  // Die zentrale Betriebsadresse wird sofort parallel zum Erzeugen der
+  // In-App/Admin-Nachrichten versorgt. So hängt der wichtige Lead-Hinweis
+  // nicht von der Anzahl oder Laufzeit weiterer Admin-Benachrichtigungen ab.
+  const [operationsNotification, adminNotifications] = await Promise.all([
+    notifyOperations(input),
+    Promise.all(admins.map((admin) => createNotification({ userId: admin.id, ...input }))),
+  ]);
   return [...adminNotifications, { message: operationsNotification.message, queue: operationsNotification.queue, notification: null }];
 }
 

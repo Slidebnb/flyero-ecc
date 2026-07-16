@@ -19,18 +19,22 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
     const form = event.currentTarget;
     const formData = new FormData(form);
 
-    const response = await fetch("/api/leads", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const response = await fetch("/api/leads", {
+        method: "POST",
+        body: formData,
+      });
 
-    const result = await response.json().catch(() => null) as { data?: { inquiryNumber?: string } } | null;
-    if (response.ok) {
-      form.reset();
-      setInquiryNumber(result?.data?.inquiryNumber ?? null);
-      setIdempotencyKey(crypto.randomUUID());
-      setState("success");
-    } else {
+      const result = await response.json().catch(() => null) as { data?: { inquiryNumber?: string } } | null;
+      if (response.ok) {
+        form.reset();
+        setInquiryNumber(result?.data?.inquiryNumber ?? null);
+        setIdempotencyKey(crypto.randomUUID());
+        setState("success");
+      } else {
+        setState("error");
+      }
+    } catch {
       setState("error");
     }
   }
@@ -47,12 +51,12 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
         tabIndex={-1}
       />
       <label>
-        Name
+        Ansprechpartner
         <input name="name" minLength={2} required />
       </label>
       <label>
         Firma
-        <input name="companyName" />
+        <input name="companyName" required={inquiry} />
       </label>
       <label>
         E-Mail
@@ -60,17 +64,17 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
       </label>
       <label>
         Telefonnummer
-        <input name="phone" />
+        <input name="phone" required={inquiry} />
       </label>
       <label>
         Stadt
-        <input name="city" />
+        <input name="city" required={inquiry} />
       </label>
       {inquiry ? (
         <>
           <label>
             PLZ
-            <input name="postalCode" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} />
+            <input name="postalCode" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} required />
           </label>
           <label>
             Genaue Adresse (optional)
@@ -78,19 +82,19 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
           </label>
           <label>
             Flyeranzahl
-            <input name="flyerQuantity" type="number" min={1} max={1000000} />
+            <input name="flyerQuantity" type="number" min={1} max={1000000} required />
           </label>
           <label>
             Gewünschter Start
-            <input name="startDate" type="date" />
+            <input name="startDate" type="date" required />
           </label>
           <label>
             Gewünschtes Ende
-            <input name="endDate" type="date" />
+            <input name="endDate" type="date" required />
           </label>
           <label>
             Flyer bereits gedruckt?
-            <select name="flyersAlreadyPrinted" defaultValue="">
+            <select name="flyersAlreadyPrinted" defaultValue="" required>
               <option value="">Bitte wählen</option>
               <option value="true">Ja</option>
               <option value="false">Nein</option>
@@ -101,12 +105,12 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
             <input name="flyerFormat" placeholder="z. B. DIN lang" />
           </label>
           <label>
-            Zielgruppe (optional)
-            <input name="targetGroup" placeholder="z. B. Haushalte" />
+            Zielgruppe
+            <input name="targetGroup" placeholder="z. B. Haushalte" required />
           </label>
           <label>
-            Verteilart (optional)
-            <input name="distributionMode" placeholder="z. B. Haushalt" />
+            Verteilart
+            <input name="distributionMode" placeholder="z. B. Haushalt" required />
           </label>
           <label className="mkFull">
             Kampagnenziel (optional)

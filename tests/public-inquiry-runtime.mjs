@@ -58,6 +58,14 @@ try {
   });
   assert.equal(invalid.response.status, 400, "Ungültige Anfragefelder müssen serverseitig abgelehnt werden.");
 
+  const incompleteStructuredInquiry = await post({
+    name: "Unvollständige Anfrage",
+    email: `structured-invalid-${Date.now()}@example.org`,
+    message: "Pflichtangaben fehlen.",
+    source: "verteilung-anfragen",
+  }, { "x-forwarded-for": `198.51.100.${(Date.now() % 200) + 40}` });
+  assert.equal(incompleteStructuredInquiry.response.status, 400, "Die strukturierte öffentliche Anfrage muss Pflichtangaben serverseitig prüfen.");
+
   const honeypot = await post({
     name: "Bot Anfrage",
     email: `honeypot-${Date.now()}@example.org`,

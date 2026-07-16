@@ -327,6 +327,15 @@ function debounce<T extends (...args: never[]) => void>(callback: T, delay: numb
   };
 }
 
+function trackPublicPlannerEvent(endpoint: string, eventType: string, data: Record<string, unknown> = {}) {
+  void fetch(endpoint, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ eventType, ...data }),
+    keepalive: true,
+  }).catch(() => undefined);
+}
+
 function polygonToGeoJson(points: LatLng[]) {
   const ring = points.map((point) => [point.lng, point.lat]);
   if (ring.length > 0) ring.push(ring[0]);
@@ -1245,6 +1254,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       setSelectedBoundaryPlaceIds([]);
       setSelectedAreaId("");
       setPolygon([]);
+      setCity("");
+      setPostalCode("");
+      setStreet("");
+      setHouseNumber("");
+      setTargetAreaName("");
       setHistory([]);
       setHistoryIndex(0);
     }
@@ -1260,11 +1274,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     }
     setIntelligence(null);
     setIntelligenceStatus("updating");
-    if (result.city) setCity(result.city);
-    if (result.postalCode) setPostalCode(result.postalCode);
-    if (result.street) setStreet(result.street);
-    if (result.houseNumber) setHouseNumber(result.houseNumber);
+    setCity(result.city ?? "");
+    setPostalCode(result.postalCode ?? "");
+    setStreet(result.street ?? "");
+    setHouseNumber(result.houseNumber ?? "");
     if (result.label) setQuery(result.label);
+    else if (result.postalCode || result.city) setQuery([result.postalCode, result.city].filter(Boolean).join(" "));
     const nextCenter = { lat: Number(result.lat), lng: Number(result.lng) };
     if (Number.isFinite(nextCenter.lat) && Number.isFinite(nextCenter.lng)) {
       const matchedArea = findAreaForLocation(result);
@@ -1314,7 +1329,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     applyLocationResultRef.current = applyLocationResult;
   }, [applyLocationResult]);
 
-  const geocodeAddress = useCallback((input?: string, placeId?: string, expectedLocation?: Pick<PublicLocationContext, "postalCode" | "city">) => {
+  const geocodeAddress = useCallback((input?: string, placeId?: string, expectedLocation?: Pick<PublicLocationContext, "postalCode" | "city">, options?: { initial?: boolean }) => {
     const currentQuery = input ?? searchInputRef.current?.value ?? query;
     const requestId = ++locationRequestSequenceRef.current;
     locationAbortRef.current?.abort();
@@ -1330,36 +1345,59 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       params.set("postalCode", expectedLocation.postalCode);
     }
     if (placeId) params.set("placeId", placeId);
+    if (isPublicPlanner) {
+      trackPublicPlannerEvent(experienceEndpoint, options?.initial ? "PUBLIC_INITIAL_GEOCODE_STARTED" : "PUBLIC_LOCATION_SEARCH_STARTED", {
+        requestId: `public-location:${requestId}`,
+        postalCode: expectedLocation?.postalCode ?? (isGermanPostalCode(currentQuery) ? currentQuery.trim() : undefined),
+        city: expectedLocation?.city,
+      });
+    }
     fetch(`${geocodeEndpoint}?${params.toString()}`, { signal: controller.signal })
-      .then((response) => response.ok ? response.json() : null)
-      .then((payload) => {
+      .then(async (response) => ({ response, payload: await response.json().catch(() => null) }))
+      .then(({ response, payload }) => {
         if (requestId !== locationRequestSequenceRef.current) return;
+        if (!response.ok) {
+          if (payload?.code === "PUBLIC_GEOCODE_POSTAL_MISMATCH") {
+            setMapNotice(payload.error ?? "Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wählen Sie den passenden Ort aus den Vorschlägen.");
+            if (isPublicPlanner) trackPublicPlannerEvent(experienceEndpoint, "PUBLIC_GEOCODE_POSTAL_MISMATCH", { requestId: `public-location:${requestId}` });
+          } else {
+            setMapNotice(payload?.error ?? "Diese Adresse wurde nicht gefunden. Bitte prüfen Sie die Eingabe oder zeichnen Sie das Gebiet direkt auf der Karte.");
+            if (isPublicPlanner) trackPublicPlannerEvent(experienceEndpoint, options?.initial ? "PUBLIC_INITIAL_GEOCODE_FAILED" : "PUBLIC_LOCATION_FAILED", { requestId: `public-location:${requestId}` });
+          }
+          return;
+        }
         const result = payload?.data;
         const expectedPostalCode = expectedLocation?.postalCode ?? (isGermanPostalCode(currentQuery) ? currentQuery.trim() : undefined);
         if (isPublicPlanner && isGermanPostalCode(expectedPostalCode) && result?.postalCode !== expectedPostalCode) {
-          setMapNotice("Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wÃ¤hlen Sie den passenden Ort aus den VorschlÃ¤gen.");
-          void fetch(experienceEndpoint, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ eventType: "PUBLIC_GEOCODE_POSTAL_MISMATCH", source: "public-planner", requestedPostalCode: expectedPostalCode, returnedPostalCode: result?.postalCode ?? null }),
-          });
+          trackPublicPlannerEvent(experienceEndpoint, "PUBLIC_GEOCODE_POSTAL_MISMATCH", { requestId: `public-location:${requestId}`, postalCode: expectedPostalCode });
+          setMapNotice("Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wählen Sie den passenden Ort aus den Vorschlägen.");
           return;
         }
         if (!result) {
-          setMapNotice("Diese Adresse wurde nicht gefunden. Bitte prüfe die Eingabe oder zeichne das Gebiet direkt auf der Karte.");
+          if (isPublicPlanner) trackPublicPlannerEvent(experienceEndpoint, options?.initial ? "PUBLIC_INITIAL_GEOCODE_FAILED" : "PUBLIC_LOCATION_FAILED", { requestId: `public-location:${requestId}` });
+          setMapNotice("Diese Adresse wurde nicht gefunden. Bitte prüfen Sie die Eingabe oder zeichnen Sie das Gebiet direkt auf der Karte.");
           return;
         }
         if (isPublicPlanner) {
-          void fetch(experienceEndpoint, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ eventType: "LOCATION_SEARCH_COMPLETED", city: result.city, postalCode: result.postalCode, usedAutocomplete }),
+          trackPublicPlannerEvent(experienceEndpoint, options?.initial ? "PUBLIC_INITIAL_GEOCODE_RESOLVED" : "LOCATION_SEARCH_COMPLETED", {
+            requestId: `public-location:${requestId}`,
+            city: result.city,
+            postalCode: result.postalCode,
+            usedAutocomplete,
+          });
+          trackPublicPlannerEvent(experienceEndpoint, "PUBLIC_LOCATION_REPLACED", {
+            requestId: `public-location:${requestId}`,
+            city: result.city,
+            postalCode: result.postalCode,
           });
         }
         applyLocationResult(result, { forceReplace: isPublicPlanner ? true : forceLocationReplaceRef.current });
       })
       .catch((error) => {
-        if (requestId === locationRequestSequenceRef.current && error?.name !== "AbortError") setMapNotice("Die Standortsuche konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.");
+        if (requestId === locationRequestSequenceRef.current && error?.name !== "AbortError") {
+          setMapNotice("Die Standortsuche konnte gerade nicht abgeschlossen werden. Bitte versuche es erneut.");
+          if (isPublicPlanner) trackPublicPlannerEvent(experienceEndpoint, options?.initial ? "PUBLIC_INITIAL_GEOCODE_FAILED" : "PUBLIC_LOCATION_FAILED", { requestId: `public-location:${requestId}` });
+        }
       });
   }, [applyLocationResult, city, experienceEndpoint, geocodeEndpoint, houseNumber, isPublicPlanner, postalCode, query, street, usedAutocomplete]);
 
@@ -1369,7 +1407,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     initialSearchRef.current = null;
     if (!initialLocation) return;
     setQuery(initialLocation.query);
-    const timer = window.setTimeout(() => geocodeAddress(initialLocation.query, initialLocation.placeId, initialLocation), 0);
+    const timer = window.setTimeout(() => geocodeAddress(initialLocation.query, initialLocation.placeId, initialLocation, { initial: true }), 0);
     return () => window.clearTimeout(timer);
   }, [draftRestored, geocodeAddress, isPublicPlanner]);
 

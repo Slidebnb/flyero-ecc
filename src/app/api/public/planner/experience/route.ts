@@ -12,6 +12,16 @@ function boundedInteger(value: unknown, maximum: number) {
 
 const PUBLIC_EVENT_TYPES = new Set([
   "PUBLIC_PLANNER_STARTED",
+  "PUBLIC_SEARCH_SUBMITTED",
+  "PUBLIC_AUTOCOMPLETE_SELECTED",
+  "PUBLIC_INITIAL_GEOCODE_STARTED",
+  "PUBLIC_INITIAL_GEOCODE_RESOLVED",
+  "PUBLIC_INITIAL_GEOCODE_FAILED",
+  "PUBLIC_LOCATION_SEARCH_STARTED",
+  "PUBLIC_GEOCODE_POSTAL_MISMATCH",
+  "PUBLIC_STALE_DRAFT_DISCARDED",
+  "PUBLIC_LOCATION_REPLACED",
+  "PUBLIC_LOCATION_FAILED",
   "LOCATION_SEARCH_COMPLETED",
   "AREA_SELECTED",
   "AREA_CHANGED",
@@ -40,6 +50,7 @@ const publicExperienceSchema = z.object({
   fieldCount: z.coerce.number().int().nonnegative().max(1_000).optional(),
   usedAutocomplete: z.boolean().optional(),
   usedSavedArea: z.boolean().optional(),
+  requestId: z.string().trim().max(120).optional(),
   polygonPoints: z.coerce.number().int().nonnegative().max(500).optional(),
   households: z.coerce.number().int().nonnegative().max(10_000_000).optional(),
   flyerQuantity: z.coerce.number().int().nonnegative().max(1_000_000).optional(),
@@ -55,7 +66,7 @@ function safeDecimal(value: unknown, maximum: number) {
 
 export async function POST(request: NextRequest) {
   try {
-    const abuseDecision = await enforcePublicRateLimit(request, "public-planner");
+    const abuseDecision = await enforcePublicRateLimit(request, "public-experience");
     if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
     const parsed = publicExperienceSchema.safeParse(await readBody(request));
     if (!parsed.success) return errorResponse("Ungültige Planungsdaten.", 400);
@@ -80,7 +91,7 @@ export async function POST(request: NextRequest) {
         coverageAreaSqm: safeDecimal(body.coverageAreaSqm, 100_000_000),
         routeDistanceMeters: boundedInteger(body.routeDistanceMeters, 100_000_000),
         routeDurationMinutes: boundedInteger(body.routeDurationMinutes, 10_000),
-        metadata: { plannerMode: "public_quote" },
+        metadata: { plannerMode: "public_quote", requestId: body.requestId ?? null },
       },
     });
     return Response.json({ ok: true, data: { id: event.id } }, { status: 201 });

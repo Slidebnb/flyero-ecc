@@ -45,6 +45,26 @@ export const createLeadSchema = z.object({
   message: z.string().trim().min(5).max(3000),
   source: z.string().trim().min(2).max(80).default("website"),
   sourceCampaign: optionalText,
+}).superRefine((data, context) => {
+  if (data.source !== "verteilung-anfragen") return;
+  const requiredFields: Array<[keyof typeof data, string]> = [
+    ["companyName", "Bitte gib deine Firma an."],
+    ["phone", "Bitte gib eine Telefonnummer an."],
+    ["city", "Bitte gib den Ort des Verteilgebiets an."],
+    ["postalCode", "Bitte gib eine fünfstellige PLZ an."],
+    ["flyerQuantity", "Bitte gib die Flyeranzahl an."],
+    ["startDate", "Bitte gib den gewünschten Start an."],
+    ["endDate", "Bitte gib das gewünschte Ende an."],
+    ["flyersAlreadyPrinted", "Bitte gib an, ob die Flyer bereits gedruckt sind."],
+    ["targetGroup", "Bitte gib die Zielgruppe an."],
+    ["distributionMode", "Bitte gib die Verteilart an."],
+  ];
+  for (const [field, message] of requiredFields) {
+    const value = data[field];
+    if (value === undefined || value === null || value === "") {
+      context.addIssue({ code: "custom", path: [field], message });
+    }
+  }
 });
 
 export const updateLeadSchema = z.object({

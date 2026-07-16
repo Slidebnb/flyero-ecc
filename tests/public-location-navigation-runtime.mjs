@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { chromium } from "playwright";
 
-const baseUrl = process.env.MODULE28_BASE_URL || "http://localhost:3000";
+const baseUrl = process.env.MODULE28_BASE_URL || "http://localhost:3049";
 let serverProcess = null;
 
 async function waitForHealth() {
@@ -91,7 +91,8 @@ try {
   });
   await homepage.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await homepage.locator("#public-planner-query").fill("56112");
-  await homepage.locator("#public-planner-suggestions [role=option]").click();
+  await homepage.getByRole("option", { name: /56112 Lahnstein/ }).click();
+  await homepage.waitForTimeout(100);
   await homepage.getByRole("button", { name: "Gebiet ansehen" }).click();
   await homepage.waitForURL(/\/verteilung-planen\?/);
   const navigationUrl = new URL(homepage.url());
@@ -102,7 +103,13 @@ try {
 
   const mismatchContext = await browser.newContext();
   const mismatchPage = await mismatchContext.newPage();
-  await stubGeocode(mismatchPage, () => locationData("35708", "Haiger"));
+  await mismatchPage.route("**/api/public/planner/geocode**", async (route) => {
+    await route.fulfill({
+      status: 422,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: false, code: "PUBLIC_GEOCODE_POSTAL_MISMATCH", error: "Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wählen Sie den passenden Ort aus den Vorschlägen." }),
+    });
+  });
   await mismatchPage.goto(`${baseUrl}/verteilung-planen?query=56112`, { waitUntil: "domcontentloaded" });
   await mismatchPage.locator('[data-testid="order-location-input"]').waitFor();
   await mismatchPage.waitForTimeout(700);

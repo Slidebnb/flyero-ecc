@@ -124,11 +124,11 @@ export default async function PricingPage() {
       <MarketingSection tone="green">
         <div className="mkChoiceGrid">
           <CTAChoiceCard
-            title="Unverbindlich kalkulieren lassen"
+            title="Unverbindlich anfragen"
             text={`Für individuelle Kampagnen mit Gebiet, Zeitraum oder besonderem Ablauf. ${getPublicPrintMessage()}`}
             bullets={["Persönliche Einschätzung", "Keine Registrierung nötig", "Passende Startempfehlung"]}
-            href="/verteilung-planen"
-            buttonLabel="Anfrage senden"
+            href="/verteilung-anfragen"
+            buttonLabel="Anfrage starten"
             icon={defaultProofIcons.shield}
           />
           <CTAChoiceCard
