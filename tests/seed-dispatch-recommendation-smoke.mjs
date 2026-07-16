@@ -11,13 +11,23 @@ assert.match(
 );
 assert.match(
   seed,
-  /orderId_distributorId_segmentId:/,
-  "Der Seed muss den aktuellen Mehrgebiets-Unique-Key verwenden.",
+  /segmentId:\s*null/,
+  "Ein Seed ohne Teilgebiet muss segmentId explizit auf null setzen.",
 );
 assert.match(
   seed,
-  /segmentId:\s*null/,
-  "Ein Seed ohne Teilgebiet muss segmentId explizit auf null setzen.",
+  /autoDispatchRecommendation\.findFirst\(/,
+  "Nullable segmentId darf nicht als Prisma-Compound-Key verwendet werden.",
+);
+assert.match(
+  seed,
+  /existingRecommendation\.id/,
+  "Bestehende Empfehlungen ohne Teilgebiet müssen per ID aktualisiert werden.",
+);
+assert.doesNotMatch(
+  seed,
+  /orderId_distributorId_segmentId:\s*\{[\s\S]*?segmentId:\s*null/,
+  "Prisma darf segmentId null nicht in einem Compound-Where erhalten.",
 );
 
 console.log("Seed dispatch recommendation linkage checks passed.");

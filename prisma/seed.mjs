@@ -2079,30 +2079,37 @@ for (let orderIndex = 0; orderIndex < recommendationOrders.length; orderIndex +=
       : orderIndex === 1 && distributorIndex === 1
         ? "DISMISSED"
         : "SUGGESTED";
-    await prisma.autoDispatchRecommendation.upsert({
+    const recommendationData = {
+      score,
+      status,
+      reasons: ["Seed: freigegeben", distributorIndex === 0 ? "Seed: Einsatzgebiet passt" : "Seed: Kapazität verfügbar"],
+      warnings: distributorIndex === 2 ? ["Seed: Kapazitätswarnung", "Seed: offene Touren"] : [],
+    };
+    // Prisma kann nullable Felder nicht in einem Compound-Where verwenden.
+    // Legacy-Empfehlungen ohne Teilgebiet werden deshalb deterministisch gesucht.
+    const existingRecommendation = await prisma.autoDispatchRecommendation.findFirst({
       where: {
-        orderId_distributorId_segmentId: {
-          orderId: inventory.orderId,
-          distributorId: distributor.id,
-          segmentId: null,
-        },
-      },
-      update: {
-        score,
-        status,
-        reasons: ["Seed: freigegeben", distributorIndex === 0 ? "Seed: Einsatzgebiet passt" : "Seed: Kapazität verfügbar"],
-        warnings: distributorIndex === 2 ? ["Seed: Kapazitätswarnung", "Seed: offene Touren"] : [],
-      },
-      create: {
         orderId: inventory.orderId,
-        segmentId: null,
         distributorId: distributor.id,
-        score,
-        status,
-        reasons: ["Seed: freigegeben", distributorIndex === 0 ? "Seed: Einsatzgebiet passt" : "Seed: Kapazität verfügbar"],
-        warnings: distributorIndex === 2 ? ["Seed: Kapazitätswarnung", "Seed: offene Touren"] : [],
+        segmentId: null,
       },
+      select: { id: true },
     });
+    if (existingRecommendation) {
+      await prisma.autoDispatchRecommendation.update({
+        where: { id: existingRecommendation.id },
+        data: recommendationData,
+      });
+    } else {
+      await prisma.autoDispatchRecommendation.create({
+        data: {
+          orderId: inventory.orderId,
+          segmentId: null,
+          distributorId: distributor.id,
+          ...recommendationData,
+        },
+      });
+    }
   }
 }
 
