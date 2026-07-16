@@ -1,4 +1,5 @@
 import { ErrorSeverity, Prisma, type Payment, type PaymentStatus } from "@prisma/client";
+import { randomUUID } from "node:crypto";
 import Stripe from "stripe";
 import { createAuditLog, type AuditRequestContext } from "@/lib/audit";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
@@ -64,6 +65,65 @@ function fromCents(value?: number | null) {
   return new Prisma.Decimal((value ?? 0) / 100).toDecimalPlaces(2);
 }
 
+const CHECKOUT_CLAIM_TIMEOUT_MS = 120_000;
+const CHECKOUT_WAIT_ATTEMPTS = 20;
+
+function withoutCheckoutClaims(payment: Payment) {
+  const { checkoutClaimToken, checkoutClaimedAt, ...safePayment } = payment;
+  void checkoutClaimToken;
+  void checkoutClaimedAt;
+  return safePayment;
+}
+
+async function waitForCheckoutSession(paymentId: string) {
+  for (let attempt = 0; attempt < CHECKOUT_WAIT_ATTEMPTS; attempt += 1) {
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+    if (payment?.checkoutUrl) return payment;
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  return null;
+}
+
+async function claimCheckoutCreation(paymentId: string) {
+  const current = await prisma.payment.findUnique({ where: { id: paymentId } });
+  if (!current) throw new Error("Zahlung wurde nicht gefunden.");
+  if (current.checkoutUrl) return { payment: current, token: null };
+
+  if (current.checkoutClaimedAt && Date.now() - current.checkoutClaimedAt.getTime() < CHECKOUT_CLAIM_TIMEOUT_MS) {
+    const completed = await waitForCheckoutSession(paymentId);
+    if (completed) return { payment: completed, token: null };
+    const error = new Error("Der Checkout wird bereits vorbereitet. Bitte versuche es gleich noch einmal.");
+    (error as Error & { status?: number; code?: string }).status = 409;
+    (error as Error & { status?: number; code?: string }).code = "CHECKOUT_IN_PROGRESS";
+    throw error;
+  }
+
+  if (current.checkoutClaimedAt) {
+    await prisma.payment.updateMany({
+      where: { id: paymentId, checkoutClaimToken: current.checkoutClaimToken, checkoutUrl: null },
+      data: { checkoutClaimToken: null, checkoutClaimedAt: null },
+    });
+  }
+
+  const token = randomUUID();
+  const claimed = await prisma.payment.updateMany({
+    where: { id: paymentId, checkoutUrl: null, checkoutClaimToken: null },
+    data: { checkoutClaimToken: token, checkoutClaimedAt: new Date() },
+  });
+  if (claimed.count === 1) {
+    const payment = await prisma.payment.findUnique({ where: { id: paymentId } });
+    if (!payment) throw new Error("Zahlung wurde nicht gefunden.");
+    return { payment, token };
+  }
+
+  const completed = await waitForCheckoutSession(paymentId);
+  if (completed) return { payment: completed, token: null };
+  const error = new Error("Der Checkout wird bereits vorbereitet. Bitte versuche es gleich noch einmal.");
+  (error as Error & { status?: number; code?: string }).status = 409;
+  (error as Error & { status?: number; code?: string }).code = "CHECKOUT_IN_PROGRESS";
+  throw error;
+}
+
 export async function ensureStripeProvider() {
   return prisma.paymentProvider.upsert({
     where: { code: PROVIDER_CODE },
@@ -90,10 +150,14 @@ async function addPaymentHistory(input: {
 
 async function updatePaymentStatus(payment: Payment, status: PaymentStatus, reason?: string) {
   if (payment.status === status) return payment;
+  const keepCheckoutKey = ["CREATED", "CHECKOUT_CREATED", "PENDING", "PAID"].includes(status);
   const updated = await prisma.payment.update({
     where: { id: payment.id },
     data: {
       status,
+      checkoutKey: keepCheckoutKey ? payment.checkoutKey ?? payment.orderId : null,
+      checkoutClaimToken: null,
+      checkoutClaimedAt: null,
       paidAt: status === "PAID" ? new Date() : payment.paidAt,
       failedAt: status === "FAILED" ? new Date() : payment.failedAt,
       cancelledAt: status === "CANCELLED" ? new Date() : payment.cancelledAt,
@@ -172,7 +236,7 @@ async function syncStripeDisputeEvent(event: Stripe.Event, requestContext?: Audi
   return payment;
 }
 
-export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string; tenantId?: string }) {
+export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string; tenantId?: string; idempotencyKey?: string }) {
   const order = await prisma.order.findFirst({
     where: {
       id: input.orderId,
@@ -208,7 +272,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
 
   const existing = order.payments.find((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING", "PAID"].includes(payment.status));
   if (existing?.status === "PAID") throw new Error("Dieser Auftrag wurde bereits bezahlt.");
-  if (existing?.checkoutUrl) return existing;
+  if (existing?.checkoutUrl) return withoutCheckoutClaims(existing);
 
   const currentSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
     ? order.priceRuleSnapshot as Record<string, unknown>
@@ -275,20 +339,34 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     orderId: order.id,
     customerId: order.customerId,
     report: "prepared_for_module_11",
+    ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
   };
-  const payment = existing ?? await prisma.payment.create({
-    data: {
-      orderId: order.id,
-      customerId: order.customerId,
-      tenantId: order.tenantId,
-      providerId: provider.id,
-      status: "CREATED",
-      amount,
-      currency: "EUR",
-      description,
-      metadata,
-    },
-  });
+  let payment = existing;
+  if (!payment) {
+    try {
+      payment = await prisma.payment.create({
+        data: {
+          orderId: order.id,
+          customerId: order.customerId,
+          tenantId: order.tenantId,
+          providerId: provider.id,
+          status: "CREATED",
+          checkoutKey: order.id,
+          amount,
+          currency: "EUR",
+          description,
+          metadata,
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
+      payment = (await prisma.payment.findFirst({
+        where: { orderId: order.id, status: { in: ["CREATED", "CHECKOUT_CREATED", "PENDING"] } },
+        orderBy: { createdAt: "desc" },
+      })) ?? undefined;
+      if (!payment) throw error;
+    }
+  }
   if (!existing) await addPaymentHistory({ paymentId: payment.id, toStatus: "CREATED", reason: "checkout_requested" });
   if (existing) {
     await prisma.payment.update({
@@ -297,44 +375,66 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     });
   }
 
+  const checkoutClaim = await claimCheckoutCreation(payment.id);
+  if (!checkoutClaim.token) {
+    await createAuditLog({
+      userId: input.customerUserId,
+      tenantId: input.tenantId,
+      action: "payment.checkout_race_reused",
+      entityType: "Payment",
+      entityId: checkoutClaim.payment.id,
+      newValues: { orderId: order.id, checkoutUrlReused: Boolean(checkoutClaim.payment.checkoutUrl) },
+    });
+    return withoutCheckoutClaims(checkoutClaim.payment);
+  }
+
   const successUrl = `${appUrl()}/customer/orders/${order.id}?payment=success`;
   const cancelUrl = `${appUrl()}/customer/orders/${order.id}?payment=cancelled`;
   if (isMockStripe() && !mockPaymentsEnabled()) {
     throw new Error("Mock-Zahlungen sind deaktiviert.");
   }
-  const session = isMockStripe()
-    ? {
-        id: `cs_test_mock_${payment.id}`,
-        url: `${appUrl()}/mock-stripe/checkout/${payment.id}`,
-        payment_intent: `pi_mock_${payment.id}`,
-      }
-    : await stripeClient().checkout.sessions.create({
-        mode: "payment",
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        customer_email: order.customer.user.email,
-        client_reference_id: order.id,
-        line_items: [
-          {
-            quantity: 1,
-            price_data: {
-              currency: "eur",
-              unit_amount: toCents(amount),
-              product_data: {
-                name: `Flyero ${order.orderNumber}`,
-                description,
+  let session;
+  try {
+    session = isMockStripe()
+      ? {
+          id: `cs_test_mock_${payment.id}`,
+          url: `${appUrl()}/mock-stripe/checkout/${payment.id}`,
+          payment_intent: `pi_mock_${payment.id}`,
+        }
+      : await stripeClient().checkout.sessions.create({
+          mode: "payment",
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          customer_email: order.customer.user.email,
+          client_reference_id: order.id,
+          line_items: [
+            {
+              quantity: 1,
+              price_data: {
+                currency: "eur",
+                unit_amount: toCents(amount),
+                product_data: {
+                  name: `Flyero ${order.orderNumber}`,
+                  description,
+                },
               },
             },
-          },
-        ],
-        metadata,
-        payment_intent_data: { metadata },
-      });
+          ],
+          metadata,
+          payment_intent_data: { metadata },
+        });
+  } catch (error) {
+    await prisma.payment.updateMany({ where: { id: payment.id, checkoutClaimToken: checkoutClaim.token }, data: { checkoutClaimToken: null, checkoutClaimedAt: null } });
+    throw error;
+  }
 
   const updated = await prisma.payment.update({
     where: { id: payment.id },
     data: {
       status: "CHECKOUT_CREATED",
+      checkoutKey: order.id,
+      checkoutClaimToken: null,
+      checkoutClaimedAt: null,
       checkoutUrl: session.url,
       stripeCheckoutSessionId: session.id,
       stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null,
@@ -375,7 +475,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     },
   });
 
-  return updated;
+  return withoutCheckoutClaims(updated);
 }
 
 export async function completePaymentFromCheckoutSession(session: Stripe.Checkout.Session) {

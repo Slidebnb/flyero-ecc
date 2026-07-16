@@ -12,8 +12,10 @@ export async function POST(request: NextRequest) {
     const body = await readBody(request);
     const orderId = typeof body.orderId === "string" ? body.orderId : "";
     if (!orderId) return errorResponse("orderId fehlt.", 400);
+    const requestedIdempotencyKey = request.headers.get("idempotency-key") ?? (typeof body.idempotencyKey === "string" ? body.idempotencyKey : "");
+    if (requestedIdempotencyKey.length > 100) return errorResponse("Idempotency-Key ist zu lang.", 422);
 
-    const payment = await createCheckoutForOrder({ orderId, customerUserId: session.id, tenantId: session.tenantId });
+    const payment = await createCheckoutForOrder({ orderId, customerUserId: session.id, tenantId: session.tenantId, idempotencyKey: requestedIdempotencyKey || undefined });
     for (const eventType of ["CHECKOUT_STARTED", "PAYMENT_REDIRECTED"]) {
       const existingEvent = await prisma.orderExperienceEvent.findFirst({
         where: { orderId, eventType, userId: session.id },
