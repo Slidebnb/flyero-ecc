@@ -270,7 +270,7 @@ export function ProcessPreview() {
   ] as const;
 
   return (
-    <div className="mkProcessPreview" aria-label="Beispielhafter FLYERO Nachweisablauf">
+    <div className="mkProcessPreview" aria-label="FLYERO Nachweisablauf">
       <div className="mkProofBrand">
         <FlyeroLogo dark />
         <span>Nachweisprozess</span>

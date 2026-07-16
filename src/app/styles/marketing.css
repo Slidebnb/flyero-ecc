@@ -347,12 +347,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  margin: 34px 0 0;
+  margin: 20px 0 0;
 }
 
 .mkPlannerSearch {
-  max-width: 590px;
-  margin-top: 28px;
+  max-width: 620px;
+  margin-top: 30px;
 }
 
 .mkPlannerSearch label {
@@ -366,22 +366,23 @@
 .mkPlannerSearchControls {
   display: flex;
   align-items: stretch;
-  gap: 10px;
+  gap: 12px;
 }
 
 .mkPlannerSearchInputWrap {
   position: relative;
   min-width: 0;
   flex: 1;
+  display: flex;
 }
 
 .mkPlannerSearch input {
   min-width: 0;
   flex: 1;
-  min-height: 52px;
-  padding: 0 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 14px;
+  min-height: 58px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 18px;
   color: #fff;
   background: rgba(255, 255, 255, 0.1);
   font: inherit;
@@ -396,11 +397,11 @@
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
-  min-width: 148px;
-  min-height: 52px;
-  padding: 0 18px;
+  min-width: 166px;
+  min-height: 58px;
+  padding: 0 22px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 18px;
   color: #10160b;
   background: var(--flyero-green);
   font: inherit;
@@ -466,8 +467,8 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 28px;
+  gap: 0;
+  margin-top: 24px;
 }
 
 .mkTrustBadge {
@@ -475,14 +476,19 @@
   align-items: center;
   justify-content: center;
   gap: 9px;
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: var(--flyero-radius-button);
+  min-height: 30px;
+  padding: 0 14px 0 0;
+  border: 0;
+  border-radius: 0;
   color: rgba(255, 255, 255, 0.88);
-  background: rgba(255, 255, 255, 0.06);
+  background: transparent;
   font-weight: 850;
   white-space: nowrap;
+}
+
+.mkTrustBadge + .mkTrustBadge {
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.22);
 }
 
 .mkTrustBadge svg {
