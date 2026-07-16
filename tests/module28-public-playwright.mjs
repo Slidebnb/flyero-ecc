@@ -15,6 +15,14 @@ const targets = [
   ["inquiry-desktop", "/verteilung-anfragen", 1440, 900],
   ["inquiry-mobile", "/verteilung-anfragen", 390, 844],
   ["pricing-desktop", "/preise", 1440, 900],
+  ["planner-desktop", "/verteilung-planen?query=56112", 1440, 900],
+  ["planner-mobile", "/verteilung-planen?query=56112", 390, 844],
+  ["contact-desktop", "/kontakt", 1440, 900],
+  ["contact-mobile", "/kontakt", 390, 844],
+  ["how-it-works-desktop", "/so-funktionierts", 1440, 900],
+  ["how-it-works-mobile", "/so-funktionierts", 390, 844],
+  ["business-desktop", "/fuer-unternehmen", 1440, 900],
+  ["business-mobile", "/fuer-unternehmen", 390, 844],
 ];
 
 try {
