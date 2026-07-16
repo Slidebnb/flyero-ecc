@@ -13,6 +13,7 @@ async function notifyOnce(input: {
   type: string;
   title: string;
   message: string;
+  data?: Record<string, string | number | boolean | null | undefined>;
 }) {
   const existing = await prisma.notificationMessage.findFirst({
     where: { userId: input.userId, type: input.type, data: { path: ["orderId"], equals: input.orderId } },
@@ -24,7 +25,7 @@ async function notifyOnce(input: {
     type: input.type,
     title: input.title,
     message: input.message,
-    data: { orderId: input.orderId },
+    data: { orderId: input.orderId, ...input.data },
   });
 }
 
@@ -116,9 +117,10 @@ export async function reviewOrder(input: {
     }
     const paidPayment = order.payments.find((payment) => payment.status === "PAID" || payment.status === "PARTIALLY_REFUNDED");
     if (paidPayment) {
-      await refundPayment({ paymentId: paidPayment.id, adminUserId: input.adminUserId, reason: input.rejectionReason ?? input.customerMessage ?? input.note });
-      await createAuditLog({ userId: input.adminUserId, action: "order.rejected_after_refund", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: "REJECTED" }, metadata: { reason: input.rejectionReason ?? input.customerMessage ?? input.note } });
-      await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_REJECTED", title: "Kampagne nicht angenommen", message: input.customerMessage ?? input.rejectionReason ?? input.note ?? "Deine Kampagne konnte nicht angenommen werden." });
+      const rejectionMessage = input.customerMessage ?? input.rejectionReason ?? input.note ?? "Deine Kampagne konnte nicht angenommen werden.";
+      await refundPayment({ paymentId: paidPayment.id, adminUserId: input.adminUserId, reason: rejectionMessage });
+      await createAuditLog({ userId: input.adminUserId, action: "order.rejected_after_refund", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: "REJECTED" }, metadata: { reason: rejectionMessage } });
+      await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_REJECTED", title: "Kampagne nicht angenommen", message: rejectionMessage, data: { rejectionReason: rejectionMessage } });
       return prisma.order.findUniqueOrThrow({ where: { id: order.id } });
     }
     assertOrderTransition(order.status, "REJECTED");
@@ -133,7 +135,8 @@ export async function reviewOrder(input: {
       return changed;
     });
     await createAuditLog({ userId: input.adminUserId, action: "order.rejected", entityType: "Order", entityId: order.id, oldValues: { status: order.status }, newValues: { status: updated.status } });
-    await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_REJECTED", title: "Kampagne nicht angenommen", message: input.customerMessage ?? input.rejectionReason ?? input.note ?? "Deine Kampagne konnte nicht angenommen werden." });
+    const rejectionMessage = input.customerMessage ?? input.rejectionReason ?? input.note ?? "Deine Kampagne konnte nicht angenommen werden.";
+    await notifyOnce({ userId: order.customer.userId, orderId: order.id, type: "ORDER_REJECTED", title: "Kampagne nicht angenommen", message: rejectionMessage, data: { rejectionReason: rejectionMessage } });
     return updated;
   }
 
