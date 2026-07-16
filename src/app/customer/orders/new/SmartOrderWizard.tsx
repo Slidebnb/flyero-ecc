@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
 import { distributionServiceCatalog, normalizeOnlineServiceType, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
+import { MINIMUM_FLYER_QUANTITY } from "@/lib/constants";
 
 type LatLng = { lat: number; lng: number };
 type PolygonSource = "postal_code" | "manual" | "saved_area" | "drawn";
@@ -275,7 +276,6 @@ const PUBLIC_DEFAULT_CENTER: LatLng = { lat: 51.1657, lng: 10.4515 };
 const ORDER_DRAFT_KEY = "flyero:order-planner:draft:v2";
 const PUBLIC_ORDER_DRAFT_KEY = "flyero:order-planner:public-draft:v3";
 const LEGACY_ORDER_DRAFT_KEY = "flyero:customer:new-order-draft";
-const MINIMUM_FLYER_QUANTITY = 100;
 const MAXIMUM_FLYER_QUANTITY = 250_000;
 
 const productOptions = [
@@ -401,21 +401,23 @@ function areaCenter(area: ReusableAreaOption, fallback: LatLng) {
 }
 
 function recommendedFlyersForHouseholds(households: number) {
-  return Math.max(500, Math.ceil((Math.max(0, households) * 1.1) / 100) * 100);
+  return Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((Math.max(0, households) * 1.1) / 100) * 100);
 }
 
-function confidenceLabel(confidence?: "high" | "medium" | "low") {
+function confidenceLabel(confidence?: "high" | "medium" | "low", hasArea = true) {
+  if (!hasArea) return "Gebiet auf der Karte auswählen";
   if (confidence === "high") return "Gebietsdaten geprüft";
   if (confidence === "medium") return "Gebiet aus verfügbaren Daten berechnet";
-  return "Gebiet wird nach der Anfrage geprüft";
+  return "Gebietsdaten werden geprüft";
 }
 
-function syncStateLabel(status: "local" | "updating" | "live" | "error", confidence?: "high" | "medium" | "low", pending?: boolean) {
+function syncStateLabel(status: "local" | "updating" | "live" | "error", confidence?: "high" | "medium" | "low", pending?: boolean, hasArea = true) {
+  if (!hasArea) return "Gebiet auswählen";
   if (status === "updating" || pending) return "Wird aktualisiert";
   if (status === "live" && confidence === "high") return "Gebiet geprüft";
   if (status === "live") return "Gebiet berechnet";
-  if (status === "error") return "Vorläufige Schätzung";
-  return "Vorläufige Schätzung";
+  if (status === "error") return "Prüfung erforderlich";
+  return "Berechnung vorbereitet";
 }
 
 function pathToPoints(path: GooglePath) {
@@ -711,7 +713,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segment.points), 0),
     [areaSegmentsPayload],
   );
-  const localHouseholds = useMemo(() => estimateHouseholdsFromArea(coverageAreaSqm), [coverageAreaSqm]);
+  const localHouseholds = useMemo(() => coverageAreaSqm > 0 ? estimateHouseholdsFromArea(coverageAreaSqm) : 0, [coverageAreaSqm]);
   const localRouteDistanceMeters = useMemo(
     () => estimateWalkingDistanceMeters(coverageAreaSqm, perimeterMeters, localHouseholds),
     [coverageAreaSqm, localHouseholds, perimeterMeters],
@@ -729,9 +731,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const grossPrice = intelligence?.metrics.grossPrice ?? "0";
   const pricePreviewText = Number(netPrice) > 0
     ? formatCurrency(netPrice)
-    : city && postalCode
-      ? "Preisvorschau folgt"
-      : "Gebiet auswählen";
+    : coverageAreaSqm > 0 && intelligenceStatus === "error"
+      ? "Preis wird von FLYERO geprüft"
+      : coverageAreaSqm > 0
+        ? "Preis wird aktualisiert"
+        : "Gebiet auf der Karte auswählen";
   const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
   const recommendedFlyerQuantity = recommendedFlyersForHouseholds(households);
   const deliverabilityScore = intelligence?.metrics.score ?? null;
@@ -1290,6 +1294,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   const applyLocationResult = useCallback((result: LocationResult, options?: { forceReplace?: boolean }) => {
     if (options?.forceReplace) {
+      polygonRef.current?.setMap(null);
+      polygonRef.current = null;
+      for (const overlay of segmentPolygonsRef.current.values()) overlay.setMap(null);
+      segmentPolygonsRef.current.clear();
       areaSegmentsRef.current = [];
       setAreaSegments([]);
       setActiveSegmentId(null);
@@ -1334,6 +1342,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     else if (result.postalCode || result.city) setQuery([result.postalCode, result.city].filter(Boolean).join(" "));
     const nextCenter = { lat: Number(result.lat), lng: Number(result.lng) };
     if (Number.isFinite(nextCenter.lat) && Number.isFinite(nextCenter.lng)) {
+      mapRef.current?.setCenter(nextCenter);
+      mapRef.current?.setZoom(result.street ? 16 : 14);
       const matchedArea = findAreaForLocation(result);
       if (matchedArea?.points.length) {
         const matchedCenter = areaCenter(matchedArea.area, nextCenter);
@@ -1387,8 +1397,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     locationAbortRef.current?.abort();
     const controller = new AbortController();
     locationAbortRef.current = controller;
+    setMapNotice("Standort wird gesucht...");
     const params = new URLSearchParams({ q: currentQuery.trim() });
-    if (!isPublicPlanner) {
+    const hasFreshLocationInput = Boolean(placeId || currentQuery.trim() !== query.trim());
+    if (!isPublicPlanner && !hasFreshLocationInput) {
       params.set("city", city);
       params.set("postalCode", postalCode);
       params.set("street", street);
@@ -1884,6 +1896,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     confirmedIntelligenceRequestRef.current = null;
     polygonRef.current?.setMap(null);
     polygonRef.current = null;
+    for (const overlay of segmentPolygonsRef.current.values()) overlay.setMap(null);
+    segmentPolygonsRef.current.clear();
     areaSegmentsRef.current = [];
     selectedBoundaryPlaceIdsRef.current = [];
     setIntelligence(null);
@@ -2772,7 +2786,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               <p>Aktualisiert sich, sobald du das Gebiet änderst.</p>
             </div>
             <span className={`overviewSyncState ${intelligenceStatus}`}>
-              {syncStateLabel(intelligenceStatus, areaStats.confidence, isPending)}
+              {syncStateLabel(intelligenceStatus, areaStats.confidence, isPending, coverageAreaSqm > 0)}
             </span>
             <button
               type="button"
@@ -2787,7 +2801,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </button>
           </div>
           <div className="overviewMetaRow">
-            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
+            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, coverageAreaSqm > 0)}</p>
             {overviewOffset.x !== 0 || overviewOffset.y !== 0 ? (
               <button type="button" onClick={() => setOverviewOffset({ x: 0, y: 0 })}>Zurücksetzen</button>
             ) : null}

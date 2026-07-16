@@ -7,6 +7,7 @@ import { calculateOrderPrice } from "@/lib/pricing";
 import { aggregateOrderAreaSegments, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
 import { buildAuthoritativePlanningQuote, buildPlanningInputFingerprint, planningGeometry } from "@/lib/planningQuote";
 import { parseGeocodeQuery } from "@/lib/geocodeQuery";
+import { MINIMUM_FLYER_QUANTITY } from "@/lib/constants";
 
 export type SmartPlaceSuggestion = {
   id: string;
@@ -435,7 +436,7 @@ export async function getOrderIntelligence(input: {
   const households = segmentCalculations
     ? segmentCalculations.reduce((sum, item) => sum + item.households, 0)
     : estimateHouseholds({ coverageAreaSqm: effectiveCoverageAreaSqm, cityDensityFactor: densityFactor });
-  const recommendedFlyerQuantity = Math.max(500, Math.ceil((households * 1.1) / 100) * 100);
+  const recommendedFlyerQuantity = Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((households * 1.1) / 100) * 100);
   const flyerQuantity = input.flyerQuantity ?? recommendedFlyerQuantity;
   const routeDistanceMeters = effectiveCoverageAreaSqm
     ? estimateRouteDistanceMeters({

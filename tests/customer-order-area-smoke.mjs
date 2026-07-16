@@ -105,7 +105,7 @@ function includes(filePath, snippets) {
 }
 
 function recommendedFlyers(households) {
-  return Math.max(500, Math.ceil((households * 1.1) / 100) * 100);
+  return Math.max(100, Math.ceil((households * 1.1) / 100) * 100);
 }
 
 const premiumPricingExamples = [

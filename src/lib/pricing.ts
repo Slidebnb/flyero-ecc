@@ -6,7 +6,7 @@ import { createNotification } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { ensureDefaultPricingSettings, getSystemSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 import { buildPlanningInputFingerprint } from "@/lib/planningQuote";
-import { serviceCatalogLabel } from "@/lib/serviceCatalog";
+import { normalizeOnlineServiceType, serviceCatalogLabel } from "@/lib/serviceCatalog";
 import {
   AREA_DIFFICULTY_FACTORS as DEFAULT_AREA_DIFFICULTY_FACTORS,
   DEFAULT_PRICING_SETTINGS,
@@ -611,15 +611,16 @@ export async function calculateOrderPrice(input: {
   storageUnits?: number;
   handlingFeeNet?: Prisma.Decimal | string | number;
 }): Promise<PriceCalculation> {
+  const pricingServiceType = normalizeOnlineServiceType(input.serviceType) as ServiceType;
   const [requestedRules, vatRate] = await Promise.all([
-    input.pricingRulesOverride ?? getActivePricingRules(input.serviceType),
+    input.pricingRulesOverride ?? getActivePricingRules(pricingServiceType),
     getVatRate(),
   ]);
   const settings = await getPricingSettingValues();
-  const pricingBasisServiceType = requestedRules.length || input.serviceType === ServiceType.FLYER_DISTRIBUTION
-    ? input.serviceType
-    : ServiceType.FLYER_DISTRIBUTION;
-  const rules = pricingBasisServiceType === input.serviceType
+  const pricingBasisServiceType = requestedRules.length || pricingServiceType === ServiceType.FLYER_STANDARD
+    ? pricingServiceType
+    : ServiceType.FLYER_STANDARD;
+  const rules = pricingBasisServiceType === pricingServiceType
     ? requestedRules
     : await getActivePricingRules(pricingBasisServiceType);
 
@@ -667,17 +668,18 @@ export async function calculateOrderPrice(input: {
   const percentageSurchargeBase = distributionNet
     .mul(input.express ? expressSurchargePercent : 0).div(100)
     .plus(distributionNet.mul(weekendSurchargePercent).div(100));
-  const samplingHandlingFee = input.serviceType === ServiceType.PRODUCT_SAMPLING
+  const samplingHandlingFee = pricingServiceType === ServiceType.PRODUCT_SAMPLING
     ? settingValue(settings, DEFAULT_PRICING_SETTINGS.samplingHandlingFeePerUnit.key, "0.15").mul(input.flyerQuantity)
     : new Prisma.Decimal("0");
   const handlingFees = additionalAreaFeeNet.plus(pickupFeeNet).plus(storageFeeNet).plus(handlingFeeNet).plus(samplingHandlingFee).plus(percentageSurchargeBase).toDecimalPlaces(2);
   const net = distributionNet.plus(handlingFees).toDecimalPlaces(2);
   const vat = net.mul(vatRate).toDecimalPlaces(2);
   const gross = net.plus(vat).toDecimalPlaces(2);
-  const pricingVersion = input.serviceType === ServiceType.FLYER_DISTRIBUTION
+  const usesLegacyDistributionContract = input.serviceType === ServiceType.FLYER_DISTRIBUTION;
+  const pricingVersion = usesLegacyDistributionContract
     ? PREMIUM_PRICING_VERSION
     : rule?.pricingVersion ?? SERVICE_PRICING_VERSION;
-  const configurationVersion = input.serviceType === ServiceType.FLYER_DISTRIBUTION
+  const configurationVersion = usesLegacyDistributionContract
     ? PRICING_CONFIGURATION_VERSION
     : rule?.configurationVersion ?? PRICING_CONFIGURATION_VERSION;
   const tier1 = rules[0];

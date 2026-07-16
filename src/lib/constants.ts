@@ -31,6 +31,8 @@ export const WORKING_TIMES = ["Vormittags", "Nachmittags", "Abends"] as const;
 
 export const SERVICE_RADII = [10, 20, 30, 50, 100] as const;
 
+export const MINIMUM_FLYER_QUANTITY = 100;
+
 export const MOBILITY_OPTIONS: { value: MobilityType; label: string }[] = [
   { value: "WALK", label: "Zu Fuß" },
   { value: "BIKE", label: "Fahrrad" },

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
+const constants = readFileSync("src/lib/constants.ts", "utf8");
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -8,7 +9,8 @@ function assert(condition, message) {
 
 assert(wizard.includes("useState(MINIMUM_FLYER_QUANTITY)"), "Jeder neue Auftrag muss mit der kleinsten Flyerzahl starten.");
 assert(wizard.includes("setFlyerQuantity(MINIMUM_FLYER_QUANTITY)"), "Alte automatische Flyerempfehlungen duerfen nicht als Auftragsmenge uebernommen werden.");
-assert(wizard.includes("const MINIMUM_FLYER_QUANTITY = 500"), "Die Mindestmenge muss zentral im Wizard benannt sein.");
+assert(constants.includes("export const MINIMUM_FLYER_QUANTITY = 100"), "Die Mindestmenge muss zentral im Projekt benannt sein.");
+assert(wizard.includes('from "@/lib/constants"'), "Der Kundenwizard muss dieselbe zentrale Mindestmenge verwenden.");
 assert(wizard.includes("setIntelligence(null);\n    setIntelligenceStatus(\"updating\");"), "Alte Gebietsberechnungen muessen bei neuer Eingabe sofort verworfen werden.");
 assert(wizard.includes("coverageAreaSqm: String(coverageAreaSqm)"), "Die aktuelle Flaeche muss Teil jeder Live-Berechnung sein.");
 assert(wizard.includes("segments: JSON.stringify(areaSegmentsPayload"), "Aenderungen an Teilgebieten muessen die Live-Berechnung aktualisieren.");

@@ -44,9 +44,9 @@ const priceDetails = [
 export default async function PricingPage() {
   const pricing = await getPricingSettings();
   const exampleQuantities = [500, 3000, 10000] as const;
-  const examplePrices = await Promise.all(exampleQuantities.map((flyerQuantity) => calculateOrderPrice({ serviceType: ServiceType.FLYER_DISTRIBUTION, flyerQuantity })));
+  const examplePrices = await Promise.all(exampleQuantities.map((flyerQuantity) => calculateOrderPrice({ serviceType: ServiceType.FLYER_STANDARD, flyerQuantity })));
   const distributionRules = pricing.rules
-    .filter((rule) => rule.serviceType === ServiceType.FLYER_DISTRIBUTION)
+    .filter((rule) => rule.serviceType === ServiceType.FLYER_STANDARD)
     .sort((left, right) => left.minQuantity - right.minQuantity);
   const minimumOrderValue = distributionRules.length
     ? distributionRules.reduce((minimum, rule) => minimum < rule.minimumNetPrice ? minimum : rule.minimumNetPrice, distributionRules[0].minimumNetPrice)
