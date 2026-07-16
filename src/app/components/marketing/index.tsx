@@ -22,6 +22,8 @@ import {
   Utensils,
 } from "lucide-react";
 import { MobileMenu } from "@/app/components/MobileMenu";
+import { industryPages } from "@/app/branchen/industryData";
+export { IndustryLandingPage } from "@/app/components/marketing/IndustryLandingPage";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "dark" | "coral";
 
@@ -112,6 +114,10 @@ export function PublicFooter() {
           ["Kontakt", "/kontakt"],
           ["Login", "/login"],
         ]}
+      />
+      <FooterColumn
+        title="Branchen"
+        links={industryPages.map((page) => [page.label, page.path] as const)}
       />
       <FooterColumn
         title="Rechtliches"

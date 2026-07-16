@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
           "/so-funktionierts",
           "/preise",
           "/kontakt",
+          "/branchen",
           "/impressum",
           "/datenschutz",
           "/agb",

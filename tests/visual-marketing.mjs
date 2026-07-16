@@ -11,6 +11,19 @@ const targets = [
   { name: "home-mobile", path: "/", width: 390, height: 1100 },
   { name: "verteilung-anfragen-desktop", path: "/verteilung-anfragen", width: 1440, height: 1100 },
   { name: "verteilung-anfragen-mobile", path: "/verteilung-anfragen", width: 390, height: 1100 },
+  ...[
+    "baeckereien",
+    "gastronomie",
+    "fitnessstudios",
+    "handwerk",
+    "immobilien",
+    "einzelhandel",
+    "events-vereine",
+    "neueroeffnungen",
+  ].flatMap((slug) => [
+    { name: `industry-${slug}-desktop`, path: `/branchen/${slug}`, width: 1440, height: 1100 },
+    { name: `industry-${slug}-mobile`, path: `/branchen/${slug}`, width: 390, height: 1100 },
+  ]),
 ];
 
 await mkdir(outDir, { recursive: true });
