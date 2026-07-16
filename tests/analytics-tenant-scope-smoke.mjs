@@ -29,7 +29,7 @@ assert.match(analytics, /tenantId: scope\.tenantId/);
 assert.match(support, /tenantId: scope\.tenantId/);
 assert.match(documents, /tenantId: scope\.tenantId/);
 assert.match(heatmap, /export async function getHeatmapData\(tenantId\?: string \| null\)/);
-assert.match(heatmap, /where: tenantId \? \{ tenantId \} : undefined/);
+assert.match(heatmap, /tenantId \? \{ OR: \[\{ tenantId: null \}, \{ tenantId \}\] \} : \{\}/);
 assert.match(heatmapRoute, /requirePermission\(Permission\.ANALYTICS_VIEW\)/);
 assert.match(heatmapRoute, /getHeatmapData\(session\.role === UserRole\.ADMIN \? undefined : session\.tenantId\)/);
 
