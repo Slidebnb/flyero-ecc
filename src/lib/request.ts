@@ -73,6 +73,10 @@ export function routeErrorResponse(error: unknown) {
     return Response.json({ ok: false, code: "PAYMENT_NOT_ALLOWED_BEFORE_REVIEW", error: "Diese Anfrage muss zuerst durch FLYERO geprüft werden. Danach erhältst du den Zahlungslink." }, { status: 409 });
   }
 
+  if (error instanceof Error && (error as Error & { code?: string }).code === "INVALID_ORDER_TRANSITION") {
+    return Response.json({ ok: false, code: "INVALID_ORDER_TRANSITION", error: "Dieser Kampagnenstatus kann aus dem aktuellen Stand nicht gesetzt werden." }, { status: 409 });
+  }
+
   if (error instanceof Error && (error as Error & { code?: string }).code === "PRINT_SERVICE_CONTACT_ONLY") {
     return Response.json({ ok: false, code: "PRINT_SERVICE_CONTACT_ONLY", error: "FLYERO bietet im Online-Auftrag keinen Druckservice an. Bitte besprich den Druck separat über den Kontakt zu uns." }, { status: 422 });
   }

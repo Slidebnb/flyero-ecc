@@ -190,6 +190,8 @@ async function main() {
       body: {
         city: "Koblenz",
         postalCode: "56068",
+        street: "Betaallee",
+        houseNumber: "7",
         flyerQuantity: 1400,
         coverageAreaSqm: 640000,
         flyerSource: "CUSTOMER_OWN",
@@ -214,6 +216,7 @@ async function main() {
         estimatedHouseholds: 1200,
         estimatedFlyers: 1300,
         flyerQuantity: 1400,
+        coverageAreaSqm: 640000,
         flyerSource: "CUSTOMER_OWN",
         preferredStartDate: startDate,
         preferredEndDate: endDate,
@@ -231,7 +234,7 @@ async function main() {
       headers: { cookie: adminCookie, "content-type": "application/json" },
       body: JSON.stringify({ status: "READY_FOR_PICKUP" }),
     });
-    assert(invalidTransition.status === 409, "Ungueltiger Order-Statuswechsel wurde nicht blockiert.");
+    assert(invalidTransition.status === 409, `Ungueltiger Order-Statuswechsel wurde nicht blockiert (${invalidTransition.status}): ${await invalidTransition.text()}`);
 
     const checkout = await jsonRequest("/api/payments/checkout", {
       method: "POST",

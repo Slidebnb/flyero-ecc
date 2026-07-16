@@ -13,7 +13,9 @@ export function assertOrderTransition(from: OrderStatus, to: OrderStatus) {
   }
 
   if (!isValidOrderTransition(from, to)) {
-    throw new Error(`Ungueltiger Statuswechsel von ${from} zu ${to}.`);
+    const error = new Error(`Ungueltiger Statuswechsel von ${from} zu ${to}.`) as Error & { code?: string };
+    error.code = "INVALID_ORDER_TRANSITION";
+    throw error;
   }
 }
 
