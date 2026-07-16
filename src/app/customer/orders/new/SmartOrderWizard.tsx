@@ -869,6 +869,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     targetAreaName,
   ]);
 
+  const warehouseSuggestionLabel = coverageAreaSqm > 0
+    ? areaStats.warehouseSuggestion ?? "Wird von FLYERO geprüft"
+    : "Gebiet auswählen";
+
   const findAreaForLocation = useCallback((result: LocationResult) => {
     const resultCity = normalizeLocationPart(result.city);
     const resultPostalCode = (result.postalCode ?? "").trim();
@@ -2556,7 +2560,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <span><strong>{selectedWarehouse?.name ?? "Bitte auswählen"}</strong>Empfangslager</span>
           </div>
           <p className="orderReviewNotice">Deine Flyer sind bereits gedruckt und werden nach der Buchung an das ausgewählte Empfangslager gesendet. FLYERO prüft Gebiet und Zustellbarkeit vor der Durchführung.</p>
-          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
+          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, coverageAreaSqm > 0)}</p>
           <div className="proofIncludedList">
             <span>GPS-Nachweis nach der Verteilung</span>
             <span>Foto-Dokumentation nach der Verteilung</span>
@@ -2584,10 +2588,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
             <span><strong>{intelligence ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
             <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
-            <span><strong>{areaStats.warehouseSuggestion ?? "wird geprüft"}</strong>Nächstes Lager</span>
+            <span><strong>{warehouseSuggestionLabel}</strong>Nächstes Lager</span>
           </div>
           <p className="orderReviewNotice">Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist. Falls sich etwas ändert, melden wir uns.</p>
-          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence)}</p>
+          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, coverageAreaSqm > 0)}</p>
           <div className="proofIncludedList">
             <span>GPS-Nachweis nach der Verteilung</span>
             <span>Foto-Dokumentation nach der Verteilung</span>
@@ -2810,7 +2814,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
             <div><dt>Empfohlene Flyerzahl</dt><dd>{formatNumber(recommendedFlyerQuantity)} Flyer</dd></div>
             <div><dt>Preis netto zzgl. MwSt.</dt><dd>{pricePreviewText}</dd></div>
-            <div><dt>Nächstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird geprüft"}</dd></div>
+            <div><dt>Nächstes Lager</dt><dd>{warehouseSuggestionLabel}</dd></div>
           </dl>
           <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore)}</p>
         </aside>

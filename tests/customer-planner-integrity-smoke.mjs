@@ -62,6 +62,19 @@ assertMatch(
   /setMapNotice\("Standort wird gesucht\.\.\."\);/,
   "Eine neue PLZ-Suche muss den alten Suchhinweis sofort ersetzen.",
 );
+assertMatch(
+  /const warehouseSuggestionLabel = coverageAreaSqm > 0[\s\S]*?"Gebiet auswählen";/,
+  "Ohne Flaeche darf das Lagerfeld keine offene Pruefung suggerieren.",
+);
+assert.doesNotMatch(
+  wizard,
+  /warehouseSuggestion \?\? "wird geprüft"/,
+  "Der alte offene Lagerstatus darf nicht zurueckkehren.",
+);
+assertMatch(
+  /confidenceLabel\(areaStats\.confidence, coverageAreaSqm > 0\)/,
+  "Die Datenbasis muss ohne Flaeche einen klaren naechsten Schritt anzeigen.",
+);
 
 const migrationCommand = "docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy";
 assert.ok(deployment.includes(migrationCommand), "Das Produktions-Deployment muss Prisma-Migrationen vor dem Start ausfuehren.");
