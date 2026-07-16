@@ -452,7 +452,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                   <tr key={recommendation.distributorId}>
                     <td>{recommendation.name}</td>
                     <td>{recommendation.city || "-"}</td>
-                    <td>ca. {recommendation.distanceKm.toFixed(0)} km<br /><small>regionale Schätzung</small></td>
+                    <td>{recommendation.distanceKm == null ? "Nicht ermittelt" : <>ca. {recommendation.distanceKm.toFixed(0)} km<br /><small>aus Koordinaten berechnet</small></>}</td>
                     <td>{recommendation.openTours}</td>
                     <td>{recommendation.capacityWarning ? "Kapazität überschritten" : "OK"}</td>
                     <td>{recommendation.rating.toFixed(1)}</td>

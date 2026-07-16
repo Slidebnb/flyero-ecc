@@ -20,7 +20,7 @@ export function createSeoMetadata({ title, description, path = "/", keywords = [
       "Flyerverteilung",
       "Flyer verteilen lassen",
       "GPS Nachweis",
-      "Koblenz",
+      "Deutschland",
       "Verteilgebiet",
       ...keywords,
     ],

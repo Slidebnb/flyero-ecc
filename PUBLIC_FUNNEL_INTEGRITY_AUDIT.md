@@ -122,3 +122,11 @@ In dieser Arbeitsrunde erfolgreich:
 - Kein neues Grunddesign.
 - Keine Fake-Karten, Fake-GPS-Daten oder Fake-Haushalte.
 - Keine automatische Zusicherung einer exakten Haushaltsabdeckung ohne entsprechende Datenquelle.
+
+## Deutschlandweite Gebiete
+
+Die öffentliche Suche ist nicht auf einzelne Orte begrenzt. Sie nutzt die Google-Geocoding-/Autocomplete-Schnittstelle mit `country:de`; lokale Gebietstabellen werden im öffentlichen Pfad nicht als Fallback verwendet. Dadurch kann jede deutsche PLZ, Stadt, Gemeinde oder Adresse verarbeitet werden, sofern Google sie auflösen kann und der Standortkontext serverseitig bestätigt wird.
+
+Die operative Durchführung hängt weiterhin von den gepflegten `WarehouseRegion`- und Partnerdaten ab. Ein unbekanntes oder noch nicht versorgtes Gebiet darf deshalb angefragt werden und wird als manuelle Prüfung behandelt; es darf nicht stillschweigend einem Koblenz-, Neuwied- oder Bendorf-Fallback zugewiesen werden.
+
+Auch Verteiler-Einsatzgebiete sind nicht mehr als feste Ortsliste codiert. Verteiler können Städte, PLZ-Bereiche oder `deutschlandweit` angeben. Bei fehlenden echten Koordinaten verwendet die Disposition keine erfundene regionale Kilometerzahl, sondern kennzeichnet die Entfernung als „Nicht ermittelt“ und lässt die manuelle Prüfung zu.

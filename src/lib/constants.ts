@@ -17,19 +17,6 @@ export const ROLE_HOME: Record<UserRole, string> = {
   SUPPORT_DISPATCHER: "/admin/dispatch",
 };
 
-export const DISTRIBUTOR_AREAS = [
-  "Koblenz",
-  "Neuwied",
-  "Bendorf",
-  "Lahnstein",
-  "Andernach",
-  "Vallendar",
-  "Muelheim-Kaerlich",
-  "Urmitz",
-  "Weissenthurm",
-  "Plaidt",
-] as const;
-
 export const WEEKDAYS = [
   "Montag",
   "Dienstag",

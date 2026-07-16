@@ -180,7 +180,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                         <td>{recommendation.reasons.join(", ")}</td>
                         <td>{recommendation.warnings.length ? recommendation.warnings.join(", ") : "-"}</td>
                         <td>{recommendation.city || "-"}</td>
-                        <td>ca. {recommendation.distanceKm.toFixed(0)} km<br /><small>regionale Schätzung</small></td>
+                        <td>{recommendation.distanceKm == null ? "Nicht ermittelt" : <>ca. {recommendation.distanceKm.toFixed(0)} km<br /><small>aus Koordinaten berechnet</small></>}</td>
                         <td>{recommendation.openTours}</td>
                         <td>
                           <span className={recommendation.capacityWarning ? "badge warning" : "badge success"}>

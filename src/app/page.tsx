@@ -72,7 +72,7 @@ const faqs = [
   ["Wie schnell kann eine Verteilung starten?", "Das hängt von Gebiet, Auflage, Druckdaten und Verfügbarkeit der Verteiler ab. Für einfache Kampagnen kann die Planung kurzfristig starten, sobald Daten und Gebiet klar sind."],
   ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Der Nachweis besteht aus dem GPS-Bericht des eingesetzten Trackingsystems, Foto-Dokumentation und einem geprüften Bericht, sobald die Verteilung freigegeben wurde."],
   ["Kann ich den Preis vorher sehen?", "Ja. Bei der direkten Online-Buchung werden Gebiet, Menge und Zeitraum vor der Zahlung geprüft."],
-  ["Ist FLYERO nur für Koblenz gedacht?", "Nein. Sie können Gebiete in ganz Deutschland planen. Ob eine direkte Durchführung möglich ist, prüfen wir je Gebiet und Logistik."],
+  ["Ist FLYERO nur für eine Region gedacht?", "Nein. Sie können Gebiete in ganz Deutschland planen. Ob eine direkte Durchführung möglich ist, prüfen wir je Gebiet und Logistik."],
 ] as const;
 
 export default function HomePage() {

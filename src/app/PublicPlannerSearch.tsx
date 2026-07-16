@@ -153,7 +153,7 @@ export function PublicPlannerSearch() {
             }}
             onFocus={() => setOpen(true)}
             onBlur={() => window.setTimeout(() => setOpen(false), 150)}
-            placeholder="z. B. 56068 Koblenz"
+            placeholder="z. B. PLZ, Ort oder Adresse"
             autoComplete="off"
             role="combobox"
             aria-autocomplete="list"

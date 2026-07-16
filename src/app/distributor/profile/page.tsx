@@ -3,7 +3,6 @@ import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
-  DISTRIBUTOR_AREAS,
   MOBILITY_OPTIONS,
   SERVICE_RADII,
   WEEKDAYS,
@@ -147,19 +146,11 @@ export default async function DistributorProfilePage() {
 
           <fieldset className="fieldset">
             <legend>Einsatzorte</legend>
-            <div className="checkboxGrid">
-              {DISTRIBUTOR_AREAS.map((area) => (
-                <label key={area}>
-                  <input
-                    name="preferredAreas"
-                    type="checkbox"
-                    value={area}
-                    defaultChecked={isChecked(profile.preferredAreas, area)}
-                  />
-                  {area}
-                </label>
-              ))}
-            </div>
+            <label>
+              Städte, PLZ-Bereiche oder deutschlandweit
+              <textarea name="preferredAreas" rows={3} required defaultValue={profile.preferredAreas.join(", ")} />
+            </label>
+            <p className="muted">Mehrere Angaben bitte mit Komma oder Zeilenumbruch trennen.</p>
           </fieldset>
 
           <label>

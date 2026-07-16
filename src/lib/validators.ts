@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  DISTRIBUTOR_AREAS,
   ADMIN_ORDER_STATUS_OPTIONS,
   SERVICE_RADII,
   WEEKDAYS,
@@ -37,6 +36,11 @@ export const addressSchema = z.object({
 const checkboxArray = z
   .union([z.string(), z.array(z.string())])
   .transform((value) => (Array.isArray(value) ? value : [value]));
+
+const preferredAreasInput = z
+  .union([z.string(), z.array(z.string())])
+  .transform((value) => (Array.isArray(value) ? value : value.split(/[,;\n]/)))
+  .pipe(z.array(z.string().trim().min(2).max(120)).min(1).max(50));
 
 const optionalText = z
   .string()
@@ -147,9 +151,7 @@ export const distributorRegisterSchema = z.object({
   city: z.string().min(1),
   federalState: z.string().min(2),
   mobilityTypes: checkboxArray.pipe(z.array(z.enum(["WALK", "BIKE", "CAR"])).min(1)),
-  preferredAreas: checkboxArray.pipe(
-    z.array(z.enum(DISTRIBUTOR_AREAS)).min(1),
-  ),
+  preferredAreas: preferredAreasInput,
   availabilityDays: checkboxArray.pipe(z.array(z.enum(WEEKDAYS)).min(1)),
   workingTimes: checkboxArray.pipe(z.array(z.enum(WORKING_TIMES)).min(1)),
   serviceRadiusKm: z.coerce.number().refine(

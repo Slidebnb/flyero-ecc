@@ -49,8 +49,8 @@ export type DistributorRecommendation = {
   userId: string;
   name: string;
   city: string;
-  distanceKm: number;
-  distanceSource: "address-geodesic-estimate" | "regional-estimate";
+  distanceKm: number | null;
+  distanceSource: "address-geodesic-estimate" | "unavailable";
   openTours: number;
   currentAssignedTours: number;
   currentAssignedFlyers: number;
@@ -74,24 +74,6 @@ function normalizeCity(city?: string | null) {
   return (city ?? "").trim().toLowerCase();
 }
 
-function cityDistanceKm(from?: string | null, to?: string | null) {
-  const normalizedFrom = normalizeCity(from);
-  const normalizedTo = normalizeCity(to);
-
-  if (!normalizedFrom || !normalizedTo) return 35;
-  if (normalizedFrom === normalizedTo) return 3;
-
-  const regionGroups = [
-    ["koblenz", "lahnstein", "vallendar", "bendorf", "muelheim-kaerlich", "urmitz", "weissenthurm"],
-    ["neuwied", "andernach", "plaidt", "bendorf", "urmitz", "weissenthurm"],
-  ];
-  if (regionGroups.some((group) => group.includes(normalizedFrom) && group.includes(normalizedTo))) {
-    return 18;
-  }
-
-  return 55;
-}
-
 function addressCoordinates(address: unknown) {
   const value = asObject(address);
   const lat = Number(value.lat ?? value.latitude);
@@ -110,10 +92,6 @@ function haversineKm(from: { lat: number; lng: number }, to: { lat: number; lng:
 
 function targetCity(inventory: ReadyInventory) {
   return inventory.order.city || addressCity(inventory.order.targetAddress) || inventory.warehouseLocation?.warehouse.city || "";
-}
-
-function warehouseCity(inventory: ReadyInventory) {
-  return inventory.warehouseLocation?.warehouse.city || targetCity(inventory);
 }
 
 async function syncDistributorCapacity(distributorId: string) {
@@ -154,8 +132,8 @@ async function distributorSnapshot(distributor: DistributorWithUser, inventory: 
     : null;
   const distanceKm = distributorCoordinates && warehouseCoordinates
     ? haversineKm(distributorCoordinates, warehouseCoordinates)
-    : cityDistanceKm(city, warehouseCity(inventory));
-  const distanceSource = distributorCoordinates && warehouseCoordinates ? "address-geodesic-estimate" : "regional-estimate";
+    : null;
+  const distanceSource = distributorCoordinates && warehouseCoordinates ? "address-geodesic-estimate" : "unavailable";
   const requestedFlyers = flyerQuantityOverride ?? inventory.order.flyerQuantity;
   const futureFlyers = capacity.currentAssignedFlyers + requestedFlyers;
   const futureTours = capacity.currentAssignedTours + 1;
@@ -174,13 +152,14 @@ async function distributorSnapshot(distributor: DistributorWithUser, inventory: 
   if (preferredAreaMatch) reasons.push("Einsatzgebiet passt");
   if (distributor.availableToday) reasons.push("Heute verfügbar");
   if (futureFlyers <= distributor.maxFlyersPerDay && futureTours <= distributor.maxToursPerDay) reasons.push("Kapazität frei");
-  if (distanceKm <= 10) reasons.push("Kurze Distanz zum Lager/Gebiet");
+  if (distanceKm !== null && distanceKm <= 10) reasons.push("Kurze Distanz zum Lager/Gebiet");
   if (capacity.completedTours > 0) reasons.push(`${capacity.completedTours} abgeschlossene Touren`);
   if (!preferredAreaMatch) warnings.push("Einsatzgebiet nicht exakt in bevorzugten Gebieten");
   if (!distributor.availableToday) warnings.push("Heute nicht verfügbar");
   if (futureFlyers > distributor.maxFlyersPerDay) warnings.push("Flyer-Kapazität überschritten");
   if (futureTours > distributor.maxToursPerDay) warnings.push("Tour-Kapazität überschritten");
-  if (distanceKm > distributor.serviceRadiusKm) warnings.push("Ausserhalb Service-Radius");
+  if (distanceKm === null) warnings.push("Entfernung nicht ermittelbar");
+  else if (distanceKm > distributor.serviceRadiusKm) warnings.push("Ausserhalb Service-Radius");
   if (rejectionRate >= 0.35) warnings.push("Hohe Ablehnungsrate");
   if (capacity.currentAssignedTours > 0) warnings.push("Bereits offene Touren");
 
@@ -190,7 +169,7 @@ async function distributorSnapshot(distributor: DistributorWithUser, inventory: 
     (distributor.availableToday ? 10 : -30) +
     (futureFlyers <= distributor.maxFlyersPerDay ? 10 : -20) +
     (futureTours <= distributor.maxToursPerDay ? 10 : -20) +
-    Math.max(0, 15 - Math.round(distanceKm / 3)) +
+    (distanceKm === null ? 0 : Math.max(0, 15 - Math.round(distanceKm / 3))) +
     Math.min(10, capacity.completedTours * 2) +
     Math.round(Number(distributor.rating) * 2) -
     Math.round(rejectionRate * 25) -
@@ -251,7 +230,7 @@ export async function getSuitableDistributors(orderId: string, tenantId?: string
   const recommendations = await Promise.all(
     distributors.map(async (distributor) => {
       const recommendation = await distributorSnapshot(distributor, inventory, segmentFlyerQuantity);
-      const withinRadius = recommendation.distanceKm <= distributor.serviceRadiusKm;
+      const withinRadius = recommendation.distanceKm === null || recommendation.distanceKm <= distributor.serviceRadiusKm;
       const preferredAreaMatch = distributor.preferredAreas.some(
         (area) => normalizeCity(area) === normalizeCity(targetCity(inventory)),
       );
@@ -261,7 +240,7 @@ export async function getSuitableDistributors(orderId: string, tenantId?: string
 
   return recommendations
     .filter((value): value is DistributorRecommendation => Boolean(value))
-    .sort((a, b) => Number(a.capacityWarning) - Number(b.capacityWarning) || b.score - a.score || a.distanceKm - b.distanceKm);
+    .sort((a, b) => Number(a.capacityWarning) - Number(b.capacityWarning) || b.score - a.score || (a.distanceKm ?? Number.POSITIVE_INFINITY) - (b.distanceKm ?? Number.POSITIVE_INFINITY));
 }
 
 export async function createAutoDispatchRecommendations(input: { orderId: string; adminUserId: string; tenantId?: string | null; segmentId?: string | null }) {
@@ -469,7 +448,7 @@ export async function assignOrderToDistributor(input: {
         assignedBy: input.adminUserId,
         capacityWarning: segmentAwareRecommendation.capacityWarning,
         recommendationScore: segmentAwareRecommendation.score,
-        distanceMeters: Math.round(segmentAwareRecommendation.distanceKm * 1000),
+        distanceMeters: segmentAwareRecommendation.distanceKm === null ? null : Math.round(segmentAwareRecommendation.distanceKm * 1000),
       },
     });
 

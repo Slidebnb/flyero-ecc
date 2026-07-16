@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { noIndexMetadata } from "@/app/seo";
 import {
-  DISTRIBUTOR_AREAS,
   MOBILITY_OPTIONS,
   SERVICE_RADII,
   WEEKDAYS,
@@ -106,14 +105,11 @@ export default function DistributorRegisterPage() {
 
           <fieldset className="fieldset">
             <legend>Einsatzorte</legend>
-            <div className="checkboxGrid">
-              {DISTRIBUTOR_AREAS.map((area) => (
-                <label key={area}>
-                  <input name="preferredAreas" type="checkbox" value={area} />
-                  {area}
-                </label>
-              ))}
-            </div>
+            <label>
+              Städte, PLZ-Bereiche oder deutschlandweit
+              <textarea name="preferredAreas" rows={3} required placeholder="z. B. 56068, 56170, Koblenz, deutschlandweit" />
+            </label>
+            <p className="muted">Mehrere Angaben bitte mit Komma oder Zeilenumbruch trennen.</p>
           </fieldset>
 
           <label>
