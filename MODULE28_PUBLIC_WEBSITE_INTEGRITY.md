@@ -71,6 +71,8 @@ sudo systemctl daemon-reload
 sudo systemctl restart flyero-notification-worker.timer
 ```
 
+Zur Ursachenanalyse von Verzogerungen schreibt der erfolgreiche oder fehlgeschlagene Versand jetzt `deliveryLatencyMs` in den NotificationLog und SystemLog. Dieser Wert misst die Zeit vom Queue-Eintrag bis zum Provider-Versuch. Er misst nicht die Zeit, die Resend oder der empfangende Mailserver nach der Provider-Annahme benotigt.
+
 ## Bewusst nicht umgesetzt
 
 - Keine neue Planner- oder Lead-Architektur.
@@ -80,5 +82,7 @@ sudo systemctl restart flyero-notification-worker.timer
 - Keine produktive Migration zu einer nativen Verteiler-App.
 
 ## Öffentliche Messpunkte
+
+Zusatzlich werden Start, Erfolg und Fehler einer unverbindlichen Anfrage als datensparsame Public-Experience-Ereignisse protokolliert. Die Ereignisse enthalten keine vollstandigen Adressen, keine Secrets und keine freien Nachrichtentexte.
 
 Die öffentliche Strecke erfasst nur datensparsame Ereignisse ohne vollständige Adressen oder Secrets: Suche abgeschickt, Autocomplete ausgewählt, initiales Geocoding gestartet/aufgelöst/fehlgeschlagen, PLZ-Mismatch, veralteten Entwurf verworfen, Standort ersetzt oder Standortsuche fehlgeschlagen. Diese Ereignisse nutzen ein eigenes Public-Experience-Rate-Limit und konkurrieren nicht mit Geocoding-/Quote-Limits.

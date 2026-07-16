@@ -16,6 +16,7 @@ const publicQuote = read("src/app/api/public/planner/quote/route.ts");
 const publicAutocomplete = read("src/app/api/public/planner/autocomplete/route.ts");
 const publicGeocode = read("src/app/api/public/planner/geocode/route.ts");
 const prices = read("src/app/preise/page.tsx");
+const leadForm = read("src/app/LeadForm.tsx");
 const protection = read("src/lib/publicAbuseProtection.ts");
 const smartMaps = read("src/lib/smartMaps.ts");
 
@@ -71,7 +72,7 @@ for (const eventType of [
   "PUBLIC_STALE_DRAFT_DISCARDED",
   "PUBLIC_LOCATION_REPLACED",
 ]) {
-  assert.match(wizard + homePlannerSearch + publicExperience, new RegExp(eventType), `${eventType} fehlt.`);
+  assert.match(wizard + homePlannerSearch + leadForm + publicExperience, new RegExp(eventType), `${eventType} fehlt.`);
 }
 assert.match(locationContext, /isGermanPostalCode/);
 assert.match(locationContext, /publicLocationSearchParams/);

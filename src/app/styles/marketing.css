@@ -728,6 +728,28 @@
   line-height: 1.45;
 }
 
+.mkAudienceCard .mkTextLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  color: var(--flyero-text);
+  font-size: 0.86rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.mkAudienceCard .mkTextLink svg {
+  width: 15px;
+  height: 15px;
+  color: var(--flyero-accent);
+}
+
+.mkAudienceCard .mkTextLink:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .mkSteps {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

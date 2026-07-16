@@ -139,6 +139,12 @@ try {
   assert.equal(processed?.status, "SENT", `Worker-Antwort: ${processBody}`);
   assert.equal(processed?.provider, "mock", "Der verwendete E-Mail-Provider muss in der Queue gespeichert werden.");
   assert.match(processed?.providerMessageId || "", /^mock_/);
+  const sentLog = await prisma.notificationLog.findFirst({
+    where: { queueId: queue.id, action: "email.sent" },
+    orderBy: { createdAt: "desc" },
+  });
+  assert.ok(sentLog, "Der erfolgreiche Versand braucht einen Versandlog.");
+  assert.equal(typeof sentLog?.metadata?.deliveryLatencyMs, "number", "Der Versandlog muss die App-Versandzeit messbar machen.");
   console.log("Operations email runtime checks passed.");
 } finally {
   await prisma.notificationQueue.deleteMany({ where: { recipientEmail: "hallo@flyero.org", payload: { path: ["source"], equals: "operations-email-runtime" } } });

@@ -70,7 +70,7 @@ export function routeErrorResponse(error: unknown) {
   }
 
   if (error instanceof Error && (error as Error & { code?: string }).code === "PAYMENT_NOT_ALLOWED_BEFORE_REVIEW") {
-    return Response.json({ ok: false, code: "PAYMENT_NOT_ALLOWED_BEFORE_REVIEW", error: "Diese Anfrage muss zuerst durch FLYERO geprÃ¼ft werden. Danach erhÃ¤ltst du den Zahlungslink." }, { status: 409 });
+    return Response.json({ ok: false, code: "PAYMENT_NOT_ALLOWED_BEFORE_REVIEW", error: "Diese Anfrage muss zuerst durch FLYERO geprüft werden. Danach erhältst du den Zahlungslink." }, { status: 409 });
   }
 
   if (error instanceof Error && (error as Error & { code?: string }).code === "PRINT_SERVICE_CONTACT_ONLY") {

@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { chromium } from "playwright";
 
-const baseUrl = process.env.MODULE28_BASE_URL || "http://localhost:3049";
+let baseUrl = process.env.MODULE28_BASE_URL || "http://localhost:3049";
 let serverProcess = null;
 
 async function waitForHealth() {
@@ -17,12 +18,19 @@ async function waitForHealth() {
 }
 
 async function ensureServer() {
-  try {
-    const response = await fetch(`${baseUrl}/api/health`);
-    if (response.ok) return;
-  } catch {}
+  const candidates = process.env.MODULE28_BASE_URL ? [baseUrl] : [baseUrl];
+  for (const candidate of candidates) {
+    try {
+      const response = await fetch(`${candidate}/api/health`);
+      if (response.ok) {
+        baseUrl = candidate;
+        return;
+      }
+    } catch {}
+  }
   const port = new URL(baseUrl).port || "3000";
-  serverProcess = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", process.env.MODULE28_SERVER_MODE === "start" ? "start" : "dev"], {
+  const serverMode = process.env.MODULE28_SERVER_MODE || (existsSync(".next/BUILD_ID") ? "start" : "dev");
+  serverProcess = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", serverMode, "--", "-p", port], {
     cwd: process.cwd(),
     env: { ...process.env, PORT: port, EMAIL_PROVIDER: "mock" },
     stdio: "ignore",

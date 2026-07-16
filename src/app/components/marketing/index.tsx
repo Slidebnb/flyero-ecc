@@ -336,7 +336,7 @@ export function FeatureCard({
   );
 }
 
-export function AudienceCard({ title, text, signal }: { title: string; text: string; signal: string }) {
+export function AudienceCard({ title, text, signal, ctaLabel }: { title: string; text: string; signal: string; ctaLabel: string }) {
   const Icon = audienceIconMap[title] ?? BriefcaseBusiness;
   return (
     <article className="mkAudienceCard">
@@ -346,6 +346,10 @@ export function AudienceCard({ title, text, signal }: { title: string; text: str
       <h3>{title}</h3>
       <p>{text}</p>
       <small>{signal}</small>
+      <Link className="mkTextLink" href="/verteilung-anfragen#anfrage">
+        {ctaLabel}
+        <ArrowRight aria-hidden="true" />
+      </Link>
     </article>
   );
 }

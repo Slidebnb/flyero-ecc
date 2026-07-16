@@ -41,7 +41,7 @@ export default function DistributionRequestPage() {
         </MarketingContainer>
       </section>
 
-      <MarketingSection>
+      <MarketingSection id="anfrage">
         <SectionHeader
           eyebrow="Starten"
           title="Drei Wege zur FLYERO Verteilung."

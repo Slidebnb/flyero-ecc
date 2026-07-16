@@ -337,7 +337,7 @@ export async function notifyEmailRecipient(input: {
       queueId: queue.id,
       action: "customer.email.queued",
       status: queue.status,
-      detail: `KundenbestÃ¤tigung fÃ¼r ${recipientEmail} vorgemerkt.`,
+      detail: `Kundenbestätigung für ${recipientEmail} vorgemerkt.`,
       metadata: { type: input.type, recipientEmail },
     },
   });

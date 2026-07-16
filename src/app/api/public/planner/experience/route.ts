@@ -22,6 +22,9 @@ const PUBLIC_EVENT_TYPES = new Set([
   "PUBLIC_STALE_DRAFT_DISCARDED",
   "PUBLIC_LOCATION_REPLACED",
   "PUBLIC_LOCATION_FAILED",
+  "PUBLIC_INQUIRY_STARTED",
+  "PUBLIC_INQUIRY_COMPLETED",
+  "PUBLIC_INQUIRY_FAILED",
   "LOCATION_SEARCH_COMPLETED",
   "AREA_SELECTED",
   "AREA_CHANGED",
@@ -51,6 +54,7 @@ const publicExperienceSchema = z.object({
   usedAutocomplete: z.boolean().optional(),
   usedSavedArea: z.boolean().optional(),
   requestId: z.string().trim().max(120).optional(),
+  analyticsSource: z.enum(["public-order-planner", "public-inquiry"]).optional(),
   polygonPoints: z.coerce.number().int().nonnegative().max(500).optional(),
   households: z.coerce.number().int().nonnegative().max(10_000_000).optional(),
   flyerQuantity: z.coerce.number().int().nonnegative().max(1_000_000).optional(),
@@ -76,7 +80,7 @@ export async function POST(request: NextRequest) {
     const event = await prisma.orderExperienceEvent.create({
       data: {
         eventType,
-        source: "public-order-planner",
+        source: body.analyticsSource ?? "public-order-planner",
         city: typeof body.city === "string" ? body.city.slice(0, 80) : null,
         postalCode: typeof body.postalCode === "string" ? body.postalCode.slice(0, 10) : null,
         areaName: typeof body.areaName === "string" ? body.areaName.slice(0, 120) : null,
@@ -91,7 +95,10 @@ export async function POST(request: NextRequest) {
         coverageAreaSqm: safeDecimal(body.coverageAreaSqm, 100_000_000),
         routeDistanceMeters: boundedInteger(body.routeDistanceMeters, 100_000_000),
         routeDurationMinutes: boundedInteger(body.routeDurationMinutes, 10_000),
-        metadata: { plannerMode: "public_quote", requestId: body.requestId ?? null },
+        metadata: {
+          plannerMode: body.analyticsSource === "public-inquiry" ? "public_inquiry" : "public_quote",
+          requestId: body.requestId ?? null,
+        },
       },
     });
     return Response.json({ ok: true, data: { id: event.id } }, { status: 201 });

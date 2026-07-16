@@ -30,12 +30,12 @@ const reasons = [
 ] as const;
 
 const audiences = [
-  ["Immobilien", "Neubauprojekte, Besichtigungen und Objektkampagnen im passenden Wohnumfeld platzieren.", "Für Makler, Bauträger und Projektentwickler."],
-  ["Gastronomie", "Speisekarten, Neueröffnungen und Liefergebiete direkt in relevante Haushalte bringen.", "Für Restaurants, Cafés und Lieferdienste."],
-  ["Fitness", "Probetrainings, Kursstarts und Aktionen rund um Studio- oder Vereinsstandorte bewerben.", "Für Studios, Vereine und Gesundheitsanbieter."],
-  ["Handwerk", "Leistungen, Notdienste, Jobs und saisonale Angebote lokal sichtbar machen.", "Für regionale Betriebe und Serviceteams."],
-  ["Einzelhandel", "Angebote, Neueröffnungen und Rabattaktionen im echten Einzugsgebiet ankündigen.", "Für Geschäfte, Filialen und lokale Marken."],
-  ["Events & Vereine", "Feste, Veranstaltungen und Mitgliederwerbung nachvollziehbar verbreiten.", "Für Veranstalter, Vereine und Kommunen."],
+  ["Immobilien", "Neubauprojekte, Besichtigungen und Objektkampagnen im passenden Wohnumfeld platzieren.", "Für Makler, Bauträger und Projektentwickler.", "Immobilienkampagne anfragen"],
+  ["Gastronomie", "Speisekarten, Neueröffnungen und Liefergebiete direkt in relevante Haushalte bringen.", "Für Restaurants, Cafés und Lieferdienste.", "Gastro-Aktion anfragen"],
+  ["Fitness", "Probetrainings, Kursstarts und Aktionen rund um Studio- oder Vereinsstandorte bewerben.", "Für Studios, Vereine und Gesundheitsanbieter.", "Fitnesskampagne anfragen"],
+  ["Handwerk", "Leistungen, Notdienste, Jobs und saisonale Angebote lokal sichtbar machen.", "Für regionale Betriebe und Serviceteams.", "Handwerkskampagne anfragen"],
+  ["Einzelhandel", "Angebote, Neueröffnungen und Rabattaktionen im echten Einzugsgebiet ankündigen.", "Für Geschäfte, Filialen und lokale Marken.", "Handelskampagne anfragen"],
+  ["Events & Vereine", "Feste, Veranstaltungen und Mitgliederwerbung nachvollziehbar verbreiten.", "Für Veranstalter, Vereine und Kommunen.", "Eventkampagne anfragen"],
 ] as const;
 
 const steps = [
@@ -89,8 +89,8 @@ export default function BusinessPage() {
         tone="green"
       >
         <div className="mkGrid">
-          {audiences.map(([title, text, signal]) => (
-            <AudienceCard key={title} title={title} text={text} signal={signal} />
+          {audiences.map(([title, text, signal, ctaLabel]) => (
+            <AudienceCard key={title} title={title} text={text} signal={signal} ctaLabel={ctaLabel} />
           ))}
         </div>
       </MarketingSection>
@@ -103,7 +103,7 @@ export default function BusinessPage() {
         </ol>
       </MarketingSection>
 
-      <MarketingSection eyebrow="Projekt anfragen" title="Beschreiben Sie kurz Ihre Kampagne.">
+      <MarketingSection id="anfrage" eyebrow="Projekt anfragen" title="Beschreiben Sie kurz Ihre Kampagne.">
         <div className="mkLeadChoiceGrid">
           <article className="mkLeadPanel">
             <LeadForm source="fuer-unternehmen" />

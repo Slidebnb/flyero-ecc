@@ -51,6 +51,7 @@ export async function markAsSent(queueId: string, result: Pick<EmailResult, "pro
       providerMessageId: result.messageId,
     },
   });
+  const deliveryLatencyMs = Math.max(0, Date.now() - queue.createdAt.getTime());
 
   await prisma.notificationLog.create({
     data: {
@@ -61,6 +62,11 @@ export async function markAsSent(queueId: string, result: Pick<EmailResult, "pro
       action: "email.sent",
       status: queue.status,
       detail: `Provider: ${result.provider}; Provider-ID: ${result.messageId}`,
+      metadata: {
+        deliveryLatencyMs,
+        queueCreatedAt: queue.createdAt.toISOString(),
+        sentAt: queue.sentAt?.toISOString() ?? null,
+      },
     },
   });
   await createAuditLog({
@@ -74,7 +80,12 @@ export async function markAsSent(queueId: string, result: Pick<EmailResult, "pro
     level: SystemLogLevel.INFO,
     source: "email.queue",
     message: "E-Mail versendet.",
-    metadata: { queueId: queue.id, provider: result.provider, providerMessageId: result.messageId },
+    metadata: {
+      queueId: queue.id,
+      provider: result.provider,
+      providerMessageId: result.messageId,
+      deliveryLatencyMs,
+    },
   });
 
   return queue;
@@ -97,6 +108,7 @@ export async function markAsFailed(queueId: string, error: unknown) {
       scheduledAt: status === NotificationQueueStatus.RETRY ? new Date(Date.now() + attempts * 60_000) : existing.scheduledAt,
     },
   });
+  const deliveryLatencyMs = Math.max(0, Date.now() - queue.createdAt.getTime());
 
   await prisma.notificationLog.create({
     data: {
@@ -107,7 +119,7 @@ export async function markAsFailed(queueId: string, error: unknown) {
       action: "email.failed",
       status: queue.status,
       detail: message,
-      metadata: { attempts, maxAttempts: MAX_ATTEMPTS },
+      metadata: { attempts, maxAttempts: MAX_ATTEMPTS, deliveryLatencyMs },
     },
   });
   await createAuditLog({
@@ -121,7 +133,7 @@ export async function markAsFailed(queueId: string, error: unknown) {
     level: status === NotificationQueueStatus.FAILED ? SystemLogLevel.ERROR : SystemLogLevel.WARNING,
     source: "email.queue",
     message,
-    metadata: { queueId: queue.id, attempts, status },
+    metadata: { queueId: queue.id, attempts, status, deliveryLatencyMs },
   });
   await createErrorLog({
     severity: attempts >= MAX_ATTEMPTS ? ErrorSeverity.HIGH : ErrorSeverity.MEDIUM,

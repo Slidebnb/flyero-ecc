@@ -30,7 +30,7 @@ export const createLeadSchema = z.object({
   email: z.string().trim().email().max(180),
   phone: optionalText,
   city: optionalText,
-  postalCode: z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), z.string().regex(/^\d{5}$/, "Bitte gib eine fÃ¼nfstellige PLZ ein.").optional()),
+  postalCode: z.preprocess((value) => (typeof value === "string" && value.trim() === "" ? undefined : value), z.string().regex(/^\d{5}$/, "Bitte gib eine fünfstellige PLZ ein.").optional()),
   streetAddress: optionalText,
   flyerQuantity: optionalInteger,
   startDate: optionalText,
@@ -169,7 +169,7 @@ export async function createLead(input: z.input<typeof createLeadSchema>) {
     recipientEmail: lead.email,
     type: "INQUIRY_RECEIVED_CUSTOMER",
     subject: "Ihre FLYERO Anfrage ist eingegangen",
-    body: `Vielen Dank fÃ¼r Ihre Anfrage. Ihre Anfragenummer lautet ${lead.inquiryNumber ?? lead.id}. Wir prÃ¼fen Gebiet, Ablauf und Preis und melden uns schnellstmÃ¶glich.`,
+    body: `Vielen Dank für Ihre Anfrage. Ihre Anfragenummer lautet ${lead.inquiryNumber ?? lead.id}. Wir prüfen Gebiet, Ablauf und Preis und melden uns schnellstmöglich.`,
     data: {
       inquiryNumber: lead.inquiryNumber,
       leadId: lead.id,

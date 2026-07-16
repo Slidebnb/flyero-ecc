@@ -9,7 +9,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const port = process.env.MAPS_ABUSE_PORT || "3044";
 const sharedBaseUrl = process.env.MAPS_ABUSE_BASE_URL || "";
-let baseUrl = sharedBaseUrl || `http://localhost:${port}`;
+let baseUrl = sharedBaseUrl || "http://localhost:3000";
 const mapIp = "198.51.100.241";
 const bucketId = createHash("sha256").update(`flyero-public-rate-limit:maps:${mapIp}`).digest("hex");
 let server = null;
@@ -35,6 +35,19 @@ for (const route of [autocomplete, geocode, intelligence]) {
 }
 
 async function startServer() {
+  for (const candidate of [baseUrl, `http://localhost:${port}`]) {
+    try {
+      const response = await fetch(`${candidate}/api/health`);
+      if (response.status < 500) {
+        baseUrl = candidate;
+        return;
+      }
+    } catch {
+      // Kein bestehender Testserver erreichbar.
+    }
+  }
+
+  baseUrl = `http://localhost:${port}`;
   server = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
     cwd: process.cwd(),
     env: { ...process.env, EMAIL_PROVIDER: "mock", PORT: port },

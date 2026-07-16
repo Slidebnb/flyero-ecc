@@ -13,11 +13,26 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
   const [inquiryNumber, setInquiryNumber] = useState<string | null>(null);
   const [idempotencyKey, setIdempotencyKey] = useState(() => crypto.randomUUID());
 
+  function trackInquiry(
+    eventType: "PUBLIC_INQUIRY_STARTED" | "PUBLIC_INQUIRY_COMPLETED" | "PUBLIC_INQUIRY_FAILED",
+    requestId = idempotencyKey,
+  ) {
+    if (!inquiry) return;
+    void fetch("/api/public/planner/experience", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ eventType, requestId, analyticsSource: "public-inquiry" }),
+      keepalive: true,
+    }).catch(() => undefined);
+  }
+
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setState("sending");
     const form = event.currentTarget;
     const formData = new FormData(form);
+    const requestId = idempotencyKey;
+    trackInquiry("PUBLIC_INQUIRY_STARTED", requestId);
 
     try {
       const response = await fetch("/api/leads", {
@@ -31,11 +46,14 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
         setInquiryNumber(result?.data?.inquiryNumber ?? null);
         setIdempotencyKey(crypto.randomUUID());
         setState("success");
+        trackInquiry("PUBLIC_INQUIRY_COMPLETED", requestId);
       } else {
         setState("error");
+        trackInquiry("PUBLIC_INQUIRY_FAILED", requestId);
       }
     } catch {
       setState("error");
+      trackInquiry("PUBLIC_INQUIRY_FAILED", requestId);
     }
   }
 

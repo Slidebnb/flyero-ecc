@@ -59,7 +59,17 @@ try {
   await inquiryPage.goto(new URL("/verteilung-anfragen", baseUrl).toString(), { waitUntil: "networkidle" });
   assert.ok(await inquiryPage.locator('a[href="/datenschutz"]').first().isVisible(), "Anfrageformular braucht einen sichtbaren Datenschutzlink.");
   await inquiryPage.locator('input[name="name"]').fill("Playwright Anfrage");
+  await inquiryPage.locator('input[name="companyName"]').fill("FLYERO Testbetrieb");
   await inquiryPage.locator('input[name="email"]').fill("playwright@example.org");
+  await inquiryPage.locator('input[name="phone"]').fill("+49 261 000000");
+  await inquiryPage.locator('input[name="city"]').fill("Koblenz");
+  await inquiryPage.locator('input[name="postalCode"]').fill("56068");
+  await inquiryPage.locator('input[name="flyerQuantity"]').fill("3000");
+  await inquiryPage.locator('input[name="startDate"]').fill("2026-08-01");
+  await inquiryPage.locator('input[name="endDate"]').fill("2026-08-08");
+  await inquiryPage.locator('select[name="flyersAlreadyPrinted"]').selectOption("true");
+  await inquiryPage.locator('input[name="targetGroup"]').fill("Haushalte");
+  await inquiryPage.locator('input[name="distributionMode"]').fill("Haushaltsverteilung");
   await inquiryPage.locator('textarea[name="message"]').fill("Bitte Gebiet und Ablauf pruefen.");
   await inquiryPage.locator('button[type="submit"]').click();
   await inquiryPage.getByText(/ANF-2026-PLAYWRIGHT/).waitFor();
@@ -70,6 +80,9 @@ try {
   await anchorPage.waitForTimeout(700);
   const anchorTop = await anchorPage.locator("#zielgruppen").evaluate((element) => element.getBoundingClientRect().top);
   assert.ok(anchorTop >= -120 && anchorTop <= 180, "Zielgruppen-Anchor liegt nicht sichtbar unter dem Header.");
+  const audienceCtas = anchorPage.locator("#zielgruppen .mkTextLink");
+  assert.equal(await audienceCtas.count(), 6, "Jede Zielgruppe braucht einen eigenen Anfrage-CTA.");
+  assert.ok(await audienceCtas.first().isVisible(), "Der Zielgruppen-CTA muss sichtbar sein.");
   await anchorPage.close();
   console.log("Module 28 public Playwright checks passed.");
 } finally {
