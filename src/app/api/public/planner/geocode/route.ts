@@ -4,6 +4,16 @@ import { enforcePublicRateLimit, publicRateLimitResponse } from "@/lib/publicAbu
 import { errorResponse, routeErrorResponse } from "@/lib/request";
 import { isGermanPostalCode } from "@/lib/publicLocationContext";
 
+function comparablePlace(value: string | null | undefined) {
+  return (value ?? "")
+    .toLocaleLowerCase("de-DE")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "")
+    .trim();
+}
+
 export async function GET(request: Request) {
   try {
     const abuseDecision = await enforcePublicRateLimit(request, "public-planner");
@@ -41,6 +51,9 @@ export async function GET(request: Request) {
       return Response.json({ ok: false, code: "PUBLIC_GEOCODE_POSTAL_MISMATCH", error: "Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wählen Sie den passenden Ort aus den Vorschlägen." }, { status: 422 });
     }
     if (!data) return errorResponse("Diese Adresse konnte nicht gefunden werden. Bitte prüfe die Eingabe oder zeichne das Gebiet direkt auf der Karte.", 422);
+    if (query.data.city && comparablePlace(data?.city) !== comparablePlace(query.data.city)) {
+      return Response.json({ ok: false, code: "PUBLIC_GEOCODE_CITY_MISMATCH", error: "Der ausgewählte Ort konnte nicht eindeutig bestätigt werden. Bitte wähle den passenden Vorschlag aus." }, { status: 422 });
+    }
     return Response.json({ ok: true, data });
   } catch (error) {
     return routeErrorResponse(error);

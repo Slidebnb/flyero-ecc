@@ -4,7 +4,7 @@
 
 import { type PointerEvent, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { hasExplicitPublicLocationContext, isGermanPostalCode, normalizePublicLocationContext, type PublicLocationContext } from "@/lib/publicLocationContext";
+import { hasExplicitPublicLocationContext, isGermanPostalCode, type PublicLocationContext } from "@/lib/publicLocationContext";
 import {
   CircleHelp,
   Download,
@@ -53,6 +53,7 @@ type Props = {
   areas: ReusableAreaOption[];
   today: string;
   mode?: "public_quote" | "authenticated_order";
+  initialLocation?: PublicLocationContext | null;
 };
 
 type Suggestion = {
@@ -529,7 +530,7 @@ function MiniMapFallback() {
   );
 }
 
-export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }: Props) {
+export function SmartOrderWizard({ areas, today, mode = "authenticated_order", initialLocation: initialLocationProp = null }: Props) {
   const isPublicPlanner = mode === "public_quote";
   const minimumStartDate = useMemo(() => addDaysToIsoDate(today, 7), [today]);
   const draftStorageKey = isPublicPlanner ? PUBLIC_ORDER_DRAFT_KEY : ORDER_DRAFT_KEY;
@@ -1004,21 +1005,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   // Explicit public navigation data wins over any saved browser state.
   useEffect(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const initialLocation = isPublicPlanner
-        ? normalizePublicLocationContext({
-            query: params.get("query"),
-            placeId: params.get("placeId"),
-            postalCode: params.get("postalCode"),
-            city: params.get("city"),
-            lat: params.get("lat"),
-            lng: params.get("lng"),
-            source: params.get("source"),
-          })
-        : null;
+      const initialLocation = isPublicPlanner ? initialLocationProp : null;
       const hasExplicitLocation = hasExplicitPublicLocationContext(initialLocation);
       if (initialLocation) initialSearchRef.current = initialLocation;
-      const rawDraft = window.localStorage.getItem(draftStorageKey) ?? (!isPublicPlanner ? window.localStorage.getItem(LEGACY_ORDER_DRAFT_KEY) : null);
+      const stalePublicDraft = isPublicPlanner ? window.localStorage.getItem(PUBLIC_ORDER_DRAFT_KEY) : null;
+      if (stalePublicDraft) {
+        window.localStorage.removeItem(PUBLIC_ORDER_DRAFT_KEY);
+        const discardedPayload = JSON.stringify({ eventType: "PUBLIC_STALE_DRAFT_DISCARDED", source: "public-planner", reason: "public-planner-does-not-restore-persistent-location" });
+        navigator.sendBeacon?.(experienceEndpoint, new Blob([discardedPayload], { type: "application/json" }));
+      }
+      const rawDraft = isPublicPlanner ? null : window.localStorage.getItem(draftStorageKey) ?? window.localStorage.getItem(LEGACY_ORDER_DRAFT_KEY);
       if (!rawDraft) {
         draftRestoredRef.current = true;
         setDraftStatus("Entwurf wird automatisch gespeichert");
@@ -1090,7 +1086,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       draftRestoredRef.current = true;
       setDraftRestored(true);
     }
-  }, [draftStorageKey, experienceEndpoint, isPublicPlanner, minimumStartDate]);
+  }, [draftStorageKey, experienceEndpoint, initialLocationProp, isPublicPlanner, minimumStartDate]);
 
   useEffect(() => {
     if (isPublicPlanner || repeatLoadedRef.current) return;
@@ -1165,15 +1161,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   useEffect(() => {
     if (!draftRestoredRef.current || !draftRestored) return;
     if (isPublicPlanner) {
-      const navigationLocation = normalizePublicLocationContext({
-        query: new URLSearchParams(window.location.search).get("query"),
-        placeId: new URLSearchParams(window.location.search).get("placeId"),
-        postalCode: new URLSearchParams(window.location.search).get("postalCode"),
-        city: new URLSearchParams(window.location.search).get("city"),
-        lat: new URLSearchParams(window.location.search).get("lat"),
-        lng: new URLSearchParams(window.location.search).get("lng"),
-        source: new URLSearchParams(window.location.search).get("source"),
-      });
+      const navigationLocation = initialLocationProp;
       const expectedPostalCode = navigationLocation?.postalCode
         ?? (navigationLocation?.query && isGermanPostalCode(navigationLocation.query) ? navigationLocation.query : undefined);
       if (expectedPostalCode && postalCode !== expectedPostalCode) return;
@@ -1208,10 +1196,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       contactPhone,
       notes,
     };
-    const persistedDraft = isPublicPlanner
-      ? Object.fromEntries(Object.entries(draft).filter(([key]) => !["contactPerson", "contactPhone", "notes"].includes(key)))
-      : draft;
-    window.localStorage.setItem(draftStorageKey, JSON.stringify(persistedDraft));
+    if (isPublicPlanner) {
+      window.localStorage.removeItem(PUBLIC_ORDER_DRAFT_KEY);
+      setDraftStatus("Planung bleibt nur für diesen Besuch aktiv");
+      return;
+    }
+    window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
     setDraftStatus("Entwurf gespeichert");
   }, [
     activeStep,
@@ -1243,6 +1233,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     targetGroup,
     draftStorageKey,
     draftRestored,
+    initialLocationProp,
     isPublicPlanner,
   ]);
 
@@ -1344,6 +1335,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     } else if (expectedLocation?.postalCode) {
       params.set("postalCode", expectedLocation.postalCode);
     }
+    if (isPublicPlanner && expectedLocation?.city) params.set("city", expectedLocation.city);
     if (placeId) params.set("placeId", placeId);
     if (isPublicPlanner) {
       trackPublicPlannerEvent(experienceEndpoint, options?.initial ? "PUBLIC_INITIAL_GEOCODE_STARTED" : "PUBLIC_LOCATION_SEARCH_STARTED", {
@@ -1357,9 +1349,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
       .then(({ response, payload }) => {
         if (requestId !== locationRequestSequenceRef.current) return;
         if (!response.ok) {
-          if (payload?.code === "PUBLIC_GEOCODE_POSTAL_MISMATCH") {
+          if (payload?.code === "PUBLIC_GEOCODE_POSTAL_MISMATCH" || payload?.code === "PUBLIC_GEOCODE_CITY_MISMATCH") {
             setMapNotice(payload.error ?? "Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wählen Sie den passenden Ort aus den Vorschlägen.");
-            if (isPublicPlanner) trackPublicPlannerEvent(experienceEndpoint, "PUBLIC_GEOCODE_POSTAL_MISMATCH", { requestId: `public-location:${requestId}` });
+            if (isPublicPlanner) trackPublicPlannerEvent(experienceEndpoint, payload?.code, { requestId: `public-location:${requestId}` });
           } else {
             setMapNotice(payload?.error ?? "Diese Adresse wurde nicht gefunden. Bitte prüfen Sie die Eingabe oder zeichnen Sie das Gebiet direkt auf der Karte.");
             if (isPublicPlanner) trackPublicPlannerEvent(experienceEndpoint, options?.initial ? "PUBLIC_INITIAL_GEOCODE_FAILED" : "PUBLIC_LOCATION_FAILED", { requestId: `public-location:${requestId}` });
@@ -1811,7 +1803,40 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
     mapRef.current.fitBounds(bounds);
   }, [areaSegmentsPayload, center, mapMode, mapsReady, polygon, street]);
 
+  function clearLocationSelection() {
+    locationRequestSequenceRef.current += 1;
+    locationAbortRef.current?.abort();
+    intelligenceAbortRef.current?.abort();
+    lastIntelligenceRequestRef.current = null;
+    confirmedIntelligenceRequestRef.current = null;
+    polygonRef.current?.setMap(null);
+    polygonRef.current = null;
+    areaSegmentsRef.current = [];
+    selectedBoundaryPlaceIdsRef.current = [];
+    setIntelligence(null);
+    setIntelligenceStatus("local");
+    setSelectedAreaId("");
+    setCity("");
+    setPostalCode("");
+    setStreet("");
+    setHouseNumber("");
+    setTargetAreaName("");
+    setPolygon([]);
+    setPolygonSource("postal_code");
+    setAreaSegments([]);
+    setActiveSegmentId(null);
+    setSelectedBoundaryPlaceIds([]);
+    setPendingLocation(null);
+    setHistory([]);
+    setHistoryIndex(0);
+    setCenter(isPublicPlanner ? PUBLIC_DEFAULT_CENTER : center);
+    setUsedAutocomplete(false);
+    setMapNotice("");
+  }
+
   function applySuggestion(suggestion: Suggestion) {
+    clearLocationSelection();
+    setQuery(suggestion.label);
     setUsedAutocomplete(true);
     setShowSuggestions(false);
     setSuggestions([]);
@@ -1868,8 +1893,32 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
   function trackSubmit(options?: { clearDraft?: boolean; handoffToCustomer?: boolean; eventType?: string; orderId?: string }) {
     if (options?.clearDraft !== false) window.localStorage.removeItem(draftStorageKey);
     if (isPublicPlanner && options?.handoffToCustomer) {
-      const publicDraft = window.localStorage.getItem(PUBLIC_ORDER_DRAFT_KEY);
-      if (publicDraft) window.localStorage.setItem(ORDER_DRAFT_KEY, publicDraft);
+      const handoffDraft: OrderDraft = {
+        activeStep: 1,
+        query,
+        selectedAreaId,
+        city,
+        postalCode,
+        street,
+        houseNumber,
+        targetAreaName,
+        center,
+        polygon,
+        polygonSource,
+        areaSegments: areaSegmentsPayload,
+        areaStats,
+        flyerQuantity,
+        flyerQuantityTouched,
+        productFormat,
+        flyerSource,
+        printDataStatus,
+        targetGroup,
+        distributionType,
+        startDate,
+        endDate,
+        flexibleScheduling,
+      };
+      window.localStorage.setItem(ORDER_DRAFT_KEY, JSON.stringify(handoffDraft));
     }
     const durationMs = Date.now() - (startedAtRef.current ?? Date.now());
     void fetch(experienceEndpoint, {
@@ -2128,6 +2177,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order" }:
                 value={query}
                 ref={searchInputRef}
                 onChange={(event) => {
+                  clearLocationSelection();
                   setQuery(event.target.value);
                   setShowSuggestions(true);
                 }}

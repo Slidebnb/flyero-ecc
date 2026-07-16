@@ -1,6 +1,7 @@
 import { SmartOrderWizard } from "@/app/customer/orders/new/SmartOrderWizard";
 import { createSeoMetadata } from "@/app/seo";
 import { MobileMenu } from "@/app/components/MobileMenu";
+import { normalizePublicLocationContext, type PublicLocationContext } from "@/lib/publicLocationContext";
 
 export const metadata = createSeoMetadata({
   title: "Flyerverteilung planen und Preis prüfen",
@@ -9,7 +10,26 @@ export const metadata = createSeoMetadata({
   keywords: ["Flyerverteilung planen", "Flyer Preis berechnen", "Flyer Gebiet auswählen"],
 });
 
-export default function PublicDistributionPlannerPage() {
+type PageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function firstSearchParam(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function PublicDistributionPlannerPage({ searchParams }: PageProps) {
+  const params = searchParams ? await searchParams : {};
+  const initialLocation: PublicLocationContext | null = normalizePublicLocationContext({
+    query: firstSearchParam(params.query),
+    placeId: firstSearchParam(params.placeId),
+    postalCode: firstSearchParam(params.postalCode),
+    city: firstSearchParam(params.city),
+    lat: firstSearchParam(params.lat),
+    lng: firstSearchParam(params.lng),
+    source: firstSearchParam(params.source),
+  });
+
   return (
     <main className="orderExperienceShell publicPlannerShell">
       <header className="orderExperienceTopbar publicPlannerTopbar">
@@ -29,7 +49,7 @@ export default function PublicDistributionPlannerPage() {
           cta={{ label: "Einloggen", href: "/login?next=%2Fcustomer%2Forders%2Fnew" }}
         />
       </header>
-      <SmartOrderWizard areas={[]} today={new Date().toISOString().slice(0, 10)} mode="public_quote" />
+      <SmartOrderWizard areas={[]} today={new Date().toISOString().slice(0, 10)} mode="public_quote" initialLocation={initialLocation} />
     </main>
   );
 }

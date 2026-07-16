@@ -310,6 +310,9 @@ jobs:
       - name: Public landing smoke
         run: npm run test:module16-landing
 
+      - name: Public location context contract
+        run: npm run test:public-location-context
+
       - name: Module 28 public runtime
         run: npm run test:module28-public-runtime
 

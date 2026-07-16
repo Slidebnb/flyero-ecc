@@ -88,14 +88,16 @@ try {
   assert.match(selectedLocation, /56112 Lahnstein/);
   assert.doesNotMatch(selectedLocation, /Haiger|35708/);
   const storedDraft = JSON.parse(await stalePage.evaluate(() => localStorage.getItem("flyero:order-planner:public-draft:v3") || "{}"));
-  assert.equal(storedDraft.postalCode, "56112");
-  assert.notEqual(storedDraft.city, "Haiger");
+  assert.deepEqual(storedDraft, {});
   await staleDraftContext.close();
 
   const homepageContext = await browser.newContext();
   const homepage = await homepageContext.newPage();
   await homepage.route("**/api/public/planner/autocomplete**", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: [{ id: "place-56112", label: "56112 Lahnstein", description: "Lahnstein, Deutschland", city: "Lahnstein", postalCode: "56112", lat: 50.35, lng: 7.59, source: "google" }] }) });
+  });
+  await homepage.route("**/api/public/planner/geocode**", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: locationData("56112", "Lahnstein") }) });
   });
   await homepage.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await homepage.locator("#public-planner-query").fill("56112");
@@ -104,10 +106,30 @@ try {
   await homepage.getByRole("button", { name: "Gebiet ansehen" }).click();
   await homepage.waitForURL(/\/verteilung-planen\?/);
   const navigationUrl = new URL(homepage.url());
+  assert.equal(navigationUrl.searchParams.get("query"), "56112 Lahnstein");
+  assert.equal(navigationUrl.searchParams.get("placeId"), "place-56112");
   assert.equal(navigationUrl.searchParams.get("postalCode"), "56112");
   assert.equal(navigationUrl.searchParams.get("city"), "Lahnstein");
+  assert.equal(navigationUrl.searchParams.get("lat"), "50.35");
+  assert.equal(navigationUrl.searchParams.get("lng"), "7.59");
   assert.equal(navigationUrl.searchParams.get("source"), "google");
   await homepageContext.close();
+
+  const freeInputContext = await browser.newContext();
+  const freeInputPage = await freeInputContext.newPage();
+  await freeInputPage.route("**/api/public/planner/autocomplete**", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: [] }) });
+  });
+  await freeInputPage.goto(baseUrl, { waitUntil: "domcontentloaded" });
+  await freeInputPage.locator("#public-planner-query").fill("unbekannter Ort");
+  await freeInputPage.getByRole("button", { name: "Gebiet ansehen" }).click();
+  await freeInputPage.waitForURL(/\/verteilung-planen\?query=/);
+  const freeInputUrl = new URL(freeInputPage.url());
+  assert.equal(freeInputUrl.searchParams.get("query"), "unbekannter Ort");
+  for (const key of ["placeId", "postalCode", "city", "lat", "lng", "source"]) {
+    assert.equal(freeInputUrl.searchParams.has(key), false, `Freie Eingabe darf ${key} nicht mitschicken.`);
+  }
+  await freeInputContext.close();
 
   const mismatchContext = await browser.newContext();
   const mismatchPage = await mismatchContext.newPage();

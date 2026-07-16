@@ -22,7 +22,10 @@ export function PublicPlannerSearch() {
   const [selected, setSelected] = useState<Suggestion | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resolvingSelection, setResolvingSelection] = useState(false);
+  const [selectionError, setSelectionError] = useState("");
   const requestSequenceRef = useRef(0);
+  const selectionSequenceRef = useRef(0);
 
   function track(eventType: string, data: Record<string, unknown> = {}) {
     void fetch("/api/public/planner/experience", {
@@ -36,7 +39,7 @@ export function PublicPlannerSearch() {
   useEffect(() => {
     const value = query.trim();
     const requestSequence = ++requestSequenceRef.current;
-    if (value.length < 2 || selected?.label === value) {
+    if (value.length < 2 || selected?.label === value || resolvingSelection) {
       return;
     }
 
@@ -61,18 +64,43 @@ export function PublicPlannerSearch() {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query, selected]);
+  }, [query, resolvingSelection, selected]);
 
-  function chooseSuggestion(suggestion: Suggestion) {
+  async function chooseSuggestion(suggestion: Suggestion) {
+    const selectionSequence = ++selectionSequenceRef.current;
     setQuery(suggestion.label);
-    setSelected(suggestion);
+    setSelected(null);
     setSuggestions([]);
     setOpen(false);
+    setSelectionError("");
+    setResolvingSelection(true);
     track("PUBLIC_AUTOCOMPLETE_SELECTED", {
       postalCode: suggestion.postalCode ?? undefined,
       city: suggestion.city ?? undefined,
       usedAutocomplete: true,
     });
+    try {
+      const params = new URLSearchParams({ q: suggestion.label });
+      if (suggestion.source === "google") params.set("placeId", suggestion.id);
+      const response = await fetch(`/api/public/planner/geocode?${params.toString()}`);
+      const payload = await response.json().catch(() => null);
+      if (selectionSequence !== selectionSequenceRef.current) return;
+      if (!response.ok || !payload?.data) {
+        setSelectionError(payload?.error ?? "Der Ort konnte nicht eindeutig bestätigt werden.");
+        return;
+      }
+      setSelected({
+        ...suggestion,
+        ...payload.data,
+        id: payload.data.placeId ?? suggestion.id,
+        label: suggestion.label,
+        source: payload.data.source ?? suggestion.source,
+      });
+    } catch {
+      if (selectionSequence === selectionSequenceRef.current) setSelectionError("Der Ort konnte gerade nicht bestätigt werden.");
+    } finally {
+      if (selectionSequence === selectionSequenceRef.current) setResolvingSelection(false);
+    }
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -81,10 +109,14 @@ export function PublicPlannerSearch() {
       setOpen(true);
       return;
     }
+    if (resolvingSelection) {
+      event.preventDefault();
+      return;
+    }
     event.preventDefault();
     const selectedForQuery = selected?.label === query.trim() ? selected : null;
     track("PUBLIC_SEARCH_SUBMITTED", {
-      postalCode: selectedForQuery?.postalCode ?? (/^\d{5}$/.test(query.trim()) ? query.trim() : undefined),
+      postalCode: selectedForQuery?.postalCode ?? undefined,
       city: selectedForQuery?.city ?? undefined,
       usedAutocomplete: Boolean(selectedForQuery),
     });
@@ -112,6 +144,9 @@ export function PublicPlannerSearch() {
             onChange={(event) => {
               setQuery(event.target.value);
               setSelected(null);
+              selectionSequenceRef.current += 1;
+              setSelectionError("");
+              setResolvingSelection(false);
               setSuggestions([]);
               setLoading(false);
               setOpen(true);
@@ -136,9 +171,11 @@ export function PublicPlannerSearch() {
             </div>
           ) : null}
         </div>
-        <button type="submit">Gebiet ansehen</button>
+        <button type="submit" disabled={resolvingSelection} aria-busy={resolvingSelection}>Gebiet ansehen</button>
       </div>
       {loading ? <p className="mkPlannerSearchHint" role="status">Ort wird gesucht ...</p> : null}
+      {resolvingSelection ? <p className="mkPlannerSearchHint" role="status">Ort wird bestätigt ...</p> : null}
+      {selectionError ? <p className="mkPlannerSearchHint mkPlannerSearchError" role="alert">{selectionError}</p> : null}
       {selected?.city ? (
         <p className="mkPlannerSearchHint mkPlannerSearchSelected" role="status">
           Gefunden: {[selected.postalCode, selected.city].filter(Boolean).join(" ")}
