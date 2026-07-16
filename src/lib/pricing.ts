@@ -80,7 +80,7 @@ export type PriceCalculation = {
   };
 };
 
-type PricingRuleLike = {
+export type PricingRuleLike = {
   id: string;
   minQuantity: number;
   maxQuantity: number | null;
@@ -599,6 +599,7 @@ function resolveWeightClass(input: { weightClass?: WeightClass; weightInGrams?: 
 export async function calculateOrderPrice(input: {
   serviceType: ServiceType;
   flyerQuantity: number;
+  pricingRulesOverride?: PricingRuleLike[];
   weightClass?: WeightClass;
   weightInGrams?: number | null;
   areaDifficulty?: AreaDifficulty;
@@ -611,7 +612,7 @@ export async function calculateOrderPrice(input: {
   handlingFeeNet?: Prisma.Decimal | string | number;
 }): Promise<PriceCalculation> {
   const [requestedRules, vatRate] = await Promise.all([
-    getActivePricingRules(input.serviceType),
+    input.pricingRulesOverride ?? getActivePricingRules(input.serviceType),
     getVatRate(),
   ]);
   const settings = await getPricingSettingValues();

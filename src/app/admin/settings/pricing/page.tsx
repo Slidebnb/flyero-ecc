@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { syncOpenOrderPrices, validatePricingRuleChanges } from "@/lib/pricing";
 import { getPricingSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 import { serviceCatalogLabel } from "@/lib/serviceCatalog";
+import { PricingSimulationForm } from "./PricingSimulationForm";
 
 async function savePricing(formData: FormData) {
   "use server";
@@ -73,6 +74,7 @@ export default async function PricingSettingsPage() {
   await requirePermission(Permission.PRICING_MANAGE);
   const { settings, rules } = await getPricingSettings();
   const settingValue = (key: string) => settings.find((setting) => setting.key === key)?.valueDecimal.toString() ?? "0";
+  const services = Object.values(ServiceType).map((value) => ({ value, label: serviceCatalogLabel(value) }));
 
   return (
     <AdminPortalShell eyebrow="Einstellungen" title="Preise">
@@ -125,6 +127,7 @@ export default async function PricingSettingsPage() {
         </div>
         <button type="submit">Speichern</button>
       </form>
+      <PricingSimulationForm services={services} />
     </AdminPortalShell>
   );
 }
