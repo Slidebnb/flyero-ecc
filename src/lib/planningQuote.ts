@@ -5,6 +5,7 @@ export const PLANNING_QUOTE_VERSION = "planning-quote-v1";
 export const PLANNING_QUOTE_CHANGED = "PLANNING_QUOTE_CHANGED" as const;
 
 export type PlanningInputFingerprint = {
+  serviceType?: "FLYER_DISTRIBUTION" | "DOOR_HANGER" | "BROCHURE" | "MAGAZINE";
   flyerQuantity: number;
   polygonHash: string;
   city: string;
@@ -55,6 +56,7 @@ export type AuthoritativePlanningQuote = {
 };
 
 export type PlanningQuoteInput = {
+  serviceType?: PlanningInputFingerprint["serviceType"];
   flyerQuantity: number;
   city?: string | null;
   postalCode?: string | null;
@@ -146,7 +148,9 @@ export function normalizePlanningInput(input: PlanningQuoteInput): PlanningInput
     : numeric(input.perimeterMeters);
   const polygonHash = hash(geometry ?? { coverageAreaSqm, city: input.city ?? "", postalCode: input.postalCode ?? "" });
 
+  const serviceType = input.serviceType ?? "FLYER_DISTRIBUTION";
   return {
+    ...(serviceType === "FLYER_DISTRIBUTION" ? {} : { serviceType }),
     flyerQuantity: Math.round(input.flyerQuantity),
     polygonHash,
     city: input.city?.trim() ?? "",

@@ -13,6 +13,8 @@ const targets = [
   { name: "verteilung-anfragen-mobile", path: "/verteilung-anfragen", width: 390, height: 1100 },
   { name: "flyer-verteilen-lassen-desktop", path: "/flyer-verteilen-lassen", width: 1440, height: 1100 },
   { name: "flyer-verteilen-lassen-mobile", path: "/flyer-verteilen-lassen", width: 390, height: 1100 },
+  { name: "fuer-unternehmen-desktop", path: "/fuer-unternehmen", width: 1440, height: 1100 },
+  { name: "fuer-unternehmen-mobile", path: "/fuer-unternehmen", width: 390, height: 1100 },
   ...[
     "baeckereien",
     "gastronomie",

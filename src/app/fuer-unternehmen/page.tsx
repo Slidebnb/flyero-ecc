@@ -14,13 +14,14 @@ import {
   defaultProofIcons,
 } from "@/app/components/marketing";
 import { createSeoMetadata } from "@/app/seo";
+import { distributionServiceCatalog, inquiryOnlyServices } from "@/lib/serviceCatalog";
 
 export const metadata = createSeoMetadata({
-  title: "Flyerverteilung für Unternehmen",
+  title: "Flyerverteilung und Werbemittel für Unternehmen",
   description:
-    "Flyerverteilung für Unternehmen: Kampagne anfragen, Gebiet planen, Flyer einlagern und GPS-/Fotobericht erhalten.",
+    "Flyer, Türhänger, Prospekte, Broschüren und Magazine deutschlandweit verteilen lassen. Gebiet planen, fertige Werbemittel ins Lager senden und Nachweis erhalten.",
   path: "/fuer-unternehmen",
-  keywords: ["Flyerverteilung Unternehmen", "Werbeflyer verteilen", "lokales Marketing"],
+  keywords: ["Flyerverteilung Unternehmen", "Prospektverteilung", "Türhänger verteilen", "Magazine verteilen", "lokales Marketing"],
 });
 
 const reasons = [
@@ -77,6 +78,37 @@ export default function BusinessPage() {
         <div className="mkGrid">
           {reasons.map(([title, text, Icon], index) => (
             <FeatureCard key={title} title={title} text={text} icon={Icon} index={index} />
+          ))}
+        </div>
+      </MarketingSection>
+
+      <MarketingSection
+        id="leistungen"
+        eyebrow="Leistungen"
+        title="Mehr als Flyer. Das passende Werbemittel für deine Kampagne."
+        intro="Wähle online ein bereits gedrucktes Werbemittel. Weitere Formate und Aktionen planen wir persönlich mit dir."
+        tone="green"
+      >
+        <div className="mkServiceList" aria-label="FLYERO Leistungen">
+          {distributionServiceCatalog.map((service, index) => (
+            <a className="mkServiceRow" key={service.serviceType} href="/login?next=%2Fcustomer%2Forders%2Fnew">
+              <span className="mkServiceNumber" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+              <span className="mkServiceCopy">
+                <strong>{service.label}</strong>
+                <small>{service.description}</small>
+              </span>
+              <span className="mkServiceAction">Online auswählen <span aria-hidden="true">→</span></span>
+            </a>
+          ))}
+          {inquiryOnlyServices.map((service, index) => (
+            <a className="mkServiceRow isInquiry" key={service.slug} href="/verteilung-anfragen#anfrage">
+              <span className="mkServiceNumber" aria-hidden="true">{String(distributionServiceCatalog.length + index + 1).padStart(2, "0")}</span>
+              <span className="mkServiceCopy">
+                <strong>{service.label}</strong>
+                <small>{service.description}</small>
+              </span>
+              <span className="mkServiceAction">Auf Anfrage <span aria-hidden="true">→</span></span>
+            </a>
           ))}
         </div>
       </MarketingSection>

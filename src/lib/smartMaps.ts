@@ -1,4 +1,4 @@
-import { AreaDataSourceType, HouseholdEstimateMethod, Prisma, type DistributionAreaType } from "@prisma/client";
+import { AreaDataSourceType, HouseholdEstimateMethod, Prisma, ServiceType, type DistributionAreaType } from "@prisma/client";
 import { estimateHouseholds, estimateRouteDistanceMeters, calculateDistributionTime, scoreArea, combineOrders } from "@/lib/routing";
 import { findBestWarehouseForArea } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
@@ -282,6 +282,7 @@ function areaReferenceForSegment(segment: NormalizedOrderAreaSegment, areas: Arr
 }
 
 export async function getOrderIntelligence(input: {
+  serviceType?: ServiceType;
   tenantId?: string | null;
   city?: string | null;
   postalCode?: string | null;
@@ -306,6 +307,7 @@ export async function getOrderIntelligence(input: {
   const parsedAreaSelection = input.segments ? aggregateOrderAreaSegments(input.segments) : null;
   const areaSelection = parsedAreaSelection?.segments.length ? parsedAreaSelection : null;
   const planning = planningGeometry({
+    serviceType: input.serviceType,
     flyerQuantity: input.flyerQuantity ?? 0,
     city: input.city,
     postalCode: input.postalCode,
@@ -320,6 +322,7 @@ export async function getOrderIntelligence(input: {
     preferredEndDate: input.preferredEndDate,
   });
   let quoteFingerprint = buildPlanningInputFingerprint({
+    serviceType: input.serviceType,
     flyerQuantity: input.flyerQuantity ?? 0,
     city: input.city,
     postalCode: input.postalCode,
@@ -436,8 +439,9 @@ export async function getOrderIntelligence(input: {
     households,
     distributorCount: distributorNeed,
   });
-  const price = await calculateOrderPrice({ serviceType: "FLYER_DISTRIBUTION", flyerQuantity });
+  const price = await calculateOrderPrice({ serviceType: input.serviceType ?? ServiceType.FLYER_DISTRIBUTION, flyerQuantity });
   quoteFingerprint = buildPlanningInputFingerprint({
+    serviceType: input.serviceType,
     flyerQuantity,
     city: input.city,
     postalCode: input.postalCode,

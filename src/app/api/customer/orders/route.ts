@@ -13,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderCreateSchema } from "@/lib/validators";
 import { warehouseSourceWhere } from "@/lib/warehouse";
+import { serviceCatalogLabel } from "@/lib/serviceCatalog";
 
 export async function GET() {
   try {
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
     const orderCity = primarySegment?.city ?? data.city;
     const orderPostalCode = primarySegment?.postalCode ?? data.postalCode;
     const intelligence = await getOrderIntelligence({
+      serviceType: data.serviceType,
       tenantId: session.tenantId,
       city: orderCity,
       postalCode: orderPostalCode,
@@ -179,7 +181,7 @@ export async function POST(request: NextRequest) {
         ? "Druck über FLYERO angefragt"
         : "Druckdaten werden später bereitgestellt";
     const fulfillmentLabel = data.flyerSource === "CUSTOMER_OWN"
-      ? "Eigene, bereits gedruckte Flyer werden an das ausgewählte Empfangslager gesendet."
+      ? `Eigene, bereits gedruckte ${serviceCatalogLabel(data.serviceType)} werden an das ausgewählte Empfangslager gesendet.`
       : printDataLabel;
 
     let order: Awaited<ReturnType<typeof prisma.order.create>> | null = null;
@@ -230,6 +232,7 @@ export async function POST(request: NextRequest) {
               areaCalculationSnapshot: serverAreaSnapshot,
               snapshot: {
               ...price.snapshot,
+              serviceLabel: serviceCatalogLabel(data.serviceType),
               completionPath: data.completionPath,
               selectedWarehouseId: selectedWarehouse?.id ?? null,
               selectedWarehouseName: selectedWarehouse?.name ?? null,

@@ -59,6 +59,7 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     ? ""
     : targetAddressStreet;
   const currentFingerprint = buildPlanningInputFingerprint({
+    serviceType: order.serviceType,
     flyerQuantity: order.flyerQuantity,
     city: order.city,
     postalCode: order.postalCode,

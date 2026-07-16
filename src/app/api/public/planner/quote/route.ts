@@ -6,6 +6,7 @@ import { publicCapabilities } from "@/lib/publicCapabilities";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 
 const quoteInputSchema = z.object({
+  serviceType: z.enum(["FLYER_DISTRIBUTION", "DOOR_HANGER", "BROCHURE", "MAGAZINE"]).default("FLYER_DISTRIBUTION"),
   city: z.string().trim().max(80).default(""),
   postalCode: z.string().trim().max(10).default(""),
   street: z.string().trim().max(120).default(""),
@@ -42,6 +43,7 @@ function boundedNumber(value: string | number | undefined, maximum: number) {
 function safeQueryInput(request: Request) {
   const params = new URL(request.url).searchParams;
   return {
+    serviceType: params.get("serviceType") ?? undefined,
     city: params.get("city") ?? "",
     postalCode: params.get("postalCode") ?? "",
     street: params.get("street") ?? "",
@@ -74,6 +76,7 @@ async function createPublicQuote(input: unknown) {
   }
 
   const data = await getOrderIntelligence({
+    serviceType: value.serviceType,
     city: value.city,
     postalCode: value.postalCode,
     street: value.street || null,

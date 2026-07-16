@@ -20,6 +20,7 @@ import {
   Search,
 } from "lucide-react";
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
+import { distributionServiceCatalog, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
 
 type LatLng = { lat: number; lng: number };
 type PolygonSource = "postal_code" | "manual" | "saved_area" | "drawn";
@@ -133,6 +134,7 @@ type Intelligence = {
 };
 
 type OrderDraft = {
+  serviceType?: OnlineServiceType;
   activeStep?: number;
   query?: string;
   selectedAreaId?: string;
@@ -590,11 +592,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [, setHistory] = useState<LatLng[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const [flyerQuantity, setFlyerQuantity] = useState(MINIMUM_FLYER_QUANTITY);
+  const [serviceType, setServiceType] = useState<OnlineServiceType>("FLYER_DISTRIBUTION");
   const [warehouseOptions, setWarehouseOptions] = useState<CustomerWarehouse[]>([]);
   const [warehouseOptionsStatus, setWarehouseOptionsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
-  const productFormat = productOptions[0].value;
+  const productFormat = serviceType === "FLYER_DISTRIBUTION"
+    ? productOptions[0].value
+    : serviceCatalogItem(serviceType).formatLabel;
+  const selectedService = serviceCatalogItem(serviceType);
   const [flyerSource, setFlyerSource] = useState("CUSTOMER_OWN");
   const [printDataStatus, setPrintDataStatus] = useState("UPLOAD_LATER");
   const [targetGroup, setTargetGroup] = useState("Alle Haushalte");
@@ -717,6 +723,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const householdCountSource = intelligence?.metrics.householdCountSource ?? (intelligenceStatus === "live" ? "area-density-formula" : "client-area-estimate");
   const pricingVersion = intelligence?.metrics.pricingVersion ?? "pricing-rule-pending";
   const intelligenceRequestQuery = useMemo(() => new URLSearchParams({
+    serviceType,
     city,
     postalCode,
     street,
@@ -755,6 +762,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     selectedAreaId,
     printDataStatus,
     productFormat,
+    serviceType,
     street,
     startDate,
     endDate,
@@ -1063,6 +1071,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }
       if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
       setFlyerSource("CUSTOMER_OWN");
+      if (draft.serviceType && distributionServiceCatalog.some((item) => item.serviceType === draft.serviceType)) {
+        setServiceType(draft.serviceType);
+      }
       if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
       if (draft.targetGroup) setTargetGroup(draft.targetGroup);
       if (draft.distributionType) setDistributionType(draft.distributionType);
@@ -1133,6 +1144,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
           setFlyerQuantityTouched(true);
           setFlyerSource("CUSTOMER_OWN");
+          if (draft.serviceType && distributionServiceCatalog.some((item) => item.serviceType === draft.serviceType)) {
+            setServiceType(draft.serviceType);
+          }
           if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
           const repeatedPrintDataStatus = draft.printDataStatus ?? "UPLOAD_LATER";
           setRepeatPrintChoice("pending");
@@ -1183,6 +1197,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       areaStats,
       flyerQuantity,
       warehouseId: selectedWarehouseId,
+      serviceType,
       flyerQuantityTouched,
       productFormat,
       flyerSource,
@@ -1225,6 +1240,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     postalCode,
     printDataStatus,
     productFormat,
+    serviceType,
     query,
     selectedAreaId,
     startDate,
@@ -1909,6 +1925,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         areaStats,
         flyerQuantity,
         flyerQuantityTouched,
+        serviceType,
         productFormat,
         flyerSource,
         printDataStatus,
@@ -1942,14 +1959,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         coverageAreaSqm,
         routeDistanceMeters,
         routeDurationMinutes,
-        metadata: { mapMode, productFormat, targetGroup, distributionType, plannerMode: mode, segmentCount: areaSegmentsPayload.length },
+        metadata: { mapMode, serviceType, productFormat, targetGroup, distributionType, plannerMode: mode, segmentCount: areaSegmentsPayload.length },
       }),
     });
   }
 
   function buildOrderPayload(completionPath: "direct_payment" | "inquiry") {
     return {
-      serviceType: "FLYER_DISTRIBUTION",
+      serviceType,
       city,
       postalCode,
       street,
@@ -2277,7 +2294,25 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (stepId === 2) {
       return (
         <section className="orderPanelBlock inlineStepBlock" data-testid="customer-own-flyer-step">
-          <p className="orderStepHint">Lege die Flyerzahl fest. Deine Flyer sind bereits gedruckt und werden an das ausgewählte FLYERO-Lager gesendet.</p>
+          <p className="orderStepHint">Wähle zuerst, welches Werbemittel du verteilen lassen möchtest. Online buchbar sind bereits gedruckte Materialien, die an ein FLYERO-Lager gesendet werden.</p>
+          <div className="serviceChoiceList" aria-label="Werbemittel auswählen" data-testid="order-service-type">
+            {distributionServiceCatalog.map((service) => (
+              <button
+                key={service.serviceType}
+                type="button"
+                className={serviceType === service.serviceType ? "serviceChoice isSelected" : "serviceChoice"}
+                aria-pressed={serviceType === service.serviceType}
+                onClick={() => setServiceType(service.serviceType)}
+              >
+                <span className="serviceChoiceMarker" aria-hidden="true" />
+                <span>
+                  <strong>{service.label}</strong>
+                  <small>{service.description}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="orderReviewNotice">Du sendest deine fertigen Materialien nach der Buchung an das ausgewählte Lager. Den Druck selbst übernimmt FLYERO in diesem Online-Ablauf nicht.</p>
           {repeatPrintChoice === "pending" ? (
             <div className="repeatPrintNotice" role="alert">
               <strong>Ist deine Flyerauflage noch aktuell?</strong>
@@ -2322,7 +2357,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           )}
           <div className="flyerRecommendation">
             <span>Unser Vorschlag</span>
-            <strong>{formatNumber(recommendedFlyerQuantity)} Flyer mit 10 % Reserve</strong>
+            <strong>{formatNumber(recommendedFlyerQuantity)} Stück mit 10 % Reserve</strong>
             <small>Du kannst die Menge jederzeit ändern.</small>
           </div>
           <div className="quantityControl">
@@ -2403,7 +2438,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           <div className="summaryMiniGrid">
             <span><strong>{postalCode} {city}</strong>Gebiet</span>
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
-            <span><strong>{formatNumber(flyerQuantity)}</strong>Flyer</span>
+            <span><strong>{selectedService.label}</strong>Werbemittel</span>
+            <span><strong>{formatNumber(flyerQuantity)}</strong>Stück</span>
             <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
             <span><strong>{intelligence ? formatCurrency(vatAmount) : "wird berechnet"}</strong>Umsatzsteuer</span>
             <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : "wird berechnet"}</strong>Gesamt brutto</span>
@@ -2433,7 +2469,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <span><strong>{postalCode} {city}</strong>Gebiet</span>
             <span><strong>{formatNumber(households)}</strong>Haushalte geschätzt</span>
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
-            <span><strong>{formatNumber(flyerQuantity)}</strong>Flyer</span>
+            <span><strong>{selectedService.label}</strong>Werbemittel</span>
+            <span><strong>{formatNumber(flyerQuantity)}</strong>Stück</span>
             <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
             <span><strong>{intelligence ? formatCurrency(vatAmount) : "wird berechnet"}</strong>Umsatzsteuer</span>
             <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : "wird berechnet"}</strong>Gesamt brutto</span>
@@ -2491,7 +2528,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       onClick={() => setClickCount((value) => value + 1)}
       onSubmit={(event) => event.preventDefault()}
     >
-      <input type="hidden" name="serviceType" value="FLYER_DISTRIBUTION" />
+      <input type="hidden" name="serviceType" value={serviceType} />
       <input type="hidden" name="city" value={city} />
       <input type="hidden" name="postalCode" value={postalCode} />
       <input type="hidden" name="street" value={street} />

@@ -29,6 +29,7 @@ export type PriceCalculation = {
   gross: Prisma.Decimal;
   snapshot: {
     serviceType: ServiceType;
+    pricingBasisServiceType: ServiceType;
     flyerQuantity: number;
     basePrice: string;
     pricePerUnit: string;
@@ -536,10 +537,16 @@ export async function calculateOrderPrice(input: {
   serviceType: ServiceType;
   flyerQuantity: number;
 }): Promise<PriceCalculation> {
-  const [rules, vatRate] = await Promise.all([
+  const [requestedRules, vatRate] = await Promise.all([
     getActivePricingRules(input.serviceType),
     getVatRate(),
   ]);
+  const pricingBasisServiceType = requestedRules.length || input.serviceType === ServiceType.FLYER_DISTRIBUTION
+    ? input.serviceType
+    : ServiceType.FLYER_DISTRIBUTION;
+  const rules = pricingBasisServiceType === input.serviceType
+    ? requestedRules
+    : await getActivePricingRules(pricingBasisServiceType);
 
   const rule = rules.find(
     (candidate) => candidate.minQuantity <= input.flyerQuantity && (candidate.maxQuantity === null || candidate.maxQuantity >= input.flyerQuantity),
@@ -581,6 +588,7 @@ export async function calculateOrderPrice(input: {
     gross,
     snapshot: {
       serviceType: input.serviceType,
+      pricingBasisServiceType,
       flyerQuantity: input.flyerQuantity,
       basePrice: basePrice.toString(),
       pricePerUnit: pricePerUnit.toString(),
