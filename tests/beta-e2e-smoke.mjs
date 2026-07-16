@@ -184,6 +184,21 @@ async function main() {
 
     const startDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 10).toISOString();
     const endDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString();
+    const planningQuote = await jsonRequest("/api/public/planner/quote", {
+      method: "POST",
+      expected: [200],
+      body: {
+        city: "Koblenz",
+        postalCode: "56068",
+        flyerQuantity: 1400,
+        coverageAreaSqm: 640000,
+        flyerSource: "CUSTOMER_OWN",
+        printDataStatus: "UPLOAD_LATER",
+        preferredStartDate: startDate,
+        preferredEndDate: endDate,
+      },
+    });
+    assert(planningQuote.data.metrics.fingerprint, "Beta-Planungsquote lieferte keinen Quote-Fingerprint.");
     const orderResponse = await jsonRequest("/api/customer/orders", {
       method: "POST",
       cookie: customerCookie,
@@ -206,6 +221,7 @@ async function main() {
         contactPerson: "Berta Beta",
         contactPhone: "+49 261 555000",
         notes: "Beta E2E Smoke Auftrag",
+        quoteFingerprint: planningQuote.data.metrics.fingerprint,
       },
     });
     const orderId = orderResponse.data.id;
