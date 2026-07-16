@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { Prisma, PrismaClient } from "@prisma/client";
@@ -6,6 +7,23 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 let baseUrl = process.env.CUSTOMER_ORDER_AREA_BASE_URL || "http://localhost:3000";
 const PASSWORD = "DemoPasswort123!";
+const LOGIN_TEST_IP = process.env.SMOKE_TEST_IP || "198.51.100.31";
+const MAPS_TEST_IP = process.env.SMOKE_MAPS_IP || "198.51.100.201";
+
+async function resetMapsRateLimitBucket() {
+  const mapsId = createHash("sha256")
+    .update(`flyero-public-rate-limit:maps:${MAPS_TEST_IP}`)
+    .digest("hex");
+  await prisma.publicRateLimitBucket.deleteMany({ where: { id: mapsId } });
+
+  const loginIpId = createHash("sha256")
+    .update(`flyero-auth-rate-limit:login:ip:${LOGIN_TEST_IP}`)
+    .digest("hex");
+  const loginAccountId = createHash("sha256")
+    .update("flyero-auth-rate-limit:login:account:kunde.immobilien@example.com")
+    .digest("hex");
+  await prisma.authRateLimitBucket.deleteMany({ where: { id: { in: [loginIpId, loginAccountId] } } });
+}
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -59,7 +77,7 @@ async function login(email) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-forwarded-for": process.env.SMOKE_TEST_IP || "198.51.100.31",
+      "x-forwarded-for": LOGIN_TEST_IP,
     },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
@@ -71,7 +89,7 @@ async function json(path, { cookie }) {
   const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     headers: {
       cookie,
-      "x-forwarded-for": process.env.SMOKE_MAPS_IP || "198.51.100.201",
+      "x-forwarded-for": MAPS_TEST_IP,
     },
   });
   const text = await response.text();
@@ -108,6 +126,7 @@ const premiumPricingExamples = [
 
 const server = await ensureServer();
 try {
+  await resetMapsRateLimitBucket();
   const customerCookie = await login("kunde.immobilien@example.com");
   const wizard = includes("src/app/customer/orders/new/SmartOrderWizard.tsx", [
     "findAreaForLocation",

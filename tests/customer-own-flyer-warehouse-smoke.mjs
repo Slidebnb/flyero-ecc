@@ -9,6 +9,7 @@ const warehouseRoute = read("src/app/api/customer/warehouses/route.ts");
 const orderRoute = read("src/app/api/customer/orders/route.ts");
 const validators = read("src/lib/validators.ts");
 const wizard = read("src/app/customer/orders/new/SmartOrderWizard.tsx");
+const orderDetail = read("src/app/customer/orders/[id]/page.tsx");
 
 assert.match(warehouseRoute, /requireTenantSession/);
 assert.match(warehouseRoute, /warehouseSourceWhere/);
@@ -27,5 +28,9 @@ assert.match(wizard, /data-testid=\"customer-own-flyer-step\"/);
 assert.doesNotMatch(wizard, /setFlyerSource\("PRINT_SERVICE"\)/);
 assert.match(wizard, /Flyer sind bereits gedruckt/);
 assert.match(wizard, /Empfangslager/);
+assert.match(orderRoute, /warehouseAddress/);
+assert.match(orderDetail, /distributionSegments:/);
+assert.match(orderDetail, /Bitte noch nicht versenden/);
+assert.match(orderDetail, /warehouseAddressText\(order\.assignedWarehouse\)/);
 
 console.log("Customer own-flyer warehouse selection smoke passed.");

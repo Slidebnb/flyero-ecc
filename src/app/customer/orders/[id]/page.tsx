@@ -43,6 +43,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
       statusEvents: { orderBy: { createdAt: "desc" }, take: 4 },
       distributionArea: true,
       assignedWarehouse: true,
+      distributionSegments: { orderBy: { sortOrder: "asc" }, include: { assignedWarehouse: true } },
       logisticsShipments: {
         where: { shipmentType: "CUSTOMER_TO_WAREHOUSE" },
         orderBy: { createdAt: "desc" },
@@ -59,7 +60,11 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
   const price = getOrderPriceBreakdown(order);
   const customerShipment = order.logisticsShipments[0] ?? null;
   const action = customerOrderAction(order.status, order.id);
-  const warehouseLabel = order.assignedWarehouse ? `${order.assignedWarehouse.name}, ${warehouseAddressText(order.assignedWarehouse)}` : "Wird von FLYERO zugewiesen";
+  const warehouseLabel = order.assignedWarehouse
+    ? `${order.assignedWarehouse.name}, ${warehouseAddressText(order.assignedWarehouse)}`
+    : order.customerOwnFlyers
+      ? "Wird nach der Gebietsprüfung bestätigt"
+      : "Noch nicht festgelegt";
 
   if (query.payment === "success" || query.payment === "cancelled") {
     const eventType = query.payment === "success" ? "PAYMENT_RETURNED_SUCCESS" : "PAYMENT_RETURNED_CANCELLED";
@@ -173,6 +178,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
             <p><span>Flyer</span><strong>{order.customerOwnFlyers ? "Bereits gedruckt, wird an das Lager gesendet" : "Druck separat mit FLYERO besprechen"}</strong></p>
             <p><span>Zahlung</span><strong>{latestPayment ? `${paymentLabel(latestPayment.status)} · ${formatCurrency(latestPayment.amount)}` : "Noch keine Zahlung"}</strong></p>
             {order.customerOwnFlyers ? <p><span>Lager</span><strong>{warehouseLabel}</strong></p> : null}
+            {order.distributionSegments.length > 1 ? <p><span>Teilgebiete</span><strong>{order.distributionSegments.length} getrennte Gebiete</strong></p> : null}
             <p><span>Hinweis vom FLYERO-Team</span><strong>{order.adminCustomerMessage || "Aktuell kein Hinweis nötig."}</strong></p>
           </div>
         </DataSection>
@@ -195,16 +201,23 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
         </div>
       </DataSection>
 
-      {order.customerOwnFlyers && order.assignedWarehouse ? (
+      {order.customerOwnFlyers ? (
         <details className="customerSoftDetails">
-          <summary>Lieferung an FLYERO ansehen</summary>
+          <summary>{order.assignedWarehouse ? "Lieferung an FLYERO ansehen" : "Versandhinweis für deine Flyer"}</summary>
           <DataSection title="Flyer an Lager senden" description="Nur wichtig, wenn Sie eigene Flyer anliefern.">
-            <div className="customerFactList">
-              <p><span>Kampagnennummer</span><strong>{customerOrderName(order.orderNumber)}</strong></p>
-              <p><span>Lieferadresse</span><strong>{warehouseAddressText(order.assignedWarehouse)}</strong></p>
-              <p><span>Sendung</span><strong>{customerShipment?.trackingNumber ?? "Noch nicht hinterlegt"}</strong></p>
-              <p><span>Status</span><strong>{customerShipment?.status ?? "Wird erwartet"}</strong></p>
-            </div>
+            {order.assignedWarehouse ? (
+              <div className="customerFactList">
+                <p><span>Kampagnennummer</span><strong>{customerOrderName(order.orderNumber)}</strong></p>
+                <p><span>Lieferadresse</span><strong>{warehouseAddressText(order.assignedWarehouse)}</strong></p>
+                <p><span>Sendung</span><strong>{customerShipment?.trackingNumber ?? "Noch nicht hinterlegt"}</strong></p>
+                <p><span>Status</span><strong>{customerShipment?.status ?? "Wird erwartet"}</strong></p>
+              </div>
+            ) : (
+              <div className="customerWarningBanner">
+                <strong>Bitte noch nicht versenden.</strong>
+                <span>Das zuständige Lager wird nach der Gebietsprüfung bestätigt. Sobald die Adresse feststeht, erscheint sie hier im Kundenkonto.</span>
+              </div>
+            )}
           </DataSection>
         </details>
       ) : null}

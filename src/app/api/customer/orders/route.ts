@@ -4,7 +4,7 @@ import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { createDistributionArea, linkAreaReferenceToOrder } from "@/lib/areas";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
-import { assignWarehouseForOrder } from "@/lib/logistics";
+import { assignWarehouseForOrder, warehouseAddressText } from "@/lib/logistics";
 import { generateOrderNumber, createOrderStatusEvent } from "@/lib/orders";
 import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getOrderIntelligence } from "@/lib/smartMaps";
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     const selectedWarehouse = data.warehouseId
       ? await prisma.warehouse.findFirst({
           where: { id: data.warehouseId, isActive: true, ...warehouseSourceWhere() },
-          select: { id: true, name: true, code: true, city: true },
+          select: { id: true, name: true, code: true, city: true, address: true, postalCode: true, country: true },
         })
       : null;
     if (data.warehouseId && !selectedWarehouse) {
@@ -320,12 +320,14 @@ export async function POST(request: NextRequest) {
         userId: session.id,
       });
     }
+    let notificationWarehouse = selectedWarehouse;
     if (!requiresManualReview) {
-      await assignWarehouseForOrder({
+      const assignment = await assignWarehouseForOrder({
         orderId: order.id,
         userId: session.id,
         reserveCapacity: false,
       });
+      notificationWarehouse = assignment.warehouse;
     }
     await createNotification({
       userId: session.id,
@@ -342,10 +344,16 @@ export async function POST(request: NextRequest) {
         netAmount: order.calculatedNetPrice.toString(),
         vatAmount: order.calculatedVat.toString(),
         printDataStatus: data.printDataStatus,
-        selectedWarehouseName: selectedWarehouse?.name ?? null,
+        warehouseName: notificationWarehouse?.name ?? null,
+        warehouseAddress: notificationWarehouse ? warehouseAddressText(notificationWarehouse) : null,
+        selectedWarehouseName: notificationWarehouse?.name ?? null,
         preferredStartDate: data.preferredStartDate.toISOString(),
         preferredEndDate: data.preferredEndDate.toISOString(),
-        nextStep: requiresManualReview ? "FLYERO prueft das Gebiet vor der Buchung." : data.completionPath === "direct_payment" ? "Zahlung starten." : "FLYERO meldet sich nach der Pruefung.",
+        nextStep: requiresManualReview
+          ? "Bitte versende deine Flyer noch nicht. FLYERO bestätigt das zuständige Lager nach der Gebietsprüfung."
+          : data.completionPath === "direct_payment"
+            ? "Zahlung starten."
+            : "FLYERO meldet sich nach der Prüfung.",
       },
       title: "Auftrag erstellt",
       message: requiresManualReview
