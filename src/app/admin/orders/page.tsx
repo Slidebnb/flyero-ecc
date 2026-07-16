@@ -13,6 +13,21 @@ type PageProps = {
   searchParams: Promise<{ status?: string; search?: string; city?: string }>;
 };
 
+function nextOrderAction(input: {
+  status: OrderStatus;
+  paymentStatus?: string;
+  customerOwnFlyers: boolean;
+  assignedWarehouseId: string | null;
+  hasReport: boolean;
+}) {
+  if (input.status === "PAID_WAITING_FOR_ADMIN_REVIEW") return "Zahlung prüfen";
+  if (input.status === "SUBMITTED" || input.status === "UNDER_REVIEW") return "Anfrage prüfen";
+  if (input.paymentStatus === "CHECKOUT_CREATED" || input.status === "PAYMENT_PENDING") return "Zahlung abwarten";
+  if (input.customerOwnFlyers && !input.assignedWarehouseId) return "Lager festlegen";
+  if (!input.hasReport && ["COMPLETED", "REPORT_READY"].includes(input.status)) return "Bericht vorbereiten";
+  return "Auftrag öffnen";
+}
+
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
   await requireRole([UserRole.ADMIN]);
   const params = await searchParams;
@@ -35,7 +50,12 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
           }
         : {}),
     },
-    include: { customer: true },
+    include: {
+      customer: true,
+      payments: { orderBy: { createdAt: "desc" }, take: 1, select: { status: true } },
+      documents: { select: { id: true, customerVisible: true } },
+      reports: { orderBy: { updatedAt: "desc" }, take: 1, select: { id: true, status: true } },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -80,6 +100,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                 <th>Stadt</th>
                 <th>Datum</th>
                 <th>Gesamt brutto</th>
+                <th>Nächster Schritt</th>
                 <th>Aktion</th>
               </tr>
             </thead>
@@ -93,6 +114,16 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
                   <td>{formatDate(order.createdAt)}</td>
                   <td>{formatCurrency(getOrderGrossPrice(order))}</td>
                   <td>
+                    {nextOrderAction({
+                      status: order.status,
+                      paymentStatus: order.payments[0]?.status,
+                      customerOwnFlyers: order.customerOwnFlyers,
+                      assignedWarehouseId: order.assignedWarehouseId,
+                      hasReport: order.reports.length > 0,
+                    })}
+                    <small className="muted" style={{ display: "block" }}>{order.documents.length} Nachweise</small>
+                  </td>
+                  <td>
                     <Link className="textLink" href={`/admin/orders/${order.id}`}>
                       Öffnen
                     </Link>
@@ -101,7 +132,7 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
               ))}
               {orders.length === 0 ? (
                 <tr>
-                  <td colSpan={7}><EmptyState title="Keine Aufträge gefunden." description="Passe Filter oder Suchbegriff an." /></td>
+                  <td colSpan={8}><EmptyState title="Keine Aufträge gefunden." description="Passe Filter oder Suchbegriff an." /></td>
                 </tr>
               ) : null}
             </tbody>

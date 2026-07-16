@@ -204,6 +204,10 @@ export const orderCreateSchema = z
     postalCode: z.string().min(3),
     street: optionalText,
     houseNumber: optionalText,
+    placeId: optionalText,
+    locationSource: z.enum(["google", "local", "manual"]).optional(),
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional(),
     targetAreaName: z.string().min(2),
     areaType: z.enum(["POSTAL_CODE", "CITY", "DISTRICT", "POLYGON", "RADIUS"]).optional(),
     distributionAreaId: optionalText,
@@ -242,6 +246,14 @@ export const orderCreateSchema = z
   .refine((data) => data.preferredEndDate >= data.preferredStartDate, {
     message: "Bis-spaetestens-Datum muss nach dem Wunschtermin liegen.",
     path: ["preferredEndDate"],
+  })
+  .refine((data) => data.locationSource !== "google" || Boolean(data.placeId), {
+    message: "Bitte wÃ¤hle den Ort aus der Standortliste aus.",
+    path: ["placeId"],
+  })
+  .refine((data) => (data.latitude === undefined) === (data.longitude === undefined), {
+    message: "Standortkoordinaten mÃ¼ssen vollstÃ¤ndig Ã¼bermittelt werden.",
+    path: ["latitude"],
   });
 
 export const orderUpdateSchema = orderCreateSchema.extend({

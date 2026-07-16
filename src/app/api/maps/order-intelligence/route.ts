@@ -19,6 +19,12 @@ function jsonParam(value: string | null) {
   }
 }
 
+function boundedCoordinate(value: string | null, min: number, max: number) {
+  if (!value) return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max ? parsed : undefined;
+}
+
 export async function GET(request: Request) {
   try {
     const baseSession = await requireRole([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
@@ -32,6 +38,12 @@ export async function GET(request: Request) {
       postalCode: params.get("postalCode"),
       street: params.get("street"),
       houseNumber: params.get("houseNumber"),
+      placeId: params.get("placeId")?.trim().slice(0, 160) || undefined,
+      locationSource: ["google", "local", "manual"].includes(params.get("locationSource") ?? "")
+        ? params.get("locationSource") as "google" | "local" | "manual"
+        : undefined,
+      latitude: boundedCoordinate(params.get("latitude"), -90, 90),
+      longitude: boundedCoordinate(params.get("longitude"), -180, 180),
       distributionAreaId: params.get("distributionAreaId"),
       flyerQuantity: numberParam(params.get("flyerQuantity")),
       coverageAreaSqm: numberParam(params.get("coverageAreaSqm")),

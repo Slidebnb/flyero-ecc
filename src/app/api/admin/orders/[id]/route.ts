@@ -25,6 +25,9 @@ export async function GET(_request: NextRequest, context: RouteContext) {
           include: { user: { select: { id: true, email: true, role: true } } },
         },
         distributionSegments: { orderBy: { sortOrder: "asc" } },
+        payments: { orderBy: { createdAt: "desc" }, take: 1, select: { id: true, status: true, amount: true, currency: true, stripeCheckoutSessionId: true, stripePaymentIntentId: true } },
+        documents: { orderBy: { uploadedAt: "desc" }, select: { id: true, title: true, status: true, customerVisible: true, uploadedAt: true } },
+        reports: { orderBy: { updatedAt: "desc" }, take: 1, select: { id: true, status: true, publishedAt: true, updatedAt: true } },
       },
     });
 

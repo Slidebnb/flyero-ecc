@@ -46,6 +46,7 @@ type LocationResult = {
   houseNumber?: string | null;
   label?: string | null;
   placeId?: string | null;
+  source?: "google" | "local" | "manual" | null;
   lat: number;
   lng: number;
 };
@@ -137,6 +138,7 @@ type OrderDraft = {
   serviceType?: OnlineServiceType;
   activeStep?: number;
   query?: string;
+  selectedLocation?: PublicLocationContext | null;
   selectedAreaId?: string;
   city?: string;
   postalCode?: string;
@@ -577,6 +579,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [draftRestored, setDraftRestored] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
   const [query, setQuery] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState<PublicLocationContext | null>(null);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedAreaId, setSelectedAreaId] = useState("");
@@ -737,6 +740,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     postalCode,
     street,
     houseNumber,
+    placeId: selectedLocation?.placeId ?? "",
+    locationSource: selectedLocation?.source ?? "",
+    latitude: selectedLocation?.lat == null ? "" : String(selectedLocation.lat),
+    longitude: selectedLocation?.lng == null ? "" : String(selectedLocation.lng),
     distributionAreaId: selectedAreaId,
     flyerQuantity: String(flyerQuantity),
     flyerSource,
@@ -769,6 +776,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     flyerSource,
     effectiveWeightClass,
     houseNumber,
+    selectedLocation,
     localRouteDistanceMeters,
     perimeterMeters,
     postalCode,
@@ -1047,6 +1055,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       if (draft.activeStep && draft.activeStep >= 1 && draft.activeStep <= 6) setActiveStep(draft.activeStep);
       const restoreLocation = !hasExplicitLocation;
       if (restoreLocation && draft.query) setQuery(draft.query);
+      if (restoreLocation && draft.selectedLocation?.query) setSelectedLocation(draft.selectedLocation);
       if (restoreLocation && draft.selectedAreaId) setSelectedAreaId(draft.selectedAreaId);
       if (restoreLocation && draft.city) setCity(draft.city);
       if (restoreLocation && draft.postalCode) setPostalCode(draft.postalCode);
@@ -1125,6 +1134,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           const draft = payload?.data?.draft as Partial<OrderDraft> & { targetAreaGeoJson?: unknown; center?: LatLng | null } | undefined;
           if (!draft) return;
           if (draft.query) setQuery(draft.query);
+          if (draft.selectedLocation?.query) setSelectedLocation(draft.selectedLocation);
           if (draft.city) setCity(draft.city);
           if (draft.postalCode) setPostalCode(draft.postalCode);
           if (draft.street) setStreet(draft.street);
@@ -1198,6 +1208,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     const draft: OrderDraft = {
       activeStep,
       query,
+      selectedLocation,
       selectedAreaId,
       city,
       postalCode,
@@ -1260,6 +1271,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     productFormat,
     serviceType,
     query,
+    selectedLocation,
     selectedAreaId,
     startDate,
     street,
@@ -1284,6 +1296,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setStreet("");
       setHouseNumber("");
       setTargetAreaName("");
+      setSelectedLocation(null);
       setHistory([]);
       setHistoryIndex(0);
     }
@@ -1299,6 +1312,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
     setIntelligence(null);
     setIntelligenceStatus("updating");
+    setSelectedLocation({
+      query: result.label || [result.postalCode, result.city].filter(Boolean).join(" "),
+      placeId: result.source === "google" ? result.placeId ?? undefined : undefined,
+      postalCode: result.postalCode ?? undefined,
+      city: result.city ?? undefined,
+      lat: Number.isFinite(Number(result.lat)) ? Number(result.lat) : undefined,
+      lng: Number.isFinite(Number(result.lng)) ? Number(result.lng) : undefined,
+      source: result.source ?? "manual",
+    });
     setCity(result.city ?? "");
     setPostalCode(result.postalCode ?? "");
     setStreet(result.street ?? "");
@@ -1850,6 +1872,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setIntelligence(null);
     setIntelligenceStatus("local");
     setSelectedAreaId("");
+    setSelectedLocation(null);
     setCity("");
     setPostalCode("");
     setStreet("");
@@ -1870,6 +1893,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   function applySuggestion(suggestion: Suggestion) {
     clearLocationSelection();
+    setSelectedLocation({
+      query: suggestion.label,
+      placeId: suggestion.source === "google" ? suggestion.id : undefined,
+      postalCode: suggestion.postalCode || undefined,
+      city: suggestion.city || undefined,
+      lat: Number.isFinite(suggestion.lat) && suggestion.lat !== 0 ? suggestion.lat : undefined,
+      lng: Number.isFinite(suggestion.lng) && suggestion.lng !== 0 ? suggestion.lng : undefined,
+      source: suggestion.source,
+    });
     setQuery(suggestion.label);
     setUsedAutocomplete(true);
     setShowSuggestions(false);
@@ -1930,6 +1962,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       const handoffDraft: OrderDraft = {
         activeStep: 1,
         query,
+        selectedLocation,
         selectedAreaId,
         city,
         postalCode,
@@ -1989,6 +2022,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       postalCode,
       street,
       houseNumber,
+      placeId: selectedLocation?.placeId,
+      locationSource: selectedLocation?.source,
+      latitude: selectedLocation?.lat,
+      longitude: selectedLocation?.lng,
       targetAreaName,
       areaType: "POLYGON",
       distributionAreaId: selectedAreaId,
@@ -2575,6 +2612,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       <input type="hidden" name="postalCode" value={postalCode} />
       <input type="hidden" name="street" value={street} />
       <input type="hidden" name="houseNumber" value={houseNumber} />
+      <input type="hidden" name="placeId" value={selectedLocation?.placeId ?? ""} />
+      <input type="hidden" name="locationSource" value={selectedLocation?.source ?? ""} />
+      <input type="hidden" name="latitude" value={selectedLocation?.lat ?? ""} />
+      <input type="hidden" name="longitude" value={selectedLocation?.lng ?? ""} />
       <input type="hidden" name="targetAreaName" value={targetAreaName} />
       <input type="hidden" name="areaType" value="POLYGON" />
       <input type="hidden" name="distributionAreaId" value={selectedAreaId} />

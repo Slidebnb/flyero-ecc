@@ -28,7 +28,12 @@ export async function GET(request: NextRequest) {
             }
           : {}),
       },
-      include: { customer: true },
+      include: {
+        customer: true,
+        payments: { orderBy: { createdAt: "desc" }, take: 1, select: { status: true, amount: true } },
+        documents: { select: { id: true, customerVisible: true, status: true } },
+        reports: { orderBy: { updatedAt: "desc" }, take: 1, select: { id: true, status: true, publishedAt: true } },
+      },
       orderBy: { createdAt: "desc" },
     });
 

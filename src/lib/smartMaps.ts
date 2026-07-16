@@ -55,9 +55,10 @@ async function configuredPlaceSuggestions(query: string): Promise<SmartPlaceSugg
 
 async function googleAutocomplete(query: string): Promise<SmartPlaceSuggestion[]> {
   const key = process.env.GOOGLE_MAPS_SERVER_KEY;
-  if (!key || query.trim().length < 3) return [];
+  const normalizedQuery = query.trim().slice(0, 120);
+  if (!key || normalizedQuery.length < 3) return [];
   const url = new URL("https://maps.googleapis.com/maps/api/place/autocomplete/json");
-  url.searchParams.set("input", query);
+  url.searchParams.set("input", normalizedQuery);
   url.searchParams.set("key", key);
   url.searchParams.set("components", "country:de");
   url.searchParams.set("language", "de");
@@ -288,6 +289,10 @@ export async function getOrderIntelligence(input: {
   postalCode?: string | null;
   street?: string | null;
   houseNumber?: string | null;
+  placeId?: string | null;
+  locationSource?: "google" | "local" | "manual" | null;
+  latitude?: number | null;
+  longitude?: number | null;
   distributionAreaId?: string | null;
   flyerQuantity?: number | null;
   households?: number | null;
@@ -334,6 +339,10 @@ export async function getOrderIntelligence(input: {
     postalCode: input.postalCode,
     street: input.street,
     houseNumber: input.houseNumber,
+    placeId: input.placeId,
+    locationSource: input.locationSource,
+    latitude: input.latitude,
+    longitude: input.longitude,
     targetAreaGeoJson: input.targetAreaGeoJson,
     areaSegments: input.segments,
     coverageAreaSqm: planning.coverageAreaSqm ?? input.coverageAreaSqm,
@@ -474,6 +483,10 @@ export async function getOrderIntelligence(input: {
     printDataStatus: input.printDataStatus,
     preferredStartDate: input.preferredStartDate,
     preferredEndDate: input.preferredEndDate,
+    placeId: input.placeId,
+    locationSource: input.locationSource,
+    latitude: input.latitude,
+    longitude: input.longitude,
     pricingRuleSignature: price.snapshot.pricingRuleSignature,
   });
   const householdCountSource = segmentCalculations

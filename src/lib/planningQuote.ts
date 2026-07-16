@@ -8,6 +8,10 @@ export type PlanningInputFingerprint = {
   serviceType?: "FLYER_DISTRIBUTION" | "DOOR_HANGER" | "BROCHURE" | "MAGAZINE" | "FLYER_STANDARD" | "CATALOG_DISTRIBUTION" | "BROCHURE_MAGAZINE" | "VOUCHER_CARD" | "POSTCARD_INVITATION" | "EVENT_INVITATION" | "COMMUNITY_PUBLICATION" | "MENU_DELIVERY_CARD" | "PRODUCT_SAMPLING";
   flyerQuantity: number;
   polygonHash: string;
+  placeId?: string;
+  locationSource?: "google" | "local" | "manual";
+  latitude?: number | null;
+  longitude?: number | null;
   city: string;
   postalCode: string;
   street: string;
@@ -78,6 +82,10 @@ export type PlanningQuoteInput = {
   perimeterMeters?: number | null;
   targetAreaGeoJson?: unknown;
   areaSegments?: unknown;
+  placeId?: string | null;
+  locationSource?: "google" | "local" | "manual" | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 function stableValue(value: unknown): unknown {
@@ -164,10 +172,25 @@ export function normalizePlanningInput(input: PlanningQuoteInput): PlanningInput
   const polygonHash = hash(geometry ?? { coverageAreaSqm, city: input.city ?? "", postalCode: input.postalCode ?? "" });
 
   const serviceType = input.serviceType ?? "FLYER_DISTRIBUTION";
+  const hasLocationIdentity = Boolean(
+    input.placeId?.trim()
+    || input.locationSource
+    || input.latitude != null
+    || input.longitude != null,
+  );
+  const locationIdentity = hasLocationIdentity
+    ? {
+        placeId: input.placeId?.trim() ?? "",
+        locationSource: input.locationSource ?? "manual",
+        latitude: input.latitude != null && Number.isFinite(input.latitude) ? Number(input.latitude.toFixed(6)) : null,
+        longitude: input.longitude != null && Number.isFinite(input.longitude) ? Number(input.longitude.toFixed(6)) : null,
+      }
+    : {};
   return {
     ...(serviceType === "FLYER_DISTRIBUTION" ? {} : { serviceType }),
     flyerQuantity: Math.round(input.flyerQuantity),
     polygonHash,
+    ...locationIdentity,
     city: input.city?.trim() ?? "",
     postalCode: input.postalCode?.trim() ?? "",
     street: input.street?.trim() ?? "",

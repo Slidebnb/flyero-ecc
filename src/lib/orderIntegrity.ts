@@ -71,6 +71,12 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     postalCode: order.postalCode,
     street: normalizedStreet,
     houseNumber: typeof targetAddress.houseNumber === "string" ? targetAddress.houseNumber as string : null,
+    placeId: typeof quoteInput.placeId === "string" ? quoteInput.placeId : null,
+    locationSource: quoteInput.locationSource === "google" || quoteInput.locationSource === "local" || quoteInput.locationSource === "manual"
+      ? quoteInput.locationSource
+      : null,
+    latitude: typeof quoteInput.latitude === "number" ? quoteInput.latitude : null,
+    longitude: typeof quoteInput.longitude === "number" ? quoteInput.longitude : null,
     flyerSource: order.customerOwnFlyers ? "CUSTOMER_OWN" : "PRINT_SERVICE",
     productFormat: typeof snapshot.root.productFormat === "string" ? snapshot.root.productFormat : null,
     weightClass: order.weightClass,

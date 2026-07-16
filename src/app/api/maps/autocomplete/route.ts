@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     await requireRole([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
     const abuseDecision = await enforcePublicRateLimit(request, "maps");
     if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
-    const query = new URL(request.url).searchParams.get("q") ?? "";
+    const query = (new URL(request.url).searchParams.get("q") ?? "").trim().slice(0, 120);
     const suggestions = query.trim().length >= 2 ? await getPlaceAutocomplete(query) : [];
     return Response.json({ ok: true, data: suggestions });
   } catch (error) {

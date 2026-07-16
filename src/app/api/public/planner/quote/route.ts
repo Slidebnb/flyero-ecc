@@ -14,6 +14,10 @@ const quoteInputSchema = z.object({
   postalCode: z.string().trim().max(10).default(""),
   street: z.string().trim().max(120).default(""),
   houseNumber: z.string().trim().max(20).default(""),
+  placeId: z.string().trim().max(160).optional(),
+  locationSource: z.enum(["google", "local", "manual"]).optional(),
+  latitude: z.union([z.string(), z.number()]).optional(),
+  longitude: z.union([z.string(), z.number()]).optional(),
   flyerQuantity: z.union([z.string(), z.number()]).optional(),
   coverageAreaSqm: z.union([z.string(), z.number()]).optional(),
   distanceMeters: z.union([z.string(), z.number()]).optional(),
@@ -46,6 +50,12 @@ function boundedNumber(value: string | number | undefined, maximum: number) {
   return Math.min(parsed, maximum);
 }
 
+function boundedCoordinate(value: string | number | undefined, minimum: number, maximum: number) {
+  if (value === undefined || value === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= minimum && parsed <= maximum ? parsed : undefined;
+}
+
 function safeQueryInput(request: Request) {
   const params = new URL(request.url).searchParams;
   return {
@@ -54,6 +64,10 @@ function safeQueryInput(request: Request) {
     postalCode: params.get("postalCode") ?? "",
     street: params.get("street") ?? "",
     houseNumber: params.get("houseNumber") ?? "",
+    placeId: params.get("placeId") ?? undefined,
+    locationSource: params.get("locationSource") ?? undefined,
+    latitude: params.get("latitude") ?? undefined,
+    longitude: params.get("longitude") ?? undefined,
     flyerQuantity: params.get("flyerQuantity") ?? undefined,
     coverageAreaSqm: params.get("coverageAreaSqm") ?? undefined,
     distanceMeters: params.get("distanceMeters") ?? undefined,
@@ -90,6 +104,10 @@ async function createPublicQuote(input: unknown) {
     postalCode: value.postalCode,
     street: value.street || null,
     houseNumber: value.houseNumber || null,
+    placeId: value.placeId || null,
+    locationSource: value.locationSource ?? null,
+    latitude: boundedCoordinate(value.latitude, -90, 90),
+    longitude: boundedCoordinate(value.longitude, -180, 180),
     flyerQuantity: Math.round(boundedNumber(value.flyerQuantity, 200_000) ?? 0) || null,
     flyerSource: value.flyerSource,
     productFormat: value.productFormat,

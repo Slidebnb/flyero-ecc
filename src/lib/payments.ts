@@ -342,6 +342,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
   };
   let payment = existing;
+  let createdPayment = false;
   if (!payment) {
     try {
       payment = await prisma.payment.create({
@@ -358,6 +359,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
           metadata,
         },
       });
+      createdPayment = true;
     } catch (error) {
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
       payment = (await prisma.payment.findFirst({
@@ -367,7 +369,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
       if (!payment) throw error;
     }
   }
-  if (!existing) await addPaymentHistory({ paymentId: payment.id, toStatus: "CREATED", reason: "checkout_requested" });
+  if (createdPayment) await addPaymentHistory({ paymentId: payment.id, toStatus: "CREATED", reason: "checkout_requested" });
   if (existing) {
     await prisma.payment.update({
       where: { id: existing.id },
