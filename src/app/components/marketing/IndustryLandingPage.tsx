@@ -23,7 +23,8 @@ import {
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
-import type { IndustryPageData } from "@/app/branchen/industryData";
+import { industryPages, type IndustryPageData } from "@/app/branchen/industryData";
+import { occasionPages } from "@/app/anlaesse/occasionData";
 
 const industryIcons = {
   bakery: CakeSlice,
@@ -132,11 +133,22 @@ export function IndustryLandingPage({ page }: { page: IndustryPageData }) {
         </div>
       </MarketingSection>
 
+      <MarketingSection eyebrow="Mehr entdecken" title="Weitere Wege zu Ihrer Kampagne.">
+        <div className="mkLandingLinkList">
+          {(page.path.startsWith("/branchen/") ? occasionPages : industryPages).map((relatedPage) => (
+            <Link key={relatedPage.path} href={relatedPage.path}>
+              <span>{relatedPage.label}</span>
+              <ArrowRight aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      </MarketingSection>
+
       <MarketingSection className="mkIndustryCta" eyebrow="Nächster Schritt" title="Starten Sie mit Ihrem konkreten Gebiet.">
         <div className="mkIndustryCtaInner">
           <p>Sie kennen den Anlass. FLYERO hilft Ihnen, Gebiet, Flyeranzahl und Ablauf sauber zusammenzubringen.</p>
           <div className="mkHeroActions">
-            <MarketingButton href="/verteilung-planen">Gebiet und Preis prüfen</MarketingButton>
+            <MarketingButton href="/verteilung-planen">Gebiet planen</MarketingButton>
             <MarketingButton href="/verteilung-anfragen" variant="dark">Projekt anfragen</MarketingButton>
           </div>
         </div>

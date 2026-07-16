@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { industrySeoRoutes } from "@/app/branchen/industryData";
+import { occasionSeoRoutes } from "@/app/anlaesse/occasionData";
 
 const siteName = "FLYERO";
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "https://flyero.org";
@@ -79,7 +80,9 @@ export const publicSeoRoutes = [
   { path: "/preise", priority: 0.75, changeFrequency: "monthly" as const },
   { path: "/fuer-verteiler", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "/kontakt", priority: 0.65, changeFrequency: "monthly" as const },
+  { path: "/flyer-verteilen-lassen", priority: 0.9, changeFrequency: "monthly" as const },
   ...industrySeoRoutes,
+  ...occasionSeoRoutes,
   { path: "/impressum", priority: 0.2, changeFrequency: "yearly" as const },
   { path: "/datenschutz", priority: 0.2, changeFrequency: "yearly" as const },
   { path: "/agb", priority: 0.2, changeFrequency: "yearly" as const },

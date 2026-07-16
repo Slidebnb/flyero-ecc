@@ -23,7 +23,9 @@ import {
 } from "lucide-react";
 import { MobileMenu } from "@/app/components/MobileMenu";
 import { industryPages } from "@/app/branchen/industryData";
+import { occasionPages } from "@/app/anlaesse/occasionData";
 export { IndustryLandingPage } from "@/app/components/marketing/IndustryLandingPage";
+export { FlyerDistributionPillarPage } from "@/app/components/marketing/FlyerDistributionPillarPage";
 
 type ButtonVariant = "primary" | "secondary" | "ghost" | "dark" | "coral";
 
@@ -118,6 +120,10 @@ export function PublicFooter() {
       <FooterColumn
         title="Branchen"
         links={industryPages.map((page) => [page.label, page.path] as const)}
+      />
+      <FooterColumn
+        title="Anlässe"
+        links={occasionPages.map((page) => [page.label, page.path] as const)}
       />
       <FooterColumn
         title="Rechtliches"

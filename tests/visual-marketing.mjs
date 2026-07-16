@@ -11,6 +11,8 @@ const targets = [
   { name: "home-mobile", path: "/", width: 390, height: 1100 },
   { name: "verteilung-anfragen-desktop", path: "/verteilung-anfragen", width: 1440, height: 1100 },
   { name: "verteilung-anfragen-mobile", path: "/verteilung-anfragen", width: 390, height: 1100 },
+  { name: "flyer-verteilen-lassen-desktop", path: "/flyer-verteilen-lassen", width: 1440, height: 1100 },
+  { name: "flyer-verteilen-lassen-mobile", path: "/flyer-verteilen-lassen", width: 390, height: 1100 },
   ...[
     "baeckereien",
     "gastronomie",
@@ -23,6 +25,16 @@ const targets = [
   ].flatMap((slug) => [
     { name: `industry-${slug}-desktop`, path: `/branchen/${slug}`, width: 1440, height: 1100 },
     { name: `industry-${slug}-mobile`, path: `/branchen/${slug}`, width: 390, height: 1100 },
+  ]),
+  ...[
+    "neueroeffnung",
+    "events",
+    "gutscheine",
+    "saisonaktionen",
+    "tag-der-offenen-tuer",
+  ].flatMap((slug) => [
+    { name: `occasion-${slug}-desktop`, path: `/flyer-fuer/${slug}`, width: 1440, height: 1100 },
+    { name: `occasion-${slug}-mobile`, path: `/flyer-fuer/${slug}`, width: 390, height: 1100 },
   ]),
 ];
 

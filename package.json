@@ -151,6 +151,7 @@
     "test:module28-public-playwright": "node tests/module28-public-playwright.mjs",
     "test:module28-public-production-parity": "node tests/module28-public-production-parity.mjs",
     "test:industry-seo": "node tests/industry-seo-smoke.mjs",
+    "test:occasion-seo": "node tests/occasion-seo-smoke.mjs",
     "test:single-area-logistics-gate": "node tests/single-area-logistics-gate-smoke.mjs",
     "test:print-service-payment-gate": "node tests/print-service-payment-gate-smoke.mjs",
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",

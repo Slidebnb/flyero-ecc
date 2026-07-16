@@ -4,6 +4,7 @@ const seo = readFileSync("src/app/seo.ts", "utf8");
 const sitemap = readFileSync("src/app/sitemap.ts", "utf8");
 const marketing = readFileSync("src/app/components/marketing/index.tsx", "utf8");
 const industryData = readFileSync("src/app/branchen/industryData.ts", "utf8");
+const occasionData = readFileSync("src/app/anlaesse/occasionData.ts", "utf8");
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -21,5 +22,9 @@ for (const path of ["/", "/verteilung-anfragen", "/verteilung-planen", "/fuer-un
 for (const slug of ["baeckereien", "gastronomie", "fitnessstudios", "handwerk", "immobilien", "einzelhandel", "events-vereine", "neueroeffnungen"]) {
   assert(industryData.includes(`path: \"/branchen/${slug}\"`), `Branchen-Sitemap-Route fehlt: ${slug}`);
 }
+for (const slug of ["neueroeffnung", "events", "gutscheine", "saisonaktionen", "tag-der-offenen-tuer"]) {
+  assert(occasionData.includes(`path: \"/flyer-fuer/${slug}\"`), `Anlass-Sitemap-Route fehlt: ${slug}`);
+}
+assert(seo.includes('path: \"/flyer-verteilen-lassen\"'), "Pillar-Sitemap-Route fehlt.");
 
 console.log("SEO-Sitemap smoke checks passed.");

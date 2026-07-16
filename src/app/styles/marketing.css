@@ -1269,7 +1269,7 @@
 
 .mkFooter {
   display: grid;
-  grid-template-columns: minmax(250px, 1fr) repeat(4, minmax(140px, 0.55fr));
+  grid-template-columns: minmax(250px, 1fr) repeat(5, minmax(120px, 0.5fr));
   gap: 34px;
   width: min(calc(100% - 48px), var(--flyero-container));
   margin: 0 auto;
@@ -2673,5 +2673,333 @@
 
   .mkProofStatusHeader span {
     font-size: 0.6rem;
+  }
+}
+
+.mkLandingLinkList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 980px;
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkLandingLinkList a,
+.mkPillarLinkList a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 68px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--flyero-border);
+  color: var(--flyero-text);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.mkLandingLinkList a:nth-child(odd) {
+  border-right: 1px solid var(--flyero-border);
+}
+
+.mkLandingLinkList a:hover,
+.mkPillarLinkList a:hover {
+  background: var(--flyero-green-soft);
+}
+
+.mkLandingLinkList svg,
+.mkPillarLinkList svg {
+  width: 17px;
+  flex: 0 0 auto;
+  color: var(--flyero-green-dark);
+}
+
+.mkPillarHero {
+  position: relative;
+  overflow: hidden;
+  padding: 110px 0 94px;
+  color: #ffffff;
+  background:
+    radial-gradient(circle at 78% 15%, rgba(167, 255, 0, 0.22), transparent 28rem),
+    linear-gradient(135deg, var(--flyero-dark), var(--flyero-navy));
+}
+
+.mkPillarHero .mkContainer {
+  position: relative;
+  z-index: 1;
+}
+
+.mkPillarHeroLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(300px, 0.68fr);
+  gap: clamp(46px, 8vw, 128px);
+  align-items: center;
+}
+
+.mkPillarHero h1 {
+  max-width: 820px;
+  margin: 0;
+  font-size: clamp(3.4rem, 7vw, 7rem);
+  line-height: 0.91;
+  letter-spacing: -0.06em;
+}
+
+.mkPillarHeroLead {
+  max-width: 650px;
+  margin: 28px 0 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.16rem;
+  line-height: 1.7;
+}
+
+.mkPillarHeroAside {
+  max-width: 420px;
+  justify-self: end;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 26px;
+  background: rgba(4, 9, 13, 0.66);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.26);
+}
+
+.mkPillarAsideKicker {
+  display: block;
+  margin-top: 30px;
+  color: var(--flyero-green);
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mkPillarHeroAside ol,
+.mkPillarFlowList,
+.mkPillarProof ul,
+.mkPillarLinkList {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.mkPillarHeroAside ol {
+  margin-top: 18px;
+}
+
+.mkPillarHeroAside li {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  padding: 17px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.mkPillarHeroAside li span,
+.mkPillarFlowList > li > span {
+  color: var(--flyero-green);
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+}
+
+.mkPillarHeroAside li strong,
+.mkPillarHeroAside li small {
+  display: block;
+}
+
+.mkPillarHeroAside li strong {
+  font-size: 1rem;
+}
+
+.mkPillarHeroAside li small {
+  margin-top: 5px;
+  color: rgba(255, 255, 255, 0.62);
+  line-height: 1.45;
+}
+
+.mkPillarFlow,
+.mkPillarSignal,
+.mkPillarProof {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.28fr);
+  gap: clamp(34px, 8vw, 130px);
+  align-items: start;
+}
+
+.mkPillarFlowIntro {
+  max-width: 390px;
+}
+
+.mkPillarFlowIntro h3,
+.mkPillarSignal h3,
+.mkPillarProof h3 {
+  margin: 18px 0 12px;
+  font-size: clamp(1.6rem, 3vw, 2.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+}
+
+.mkPillarFlowIntro p,
+.mkPillarSignal p,
+.mkPillarProof p {
+  margin: 0;
+  color: var(--flyero-muted);
+  line-height: 1.7;
+}
+
+.mkPillarFlowList {
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkPillarFlowList > li {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) 20px;
+  gap: 18px;
+  align-items: center;
+  min-height: 82px;
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+.mkPillarFlowList > li strong,
+.mkPillarFlowList > li small {
+  display: block;
+}
+
+.mkPillarFlowList > li small {
+  margin-top: 5px;
+  color: var(--flyero-muted);
+  line-height: 1.5;
+}
+
+.mkPillarFlowList > li > svg {
+  width: 18px;
+  color: var(--flyero-green-dark);
+}
+
+.mkPillarSignal {
+  grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.mkPillarSignal .mkTextLink {
+  white-space: nowrap;
+}
+
+.mkPillarProof {
+  align-items: center;
+}
+
+.mkPillarProof h3 {
+  max-width: 490px;
+  color: #ffffff;
+}
+
+.mkPillarProof p {
+  max-width: 560px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.mkPillarProof ul {
+  display: grid;
+  gap: 14px;
+}
+
+.mkPillarProof li {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.mkPillarProof li > svg {
+  flex: 0 0 auto;
+  width: 21px;
+  height: 21px;
+  color: var(--flyero-green);
+}
+
+.mkPillarProof li span {
+  display: grid;
+  gap: 5px;
+}
+
+.mkPillarProof li strong {
+  color: #ffffff;
+}
+
+.mkPillarProof li small {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.mkPillarLinkColumns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 70px;
+}
+
+.mkPillarLinkList {
+  margin-top: 16px;
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkPillarLinkList li {
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+@media (max-width: 1080px) {
+  .mkPillarHeroLayout,
+  .mkPillarFlow,
+  .mkPillarSignal,
+  .mkPillarProof {
+    grid-template-columns: 1fr;
+  }
+
+  .mkPillarHeroAside {
+    justify-self: start;
+  }
+
+  .mkPillarSignal {
+    gap: 20px;
+  }
+}
+
+@media (max-width: 820px) {
+  .mkPillarHero {
+    padding: 72px 0 var(--flyero-section-mobile);
+  }
+
+  .mkPillarHero h1 {
+    max-width: 360px;
+    font-size: clamp(3.05rem, 17vw, 4.25rem);
+  }
+
+  .mkPillarHeroLead {
+    max-width: 348px;
+    font-size: 1rem;
+    line-height: 1.64;
+  }
+
+  .mkPillarHeroAside {
+    width: 100%;
+    max-width: 420px;
+    padding: 24px;
+  }
+
+  .mkLandingLinkList,
+  .mkPillarLinkColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .mkLandingLinkList a:nth-child(odd) {
+    border-right: 0;
+  }
+
+  .mkPillarFlowList > li {
+    grid-template-columns: 42px minmax(0, 1fr) 20px;
+    gap: 12px;
+    padding: 16px 0;
+  }
+
+  .mkPillarSignal .mkTextLink {
+    white-space: normal;
   }
 }

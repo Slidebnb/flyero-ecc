@@ -1,0 +1,102 @@
+import type { IndustryPageData } from "@/app/branchen/industryData";
+
+export const occasionPages: IndustryPageData[] = [
+  {
+    slug: "neueroeffnung",
+    path: "/flyer-fuer/neueroeffnung",
+    label: "Neueröffnungen",
+    iconKey: "opening",
+    title: "Flyer für die Neueröffnung, die in der Umgebung ankommt.",
+    description: "Flyer für Neueröffnungen planen: Gebiet auswählen, eigene gedruckte Flyer anliefern und die Verteilung nachvollziehbar dokumentieren.",
+    keywords: ["Flyer Neueröffnung", "Flyerverteilung Neueröffnung", "Eröffnungswerbung lokal"],
+    heroLead: "Ein neuer Standort braucht Aufmerksamkeit vor Ort. Planen Sie Gebiet, Menge und Zeitraum mit genügend Vorlauf.",
+    intro: "Ob Laden, Praxis, Studio oder Gastronomie: Eine Neueröffnung ist ein konkreter Anlass mit einem klaren regionalen Ziel. FLYERO hilft, die Aktion online vorzubereiten und später nachvollziehbar abzuschließen.",
+    campaignExamples: ["Einladung zur Geschäftseröffnung", "Praxis-, Studio- oder Restaurantstart", "Eröffnungstag mit Gutschein oder Sonderaktion"],
+    planningNote: "Wählen Sie das Umfeld Ihres neuen Standorts und planen Sie den Starttermin mit ausreichendem Vorlauf. Bei Bedarf können Sie zunächst unverbindlich anfragen.",
+    proofNote: "Nach der Durchführung stehen freigegebene Nachweise und der PDF-Bericht im Kundenkonto bereit, sobald FLYERO die Unterlagen geprüft hat.",
+    faq: [
+      { question: "Wie viel Vorlauf braucht eine Neueröffnung?", answer: "Das hängt von Gebiet, Flyeranlieferung und gewünschtem Zeitraum ab. Der Buchungsprozess zeigt den frühestmöglichen Termin; bei engem Termin ist eine Anfrage sinnvoll." },
+      { question: "Kann ich die Kampagne erst anfragen und später buchen?", answer: "Ja. Sie können unverbindlich starten und die verbindliche Buchung nach der Rückmeldung von FLYERO vornehmen." },
+    ],
+  },
+  {
+    slug: "events",
+    path: "/flyer-fuer/events",
+    label: "Events",
+    iconKey: "events",
+    title: "Flyer für Events, die rechtzeitig sichtbar werden.",
+    description: "Flyer für Events und Veranstaltungen planen: Zielgebiet wählen, eigene Flyer anliefern und die Verteilung nach dem Termin nachvollziehbar abschließen.",
+    keywords: ["Flyer für Events", "Event Flyer verteilen", "Veranstaltung Flyer Werbung"],
+    heroLead: "Konzert, Stadtfest oder Vereinsveranstaltung: Bringen Sie Ihren Termin in die Umgebung, in der Besucher erreicht werden sollen.",
+    intro: "Veranstaltungen haben einen festen Termin und brauchen deshalb klare Planung. FLYERO verbindet die Gebietsentscheidung mit einem transparenten Auftrag und einem späteren Nachweisprozess.",
+    campaignExamples: ["Konzert, Markt oder Stadtfest", "Sportveranstaltung und Vereinsfest", "Einladung, Vorverkauf oder Saisonstart"],
+    planningNote: "Geben Sie den gewünschten Zeitraum frühzeitig an. Bei mehreren Veranstaltungsorten können die Teilgebiete getrennt geplant werden.",
+    proofNote: "Der Bericht beschreibt die dokumentierte Durchführung. Er ersetzt keine Einzelbestätigung jedes Briefkastens und macht diese Grenze transparent.",
+    faq: [
+      { question: "Wie früh sollte ich einen Event planen?", answer: "Je früher Gebiet, Menge und Zeitraum feststehen, desto leichter lässt sich die Verteilung vor dem Veranstaltungstermin organisieren. Bei engem Zeitplan hilft eine unverbindliche Anfrage." },
+      { question: "Kann eine Veranstaltung mehrere Orte haben?", answer: "Ja. Mehrere Teilgebiete können in einer Kampagne getrennt angelegt und gemeinsam geprüft werden." },
+    ],
+  },
+  {
+    slug: "gutscheine",
+    path: "/flyer-fuer/gutscheine",
+    label: "Gutscheinaktionen",
+    iconKey: "voucher",
+    title: "Flyer für Gutscheinaktionen mit einem klaren Einzugsgebiet.",
+    description: "Flyer für Gutscheinaktionen planen: relevante Gebiete auswählen, gedruckte Flyer anliefern und die Kampagne verständlich dokumentieren lassen.",
+    keywords: ["Gutschein Flyer verteilen", "Flyer Gutscheinaktion", "lokale Gutscheinwerbung"],
+    heroLead: "Ein Gutschein wirkt dort am besten, wo Menschen Ihr Angebot tatsächlich erreichen können. Wählen Sie das Gebiet passend zu Ihrem Standort.",
+    intro: "Gutscheinaktionen brauchen eine klare Verbindung zwischen Angebot, Standort und Einzugsgebiet. FLYERO hilft, diese Auswahl einfach vorzubereiten und den Abschluss der Verteilung sauber festzuhalten.",
+    campaignExamples: ["Eröffnungs- und Willkommensgutschein", "Rabattaktion für Stammkunden", "Saisonaler Gutschein oder Aktionscode"],
+    planningNote: "Definieren Sie ein oder mehrere Gebiete, passen Sie die Flyerzahl an und wählen Sie den gewünschten Zeitraum. Die konkrete Preisvorschau gehört immer zu dieser Auswahl.",
+    proofNote: "Nachweise werden nach der Verteilung hochgeladen, geprüft und im Kundenkonto veröffentlicht. Vorher zeigt FLYERO keine angeblichen Ergebnisse.",
+    faq: [
+      { question: "Kann ich eine Gutscheinaktion für mehrere Standorte planen?", answer: "Ja. Für jeden Standort können Sie ein eigenes Teilgebiet anlegen und die Kampagne gemeinsam organisieren." },
+      { question: "Kann ich die Flyer selbst drucken lassen?", answer: "Ja. Im Onlineprozess wählen Sie eigene, bereits gedruckte Flyer und erhalten nach bestätigter Gebietsprüfung die Lageradresse für die Anlieferung." },
+    ],
+  },
+  {
+    slug: "saisonaktionen",
+    path: "/flyer-fuer/saisonaktionen",
+    label: "Saisonaktionen",
+    iconKey: "season",
+    title: "Flyer für Saisonaktionen, wenn der richtige Zeitpunkt zählt.",
+    description: "Flyer für Saisonaktionen planen: Frühling, Sommer, Weihnachten oder lokale Verkaufsaktionen mit Gebiet, Vorlauf und Nachweis organisieren.",
+    keywords: ["Saisonaktion Flyer", "Flyer Weihnachten verteilen", "Flyer Sommeraktion"],
+    heroLead: "Saisonale Angebote brauchen Timing. Planen Sie die Verteilung mit Vorlauf und stimmen Sie Gebiet und Menge auf Ihre Aktion ab.",
+    intro: "Ob Saisonstart, Weihnachtsgeschäft oder Ferienaktion: Der Zeitraum ist Teil der Kampagne. FLYERO hält Gebiet, Menge und geplante Durchführung in einem verständlichen Ablauf zusammen.",
+    campaignExamples: ["Frühjahrs- und Sommeraktion", "Weihnachts- und Winterangebote", "Ferien-, Schulanfangs- oder Ernteaktion"],
+    planningNote: "Wählen Sie den gewünschten Zeitraum frühzeitig. Der Start ist abhängig von Gebiet, Anlieferung und interner Prüfung und wird im Auftrag klar angezeigt.",
+    proofNote: "Der Kundenbericht trennt Planung und dokumentierte Durchführung. Er enthält nur freigegebene Nachweise und keine pauschalen Briefkasten-Garantien.",
+    faq: [
+      { question: "Wie viel Vorlauf sollte ich für eine Saisonaktion einplanen?", answer: "Planen Sie den Zeitraum frühzeitig, damit Flyer ankommen und Gebiet sowie Durchführung geprüft werden können. Der Auftrag zeigt den frühestmöglichen Start." },
+      { question: "Kann ich mehrere Saisongebiete zusammen buchen?", answer: "Ja. Mehrere Orte oder Teilgebiete können getrennt geplant und in einer Kampagne zusammengefasst werden." },
+    ],
+  },
+  {
+    slug: "tag-der-offenen-tuer",
+    path: "/flyer-fuer/tag-der-offenen-tuer",
+    label: "Tag der offenen Tür",
+    iconKey: "open-door",
+    title: "Flyer für den Tag der offenen Tür mit lokaler Einladung.",
+    description: "Flyer für den Tag der offenen Tür planen: Nachbarschaft, Interessierte und Familien im passenden Gebiet erreichen und die Aktion dokumentieren.",
+    keywords: ["Tag der offenen Tür Flyer", "Flyer Einladung verteilen", "Flyer lokale Veranstaltung"],
+    heroLead: "Laden Sie Menschen aus der Umgebung ein: mit einem konkreten Gebiet, eigener Flyer-Anlieferung und genügend Zeit bis zum Termin.",
+    intro: "Ein Tag der offenen Tür lebt von einer Einladung, die rechtzeitig im Umfeld ankommt. FLYERO macht die Gebietsplanung und die spätere Dokumentation nachvollziehbar.",
+    campaignExamples: ["Einladung für Praxis oder Studio", "Schule, Kita oder Verein", "Betrieb, Werkstatt oder neuer Standort"],
+    planningNote: "Legen Sie das Umfeld fest und wählen Sie den Zeitraum mit ausreichendem Vorlauf. Bei mehreren Standorten können Sie die Gebiete einzeln benennen.",
+    proofNote: "Nach der Durchführung werden nur tatsächlich vorliegende und freigegebene Unterlagen im Kundenkonto sichtbar.",
+    faq: [
+      { question: "Kann ich den Termin im Auftrag hinterlegen?", answer: "Ja. Der gewünschte Zeitraum und besondere Hinweise gehören zur Planung und werden vor der Buchung zusammengefasst." },
+      { question: "Kann ich zunächst nur ein Angebot anfragen?", answer: "Ja. Der unverbindliche Anfrageweg ist geeignet, wenn Termin, Gebiet oder Flyerzahl noch abgestimmt werden sollen." },
+    ],
+  },
+];
+
+export const occasionPageBySlug = new Map(occasionPages.map((page) => [page.slug, page]));
+
+export const occasionSeoRoutes = occasionPages.map((page) => ({
+  path: page.path,
+  priority: 0.7,
+  changeFrequency: "monthly" as const,
+}));
