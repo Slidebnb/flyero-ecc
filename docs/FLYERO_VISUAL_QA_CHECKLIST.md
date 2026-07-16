@@ -55,6 +55,7 @@ Screenshots muessen im QA-Artefaktverzeichnis liegen und im Abschlussbericht mit
 - Relevante Interaktionen ausfuehren: Menue, Suche, Vorschlag, CTA, Wizard-Schritt und Fehlerzustand.
 - Console-Errors und Framework-Overlays dokumentieren.
 - Bei fehlender externer API darf nur ein kundenfreundlicher, ehrlicher Zustand erscheinen.
+- Das Impressum muss die aktuellen Unternehmensdaten anzeigen und darf keine Musterfirma, Beta-Hinweise oder alten Kontaktdaten enthalten.
 
 ## Abnahme
 

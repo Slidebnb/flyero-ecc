@@ -37,6 +37,8 @@
     "test:module15": "node -r dotenv/config tests/module15-smoke.mjs",
     "test:module16": "node -r dotenv/config tests/module16-landing-smoke.mjs",
     "test:module16-landing": "node -r dotenv/config tests/module16-landing-smoke.mjs",
+    "test:imprint-details": "node tests/imprint-details-smoke.mjs",
+    "test:service-pricing-bootstrap": "node tests/service-pricing-bootstrap-smoke.mjs",
     "test:module17": "node -r dotenv/config tests/module17-smoke.mjs",
     "test:module18": "node -r dotenv/config tests/module18-smoke.mjs",
     "test:module19": "node -r dotenv/config tests/module19-smoke.mjs",

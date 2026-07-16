@@ -73,3 +73,12 @@ Im MVP zeichnet FLYERO GPS nicht selbst als verpflichtende native App auf. Der p
 - Ein Screenshot- oder Test-Timeout ist ein offenes Problem und darf nicht als Erfolg gemeldet werden.
 - Produktionsaenderungen werden erst nach verifiziertem Build, Migrationstatus, Healthcheck und Rollback-/Backup-Betrachtung ausgerollt.
 - Secrets bleiben ausserhalb von Git und Client-Bundles.
+
+## Bereits behobene Fehlerbilder
+
+- Fake-Proof-Grafiken, Fake-Pins und Beispieltexte gehoeren nicht ins Kundenportal.
+- Customer-Labels mappen `WAITING_INTERNAL` auf `In Pruefung` und `REJECTED` auf `Geschlossen`.
+- Bei leerem Gebiet steht `Gebiet auswaehlen`, waehrend der Berechnung `Preis wird aktualisiert` und bei manueller Pruefung `Preis wird von FLYERO geprueft`.
+- Autocomplete, Geocode und Quote haben getrennte Rate-Limit-Bereiche.
+- Fehlende Service-PricingRules duerfen nicht still auf eine Flyer-Regel zurueckfallen.
+- Checkout benoetigt den aktuellen serverseitigen Preis-Fingerprint.

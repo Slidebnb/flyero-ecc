@@ -13,15 +13,22 @@ export default function ImprintPage() {
     <MarketingPage>
       <MarketingSection eyebrow="Rechtliches" title="Impressum" className="mkLegalPage">
         <div className="legalText">
-          <p><strong>FLYERO GmbH i.G.</strong></p>
-          <p>Musterstraße 1, 56068 Koblenz, Deutschland</p>
-          <p>E-Mail: hallo@flyero.org</p>
-          <p>Telefon: +49 261 000000</p>
-          <p>Vertreten durch die Geschäftsführung der FLYERO GmbH i.G.</p>
-          <p>Umsatzsteuer-ID wird nach Gründung ergänzt.</p>
-          <p className="notice">
-            Beta-Hinweis: Dieses Impressum muss vor dem Livegang anhand der finalen Unternehmensdaten geprüft werden.
-          </p>
+          <p><strong>Angaben gemäß § 5 DDG</strong></p>
+          <p>Flyero Gruppe - Ein Unternehmen der Huwa Gebäudereinigung &amp; Hausmeisterdienste</p>
+          <p>Inhaber: Familie Huwa</p>
+          <p>Mittelweg 24</p>
+          <p>56566 Neuwied</p>
+          <p>Deutschland</p>
+
+          <p><strong>Kontakt</strong></p>
+          <p>Telefon: 02601 9131820</p>
+          <p>E-Mail: <a href="mailto:hallo@flyero.org">hallo@flyero.org</a></p>
+
+          <p><strong>Steuerangaben</strong></p>
+          <p>Steuernummer: 32/074/56310</p>
+
+          <p><strong>Redaktionell verantwortlich</strong></p>
+          <p>Familie Huwa<br />Mittelweg 24, 56566 Neuwied</p>
         </div>
       </MarketingSection>
     </MarketingPage>

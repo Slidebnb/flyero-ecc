@@ -1,6 +1,38 @@
-# FLYERO No-Regression Rules
+# FLYERO No Regression Rules
 
 Diese Regeln sind vor jeder Code-, Daten- oder UI-Aenderung zu pruefen.
+
+Diese Fehler sind bereits passiert und duerfen nie wiederkommen.
+
+1. **Fake-Nachweis im Dashboard**
+   Kuenstliche Proof-Grafiken, Fake-Pins und Beispieltexte sind im Kundenportal verboten.
+
+2. **Seed-/Mock-Zahlungen sichtbar**
+   `pi_seed`, `RPT-SEED` und Seed-Modul-Texte duerfen nie im Kundenportal sichtbar sein.
+
+3. **Technische Support-Labels**
+   `Wartet intern` und `Abgelehnt` duerfen im Kundenportal nicht stehen. `WAITING_INTERNAL` wird als `In Pruefung`, `REJECTED` als `Geschlossen` dargestellt.
+
+4. **Preis haengt auf Berechnung**
+   Ohne Gebiet: `Gebiet auswaehlen`. Bei laufender Berechnung: `Preis wird aktualisiert`. Bei manueller Pruefung: `Preis wird von FLYERO geprueft`. Bei fertigem Preis: Netto, MwSt. und Brutto.
+
+5. **Normale PLZ-Suche loest Rate-Limit aus**
+   Autocomplete, Geocode und Quote brauchen getrennte Limits.
+
+6. **Visuelle Freigabe ohne Screenshot**
+   Wenn Browser, Playwright oder CDP einen Timeout haben, ist die visuelle QA nicht bestanden.
+
+7. **Startseite wirkt nicht hochwertig**
+   CTA, Suchfeld und Nachweis-Visualisierung muessen sauber ausgerichtet sein.
+
+8. **Planner und Kundenwizard widersprechen sich**
+   PLZ-Eingabe, Vorschlaege, Gebiet und Preisstatus muessen logisch gleich funktionieren.
+
+9. **Client-Werte werden als Wahrheit verwendet**
+   Gebiet, Preis, Difficulty, Gewicht, Snapshot und Checkout muessen serverseitig final berechnet und geprueft werden.
+
+10. **Stille Pricing-Fallbacks**
+    Eine fehlende Service-PricingRule darf nie auf einen Flyerpreis zurueckfallen.
 
 ## Verbotene sichtbare Kundentexte
 

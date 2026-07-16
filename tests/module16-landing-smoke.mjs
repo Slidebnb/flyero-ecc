@@ -29,7 +29,8 @@ async function includes(filePath, snippets) {
 
 async function fetchLocal(path, options = {}) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 15000);
+  // Next Dev compiles the first server-rendered route lazily; allow that response to finish without hiding real hangs.
+  const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? 30000);
 
   try {
     return await fetch(`${baseUrl}${path}`, {
@@ -220,7 +221,7 @@ try {
       type: "CUSTOMER",
       name: "Module 16 Smoke",
       companyName: "Smoke Test GmbH",
-      email: `module16.${unique}@example.com`,
+      email: `module16.${unique}@smoke.invalid`,
       phone: "+49 261 160000",
       city: "Koblenz",
       message: "Bitte Angebot fuer eine testbare Flyerverteilung.",

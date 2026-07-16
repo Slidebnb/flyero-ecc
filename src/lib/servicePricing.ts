@@ -110,27 +110,37 @@ export function weightClassFromGrams(weightInGrams: number | null | undefined): 
   return "CUSTOM";
 }
 
-export async function ensureDefaultServicePricingRules() {
-  for (const serviceType of SERVICE_PRICING_TYPES) {
-    for (const rule of SERVICE_PRICING_RULES[serviceType] ?? []) {
-      const existing = await prisma.pricingRule.findFirst({
-        where: { serviceType, minQuantity: rule.minQuantity, maxQuantity: rule.maxQuantity },
-        select: { id: true },
-      });
-      if (existing) continue;
-      await prisma.pricingRule.create({
-        data: {
-          serviceType,
-          minQuantity: rule.minQuantity,
-          maxQuantity: rule.maxQuantity,
-          pricePerUnit: new Prisma.Decimal(rule.pricePerUnit),
-          basePrice: new Prisma.Decimal(rule.basePrice),
-          minimumNetPrice: new Prisma.Decimal(rule.minimumNetPrice),
-          pricingVersion: SERVICE_PRICING_VERSION,
-          configurationVersion: PRICING_CONFIGURATION_VERSION,
-          notes: "Standardregel aus der FLYERO-Servicekonfiguration.",
-        },
-      });
-    }
+let defaultServicePricingRulesPromise: Promise<void> | null = null;
+
+async function bootstrapDefaultServicePricingRules() {
+  const existingRules = await prisma.pricingRule.findMany({
+    select: { serviceType: true, minQuantity: true, maxQuantity: true },
+  });
+  const existingKeys = new Set(existingRules.map((rule) => `${rule.serviceType}:${rule.minQuantity}:${rule.maxQuantity ?? "open"}`));
+  const missingRules = SERVICE_PRICING_TYPES.flatMap((serviceType) =>
+    (SERVICE_PRICING_RULES[serviceType] ?? [])
+      .filter((rule) => !existingKeys.has(`${serviceType}:${rule.minQuantity}:${rule.maxQuantity ?? "open"}`))
+      .map((rule) => ({
+        serviceType,
+        minQuantity: rule.minQuantity,
+        maxQuantity: rule.maxQuantity,
+        pricePerUnit: new Prisma.Decimal(rule.pricePerUnit),
+        basePrice: new Prisma.Decimal(rule.basePrice),
+        minimumNetPrice: new Prisma.Decimal(rule.minimumNetPrice),
+        pricingVersion: SERVICE_PRICING_VERSION,
+        configurationVersion: PRICING_CONFIGURATION_VERSION,
+        notes: "Standardregel aus der FLYERO-Servicekonfiguration.",
+      })),
+  );
+
+  await Promise.all(missingRules.map((data) => prisma.pricingRule.create({ data })));
+}
+
+export function ensureDefaultServicePricingRules() {
+  if (!defaultServicePricingRulesPromise) {
+    defaultServicePricingRulesPromise = bootstrapDefaultServicePricingRules().finally(() => {
+      defaultServicePricingRulesPromise = null;
+    });
   }
+  return defaultServicePricingRulesPromise;
 }
