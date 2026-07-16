@@ -24,7 +24,7 @@ assert.match(closeRoute, /requirePermission\(Permission\.SUPPORT_TICKET_MANAGE\)
 assert.match(support, /isGlobalSupportAdmin/);
 assert.match(support, /actor\.role === UserRole\.SUPPORT_DISPATCHER/);
 assert.match(support, /return \{ tenantId: actor\.tenantId \}/);
-assert.match(support, /findFirst\(\{ where: \{ id, \.\.\.scopeWhere\(actor\) \} \}\)/);
+assert.match(support, /findFirst\(\{\s*where: \{ id, \.\.\.scopeWhere\(actor\),/s);
 assert.match(support, /Der Bezug gehoert nicht zu deinem Supportmandanten/);
 
 console.log("Support permission smoke checks passed.");
