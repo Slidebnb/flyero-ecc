@@ -77,6 +77,7 @@
     "test:module27-1-dispatch-contract": "node tests/module27-1-dispatch-contract-smoke.mjs",
     "test:module27-1-runtime": "node -r dotenv/config tests/module27-1-runtime.mjs && npm run test:order-paid-rejection-runtime && npm run test:multi-area-dispatch-runtime && npm run test:notification-delivery-runtime && npm run test:order-integrity-repair-runtime",
     "test:module27-1-playwright": "node -r dotenv/config tests/module27-1-playwright.mjs",
+    "test:module28": "node tests/module28-public-playwright.mjs",
     "test:order-paid-rejection-runtime": "node -r dotenv/config tests/order-paid-rejection-runtime.mjs",
     "test:order-pricing-runtime": "node -r dotenv/config tests/order-pricing-runtime.mjs",
     "test:order-area-snapshot-runtime": "node -r dotenv/config tests/order-area-snapshot-runtime.mjs",

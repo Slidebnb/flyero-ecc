@@ -727,6 +727,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const netPrice = intelligence?.metrics.netPrice ?? "0";
   const vatAmount = intelligence?.metrics.vatAmount ?? "0";
   const grossPrice = intelligence?.metrics.grossPrice ?? "0";
+  const pricePreviewText = Number(netPrice) > 0
+    ? formatCurrency(netPrice)
+    : city && postalCode
+      ? "Preisvorschau folgt"
+      : "Gebiet auswählen";
   const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
   const recommendedFlyerQuantity = recommendedFlyersForHouseholds(households);
   const deliverabilityScore = intelligence?.metrics.score ?? null;
@@ -1405,6 +1410,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       .then(({ response, payload }) => {
         if (requestId !== locationRequestSequenceRef.current) return;
         if (!response.ok) {
+          if (response.status === 429) {
+            setMapNotice("Die Ortssuche ist gerade ausgelastet. Bitte versuche es in einem Moment erneut.");
+            return;
+          }
           if (payload?.code === "PUBLIC_GEOCODE_POSTAL_MISMATCH" || payload?.code === "PUBLIC_GEOCODE_CITY_MISMATCH") {
             setMapNotice(payload.error ?? "Die eingegebene PLZ konnte nicht eindeutig gefunden werden. Bitte wählen Sie den passenden Ort aus den Vorschlägen.");
             if (isPublicPlanner) trackPublicPlannerEvent(experienceEndpoint, payload?.code, { requestId: `public-location:${requestId}` });
@@ -1475,6 +1484,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }, [fetchSuggestions, query]);
 
   useEffect(() => {
+    if (!city || !postalCode || coverageAreaSqm <= 0) {
+      lastIntelligenceRequestRef.current = intelligenceRequestQuery;
+      confirmedIntelligenceRequestRef.current = null;
+      intelligenceAbortRef.current?.abort();
+      setIntelligence(null);
+      setIntelligenceStatus("local");
+      return;
+    }
     if (lastIntelligenceRequestRef.current === intelligenceRequestQuery) {
       return;
     }
@@ -1505,7 +1522,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         });
     });
     return () => controller.abort();
-  }, [intelligenceEndpoint, intelligenceRequestQuery]);
+  }, [city, coverageAreaSqm, intelligenceEndpoint, intelligenceRequestQuery, postalCode]);
 
   useEffect(() => {
     startedAtRef.current = Date.now();
@@ -2273,8 +2290,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </div>
           </label>
           <div className="selectedLocationBar">
-            <strong>{city ? `${postalCode} ${city}` : "Noch kein Gebiet gewählt"}</strong>
-            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : "Die Grenzen kannst du danach direkt auf der Karte anpassen."}</span>
+            <strong>{city ? `${postalCode} ${city}` : query ? query : "Noch kein Gebiet gewählt"}</strong>
+            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : query && !city ? "Ort wird gesucht ..." : "Die Grenzen kannst du danach direkt auf der Karte anpassen."}</span>
           </div>
           {pendingLocation ? (
             <div className="replaceAreaNotice" role="alert">
@@ -2519,9 +2536,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
             <span><strong>{selectedService.label}</strong>Werbemittel</span>
             <span><strong>{formatNumber(flyerQuantity)}</strong>Stück</span>
-            <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
-            <span><strong>{intelligence ? formatCurrency(vatAmount) : "wird berechnet"}</strong>Umsatzsteuer</span>
-            <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : "wird berechnet"}</strong>Gesamt brutto</span>
+            <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
+            <span><strong>{intelligence ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
+            <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
             <span><strong>{selectedWarehouse?.name ?? "Bitte auswählen"}</strong>Empfangslager</span>
           </div>
           <p className="orderReviewNotice">Deine Flyer sind bereits gedruckt und werden nach der Buchung an das ausgewählte Empfangslager gesendet. FLYERO prüft Gebiet und Zustellbarkeit vor der Durchführung.</p>
@@ -2550,9 +2567,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
             <span><strong>{selectedService.label}</strong>Werbemittel</span>
             <span><strong>{formatNumber(flyerQuantity)}</strong>Stück</span>
-            <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : "wird berechnet"}</strong>Preis netto</span>
-            <span><strong>{intelligence ? formatCurrency(vatAmount) : "wird berechnet"}</strong>Umsatzsteuer</span>
-            <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : "wird berechnet"}</strong>Gesamt brutto</span>
+            <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
+            <span><strong>{intelligence ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
+            <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
             <span><strong>{areaStats.warehouseSuggestion ?? "wird geprüft"}</strong>Nächstes Lager</span>
           </div>
           <p className="orderReviewNotice">Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist. Falls sich etwas ändert, melden wir uns.</p>
@@ -2710,7 +2727,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
         <div className="orderPriceFooter">
           <span>Preis netto zzgl. MwSt.</span>
-          <strong>{Number(netPrice) > 0 ? formatCurrency(netPrice) : "wird berechnet"}</strong>
+          <strong>{pricePreviewText}</strong>
           <button type="button" onClick={() => setActiveStep((step) => Math.min(6, step + 1))}>
             {activeStep >= 6 ? "Weg auswählen" : "Weiter"}
             <span aria-hidden="true">→</span>
@@ -2778,7 +2795,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           <dl>
             <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
             <div><dt>Empfohlene Flyerzahl</dt><dd>{formatNumber(recommendedFlyerQuantity)} Flyer</dd></div>
-            <div><dt>Preis netto zzgl. MwSt.</dt><dd>{Number(netPrice) > 0 ? formatCurrency(netPrice) : "wird berechnet"}</dd></div>
+            <div><dt>Preis netto zzgl. MwSt.</dt><dd>{pricePreviewText}</dd></div>
             <div><dt>Nächstes Lager</dt><dd>{areaStats.warehouseSuggestion ?? "wird geprüft"}</dd></div>
           </dl>
           <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore)}</p>

@@ -7,7 +7,7 @@ import { routeErrorResponse } from "@/lib/request";
 export async function GET(request: Request) {
   try {
     await requireRole([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
-    const abuseDecision = await enforcePublicRateLimit(request, "maps");
+    const abuseDecision = await enforcePublicRateLimit(request, "maps-geocode");
     if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
     const params = new URL(request.url).searchParams;
     const query = params.get("q")?.trim().slice(0, 120) ?? "";

@@ -16,7 +16,7 @@ function comparablePlace(value: string | null | undefined) {
 
 export async function GET(request: Request) {
   try {
-    const abuseDecision = await enforcePublicRateLimit(request, "public-planner");
+    const abuseDecision = await enforcePublicRateLimit(request, "public-planner-geocode");
     if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
     const params = new URL(request.url).searchParams;
     const query = z.object({

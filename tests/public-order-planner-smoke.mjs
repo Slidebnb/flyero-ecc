@@ -58,7 +58,7 @@ assert.match(publicAutocomplete, /getPlaceAutocomplete/);
 assert.match(publicAutocomplete, /public-planner/);
 assert.match(publicGeocode, /geocodeSmartAddress/);
 assert.match(publicGeocode, /public-planner/);
-assert.match(protection, /"public-planner"/);
+assert.match(protection, /"public-planner-(autocomplete|geocode|quote)"/);
 assert.match(smartMaps, /publicOnly\?: boolean/);
 assert.match(smartMaps, /results\.find/);
 assert.match(publicQuote, /publicOnly: true/);

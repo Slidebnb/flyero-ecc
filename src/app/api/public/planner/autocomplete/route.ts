@@ -5,7 +5,7 @@ import { errorResponse, routeErrorResponse } from "@/lib/request";
 
 export async function GET(request: Request) {
   try {
-    const abuseDecision = await enforcePublicRateLimit(request, "public-planner");
+    const abuseDecision = await enforcePublicRateLimit(request, "public-planner-autocomplete");
     if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
     const parsedQuery = z.string().trim().max(120).safeParse(new URL(request.url).searchParams.get("q") ?? "");
     if (!parsedQuery.success) return errorResponse("Die Sucheingabe ist zu lang.", 400);

@@ -194,8 +194,8 @@ export default function HomePage() {
             <p className="mkEyebrow">Nachweis</p>
             <h2>Nachweise, die am Ende wirklich zählen.</h2>
             <p>
-              Keine vorweggenommenen Ergebnisse und keine Demo-Karte. Der Kunde sieht genau dann etwas,
-              wenn die Verteilung abgeschlossen, geprüft und freigegeben ist.
+              Im Kundenkonto erscheinen GPS-Nachweis, Fotos und Bericht, sobald die Verteilung abgeschlossen
+              und von FLYERO geprüft wurde.
             </p>
             <div className="mkProofMetrics">
               <span><strong>01</strong>GPS-Nachweis</span>

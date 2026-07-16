@@ -211,7 +211,7 @@ async function createPublicQuote(input: unknown) {
 }
 
 async function withPublicLimit(request: NextRequest, action: () => Promise<Response>) {
-  const abuseDecision = await enforcePublicRateLimit(request, "public-planner");
+  const abuseDecision = await enforcePublicRateLimit(request, "public-planner-quote");
   if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
   return action();
 }

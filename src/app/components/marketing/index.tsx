@@ -275,7 +275,7 @@ export function ProcessPreview() {
         <FlyeroLogo dark />
         <span>Nachweisprozess</span>
       </div>
-      <p className="mkProcessPreviewDisclosure">Beispielhafter Ablauf · keine echte Kampagne</p>
+      <p className="mkProcessPreviewDisclosure">So bleibt deine Verteilung nachvollziehbar</p>
       <div className="mkProcessPreviewList">
         {processItems.map(([number, title, text]) => (
           <div className="mkProcessPreviewRow" key={number}>
@@ -320,7 +320,7 @@ export function ProofStatusPanel() {
           </div>
         ))}
       </div>
-      <p className="mkProofStatusNote">Keine Demo-Daten. Keine vorweggenommenen Ergebnisse.</p>
+      <p className="mkProofStatusNote">Nachweise erscheinen nach der Verteilung und werden vor der Freigabe geprüft.</p>
     </div>
   );
 }

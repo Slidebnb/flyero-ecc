@@ -28,7 +28,7 @@ function boundedCoordinate(value: string | null, min: number, max: number) {
 export async function GET(request: Request) {
   try {
     const baseSession = await requireRole([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
-    const abuseDecision = await enforcePublicRateLimit(request, "maps");
+    const abuseDecision = await enforcePublicRateLimit(request, "maps-intelligence");
     if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
     const session = baseSession.role === UserRole.CUSTOMER ? await requireTenantSession() : baseSession;
     const params = new URL(request.url).searchParams;

@@ -1,7 +1,17 @@
 import { createHash } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 
-export type PublicRateLimitScope = "lead" | "report-verify" | "maps" | "client-error" | "public-planner" | "public-experience";
+export type PublicRateLimitScope =
+  | "lead"
+  | "report-verify"
+  | "maps-autocomplete"
+  | "maps-geocode"
+  | "maps-intelligence"
+  | "client-error"
+  | "public-planner-autocomplete"
+  | "public-planner-geocode"
+  | "public-planner-quote"
+  | "public-experience";
 
 type PublicRateLimitDecision =
   | { allowed: true }
@@ -10,9 +20,13 @@ type PublicRateLimitDecision =
 const defaults: Record<PublicRateLimitScope, { maxAttempts: number; windowMs: number }> = {
   lead: { maxAttempts: 5, windowMs: 10 * 60 * 1000 },
   "report-verify": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
-  maps: { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
+  "maps-autocomplete": { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
+  "maps-geocode": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
+  "maps-intelligence": { maxAttempts: 120, windowMs: 15 * 60 * 1000 },
   "client-error": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
-  "public-planner": { maxAttempts: 90, windowMs: 15 * 60 * 1000 },
+  "public-planner-autocomplete": { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
+  "public-planner-geocode": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
+  "public-planner-quote": { maxAttempts: 120, windowMs: 15 * 60 * 1000 },
   "public-experience": { maxAttempts: 120, windowMs: 60 * 1000 },
 };
 
@@ -40,13 +54,21 @@ function settingsFor(scope: PublicRateLimitScope) {
     ? "PUBLIC_LEAD"
     : scope === "report-verify"
       ? "PUBLIC_REPORT_VERIFY"
-      : scope === "maps"
-        ? "PUBLIC_MAPS"
       : scope === "client-error"
         ? "PUBLIC_CLIENT_ERROR"
         : scope === "public-experience"
           ? "PUBLIC_EXPERIENCE"
-          : "PUBLIC_PLANNER";
+          : scope === "maps-autocomplete"
+            ? "PUBLIC_MAPS_AUTOCOMPLETE"
+            : scope === "maps-geocode"
+              ? "PUBLIC_MAPS_GEOCODE"
+              : scope === "maps-intelligence"
+                ? "PUBLIC_MAPS_INTELLIGENCE"
+                : scope === "public-planner-autocomplete"
+                  ? "PUBLIC_PLANNER_AUTOCOMPLETE"
+                  : scope === "public-planner-geocode"
+                    ? "PUBLIC_PLANNER_GEOCODE"
+                    : "PUBLIC_PLANNER_QUOTE";
   const fallback = defaults[scope];
   return {
     maxAttempts: positiveEnv(`${envPrefix}_RATE_LIMIT_MAX`, fallback.maxAttempts),
