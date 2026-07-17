@@ -130,6 +130,9 @@ docker compose -f docker-compose.production.yml run --rm app npx prisma migrate 
 docker compose --env-file .env.production -f docker-compose.production.yml run --rm app npm run pricing:sync-premium
 docker compose -f docker-compose.production.yml up -d
 docker compose -f docker-compose.production.yml logs -f app
+
+# Alle öffentlichen SEO-Seiten gegen die laufende Domain prüfen.
+SITEMAP_BASE_URL=https://flyero.org npm run test:public-sitemap-runtime
 ```
 
 ## Checks
@@ -137,10 +140,16 @@ docker compose -f docker-compose.production.yml logs -f app
 ```bash
 curl -I https://flyero.org
 curl https://flyero.org/api/health
+SITEMAP_BASE_URL=https://flyero.org npm run test:public-sitemap-runtime
 docker compose -f docker-compose.production.yml ps
 docker compose -f docker-compose.production.yml logs --tail=100 app
 docker compose -f docker-compose.production.yml logs --tail=100 caddy
 ```
+
+Ein `200` von `/api/health` allein ist keine Produktionsfreigabe. Der Sitemap-
+Runtime-Check muss ebenfalls erfolgreich sein. Bei einem `500` auf einer
+öffentlichen Seite zuerst `npx prisma migrate deploy` ausführen und danach
+Build, Containerstart und den Sitemap-Check wiederholen.
 
 ## Produktions-Preflight
 
