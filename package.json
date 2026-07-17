@@ -143,6 +143,7 @@
     "test:dispatch-tenant-scope": "node tests/dispatch-tenant-scope-smoke.mjs",
     "test:logistics-tenant-scope": "node tests/logistics-tenant-scope-smoke.mjs",
     "test:health-fail-safe": "node tests/health-fail-safe-smoke.mjs",
+    "test:health-schema-drift": "node tests/health-schema-drift-smoke.mjs",
     "test:request-id-propagation": "node tests/request-id-propagation-smoke.mjs",
     "production:preflight": "node scripts/production-preflight.mjs",
     "test:production-preflight": "node tests/production-preflight-smoke.mjs",
