@@ -30,6 +30,20 @@ const quoteInputSchema = z.object({
   printDataStatus: z.enum(["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"]).optional(),
   preferredStartDate: z.string().optional(),
   preferredEndDate: z.string().optional(),
+  targetAreaGeoJson: z.preprocess((value, context) => {
+    if (typeof value !== "string") return value;
+    const trimmed = value.trim();
+    if (!trimmed || trimmed.length > 250_000) {
+      context.addIssue({ code: "custom", message: "Das Verteilgebiet ist zu groß oder ungültig." });
+      return z.NEVER;
+    }
+    try {
+      return JSON.parse(trimmed);
+    } catch {
+      context.addIssue({ code: "custom", message: "Das Verteilgebiet konnte nicht verarbeitet werden." });
+      return z.NEVER;
+    }
+  }, z.record(z.string(), z.unknown()).optional()),
   segments: z.preprocess((value) => {
     if (Array.isArray(value)) return value;
     if (typeof value !== "string" || !value.trim()) return undefined;
@@ -117,6 +131,7 @@ async function createPublicQuote(input: unknown) {
     printDataStatus: value.printDataStatus,
     preferredStartDate: value.preferredStartDate,
     preferredEndDate: value.preferredEndDate,
+    targetAreaGeoJson: value.targetAreaGeoJson,
     coverageAreaSqm,
     distanceMeters: Math.round(boundedNumber(value.distanceMeters, 10_000_000) ?? 0) || null,
     perimeterMeters: Math.round(boundedNumber(value.perimeterMeters, 10_000_000) ?? 0) || null,

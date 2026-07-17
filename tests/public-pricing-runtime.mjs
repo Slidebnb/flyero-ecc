@@ -57,6 +57,38 @@ try {
     assert.equal(Number(body.data.quote.gross), Number(body.data.quote.net) + Number(body.data.quote.vat));
     assert.ok(body.data.quote.pricingVersion);
   }
+
+  const polygon = {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Polygon",
+        coordinates: [[[7.58, 50.35], [7.59, 50.35], [7.59, 50.36], [7.58, 50.36], [7.58, 50.35]]],
+      },
+    }],
+  };
+  const polygonQuoteResponse = await fetch(`${baseUrl}/api/public/planner/quote`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.88" },
+    body: JSON.stringify({
+      city: "Koblenz",
+      postalCode: "56068",
+      flyerQuantity: 2700,
+      targetAreaGeoJson: JSON.stringify(polygon),
+      coverageAreaSqm: 640000,
+      flyerSource: "CUSTOMER_OWN",
+      preferredStartDate: "2026-08-03",
+      preferredEndDate: "2026-08-10",
+    }),
+  });
+  const polygonQuote = await polygonQuoteResponse.json();
+  assert.equal(polygonQuoteResponse.status, 200, `Polygonquote konnte nicht berechnet werden: ${JSON.stringify(polygonQuote)}`);
+  assert.ok(
+    Number(polygonQuote.data.metrics.coverageAreaSqm) > 700000,
+    "Die öffentliche Quote muss die übermittelte Polygonfläche statt der alten Client-Flächenschätzung verwenden.",
+  );
   console.log("Public pricing runtime checks passed.");
 } finally {
   if (child) {

@@ -5,6 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 let baseUrl = process.env.CUSTOMER_ORDER_CHECKOUT_BASE_URL || "http://localhost:3000";
+let createdSmokeWarehouseId = null;
 const PASSWORD = "DemoPasswort123!";
 
 function assert(condition, message) {
@@ -94,6 +95,44 @@ function includes(filePath, snippets) {
   return content;
 }
 
+async function ensureCheckoutWarehouse() {
+  const existing = await prisma.warehouse.findFirst({
+    where: {
+      isActive: true,
+      isDemoData: false,
+      regions: {
+        some: { isActive: true, city: "Koblenz", postalCodes: { has: "560" } },
+      },
+    },
+    select: { id: true },
+  });
+  if (existing) return;
+
+  const warehouse = await prisma.warehouse.create({
+    data: {
+      name: "Checkout-Testlager",
+      code: `SMOKE-CHECKOUT-${Date.now()}`,
+      address: { street: "Teststraße", houseNumber: "1" },
+      city: "Koblenz",
+      postalCode: "56070",
+      country: "DE",
+      isActive: true,
+      isDemoData: false,
+      regions: {
+        create: {
+          name: "Checkout-Testregion Koblenz",
+          city: "Koblenz",
+          postalCodes: ["560"],
+          isActive: true,
+          priority: 100,
+        },
+      },
+    },
+    select: { id: true },
+  });
+  createdSmokeWarehouseId = warehouse.id;
+}
+
 const smokeSegment = {
   name: "Koblenz Checkout Smoke",
   city: "Koblenz",
@@ -113,7 +152,7 @@ const smokeSegment = {
   },
 };
 
-function orderPayload(suffix, completionPath, quoteFingerprint) {
+function orderPayload(suffix, completionPath, quoteFingerprint, includeSegments = true) {
   return {
     serviceType: "FLYER_DISTRIBUTION",
     city: "Koblenz",
@@ -121,7 +160,7 @@ function orderPayload(suffix, completionPath, quoteFingerprint) {
     targetAreaName: `Checkout Smoke ${suffix}`,
     areaType: "POLYGON",
     targetAreaGeoJson: JSON.stringify(smokeSegment.geometryGeoJson),
-    areaSegments: JSON.stringify([smokeSegment]),
+    ...(includeSegments ? { areaSegments: JSON.stringify([smokeSegment]) } : {}),
     coverageAreaSqm: 640000,
     estimatedHouseholds: 2400,
     estimatedFlyers: 2700,
@@ -151,7 +190,7 @@ function orderPayload(suffix, completionPath, quoteFingerprint) {
   };
 }
 
-async function planningQuote(completionPath) {
+async function planningQuote(completionPath, includeSegments = true) {
   const response = await fetchWithTimeout(`${baseUrl}/api/public/planner/quote`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -159,12 +198,13 @@ async function planningQuote(completionPath) {
       city: "Koblenz",
       postalCode: "56068",
       flyerQuantity: 2700,
+      targetAreaGeoJson: JSON.stringify(smokeSegment.geometryGeoJson),
       coverageAreaSqm: 640000,
       flyerSource: "CUSTOMER_OWN",
       printDataStatus: "UPLOAD_LATER",
       preferredStartDate: "2026-08-03",
       preferredEndDate: "2026-08-10",
-      segments: [smokeSegment],
+      ...(includeSegments ? { segments: [smokeSegment] } : {}),
       completionPath,
     }),
   });
@@ -175,6 +215,7 @@ async function planningQuote(completionPath) {
 
 const server = await ensureServer();
 try {
+  await ensureCheckoutWarehouse();
   includes("src/app/customer/orders/new/SmartOrderWizard.tsx", [
     "Jetzt buchen und bezahlen",
     "Unverbindlich anfragen",
@@ -202,7 +243,7 @@ try {
 
   const customerCookie = await login("kunde.immobilien@example.com");
   const adminCookie = await login("admin@example.com");
-  const direct = await postJson("/api/customer/orders", orderPayload("Direct", "direct_payment", await planningQuote("direct_payment")), customerCookie);
+  const direct = await postJson("/api/customer/orders", orderPayload("Direct", "direct_payment", await planningQuote("direct_payment", false), false), customerCookie);
   assert(direct.data.id, "Direktbuchung hat keine Order-ID geliefert.");
   assert(direct.data.status === "PAYMENT_PENDING", `Direktbuchung Status falsch: ${direct.data.status}`);
 
@@ -230,7 +271,7 @@ try {
   assert(inquiryOrder?.payments.length === 0, "Anfrage darf keine Zahlung erzwingen.");
   assert(inquiryOrder?.priceRuleSnapshot?.completionPath === "inquiry", "Abschlussweg inquiry fehlt.");
 
-  const manual = await postJson("/api/customer/orders", orderPayload("Manual", "direct_payment", await planningQuote("direct_payment")), customerCookie);
+  const manual = await postJson("/api/customer/orders", orderPayload("Manual", "direct_payment", await planningQuote("direct_payment", false), false), customerCookie);
   await postJson(`/api/admin/orders/${manual.data.id}/price`, { manualPriceOverride: "1000", note: "Manual pricing smoke." }, adminCookie);
   const manualCheckout = await postJson("/api/payments/checkout", { orderId: manual.data.id }, customerCookie);
   assert(manualCheckout.data.checkoutUrl, "Checkout fuer individuellen Nettopreis fehlt.");
@@ -246,6 +287,9 @@ try {
 
   console.log("Customer Order Checkout Smoke-Test erfolgreich abgeschlossen.");
 } finally {
+  if (createdSmokeWarehouseId) {
+    await prisma.warehouse.delete({ where: { id: createdSmokeWarehouseId } });
+  }
   await prisma.$disconnect();
   if (server) server.kill();
 }

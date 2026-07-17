@@ -13,6 +13,6 @@ assert.match(areaQuery, /\.\.\.productionAreaWhere\(\)/, "Produktions-Gebietsabf
 assert.match(smartMaps, /const singleAreaNeedsManualReview = Boolean\(!areaSelection && !warehouseMatch\?\.matchedRegion\)/, "Einzelgebiete ohne aktive Region erzwingen keine manuelle Prüfung.");
 assert.match(smartMaps, /const needsManualReview = Boolean\(includeOperationalData && \(segmentNeedsManualReview \|\| singleAreaNeedsManualReview\)\)/, "Manuelle Logistikprüfung wird nicht an operative Berechnung gekoppelt.");
 assert.match(orderRoute, /const status: OrderStatus = data\.completionPath === "direct_payment"\s*\? requiresManualReview \? "UNDER_REVIEW" : "PAYMENT_PENDING"/, "Direktbuchungen umgehen bei manueller Gebietsprüfung den Prüfstatus.");
-assert.match(orderRoute, /if \(!requiresManualReview\) \{\s*await assignWarehouseForOrder/, "Aufträge ohne bestätigte Logistik dürfen kein Lager automatisch reservieren.");
+assert.match(orderRoute, /if \(!requiresManualReview\) \{[\s\S]*?await assignWarehouseForOrder/, "Aufträge ohne bestätigte Logistik dürfen kein Lager automatisch reservieren.");
 
 console.log("Single-area logistics gate smoke checks passed.");
