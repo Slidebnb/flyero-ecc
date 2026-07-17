@@ -4320,6 +4320,18 @@ body {
   color: #07100a;
 }
 
+.orderDrawingFinish {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 10px;
+  border: 1px solid #a7ff00;
+  border-radius: 12px;
+  background: #a7ff00;
+  color: #07100a;
+  font-weight: 750;
+  cursor: pointer;
+}
+
 .orderSuggestions {
   display: grid;
   gap: 7px;
@@ -7847,6 +7859,10 @@ body {
 .areaQuickList .selected {
   background: #a7ff00;
   color: #07100a;
+}
+
+.orderDrawingFinish:hover {
+  background: #c5ff58;
 }
 
 .selectedLocationBar,

@@ -131,6 +131,7 @@ async function createPublicQuote(input: unknown) {
   const areaReference = safeData.metrics.areaReference;
   const safeMetrics = {
     households: safeData.metrics.households,
+    recommendedFlyerQuantity: safeData.metrics.recommendedFlyerQuantity,
     flyerQuantity: safeData.metrics.flyerQuantity,
     routeDistanceMeters: safeData.metrics.routeDistanceMeters,
     routeDurationMinutes: safeData.metrics.routeDurationMinutes,

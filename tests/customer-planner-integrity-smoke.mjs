@@ -5,6 +5,7 @@ const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", 
 const pricingPage = readFileSync("src/app/preise/page.tsx", "utf8");
 const pricing = readFileSync("src/lib/pricing.ts", "utf8");
 const smartMaps = readFileSync("src/lib/smartMaps.ts", "utf8");
+const publicQuote = readFileSync("src/app/api/public/planner/quote/route.ts", "utf8");
 const deployment = readFileSync("DEPLOYMENT_HETZNER.md", "utf8");
 const dockerfile = readFileSync("Dockerfile", "utf8");
 
@@ -30,6 +31,19 @@ assertMatch(
 );
 assert.doesNotMatch(wizard, /"Preisvorschau folgt"/, "Der veraltete Dauerstatus darf nicht mehr im Kundenwizard stehen.");
 assert.match(
+  wizard,
+  /applyLocationResult\(result, \{ forceReplace: !options\?\.initial \}\)/,
+  "Eine neue Suche muss das bisherige Gebiet vor dem Rezentrieren ersetzen.",
+);
+assert.match(
+  wizard,
+  /intelligence\?\.metrics\.recommendedFlyerQuantity \?\? MINIMUM_FLYER_QUANTITY/,
+  "Die Flyerempfehlung muss vom serverseitigen Gebietsergebnis kommen.",
+);
+assert.doesNotMatch(wizard, /libraries=drawing|maps\.drawing|DrawingManager|polygoncomplete/, "Der Planner darf nicht von der abgekündigten Google-Drawing-Bibliothek abhängen.");
+assert.match(wizard, /order-finish-drawing|Klicke auf der Karte.*Eckpunkte|Eckpunkte.*Gebiet/, "Der Planner braucht einen eigenen, sichtbaren Abschluss für gezeichnete Gebiete.");
+assert.match(wizard, /maps\.event\.addListener\(mapRef\.current, ["']click["']|mapRef\.current\.addListener\(["']click["']/, "Gebiete müssen über die stabile Map-Klick-API gezeichnet werden.");
+assert.match(
   pricingPage,
   /calculateOrderPrice\(\{ serviceType: ServiceType\.FLYER_STANDARD,/,
   "Die oeffentliche Preisseite muss die aktuelle FLYER_STANDARD-Preisquelle verwenden.",
@@ -50,13 +64,18 @@ assertMatch(
 );
 
 assertMatch(
-  /Math\.max\(MINIMUM_FLYER_QUANTITY, Math\.ceil\(\(Math\.max\(0, households\) \* 1\.1\) \/ 100\) \* 100\)/,
+  /const recommendedFlyerQuantity = intelligence\?\.metrics\.recommendedFlyerQuantity \?\? MINIMUM_FLYER_QUANTITY/,
   "Ohne Flaeche darf die Empfehlung nicht kuenstlich auf 500 Flyer springen.",
 );
 assert.match(
   smartMaps,
-  /Math\.max\(MINIMUM_FLYER_QUANTITY, Math\.ceil\(\(households \* 1\.1\) \/ 100\) \* 100\)/,
+  /householdRecommendationAllowed[\s\S]*recommendedFlyerQuantity/,
   "Server und Kundenwizard muessen dieselbe Mindestempfehlung verwenden.",
+);
+assert.match(
+  publicQuote,
+  /recommendedFlyerQuantity: safeData\.metrics\.recommendedFlyerQuantity/,
+  "Der oeffentliche Planer muss dieselbe serverseitige Flyerempfehlung erhalten.",
 );
 assertMatch(
   /setMapNotice\("Standort wird gesucht\.\.\."\);/,

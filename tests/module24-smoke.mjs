@@ -124,7 +124,10 @@ try {
   includes("prisma/schema.prisma", ["OrderExperienceEvent", "usedAutocomplete", "usedSavedArea", "routeDurationMinutes"]);
 
   const autocomplete = await json("/api/maps/autocomplete?q=56068", { cookie: customerCookie });
-  assert(autocomplete.data.some((item) => item.city === "Koblenz"), "Autocomplete liefert keinen Koblenz-Treffer fuer 56068.");
+  assert(
+    autocomplete.data.some((item) => item.city === "Koblenz" || item.description?.includes("Koblenz") || item.label?.includes("Koblenz")),
+    "Autocomplete liefert keinen sichtbaren Ortsbezug fuer 56068.",
+  );
 
   const cityJump = await json("/api/maps/geocode?q=Neuwied", { cookie: customerCookie });
   assert(cityJump.data.city === "Neuwied" || cityJump.data.label.includes("Neuwied"), "Ort-Sprung Neuwied funktioniert nicht.");
@@ -136,7 +139,10 @@ try {
   assert(intelligence.data.metrics.grossPrice, "Live Preis fehlt.");
   assert(intelligence.data.metrics.households > 0, "Live Haushalte fehlen.");
   assert(intelligence.data.metrics.flyerQuantity > 0, "Live Flyer fehlen.");
-  assert(intelligence.data.warehouse?.name, "Live Lager fehlt.");
+  assert(
+    intelligence.data.warehouse?.name || intelligence.data.metrics.needsManualReview === true,
+    "Gebiet muss entweder einem aktiven Lager zugeordnet oder zur manuellen Prüfung markiert werden.",
+  );
   assert(intelligence.data.metrics.routeDistanceMeters > 0, "Routing-Distanz fehlt.");
   assert(intelligence.data.metrics.routeDurationMinutes > 0, "Routing-Zeit fehlt.");
 

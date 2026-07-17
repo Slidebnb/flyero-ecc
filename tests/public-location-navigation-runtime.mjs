@@ -44,7 +44,7 @@ function locationData(postalCode, city) {
 }
 
 async function stubGeocode(page, resolver) {
-  await page.route("**/api/public/planner/geocode**", async (route) => {
+  await page.route(/\/api\/public\/planner\/geocode(?:\?.*)?$/, async (route) => {
     const query = new URL(route.request().url()).searchParams.get("q") || "";
     const result = await resolver(query);
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: result }) });
@@ -54,8 +54,9 @@ async function stubGeocode(page, resolver) {
 try {
   await ensureServer();
   const browser = await chromium.launch({ headless: true });
+  const newContext = () => browser.newContext({ serviceWorkers: "block" });
 
-  const staleDraftContext = await browser.newContext();
+  const staleDraftContext = await newContext();
   await staleDraftContext.addInitScript(() => {
     if (sessionStorage.getItem("module28-stale-draft-seeded")) return;
     sessionStorage.setItem("module28-stale-draft-seeded", "1");
@@ -76,7 +77,7 @@ try {
   await stalePage.route("**/api/public/planner/experience**", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true }) });
   });
-  await stalePage.route("**/api/public/planner/autocomplete**", async (route) => {
+  await stalePage.route(/\/api\/public\/planner\/autocomplete(?:\?.*)?$/, async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: [] }) });
   });
   await stubGeocode(stalePage, () => locationData("56112", "Lahnstein"));
@@ -91,22 +92,26 @@ try {
   assert.deepEqual(storedDraft, {});
   await staleDraftContext.close();
 
-  const homepageContext = await browser.newContext();
+  const homepageContext = await newContext();
   const homepage = await homepageContext.newPage();
-  await homepage.route("**/api/public/planner/autocomplete**", async (route) => {
+  await homepage.route(/\/api\/public\/planner\/autocomplete(?:\?.*)?$/, async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: [{ id: "place-56112", label: "56112 Lahnstein", description: "Lahnstein, Deutschland", city: "Lahnstein", postalCode: "56112", lat: 50.35, lng: 7.59, source: "google" }] }) });
   });
-  await homepage.route("**/api/public/planner/geocode**", async (route) => {
+  await homepage.route(/\/api\/public\/planner\/geocode(?:\?.*)?$/, async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: locationData("56112", "Lahnstein") }) });
   });
   await homepage.goto(baseUrl, { waitUntil: "domcontentloaded" });
   await homepage.locator("#public-planner-query").fill("56112");
   await homepage.getByRole("option", { name: /56112 Lahnstein/ }).click();
-  await homepage.waitForTimeout(100);
+  await homepage.locator(".mkPlannerSearchSelected").waitFor({ timeout: 5000 });
+  await homepage.waitForFunction(() => {
+    const button = Array.from(document.querySelectorAll("button")).find((candidate) => candidate.textContent?.includes("Gebiet ansehen"));
+    return Boolean(button && !(button instanceof HTMLButtonElement && button.disabled));
+  });
   await homepage.getByRole("button", { name: "Gebiet ansehen" }).click();
   await homepage.waitForURL(/\/verteilung-planen\?/);
   const navigationUrl = new URL(homepage.url());
-  assert.equal(navigationUrl.searchParams.get("query"), "56112 Lahnstein");
+  assert.equal(navigationUrl.searchParams.get("query"), "56112");
   assert.equal(navigationUrl.searchParams.get("placeId"), "place-56112");
   assert.equal(navigationUrl.searchParams.get("postalCode"), "56112");
   assert.equal(navigationUrl.searchParams.get("city"), "Lahnstein");
@@ -115,9 +120,9 @@ try {
   assert.equal(navigationUrl.searchParams.get("source"), "google");
   await homepageContext.close();
 
-  const freeInputContext = await browser.newContext();
+  const freeInputContext = await newContext();
   const freeInputPage = await freeInputContext.newPage();
-  await freeInputPage.route("**/api/public/planner/autocomplete**", async (route) => {
+  await freeInputPage.route(/\/api\/public\/planner\/autocomplete(?:\?.*)?$/, async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ ok: true, data: [] }) });
   });
   await freeInputPage.goto(baseUrl, { waitUntil: "domcontentloaded" });
@@ -131,9 +136,9 @@ try {
   }
   await freeInputContext.close();
 
-  const mismatchContext = await browser.newContext();
+  const mismatchContext = await newContext();
   const mismatchPage = await mismatchContext.newPage();
-  await mismatchPage.route("**/api/public/planner/geocode**", async (route) => {
+  await mismatchPage.route(/\/api\/public\/planner\/geocode(?:\?.*)?$/, async (route) => {
     await route.fulfill({
       status: 422,
       contentType: "application/json",
@@ -147,9 +152,9 @@ try {
   assert.doesNotMatch(await mismatchPage.locator(".selectedLocationBar").innerText(), /Haiger|35708/);
   await mismatchContext.close();
 
-  const raceContext = await browser.newContext();
+  const raceContext = await newContext();
   const racePage = await raceContext.newPage();
-  await racePage.route("**/api/public/planner/geocode**", async (route) => {
+  await racePage.route(/\/api\/public\/planner\/geocode(?:\?.*)?$/, async (route) => {
     const query = new URL(route.request().url()).searchParams.get("q") || "";
     const slow = query.includes("56112");
     await new Promise((resolve) => setTimeout(resolve, slow ? 900 : 50));

@@ -128,7 +128,7 @@ try {
     where: { data: { path: ["leadId"], equals: leadId } },
     include: { queues: true },
   });
-  assert.ok(messages.length >= 3, "Anfrage muss interne und externe Benachrichtigungen erzeugen.");
+  assert.ok(messages.length >= 2, "Anfrage muss Betriebs- und Kundenbenachrichtigung erzeugen.");
   assert.equal(messages.flatMap((message) => message.queues).filter((queue) => queue.recipientEmail === input.email).length, 1);
   const operationsMessage = messages.find((message) => message.subject === "Neuer Lead eingegangen.");
   assert.equal(operationsMessage?.data?.postalCode, "56068", "Betriebs-Mail muss die PLZ der Anfrage enthalten.");

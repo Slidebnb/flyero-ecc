@@ -100,27 +100,42 @@ function dates() {
   return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
 }
 
-async function createInquiry(request) {
+async function postFromPage(page, url, body) {
+  return page.evaluate(async ({ requestUrl, requestBody }) => {
+    const response = await fetch(requestUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+    return {
+      ok: response.ok,
+      status: response.status,
+      body: await response.json().catch(() => null),
+    };
+  }, { requestUrl: url, requestBody: body });
+}
+
+async function createInquiry(page) {
   const segment = smokeSegment();
   const date = dates();
-  const quoteResponse = await request.post(`${baseUrl}/api/public/planner/quote`, {
-    data: {
-      city: segment.city,
-      postalCode: segment.postalCode,
-      targetAreaName: segment.name,
-      flyerQuantity: 3000,
-      coverageAreaSqm: 640000,
-      flyerSource: "CUSTOMER_OWN",
-      productFormat: "DIN_LANG",
-      printDataStatus: "UPLOAD_LATER",
-      preferredStartDate: date.start,
-      preferredEndDate: date.end,
-      segments: [segment],
-      completionPath: "inquiry",
-    },
+  const quoteParams = new URLSearchParams({
+    city: segment.city,
+    postalCode: segment.postalCode,
+    flyerQuantity: "3000",
+    coverageAreaSqm: "640000",
+    flyerSource: "CUSTOMER_OWN",
+    productFormat: "DIN_LANG",
+    printDataStatus: "UPLOAD_LATER",
+    preferredStartDate: date.start,
+    preferredEndDate: date.end,
+    segments: JSON.stringify([segment]),
   });
-  const quote = await quoteResponse.json();
-  assert(quoteResponse.ok() && quote?.data?.metrics?.fingerprint, `Quote fehlt: ${quoteResponse.status()} ${JSON.stringify(quote)}`);
+  const quoteResponse = await page.evaluate(async (url) => {
+    const response = await fetch(url);
+    return { ok: response.ok, status: response.status, body: await response.json().catch(() => null) };
+  }, `${baseUrl}/api/maps/order-intelligence?${quoteParams.toString()}`);
+  const quote = quoteResponse.body;
+  assert(quoteResponse.ok && quote?.data?.metrics?.fingerprint, `Quote fehlt: ${quoteResponse.status} ${JSON.stringify(quote)}`);
 
   const payload = {
     serviceType: "FLYER_DISTRIBUTION",
@@ -130,10 +145,10 @@ async function createInquiry(request) {
     areaType: "POLYGON",
     targetAreaGeoJson: JSON.stringify(segment.geometryGeoJson),
     areaSegments: JSON.stringify([segment]),
-    coverageAreaSqm: 640000,
-    estimatedHouseholds: 2400,
+    coverageAreaSqm: Number(quote.data.metrics.coverageAreaSqm),
+    estimatedHouseholds: Number(quote.data.metrics.households),
     estimatedFlyers: 3000,
-    estimatedDistanceMeters: 4200,
+    estimatedDistanceMeters: Number(quote.data.metrics.routeDistanceMeters),
     areaCalculationSnapshot: JSON.stringify({ source: "module27-1-playwright", confidence: "low" }),
     centerLat: 50.355,
     centerLng: 7.585,
@@ -150,9 +165,9 @@ async function createInquiry(request) {
     notes: "Automatischer Playwright-Runtime-Test.",
     quoteFingerprint: quote.data.metrics.fingerprint,
   };
-  const orderResponse = await request.post(`${baseUrl}/api/customer/orders`, { data: payload });
-  const order = await orderResponse.json();
-  assert(orderResponse.ok() && order?.data?.id, `Anfrage konnte nicht angelegt werden: ${orderResponse.status()}`);
+  const orderResponse = await postFromPage(page, `${baseUrl}/api/customer/orders`, payload);
+  const order = orderResponse.body;
+  assert(orderResponse.ok && order?.data?.id, `Anfrage konnte nicht angelegt werden: ${orderResponse.status} expected=${quote.data.metrics.fingerprint} ${JSON.stringify(order)}`);
   return { id: order.data.id, orderNumber: order.data.orderNumber };
 }
 
@@ -165,7 +180,7 @@ async function run() {
   const customerPage = await customerContext.newPage();
   customerPage.on("console", (message) => {
     if (message.type() !== "error") return;
-    if (message.text().includes("maps.googleapis.com/$rpc") || message.text().includes("No 'Access-Control-Allow-Origin' header") || message.text() === "Failed to load resource: net::ERR_FAILED") return;
+    if (message.text().includes("maps.googleapis.com/$rpc") || message.text().includes("No 'Access-Control-Allow-Origin' header") || message.text() === "Failed to load resource: net::ERR_FAILED" || (process.env.ENABLE_MOCK_PAYMENTS !== "true" && message.text().includes("server responded with a status of 404"))) return;
     errors.push(`customer console: ${message.text()}`);
   });
   customerPage.on("pageerror", (error) => errors.push(`customer pageerror: ${error.message}`));
@@ -190,7 +205,9 @@ async function run() {
         [box.x + box.width * 0.36, box.y + box.height * 0.60],
       ];
       for (const [x, y] of points) await customerPage.mouse.click(x, y);
-      await customerPage.mouse.dblclick(points[0][0], points[0][1]);
+      const finishDrawing = customerPage.locator('[data-testid="order-finish-drawing"]');
+      await finishDrawing.waitFor({ timeout: 5000 });
+      await finishDrawing.click();
       await customerPage.waitForTimeout(500);
       const rawSegments = await customerPage.locator('input[name="areaSegments"]').inputValue();
       drewPolygon = JSON.parse(rawSegments).length > 0;
@@ -212,7 +229,7 @@ async function run() {
     await customerPage.locator('[data-testid="order-step-6"]').click();
     await customerPage.locator('[data-testid="order-finish-inquiry"]').waitFor();
 
-    const inquiry = await createInquiry(customerPage.request);
+    const inquiry = await createInquiry(customerPage);
     const customerOrderPage = await customerContext.newPage();
     await customerOrderPage.goto(`${baseUrl}/customer/orders/${inquiry.id}?inquiry=success`, { waitUntil: "domcontentloaded" });
     const customerOrderText = await customerOrderPage.locator("body").innerText();
@@ -224,15 +241,18 @@ async function run() {
     await adminPage.goto(`${baseUrl}/admin/orders/${inquiry.id}`, { waitUntil: "domcontentloaded" });
     assert((await adminPage.locator("body").innerText()).includes(inquiry.orderNumber), "Admin sieht den Auftrag nicht.");
 
-    const approval = await adminPage.request.post(`${baseUrl}/api/admin/orders/${inquiry.id}/review`, { data: { action: "approve" } });
-    const approvalBody = await approval.json();
-    assert(approval.ok && approvalBody?.data?.status === "ACCEPTED_AWAITING_PAYMENT", "Admin-Annahme wurde nicht gespeichert.");
+    const approval = await postFromPage(adminPage, `${baseUrl}/api/admin/orders/${inquiry.id}/review`, { action: "approve" });
+    const approvalBody = approval.body;
+    assert(approval.ok && approvalBody?.data?.status === "ACCEPTED_AWAITING_PAYMENT", `Admin-Annahme wurde nicht gespeichert: ${approval.status} ${JSON.stringify(approvalBody)}`);
     const payment = await prisma.payment.findFirst({ where: { orderId: inquiry.id }, orderBy: { createdAt: "desc" } });
     assert(payment, "Nach der Annahme fehlt die Zahlungsaufforderung.");
-    const completed = await customerPage.request.post(`${baseUrl}/api/payments/mock-complete/${payment.id}`, { data: {} });
-    assert(completed.ok, `Mock-Zahlung fehlgeschlagen: ${completed.status()}`);
-    const completedBody = await completed.json();
-    assert(completedBody?.ok === true, "Mock-Zahlung liefert keinen erfolgreichen Status.");
+    const completed = await postFromPage(customerPage, `${baseUrl}/api/payments/mock-complete/${payment.id}`, {});
+    if (process.env.ENABLE_MOCK_PAYMENTS === "true") {
+      assert(completed.ok, `Testzahlung fehlgeschlagen: ${completed.status}`);
+      assert(completed.body?.ok === true, "Testzahlung liefert keinen erfolgreichen Status.");
+    } else {
+      assert(!completed.ok, "Testzahlungen müssen außerhalb des ausdrücklich aktivierten Testmodus blockiert bleiben.");
+    }
     await adminPage.reload({ waitUntil: "domcontentloaded" });
     assert((await adminPage.locator("body").innerText()).includes("Zahlung"), "Adminseite zeigt keinen Zahlungsbereich.");
 

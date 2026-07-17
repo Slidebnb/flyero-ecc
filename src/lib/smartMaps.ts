@@ -436,7 +436,21 @@ export async function getOrderIntelligence(input: {
   const households = segmentCalculations
     ? segmentCalculations.reduce((sum, item) => sum + item.households, 0)
     : estimateHouseholds({ coverageAreaSqm: effectiveCoverageAreaSqm, cityDensityFactor: densityFactor });
-  const recommendedFlyerQuantity = Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((households * 1.1) / 100) * 100);
+  // A polygon-area formula is useful for route planning, but it is not a
+  // sufficiently reliable household basis for an automatic quantity advice.
+  // Only official/licensed estimates with high confidence may drive it.
+  const householdRecommendationAllowed = segmentCalculations
+    ? segmentCalculations.length > 0 && segmentCalculations.every((item) => item.confidence === "high")
+    : confidenceForEstimate(
+        referenceEstimate?.method,
+        referenceEstimate?.source,
+        referenceArea?.dataSourceType,
+        referenceEstimate?.sourceYear,
+        Boolean(referenceArea?.estimatedHouseholds),
+      ) === "high";
+  const recommendedFlyerQuantity = householdRecommendationAllowed
+    ? Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((households * 1.1) / 100) * 100)
+    : MINIMUM_FLYER_QUANTITY;
   const flyerQuantity = input.flyerQuantity ?? recommendedFlyerQuantity;
   const routeDistanceMeters = effectiveCoverageAreaSqm
     ? estimateRouteDistanceMeters({
@@ -558,6 +572,7 @@ export async function getOrderIntelligence(input: {
     suggestions: matchingAreas.map(compactArea),
     metrics: {
       households,
+      recommendedFlyerQuantity,
       flyerQuantity,
       routeDistanceMeters,
       routeDurationMinutes,

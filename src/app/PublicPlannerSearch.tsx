@@ -2,7 +2,7 @@
 
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { publicLocationSearchParams } from "@/lib/publicLocationContext";
+import { isGermanPostalCode, publicLocationSearchParams } from "@/lib/publicLocationContext";
 
 type Suggestion = {
   id: string;
@@ -68,8 +68,9 @@ export function PublicPlannerSearch() {
 
   async function chooseSuggestion(suggestion: Suggestion) {
     const selectionSequence = ++selectionSequenceRef.current;
-    setQuery(suggestion.label);
-    setSelected(null);
+    const selectedQuery = [suggestion.postalCode, suggestion.city].filter(Boolean).join(" ") || suggestion.label;
+    setQuery(selectedQuery);
+    setSelected(suggestion);
     setSuggestions([]);
     setOpen(false);
     setSelectionError("");
@@ -80,12 +81,15 @@ export function PublicPlannerSearch() {
       usedAutocomplete: true,
     });
     try {
-      const params = new URLSearchParams({ q: suggestion.label });
+      const params = new URLSearchParams({ q: selectedQuery });
       if (suggestion.source === "google") params.set("placeId", suggestion.id);
+      if (suggestion.postalCode) params.set("postalCode", suggestion.postalCode);
+      if (suggestion.city) params.set("city", suggestion.city);
       const response = await fetch(`/api/public/planner/geocode?${params.toString()}`);
       const payload = await response.json().catch(() => null);
       if (selectionSequence !== selectionSequenceRef.current) return;
       if (!response.ok || !payload?.data) {
+        setSelected(null);
         setSelectionError(payload?.error ?? "Der Ort konnte nicht eindeutig bestätigt werden.");
         return;
       }
@@ -114,14 +118,18 @@ export function PublicPlannerSearch() {
       return;
     }
     event.preventDefault();
-    const selectedForQuery = selected?.label === query.trim() ? selected : null;
+    const normalizedQuery = query.trim();
+    const selectedForQuery = selected && (
+      selected.label === normalizedQuery
+      || (isGermanPostalCode(normalizedQuery) && selected.postalCode === normalizedQuery)
+    ) ? selected : null;
     track("PUBLIC_SEARCH_SUBMITTED", {
       postalCode: selectedForQuery?.postalCode ?? undefined,
       city: selectedForQuery?.city ?? undefined,
       usedAutocomplete: Boolean(selectedForQuery),
     });
     const params = publicLocationSearchParams({
-      query: query.trim(),
+      query: selectedForQuery?.postalCode ?? query.trim(),
       placeId: selectedForQuery?.source === "google" ? selectedForQuery.id : undefined,
       postalCode: selectedForQuery?.postalCode ?? undefined,
       city: selectedForQuery?.city ?? undefined,
@@ -163,7 +171,22 @@ export function PublicPlannerSearch() {
           {open && suggestions.length > 0 ? (
             <div id="public-planner-suggestions" className="mkPlannerSuggestions" role="listbox">
               {suggestions.map((suggestion) => (
-                <button key={suggestion.id} type="button" role="option" aria-selected={false} onMouseDown={(event) => event.preventDefault()} onClick={() => chooseSuggestion(suggestion)}>
+                <button
+                  key={suggestion.id}
+                  type="button"
+                  role="option"
+                  aria-selected={false}
+                  onMouseDown={(event) => {
+                    event.preventDefault();
+                    void chooseSuggestion(suggestion);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      void chooseSuggestion(suggestion);
+                    }
+                  }}
+                >
                   <strong>{[suggestion.postalCode, suggestion.city].filter(Boolean).join(" ") || suggestion.label}</strong>
                   <span>{suggestion.description || suggestion.label}</span>
                 </button>

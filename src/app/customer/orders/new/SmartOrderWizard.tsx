@@ -84,6 +84,7 @@ type Intelligence = {
   suggestions: ReusableAreaOption[];
   metrics: {
     households: number;
+    recommendedFlyerQuantity?: number;
     flyerQuantity: number;
     routeDistanceMeters: number;
     routeDurationMinutes: number;
@@ -225,6 +226,7 @@ type GooglePath = {
   addListener?: (eventName: string, callback: () => void) => GoogleEventListener | void;
 };
 type GoogleEventListener = { remove?: () => void };
+type GoogleMapMouseEvent = { latLng?: GoogleLatLng };
 type GoogleMap = {
   setCenter: (center: LatLng) => void;
   setZoom: (zoom: number) => void;
@@ -245,22 +247,13 @@ type GooglePolygon = {
   getPath: () => GooglePath;
   addListener?: (eventName: string, callback: () => void) => GoogleEventListener | void;
 };
-type GoogleDrawingManager = {
-  setMap: (map: GoogleMap | null) => void;
-  setDrawingMode: (mode: string | null) => void;
-  addListener?: (eventName: string, callback: (overlay?: unknown) => void) => GoogleEventListener | void;
-};
 type GoogleNamespace = {
   maps: {
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
     Polygon: new (options: Record<string, unknown>) => GooglePolygon;
     LatLngBounds: new () => { extend: (point: LatLng) => void };
-    event: { addListener: (target: unknown, eventName: string, callback: (event?: unknown) => void) => GoogleEventListener | void };
+    event: { addListener: (target: unknown, eventName: string, callback: (event?: GoogleMapMouseEvent) => void) => GoogleEventListener | void };
     FeatureType?: { POSTAL_CODE?: string; LOCALITY?: string };
-    drawing?: {
-      OverlayType: { POLYGON: string };
-      DrawingManager: new (options: Record<string, unknown>) => GoogleDrawingManager;
-    };
   };
 };
 
@@ -400,10 +393,6 @@ function areaCenter(area: ReusableAreaOption, fallback: LatLng) {
   return area.centerLat && area.centerLng ? { lat: area.centerLat, lng: area.centerLng } : fallback;
 }
 
-function recommendedFlyersForHouseholds(households: number) {
-  return Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((Math.max(0, households) * 1.1) / 100) * 100);
-}
-
 function confidenceLabel(confidence?: "high" | "medium" | "low", hasArea = true) {
   if (!hasArea) return "Gebiet auf der Karte auswählen";
   if (confidence === "high") return "Gebietsdaten geprüft";
@@ -499,14 +488,13 @@ function loadGoogleMaps() {
   const isReady = () => Boolean(
     window.google?.maps?.Map
       && window.google.maps.Polygon
-      && window.google.maps.drawing?.DrawingManager
       && window.google.maps.LatLngBounds,
   );
   if (isReady()) return Promise.resolve(true);
   if (!window.__flyeroMapsLoading) {
     window.__flyeroMapsLoading = new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&loading=async&libraries=drawing,geometry,places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&loading=async&libraries=places`;
       script.async = true;
       script.onload = () => {
         const startedAt = Date.now();
@@ -552,7 +540,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const draftRestoredRef = useRef(false);
   const repeatLoadedRef = useRef(false);
   const blurTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const forceLocationReplaceRef = useRef(false);
   const lastIntelligenceRequestRef = useRef<string | null>(null);
   const intelligenceAbortRef = useRef<AbortController | null>(null);
   const locationAbortRef = useRef<AbortController | null>(null);
@@ -564,9 +551,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const polygonRef = useRef<GooglePolygon | null>(null);
   const polygonStateRef = useRef<LatLng[]>([]);
   const polygonListenerHandlesRef = useRef<GoogleEventListener[]>([]);
-  const drawingManagerListenerRef = useRef<GoogleEventListener | null>(null);
+  const drawingClickListenerRef = useRef<GoogleEventListener | null>(null);
+  const drawingPreviewRef = useRef<GooglePolygon | null>(null);
+  const drawingPointsRef = useRef<LatLng[]>([]);
+  const finishDrawingRef = useRef<() => void>(() => undefined);
+  const areaSelectionModeRef = useRef<"boundary" | "draw">("boundary");
   const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
-  const drawingManagerRef = useRef<GoogleDrawingManager | null>(null);
   const boundaryLayerRefs = useRef(new Map<string, GoogleFeatureLayer>());
   const boundaryLayerListenersRef = useRef<GoogleEventListener[]>([]);
   const boundaryIdleListenerRef = useRef<GoogleEventListener | null>(null);
@@ -594,6 +584,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [center, setCenter] = useState<LatLng>(PUBLIC_DEFAULT_CENTER);
   const [polygon, setPolygon] = useState<LatLng[]>([]);
   const [polygonSource, setPolygonSource] = useState<PolygonSource>("postal_code");
+  const [drawingPoints, setDrawingPoints] = useState<LatLng[]>([]);
   const [areaSegments, setAreaSegments] = useState<OrderAreaSegmentDraft[]>([]);
   const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
@@ -654,6 +645,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   useEffect(() => {
     selectedBoundaryPlaceIdsRef.current = selectedBoundaryPlaceIds;
   }, [selectedBoundaryPlaceIds]);
+
+  useEffect(() => {
+    areaSelectionModeRef.current = areaSelectionMode;
+  }, [areaSelectionMode]);
 
   useEffect(() => {
     if (isPublicPlanner) {
@@ -738,7 +733,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         ? "Preis wird aktualisiert"
         : "Gebiet auf der Karte auswählen";
   const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
-  const recommendedFlyerQuantity = recommendedFlyersForHouseholds(households);
+  const recommendedFlyerQuantity = intelligence?.metrics.recommendedFlyerQuantity ?? MINIMUM_FLYER_QUANTITY;
   const deliverabilityScore = intelligence?.metrics.score ?? null;
   const calculationConfidence = intelligence?.metrics.confidence ?? (intelligenceStatus === "live" ? "medium" : "low");
   const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
@@ -1318,12 +1313,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setHistory([]);
       setHistoryIndex(0);
     }
-    if (options?.forceReplace) {
-      forceLocationReplaceRef.current = true;
-      window.setTimeout(() => {
-        forceLocationReplaceRef.current = false;
-      }, 900);
-    }
     if (polygonSource === "manual" && !options?.forceReplace) {
       setPendingLocation(result);
       return;
@@ -1465,7 +1454,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             postalCode: result.postalCode,
           });
         }
-        applyLocationResult(result, { forceReplace: isPublicPlanner ? true : forceLocationReplaceRef.current });
+        applyLocationResult(result, { forceReplace: !options?.initial });
       })
       .catch((error) => {
         if (requestId === locationRequestSequenceRef.current && error?.name !== "AbortError") {
@@ -1695,83 +1684,80 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (polygonRef.current) {
       attachPolygonListeners(polygonRef.current);
     }
-    if (!drawingManagerRef.current && maps.drawing && mapRef.current) {
-      let drawingManager: GoogleDrawingManager | null = null;
+    const clearDrawingPreview = () => {
       try {
-        drawingManager = new maps.drawing.DrawingManager({
-          drawingMode: null,
-          drawingControl: false,
-          polygonOptions: {
-            strokeColor: "#a7ff00",
-            strokeOpacity: 1,
-            strokeWeight: 3,
-            fillColor: "#1f7aff",
-            fillOpacity: 0.28,
-            editable: true,
-            draggable: true,
-          },
-        });
-        drawingManager.setMap(mapRef.current);
-        drawingManagerRef.current = drawingManager;
+        drawingPreviewRef.current?.setMap(null);
       } catch {
-        drawingManagerRef.current = null;
+        // Google may already have disposed the preview during navigation.
       }
-      if (!drawingManager) return () => {
-        isActive = false;
-      };
-      const onPolygonComplete = (overlay?: unknown) => {
-        if (!overlay) return;
-        const nextPolygon = overlay as GooglePolygon;
-        try {
-          polygonRef.current?.setMap(null);
-          polygonRef.current = nextPolygon;
-          polygonRef.current.setMap(mapRef.current);
-          drawingManagerRef.current?.setDrawingMode(null);
-        } catch {
-          return;
-        }
-        let next: LatLng[] = [];
-        try {
-          next = pathToPoints(nextPolygon.getPath());
-        } catch {
-          return;
-        }
-        if (next.length >= 3) {
-          const segmentId = activeSegmentId ?? `segment-${Date.now()}`;
-          if (!activeSegmentId) {
-            setActiveSegmentId(segmentId);
-            setAreaSegments((current) => [...current, {
-              id: segmentId,
-              name: targetAreaName || [postalCode, city].filter(Boolean).join(" ") || "Verteilgebiet",
-              city,
-              postalCode,
-              district: "",
-              country: "DE",
-              points: next,
-              polygonSource: "drawn",
-            }]);
+      drawingPreviewRef.current = null;
+      drawingPointsRef.current = [];
+      setDrawingPoints([]);
+    };
+    const commitDrawnPolygon = () => {
+      const next = drawingPointsRef.current;
+      if (next.length < 3 || !mapRef.current) return;
+      let nextPolygon: GooglePolygon;
+      try {
+        polygonRef.current?.setMap(null);
+        nextPolygon = new maps.Polygon({
+          paths: next,
+          strokeColor: "#a7ff00",
+          strokeOpacity: 1,
+          strokeWeight: 3,
+          fillColor: "#1f7aff",
+          fillOpacity: 0.28,
+          editable: true,
+          draggable: true,
+        });
+        nextPolygon.setMap(mapRef.current);
+        polygonRef.current = nextPolygon;
+      } catch {
+        return;
+      }
+      pushPolygon(next, "drawn");
+      setAreaSelectionMode("draw");
+      setMapNotice("Gebiet übernommen. Du kannst die Punkte noch anpassen oder ein weiteres Teilgebiet hinzufügen.");
+      clearDrawingPreview();
+      attachPolygonListeners(nextPolygon);
+    };
+    finishDrawingRef.current = commitDrawnPolygon;
+    if (mapRef.current && !drawingClickListenerRef.current) {
+      try {
+        const handle = maps.event.addListener(mapRef.current, "click", (event) => {
+          const point = event?.latLng;
+          if (areaSelectionModeRef.current !== "draw" || !point) return;
+          const next = [...drawingPointsRef.current, { lat: point.lat(), lng: point.lng() }];
+          drawingPointsRef.current = next;
+          setDrawingPoints(next);
+          if (!drawingPreviewRef.current) {
+            drawingPreviewRef.current = new maps.Polygon({
+              paths: next,
+              strokeColor: "#a7ff00",
+              strokeOpacity: 0.9,
+              strokeWeight: 2,
+              fillColor: "#1f7aff",
+              fillOpacity: 0.12,
+              clickable: false,
+            });
+            drawingPreviewRef.current.setMap(mapRef.current);
+          } else {
+            drawingPreviewRef.current.setPath(next);
           }
-          setPolygon(next);
-          setPolygonSource("drawn");
-        }
-        attachPolygonListeners(nextPolygon);
-      };
-      if (!drawingManagerListenerRef.current) {
-        try {
-          const handle = typeof drawingManager.addListener === "function"
-            ? drawingManager.addListener("polygoncomplete", onPolygonComplete)
-            : maps.event.addListener(drawingManager, "polygoncomplete", onPolygonComplete);
-          if (handle) drawingManagerListenerRef.current = handle;
-        } catch {
-          drawingManagerListenerRef.current = null;
-        }
+          setMapNotice(next.length < 3
+            ? `${next.length} Punkte gesetzt. Setze mindestens drei Punkte für dein Gebiet.`
+            : "Gebiet ist bereit. Klicke auf „Gebiet abschließen“, wenn die Fläche passt.");
+        });
+        if (handle) drawingClickListenerRef.current = handle;
+      } catch {
+        drawingClickListenerRef.current = null;
       }
     }
     return () => {
       isActive = false;
       clearPolygonListeners();
     };
-  }, [activeSegmentId, center, city, mapMode, mapsBoundaryMapId, mapsReady, postalCode, targetAreaName]);
+  }, [activeSegmentId, areaSelectionMode, center, city, mapMode, mapsBoundaryMapId, mapsReady, postalCode, pushPolygon, targetAreaName]);
 
   useEffect(() => {
     if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps?.FeatureType) return;
@@ -1830,11 +1816,19 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }
       polygonListenerHandlesRef.current = [];
       try {
-        drawingManagerListenerRef.current?.remove?.();
+        drawingClickListenerRef.current?.remove?.();
       } catch {
-        // Google may already have disposed the drawing manager.
+        // Google may already have disposed the map during navigation.
       }
-      drawingManagerListenerRef.current = null;
+      drawingClickListenerRef.current = null;
+      try {
+        drawingPreviewRef.current?.setMap(null);
+      } catch {
+        // Google may already have disposed the preview during navigation.
+      }
+      drawingPreviewRef.current = null;
+      drawingPointsRef.current = [];
+      finishDrawingRef.current = () => undefined;
       for (const handle of boundaryLayerListenersAtMount) {
         try {
           handle.remove?.();
@@ -1979,8 +1973,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   function startDrawingArea() {
     setAreaSelectionMode("draw");
-    const drawing = window.google?.maps.drawing;
-    if (!mapsReady || !drawingManagerRef.current || !drawing) {
+    try {
+      drawingPreviewRef.current?.setMap(null);
+    } catch {
+      // Google may already have disposed the previous preview.
+    }
+    drawingPreviewRef.current = null;
+    drawingPointsRef.current = [];
+    setDrawingPoints([]);
+    if (!mapsReady || !mapRef.current) {
       setMapNotice(
         mapsBrowserKeyConfigured
           ? "Die Karte lädt noch. Bitte kurz warten und erneut versuchen."
@@ -1989,7 +1990,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       return;
     }
     setMapNotice("Klicke auf der Karte die Eckpunkte deines Gebiets. Zum Abschließen den ersten Punkt wieder anklicken.");
-    drawingManagerRef.current.setDrawingMode(drawing.OverlayType.POLYGON);
+    setMapNotice("Klicke auf der Karte mindestens drei Eckpunkte. Danach kannst du das Gebiet abschließen.");
+  }
+
+  function finishDrawingArea() {
+    if (drawingPointsRef.current.length < 3) {
+      setMapNotice("Setze mindestens drei Eckpunkte, bevor du das Gebiet abschließt.");
+      return;
+    }
+    finishDrawingRef.current();
   }
 
   function trackSubmit(options?: { clearDraft?: boolean; handoffToCustomer?: boolean; eventType?: string; orderId?: string }) {
@@ -2339,7 +2348,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               disabled={!mapsBoundaryConfigured}
               onClick={() => {
                 setAreaSelectionMode("boundary");
-                drawingManagerRef.current?.setDrawingMode(null);
                 setMapNotice("Klicke auf eine markierte PLZ- oder Stadtfläche, um sie auszuwählen.");
               }}
             >
@@ -2349,6 +2357,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               Eigenes Gebiet zeichnen
             </button>
           </div>
+          {areaSelectionMode === "draw" && drawingPoints.length >= 3 ? (
+            <button data-testid="order-finish-drawing" type="button" className="orderDrawingFinish" onClick={finishDrawingArea}>
+              Gebiet abschließen
+            </button>
+          ) : null}
           <small className="orderSegmentHint">
             {mapsBoundaryConfigured
               ? "Wähle eine markierte PLZ- oder Stadtfläche oder zeichne dein Gebiet selbst."
