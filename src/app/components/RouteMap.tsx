@@ -105,7 +105,7 @@ export function RouteMap({ points, photos = [], targetArea = null, height = 360 
   if (!browserKey || validPoints.length === 0) {
     return (
       <div className="mapFallback">
-        <strong>{!browserKey ? "Kartenansicht im Fallback-Modus" : "Noch keine GPS-Punkte vorhanden"}</strong>
+        <strong>{!browserKey ? "Kartenansicht derzeit nicht verfügbar" : "Noch keine GPS-Punkte vorhanden"}</strong>
         <p>
           {!browserKey
             ? "Die interaktive Karte ist nicht aktiv. Die Route bleibt als Koordinatenliste verfügbar."

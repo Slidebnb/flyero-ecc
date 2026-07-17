@@ -562,7 +562,7 @@ export function calculateConfiguredTierNetPrice(flyerQuantity: number, rules: Pr
     (candidate) => candidate.minQuantity <= safeQuantity && (candidate.maxQuantity === null || candidate.maxQuantity >= safeQuantity),
   );
   if (!rule) {
-    return calculatePremiumDistributionTierNetPrice(safeQuantity);
+    throw new Error('Keine aktive Preisregel fuer diesen Service.');
   }
 
   const unitsInTier = Math.max(0, safeQuantity - rule.minQuantity + 1);
@@ -617,12 +617,11 @@ export async function calculateOrderPrice(input: {
     getVatRate(),
   ]);
   const settings = await getPricingSettingValues();
-  const pricingBasisServiceType = requestedRules.length || pricingServiceType === ServiceType.FLYER_STANDARD
-    ? pricingServiceType
-    : ServiceType.FLYER_STANDARD;
-  const rules = pricingBasisServiceType === pricingServiceType
-    ? requestedRules
-    : await getActivePricingRules(pricingBasisServiceType);
+  const pricingBasisServiceType = pricingServiceType;
+  const rules = requestedRules;
+  if (!rules.length) {
+    throw new Error('Keine aktive Preisregel fuer diesen Service.');
+  }
 
   const rule = rules.find(
     (candidate) => candidate.minQuantity <= input.flyerQuantity && (candidate.maxQuantity === null || candidate.maxQuantity >= input.flyerQuantity),
@@ -630,9 +629,7 @@ export async function calculateOrderPrice(input: {
   const basePrice = rule?.basePrice ?? new Prisma.Decimal("0");
   const pricePerUnit = rule?.pricePerUnit ?? TIER_1_RATE;
   const minimumNetPrice = rule?.minimumNetPrice ?? MINIMUM_ORDER_VALUE_NET;
-  const baseDistributionNet = rules.length
-    ? calculateConfiguredTierNetPrice(input.flyerQuantity, rules)
-    : calculatePremiumDistributionTierNetPrice(input.flyerQuantity);
+  const baseDistributionNet = calculateConfiguredTierNetPrice(input.flyerQuantity, rules);
   const weightClass = resolveWeightClass(input);
   const areaDifficulty = input.areaDifficulty ?? AreaDifficulty.NORMAL;
   const configuredWeightFactors = {

@@ -33,7 +33,7 @@ await includes("src/lib/routeAnalysis.ts", [
 
 await includes("src/app/components/RouteMap.tsx", [
   "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY",
-  "Kartenansicht im Fallback-Modus",
+  "Kartenansicht derzeit nicht verfügbar",
   "Route bleibt als Koordinatenliste verfügbar",
   "Polyline",
   "Marker",

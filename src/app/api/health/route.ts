@@ -8,6 +8,7 @@ export async function GET() {
     await Promise.all([
       prisma.auditLog.findFirst({ select: { id: true, integrityHash: true }, take: 1 }),
       prisma.warehouse.findFirst({ select: { id: true, isDemoData: true }, take: 1 }),
+      prisma.pricingRule.findFirst({ select: { id: true, pricingVersion: true }, take: 1 }),
     ]);
     const latest = await prisma.systemHealthCheck.findFirst({
       orderBy: { checkedAt: "desc" },

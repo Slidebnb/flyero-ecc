@@ -37,7 +37,7 @@ await includes("src/app/components/DistributionAreaEditor.tsx", [
   "setDraggable",
   "Polygon löschen",
   "Auto Zoom",
-  "Kartenbearbeitung im Fallback-Modus",
+  "Kartenbearbeitung derzeit nicht verfügbar",
   "Gebiete können weiterhin gespeichert werden",
 ]);
 

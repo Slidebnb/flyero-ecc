@@ -133,7 +133,7 @@ function CampaignEvidencePreview({ order, report, compact = false }: { order: Da
       ) : (
         <div className="evidenceEmptyState">
           <strong>{state === "empty" ? "Noch kein Nachweis verfügbar." : "Nachweis wird nach der Verteilung erstellt."}</strong>
-          <span>{state === "empty" ? "Starten Sie eine Kampagne, danach führt FLYERO Sie Schritt für Schritt weiter." : "Keine künstliche GPS-Spur, keine Demo-Fotos: hier erscheinen nur geprüfte echte Nachweise."}</span>
+          <span>{state === "empty" ? "Starten Sie eine Kampagne, danach führt FLYERO Sie Schritt für Schritt weiter." : "Nach Abschluss und Freigabe erscheinen hier die echten Nachweise Ihrer Verteilung."}</span>
         </div>
       )}
       <div className="evidenceStatusGrid">

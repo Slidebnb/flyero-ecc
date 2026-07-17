@@ -100,7 +100,7 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
   if (!browserKey || areaFeatures.length === 0) {
     return (
       <div className="mapFallback">
-        <strong>{!browserKey ? "Gebietsansicht im Fallback-Modus" : "Noch kein Verteilgebiet gespeichert"}</strong>
+        <strong>{!browserKey ? "Gebietsansicht derzeit nicht verfügbar" : "Noch kein Verteilgebiet gespeichert"}</strong>
         <p>
           {!browserKey
             ? "Die interaktive Karte ist nicht aktiv. Das Gebiet bleibt als strukturierte Koordinatenvorschau gespeichert."

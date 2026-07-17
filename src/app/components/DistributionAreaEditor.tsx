@@ -395,7 +395,7 @@ export function DistributionAreaEditor({
         <div ref={containerRef} className="areaMap" />
       ) : (
         <div className="mapFallback">
-          <strong>Kartenbearbeitung im Fallback-Modus</strong>
+          <strong>Kartenbearbeitung derzeit nicht verfügbar</strong>
           <p>Gebiete können weiterhin gespeichert werden: als PLZ, Stadt, Ortsteil oder per GeoJSON.</p>
           <textarea
             aria-label="GeoJSON Fallback"
