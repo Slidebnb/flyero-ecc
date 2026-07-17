@@ -41,10 +41,40 @@ const priceDetails = [
   ["Nachweis", "GPS-Spur, Foto-Dokumentation, Admin-Prüfung und PDF-Bericht sind Teil des Qualitätsprozesses."],
 ] as const;
 
+function PricingUnavailablePage() {
+  return (
+    <MarketingPage>
+      <section className="mkHero" aria-labelledby="pricing-unavailable-title">
+        <PremiumFlyerField />
+        <MarketingContainer className="mkHeroLayout">
+          <div className="mkHeroCopy">
+            <p className="mkEyebrow">Preise</p>
+            <h1 id="pricing-unavailable-title">Preise werden gerade gepr\u00fcft.</h1>
+            <p className="mkHeroLead">
+              Die aktuellen Preisregeln werden im Moment aktualisiert. Ihre Buchung bleibt sicher; sobald die Kalkulation bereit ist, sehen Sie Netto, MwSt. und Brutto transparent.
+            </p>
+            <div className="mkHeroActions">
+              <MarketingButton href="/verteilung-anfragen">Unverbindlich anfragen</MarketingButton>
+              <MarketingButton href="/kontakt" variant="ghost">Kontakt aufnehmen</MarketingButton>
+            </div>
+          </div>
+          <ProcessPreview />
+        </MarketingContainer>
+      </section>
+    </MarketingPage>
+  );
+}
+
 export default async function PricingPage() {
-  const pricing = await getPricingSettings();
+  let pricing: Awaited<ReturnType<typeof getPricingSettings>>;
+  let examplePrices: Awaited<ReturnType<typeof calculateOrderPrice>>[];
   const exampleQuantities = [500, 3000, 10000] as const;
-  const examplePrices = await Promise.all(exampleQuantities.map((flyerQuantity) => calculateOrderPrice({ serviceType: ServiceType.FLYER_STANDARD, flyerQuantity })));
+  try {
+    pricing = await getPricingSettings();
+    examplePrices = await Promise.all(exampleQuantities.map((flyerQuantity) => calculateOrderPrice({ serviceType: ServiceType.FLYER_STANDARD, flyerQuantity })));
+  } catch {
+    return <PricingUnavailablePage />;
+  }
   const distributionRules = pricing.rules
     .filter((rule) => rule.serviceType === ServiceType.FLYER_STANDARD)
     .sort((left, right) => left.minQuantity - right.minQuantity);

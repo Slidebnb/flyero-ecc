@@ -232,11 +232,19 @@ async function withPublicLimit(request: NextRequest, action: () => Promise<Respo
   return action();
 }
 
+function pricingUnavailableResponse() {
+  return errorResponse("Die Preisberechnung wird gerade gepr\u00fcft. Bitte versuche es gleich erneut oder frage unverbindlich an.", 503);
+}
+
 export async function GET(request: NextRequest) {
   try {
     return await withPublicLimit(request, () => createPublicQuote(safeQueryInput(request)));
   } catch (error) {
-    return routeErrorResponse(error);
+    try {
+      return routeErrorResponse(error);
+    } catch {
+      return pricingUnavailableResponse();
+    }
   }
 }
 
@@ -245,6 +253,10 @@ export async function POST(request: NextRequest) {
     const body = await readBody(request);
     return await withPublicLimit(request, () => createPublicQuote(body));
   } catch (error) {
-    return routeErrorResponse(error);
+    try {
+      return routeErrorResponse(error);
+    } catch {
+      return pricingUnavailableResponse();
+    }
   }
 }
