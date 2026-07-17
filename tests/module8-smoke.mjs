@@ -51,7 +51,7 @@ await includes("src/lib/areas.ts", [
   "area.created",
   "area.updated",
   "area.deleted",
-  "area.assigned",
+  "area.reference_linked",
 ]);
 
 for (const path of [
@@ -86,8 +86,8 @@ const [
   prisma.distributionArea.count({ where: { type: "RADIUS" } }),
   prisma.areaHouseholdEstimate.count(),
   prisma.order.count({ where: { distributionAreaId: { not: null } } }),
-  prisma.auditLog.count({ where: { action: { in: ["area.created", "area.updated", "area.deleted", "area.assigned"] } } }),
-  prisma.areaHistory.count({ where: { action: "area.assigned" } }),
+  prisma.auditLog.count({ where: { action: { in: ["area.created", "area.updated", "area.deleted", "area.reference_linked"] } } }),
+  prisma.areaHistory.count({ where: { action: "area.reference_linked" } }),
 ]);
 
 assert(areaCount >= 20, "Seed enthaelt weniger als 20 aktive Gebiete.");

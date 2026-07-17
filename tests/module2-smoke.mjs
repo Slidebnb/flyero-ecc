@@ -44,8 +44,9 @@ for (const file of requiredFiles) {
 }
 
 const schema = readFileSync(join(root, "prisma/schema.prisma"), "utf8");
+const normalizedSchema = schema.replace(/\s+/g, " ");
 for (const snippet of requiredSchemaSnippets) {
-  if (!schema.includes(snippet)) {
+  if (!normalizedSchema.includes(snippet.replace(/\s+/g, " ").trim())) {
     throw new Error(`Prisma-Schema enthaelt erwarteten Abschnitt nicht: ${snippet}`);
   }
 }

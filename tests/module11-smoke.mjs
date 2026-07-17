@@ -41,7 +41,9 @@ await includes("src/lib/invoices.ts", [
   "invoice.downloaded",
   "credit_note.prepared",
 ]);
-await includes("src/app/api/admin/orders/[id]/status/route.ts", ["createInvoiceForOrder"]);
+await includes("src/app/api/admin/orders/[id]/status/route.ts", ["reviewOrder"]);
+await includes("src/lib/orderReviewWorkflow.ts", ["approvePaidOrder"]);
+await includes("src/lib/orderApproval.ts", ["createInvoiceForOrder"]);
 
 for (const filePath of [
   "src/app/customer/invoices/page.tsx",

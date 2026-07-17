@@ -54,7 +54,7 @@ for (const filePath of [
 }
 
 await includes("src/app/admin/notifications/page.tsx", ["Nachrichtenzentrale", "Vorlage erstellen", "Queue", "Preferences", "Vorschau"]);
-await includes("src/app/customer/notifications/page.tsx", ["Ungelesen", "Gelesen", "E-Mail-Einstellungen"]);
+await includes("src/app/customer/notifications/page.tsx", ["Neue Hinweise vorhanden.", "Gelesen", "Neu", "Benachrichtigungen einstellen"]);
 await includes("src/app/distributor/notifications/page.tsx", ["Nachrichtenzentrale", "Einstellungen"]);
 await includes("README.md", ["Modul 15", "Notification Architektur", "Template-System", "Queue", "Preferences"]);
 await includes("ARCHITECTURE_DECISIONS.md", ["Modul 15", "Notification-Service", "Queue", "WhatsApp", "SMS", "Push"]);
