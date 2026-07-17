@@ -68,6 +68,7 @@ for (const script of [
   "test:distribution-reports",
   "test:external-distribution-report",
   "test:module28-public-runtime",
+  "test:legal-page-heading",
   "test:module28-public-playwright",
   "test:module28-public-production-parity",
 ]) {

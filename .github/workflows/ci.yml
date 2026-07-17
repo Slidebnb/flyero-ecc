@@ -322,6 +322,9 @@ jobs:
       - name: Module 28 public browser smoke
         run: npm run test:module28-public-playwright
 
+      - name: Legal page heading smoke
+        run: npm run test:legal-page-heading
+
       - name: Public sitemap runtime smoke
         run: npm run test:public-sitemap-runtime
 
