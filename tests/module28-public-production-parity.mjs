@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 
 const port = process.env.MODULE28_PRODUCTION_PARITY_PORT || "3049";
 const baseUrl = `http://127.0.0.1:${port}`;
@@ -19,12 +19,14 @@ function textOf(response) {
 }
 
 try {
-  child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "start", "--", "-p", port], {
+  child = spawn(process.platform === "win32" ? process.execPath : "npm", process.platform === "win32"
+    ? ["node_modules/next/dist/bin/next", "start", "-p", port]
+    : ["run", "start", "--", "-p", port], {
     cwd: process.cwd(),
     env: { ...process.env, PORT: port },
     stdio: "ignore",
-    shell: process.platform === "win32",
   });
+  child.unref();
 
   let ready = false;
   for (let attempt = 0; attempt < 45; attempt += 1) {
@@ -52,8 +54,5 @@ try {
 
   console.log("Module 28 production parity checks passed.");
 } finally {
-  if (child) {
-    if (process.platform === "win32") spawnSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], { stdio: "ignore" });
-    else child.kill();
-  }
+  if (child && !child.killed) child.kill();
 }

@@ -1,4 +1,4 @@
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { PrismaClient } from "@prisma/client";
@@ -69,11 +69,12 @@ async function ensureServer() {
   }
 
   baseUrl = process.env.BETA_BASE_URL || `http://localhost:${TEST_PORT}`;
-  const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
+  const child = spawn(process.platform === "win32" ? process.execPath : "npm", process.platform === "win32"
+    ? ["node_modules/next/dist/bin/next", "dev", "-p", TEST_PORT]
+    : ["run", "dev"], {
     cwd: process.cwd(),
     env: { ...process.env, PORT: TEST_PORT },
     stdio: "ignore",
-    shell: process.platform === "win32",
   });
 
   for (let attempt = 0; attempt < 45; attempt += 1) {
@@ -259,12 +260,6 @@ try {
   console.log("Module 16 landing smoke checks passed.");
 } finally {
   await prisma.$disconnect();
-  if (server) {
-    if (process.platform === "win32") {
-      spawnSync("taskkill", ["/pid", String(server.pid), "/t", "/f"], { stdio: "ignore" });
-    } else {
-      server.kill();
-    }
-  }
+  if (server && !server.killed) server.kill();
 }
 

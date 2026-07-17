@@ -51,11 +51,13 @@ async function ensureServer() {
       if (response.status < 500) return null;
     } catch {}
   }
-  const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
+  baseUrl = "http://localhost:3000";
+  const child = spawn(process.platform === "win32" ? process.execPath : "npm", process.platform === "win32"
+    ? ["node_modules/next/dist/bin/next", "dev", "-p", "3000"]
+    : ["run", "dev"], {
     cwd: process.cwd(),
     env: { ...process.env, PORT: "3000" },
     stdio: "ignore",
-    shell: process.platform === "win32",
   });
   for (let attempt = 0; attempt < 45; attempt += 1) {
     await sleep(1000);
