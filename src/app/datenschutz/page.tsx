@@ -11,7 +11,7 @@ export const metadata = createSeoMetadata({
 export default function PrivacyPage() {
   return (
     <MarketingPage>
-      <MarketingSection eyebrow="Rechtliches" title="Datenschutz" className="mkLegalPage">
+      <MarketingSection eyebrow="Rechtliches" title="Datenschutz" headingLevel="h1" className="mkLegalPage">
         <div className="legalText">
           <p>
             FLYERO verarbeitet personenbezogene Daten zur Bereitstellung der Plattform, zur Bearbeitung von Anfragen,

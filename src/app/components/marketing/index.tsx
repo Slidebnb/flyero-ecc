@@ -185,6 +185,7 @@ export function MarketingSection({
   children,
   tone = "light",
   className = "",
+  headingLevel = "h2",
 }: {
   id?: string;
   eyebrow?: string;
@@ -193,11 +194,12 @@ export function MarketingSection({
   children: ReactNode;
   tone?: CardTone;
   className?: string;
+  headingLevel?: "h1" | "h2";
 }) {
   return (
     <section id={id} className={`mkSection mkSection-${tone} ${className}`.trim()}>
       <MarketingContainer>
-        {title ? <SectionHeader eyebrow={eyebrow} title={title} intro={intro} /> : null}
+        {title ? <SectionHeader eyebrow={eyebrow} title={title} intro={intro} headingLevel={headingLevel} /> : null}
         {children}
       </MarketingContainer>
     </section>
@@ -209,16 +211,18 @@ export function SectionHeader({
   title,
   intro,
   align = "left",
+  headingLevel = "h2",
 }: {
   eyebrow?: string;
   title: string;
   intro?: string;
   align?: "left" | "center";
+  headingLevel?: "h1" | "h2";
 }) {
   return (
     <div className={`mkSectionHeader mkAlign-${align}`}>
       {eyebrow ? <p>{eyebrow}</p> : null}
-      <h2>{title}</h2>
+      {headingLevel === "h1" ? <h1>{title}</h1> : <h2>{title}</h2>}
       {intro ? <span>{intro}</span> : null}
     </div>
   );

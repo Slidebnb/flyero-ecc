@@ -11,7 +11,7 @@ export const metadata = createSeoMetadata({
 export default function TermsPage() {
   return (
     <MarketingPage>
-      <MarketingSection eyebrow="Rechtliches" title="Allgemeine Geschäftsbedingungen" className="mkLegalPage">
+      <MarketingSection eyebrow="Rechtliches" title="Allgemeine Geschäftsbedingungen" headingLevel="h1" className="mkLegalPage">
         <div className="legalText">
           <p>
             Diese Seite beschreibt künftig die vertraglichen Grundlagen für Auftraggeber, Verteiler,

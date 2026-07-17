@@ -11,7 +11,7 @@ export const metadata = createSeoMetadata({
 export default function ImprintPage() {
   return (
     <MarketingPage>
-      <MarketingSection eyebrow="Rechtliches" title="Impressum" className="mkLegalPage">
+      <MarketingSection eyebrow="Rechtliches" title="Impressum" headingLevel="h1" className="mkLegalPage">
         <div className="legalText">
           <p><strong>Angaben gemäß § 5 DDG</strong></p>
           <p>Flyero Gruppe - Ein Unternehmen der Huwa Gebäudereinigung &amp; Hausmeisterdienste</p>
