@@ -5083,6 +5083,13 @@ body {
     right: 150px;
   }
 
+  .mapNotice {
+    top: 76px;
+    left: 14px;
+    right: 14px;
+    max-width: none;
+  }
+
   .orderPriceFooter {
     margin-inline: -16px;
     margin-bottom: -16px;
