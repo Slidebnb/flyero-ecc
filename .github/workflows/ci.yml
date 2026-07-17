@@ -319,6 +319,9 @@ jobs:
       - name: Module 28 public browser smoke
         run: npm run test:module28-public-playwright
 
+      - name: Public sitemap runtime smoke
+        run: npm run test:public-sitemap-runtime
+
       - name: Module 28 production parity
         run: npm run test:module28-public-production-parity
 

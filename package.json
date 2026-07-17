@@ -104,6 +104,7 @@
     "test:admin-order-workspace": "node tests/admin-order-workspace-smoke.mjs",
     "test:inquiry-form-contact": "node tests/inquiry-form-contact-smoke.mjs",
     "test:seo-sitemap": "node tests/seo-sitemap-smoke.mjs",
+    "test:public-sitemap-runtime": "node tests/public-sitemap-runtime-smoke.mjs",
     "test:customer-portal-ux": "node -r dotenv/config tests/customer-portal-ux-smoke.mjs",
     "test:auth-ux": "node -r dotenv/config tests/auth-ux-smoke.mjs",
     "test:auth-session": "node -r dotenv/config tests/auth-session-smoke.mjs",
