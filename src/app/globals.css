@@ -8309,3 +8309,24 @@ body {
 }
 
 
+
+/* Final customer portal mobile layout override. */
+@media (max-width: 820px) {
+  .customerUnifiedBody {
+    grid-template-columns: 1fr;
+  }
+
+  .customerSideNav {
+    display: none;
+  }
+
+  .customerUnifiedContent {
+    width: 100%;
+    min-width: 0;
+    padding: 16px;
+  }
+
+  .customerTwoColumn {
+    grid-template-columns: 1fr;
+  }
+}

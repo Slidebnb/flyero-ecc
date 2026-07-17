@@ -2,14 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { TicketPriority, TicketType } from "@prisma/client";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { customerAreaName, customerOrderName, customerReportName, customerSafeText } from "@/app/customer/customerUx";
+import { CUSTOMER_SUPPORT_STATUS_LABELS, customerAreaName, customerOrderName, customerReportName, customerSafeText } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import {
   createTicket,
   listTickets,
-  SUPPORT_STATUS_LABELS,
   SUPPORT_TYPE_LABELS,
 } from "@/lib/support";
 
@@ -159,7 +158,7 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
                 <div>
                   <div className="customerItemHeader">
                     <strong>{customerSafeText(ticket.subject, "Nachricht zu Ihrer Kampagne") || ticket.ticketNumber}</strong>
-                    <StatusBadge tone={tone(ticket.status)}>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge>
+                    <StatusBadge tone={tone(ticket.status)}>{CUSTOMER_SUPPORT_STATUS_LABELS[ticket.status] ?? "In Bearbeitung"}</StatusBadge>
                   </div>
                   <p>{SUPPORT_TYPE_LABELS[ticket.type]}</p>
                 </div>

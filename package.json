@@ -157,6 +157,8 @@
     "test:public-inquiry-runtime": "node -r dotenv/config tests/public-inquiry-runtime.mjs",
     "test:public-pricing-runtime": "node -r dotenv/config tests/public-pricing-runtime.mjs",
     "test:public-pricing-error-boundary": "node tests/public-pricing-error-boundary-smoke.mjs",
+    "test:customer-status-copy": "node tests/customer-status-copy-smoke.mjs",
+    "test:customer-portal-mobile-layout": "node tests/customer-portal-mobile-layout-smoke.mjs",
     "test:public-capabilities-runtime": "node tests/public-capabilities-runtime.mjs",
     "test:module28-public-runtime": "npm run test:public-location-navigation-runtime && npm run test:public-inquiry-runtime && npm run test:public-analytics-runtime && npm run test:public-pricing-runtime && npm run test:public-capabilities-runtime",
     "test:module28-public-playwright": "node tests/module28-public-playwright.mjs",

@@ -19,7 +19,7 @@ export const CUSTOMER_ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PAID_WAITING_FOR_ADMIN_REVIEW: "Bezahlt, wird geprüft",
   WAITING_FOR_CUSTOMER: "Rückfrage offen",
   APPROVED: "Freigegeben",
-  REJECTED: "Abgelehnt",
+  REJECTED: "Geschlossen",
   CANCELLED: "Storniert",
   READY_FOR_FLYERS: "Flyer oder Druckdaten fehlen",
   FLYERS_EXPECTED: "Flyer werden erwartet",
@@ -31,6 +31,15 @@ export const CUSTOMER_ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   REPORT_READY_PREVIEW: "Bericht verfügbar",
 };
 
+export const CUSTOMER_SUPPORT_STATUS_LABELS: Record<string, string> = {
+  OPEN: "Offen",
+  IN_PROGRESS: "In Bearbeitung",
+  WAITING_FOR_CUSTOMER: "Rückfrage an Sie",
+  WAITING_INTERNAL: "In Prüfung",
+  RESOLVED: "Gelöst",
+  REJECTED: "Geschlossen",
+  CLOSED: "Geschlossen",
+};
 export const CUSTOMER_DOCUMENT_STATUS_LABELS: Record<DocumentStatus, string> = {
   UPLOADED: "Hochgeladen",
   UNDER_REVIEW: "In Prüfung",

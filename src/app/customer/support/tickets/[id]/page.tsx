@@ -2,11 +2,11 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { customerOrderName, customerReportName, customerSafeText, customerTicketName } from "@/app/customer/customerUx";
+import { CUSTOMER_SUPPORT_STATUS_LABELS, customerOrderName, customerReportName, customerSafeText, customerTicketName } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
 import { requireTenantSession } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/format";
-import { addTicketMessage, getTicket, SUPPORT_STATUS_LABELS, SUPPORT_TYPE_LABELS } from "@/lib/support";
+import { addTicketMessage, getTicket, SUPPORT_TYPE_LABELS } from "@/lib/support";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -35,10 +35,10 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
       <section className="customerFocusPanel">
         <div>
           <span className="customerTinyLabel">Hilfe</span>
-          <h2>{SUPPORT_STATUS_LABELS[ticket.status]}</h2>
+          <h2>{CUSTOMER_SUPPORT_STATUS_LABELS[ticket.status] ?? "In Bearbeitung"}</h2>
           <p>{ticket.status === "WAITING_FOR_CUSTOMER" ? "FLYERO wartet auf Ihre Antwort." : "Alle Antworten stehen hier gebündelt."}</p>
         </div>
-        <StatusBadge tone={ticketTone(ticket.status)}>{SUPPORT_STATUS_LABELS[ticket.status]}</StatusBadge>
+        <StatusBadge tone={ticketTone(ticket.status)}>{CUSTOMER_SUPPORT_STATUS_LABELS[ticket.status] ?? "In Bearbeitung"}</StatusBadge>
       </section>
 
       <section className="customerDetailActions" aria-label="Hilfeaktionen">
@@ -50,7 +50,7 @@ export default async function CustomerTicketDetailPage({ params }: PageProps) {
       <div className="customerTwoColumn">
         <DataSection title="Anliegen" description="Kurz zusammengefasst.">
           <div className="customerFactList">
-            <p><span>Status</span><strong>{SUPPORT_STATUS_LABELS[ticket.status]}</strong></p>
+            <p><span>Status</span><strong>{CUSTOMER_SUPPORT_STATUS_LABELS[ticket.status] ?? "In Bearbeitung"}</strong></p>
             <p><span>Thema</span><strong>{SUPPORT_TYPE_LABELS[ticket.type]}</strong></p>
             <p><span>Erstellt</span><strong>{formatDateTime(ticket.createdAt)}</strong></p>
             <p><span>Lösung</span><strong>{customerSafeText(ticket.resolution, "Noch offen")}</strong></p>
