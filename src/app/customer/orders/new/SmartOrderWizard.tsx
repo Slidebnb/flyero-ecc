@@ -20,7 +20,7 @@ import {
   Search,
 } from "lucide-react";
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
-import { distributionServiceCatalog, normalizeOnlineServiceType, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
+import { distributionServiceCatalog, normalizeOnlineServiceType, normalizeServiceProductFormat, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
 import { MINIMUM_FLYER_QUANTITY } from "@/lib/constants";
 
 type LatLng = { lat: number; lng: number };
@@ -278,12 +278,6 @@ const ORDER_DRAFT_KEY = "flyero:order-planner:draft:v2";
 const PUBLIC_ORDER_DRAFT_KEY = "flyero:order-planner:public-draft:v3";
 const LEGACY_ORDER_DRAFT_KEY = "flyero:customer:new-order-draft";
 const MAXIMUM_FLYER_QUANTITY = 250_000;
-
-const productOptions = [
-  { value: "DIN Lang (99 × 210 mm)", label: "DIN Lang (99 × 210 mm)" },
-  { value: "A5 Flyer", label: "A5 Flyer" },
-  { value: "A6 Flyer", label: "A6 Flyer" },
-];
 
 const inquiryFormHref = "/downloads/flyero-anfrageformular.pdf";
 const inquiryMailHref = "mailto:hallo@flyero.org?subject=Flyerverteilung%20anfragen&body=Hallo%20FLYERO%2C%0A%0Aich%20m%C3%B6chte%20eine%20Flyerverteilung%20anfragen.%0A%0AFirma%3A%0AAnsprechpartner%3A%0ATelefon%3A%0AE-Mail%3A%0AVerteilgebiet%2FPLZ%2FOrt%3A%0AFlyeranzahl%3A%0AWunschzeitraum%3A%0ABemerkungen%3A";
@@ -601,15 +595,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [historyIndex, setHistoryIndex] = useState(0);
   const [flyerQuantity, setFlyerQuantity] = useState(MINIMUM_FLYER_QUANTITY);
   const [serviceType, setServiceType] = useState<OnlineServiceType>("FLYER_STANDARD");
+  const [productFormat, setProductFormat] = useState(() => serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
   const [weightInGrams, setWeightInGrams] = useState("");
   const [samplingDetails, setSamplingDetails] = useState({ size: "", packaging: "", fragile: false, personalHandover: false, storage: "" });
   const [warehouseOptions, setWarehouseOptions] = useState<CustomerWarehouse[]>([]);
   const [warehouseOptionsStatus, setWarehouseOptionsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
-  const productFormat = serviceType === "FLYER_STANDARD"
-    ? productOptions[0].value
-    : serviceCatalogItem(serviceType).formatLabel;
   const selectedService = serviceCatalogItem(serviceType);
   const numericWeightInGrams = weightInGrams ? Number(weightInGrams) : undefined;
   const effectiveWeightClass = numericWeightInGrams === undefined
@@ -1136,7 +1128,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }
       if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
       setFlyerSource("CUSTOMER_OWN");
-      if (draft.serviceType) setServiceType(normalizeOnlineServiceType(draft.serviceType));
+      const restoredServiceType = normalizeOnlineServiceType(draft.serviceType ?? "FLYER_STANDARD");
+      setServiceType(restoredServiceType);
+      setProductFormat(normalizeServiceProductFormat(restoredServiceType, draft.productFormat));
       if (draft.weightInGrams) setWeightInGrams(String(draft.weightInGrams));
       const restoredSamplingDetails = draft.samplingDetails ?? draft.productDetails;
       if (restoredSamplingDetails && typeof restoredSamplingDetails === "object") setSamplingDetails((current) => ({ ...current, ...restoredSamplingDetails }));
@@ -1211,7 +1205,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           if (draft.flyerQuantity) setFlyerQuantity(draft.flyerQuantity);
           setFlyerQuantityTouched(true);
           setFlyerSource("CUSTOMER_OWN");
-          if (draft.serviceType) setServiceType(normalizeOnlineServiceType(draft.serviceType));
+          const repeatedServiceType = normalizeOnlineServiceType(draft.serviceType ?? "FLYER_STANDARD");
+          setServiceType(repeatedServiceType);
+          setProductFormat(normalizeServiceProductFormat(repeatedServiceType, draft.productFormat));
           if (draft.weightInGrams) setWeightInGrams(String(draft.weightInGrams));
           const repeatedSamplingDetails = draft.samplingDetails ?? draft.productDetails;
           if (repeatedSamplingDetails && typeof repeatedSamplingDetails === "object") setSamplingDetails((current) => ({ ...current, ...repeatedSamplingDetails }));
@@ -2481,7 +2477,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
                 type="button"
                 className={serviceType === service.serviceType ? "serviceChoice isSelected" : "serviceChoice"}
                 aria-pressed={serviceType === service.serviceType}
-                onClick={() => setServiceType(service.serviceType)}
+                onClick={() => {
+                  setServiceType(service.serviceType);
+                  setProductFormat(normalizeServiceProductFormat(service.serviceType));
+                }}
               >
                 <span className="serviceChoiceMarker" aria-hidden="true" />
                 <span>
@@ -2492,6 +2491,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             ))}
           </div>
           <p className="orderReviewNotice">Du sendest deine fertigen Materialien nach der Buchung an das ausgewählte Lager. Den Druck selbst übernimmt FLYERO in diesem Online-Ablauf nicht.</p>
+          <label className="selectLine">
+            <span>Format</span>
+            <select data-testid="order-product-format" value={productFormat} onChange={(event) => setProductFormat(normalizeServiceProductFormat(serviceType, event.target.value))}>
+              {selectedService.formatOptions.map((format) => <option key={format} value={format}>{format}</option>)}
+            </select>
+            <small>Wähle das Format, das du bereits gedruckt an das Lager sendest.</small>
+          </label>
           <label className="selectLine">
             <span>Ungefähres Einzelgewicht</span>
             <input type="number" min="1" max="10000" inputMode="numeric" value={weightInGrams} onChange={(event) => setWeightInGrams(event.target.value)} placeholder="z. B. 35" />

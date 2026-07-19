@@ -13,7 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderCreateSchema } from "@/lib/validators";
 import { warehouseSourceWhere } from "@/lib/warehouse";
-import { serviceCatalogLabel } from "@/lib/serviceCatalog";
+import { normalizeServiceProductFormat, serviceCatalogLabel } from "@/lib/serviceCatalog";
 import { weightClassFromGrams } from "@/lib/servicePricing";
 import { buildServerAreaCalculationSnapshot } from "@/lib/orderAreaSnapshot";
 
@@ -70,7 +70,10 @@ export async function POST(request: NextRequest) {
       return errorResponse("Kundenprofil wurde nicht gefunden.", 404);
     }
 
-    const data = parsed.data;
+    const data = {
+      ...parsed.data,
+      productFormat: normalizeServiceProductFormat(parsed.data.serviceType, parsed.data.productFormat),
+    };
     if (data.flyerSource === "PRINT_SERVICE") {
       return Response.json({
         ok: false,

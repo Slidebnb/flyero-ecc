@@ -5,6 +5,7 @@ import {
   WEEKDAYS,
   WORKING_TIMES,
 } from "@/lib/constants";
+import { normalizeServiceProductFormat } from "@/lib/serviceCatalog";
 
 export const passwordSchema = z
   .string()
@@ -255,6 +256,10 @@ export const orderCreateSchema = z
   .refine((data) => (data.latitude === undefined) === (data.longitude === undefined), {
     message: "Standortkoordinaten mÃ¼ssen vollstÃ¤ndig Ã¼bermittelt werden.",
     path: ["latitude"],
+  })
+  .refine((data) => data.productFormat?.replace(" x ", " × ") === normalizeServiceProductFormat(data.serviceType, data.productFormat), {
+    message: "Bitte wähle ein passendes Format für das ausgewählte Werbemittel.",
+    path: ["productFormat"],
   });
 
 export const orderUpdateSchema = orderCreateSchema.extend({
