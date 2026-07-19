@@ -15,6 +15,7 @@ import { orderCreateSchema } from "@/lib/validators";
 import { warehouseSourceWhere } from "@/lib/warehouse";
 import { serviceCatalogLabel } from "@/lib/serviceCatalog";
 import { weightClassFromGrams } from "@/lib/servicePricing";
+import { buildServerAreaCalculationSnapshot } from "@/lib/orderAreaSnapshot";
 
 export async function GET() {
   try {
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       productFormat: data.productFormat,
       weightClass: data.weightClass,
       weightInGrams: data.weightInGrams,
-      areaDifficulty: data.areaDifficulty,
+      areaDifficulty: data.clientDifficultyHint ?? data.areaDifficulty,
       printDataStatus: data.printDataStatus,
       preferredStartDate: data.preferredStartDate,
       preferredEndDate: data.preferredEndDate,
@@ -133,19 +134,13 @@ export async function POST(request: NextRequest) {
     const serverCoverageAreaSqm = intelligence.metrics.coverageAreaSqm ?? areaSelection?.totalAreaSqm ?? null;
     const serverHouseholds = intelligence.metrics.households ?? null;
     const serverDistanceMeters = intelligence.metrics.routeDistanceMeters ?? null;
-    const serverAreaSnapshot = {
-      ...(data.areaCalculationSnapshot && typeof data.areaCalculationSnapshot === "object" && !Array.isArray(data.areaCalculationSnapshot)
-        ? data.areaCalculationSnapshot as Record<string, unknown>
-        : {}),
-      ...(intelligence.metrics ?? {}),
-      quote: intelligence.metrics.quote,
-      planningInput: intelligence.metrics.quote?.input ?? null,
-      quoteFingerprint: intelligence.metrics.fingerprint,
-      polygonHash: intelligence.metrics.polygonHash,
-      segments: intelligence.metrics.segments ?? areaSelection?.segments ?? [],
-      calculationVersion: intelligence.metrics.calculationVersion ?? "order-area-v2-multi-segment",
-    };
+    const serverAreaDifficulty = intelligence.metrics.areaDifficulty ?? "NORMAL";
+    const serverAreaSnapshot = buildServerAreaCalculationSnapshot({
+      clientSnapshot: data.areaCalculationSnapshot,
+      metrics: intelligence.metrics,
+    });
     const requiresManualReview = Boolean(intelligence.metrics.needsManualReview);
+    const samplingRequiresManualReview = data.serviceType === "PRODUCT_SAMPLING";
     let distributionAreaId = areaSelection ? null : data.distributionAreaId ?? null;
 
     if (!distributionAreaId) {
@@ -176,13 +171,21 @@ export async function POST(request: NextRequest) {
       flyerQuantity: data.flyerQuantity,
       weightClass: weightClassFromGrams(data.weightInGrams),
       weightInGrams: data.weightInGrams,
-      areaDifficulty: data.areaDifficulty,
+      areaDifficulty: serverAreaDifficulty,
     });
-    if (data.completionPath === "direct_payment" && !price.snapshot.checkoutAllowed) {
+    if (data.completionPath === "direct_payment" && (requiresManualReview || samplingRequiresManualReview || !price.snapshot.checkoutAllowed)) {
       return Response.json({
         ok: false,
-        code: "CUSTOM_WEIGHT_MANUAL_REVIEW",
-        error: "Dieses Gewicht benötigt ein individuelles Angebot. Bitte sende uns zuerst eine unverbindliche Anfrage.",
+        code: requiresManualReview
+          ? "AREA_MANUAL_REVIEW_REQUIRED"
+          : samplingRequiresManualReview
+            ? "SAMPLING_MANUAL_REVIEW"
+            : "CUSTOM_WEIGHT_MANUAL_REVIEW",
+        error: requiresManualReview
+          ? "Gebiet und Zustellbarkeit müssen vor der Buchung noch durch FLYERO geprüft werden. Sende bitte zuerst eine unverbindliche Anfrage."
+          : samplingRequiresManualReview
+            ? "Produktproben prüfen wir wegen Gewicht, Verpackung, Lagerung und Übergabe vorab. Bitte sende ein individuelles Sampling-Angebot."
+          : "Dieses Gewicht benötigt ein individuelles Angebot. Bitte sende uns zuerst eine unverbindliche Anfrage.",
       }, { status: 422 });
     }
     const status: OrderStatus = data.completionPath === "direct_payment"
@@ -214,7 +217,7 @@ export async function POST(request: NextRequest) {
             serviceType: data.serviceType,
             weightClass: weightClassFromGrams(data.weightInGrams),
             weightInGrams: data.weightInGrams ?? null,
-            areaDifficulty: data.areaDifficulty,
+            areaDifficulty: serverAreaDifficulty,
             city: orderCity,
             postalCode: orderPostalCode,
             targetAddress: {

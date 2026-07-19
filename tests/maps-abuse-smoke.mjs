@@ -12,16 +12,10 @@ const sharedBaseUrl = process.env.MAPS_ABUSE_BASE_URL || "";
 let baseUrl = sharedBaseUrl || "http://localhost:3000";
 const mapIp = process.env.MAPS_ABUSE_IP || `198.51.100.${(Date.now() % 200) + 20}`;
 const authIp = `198.51.100.${(Date.now() % 200) + 220}`;
-const bucketId = createHash("sha256").update(`flyero-public-rate-limit:maps-autocomplete:${mapIp}`).digest("hex");
+const bucketId = createHash("sha256").update(`flyero-public-rate-limit:public-planner-autocomplete:ip:${mapIp}`).digest("hex");
 const authIpBucketId = createHash("sha256").update(`flyero-auth-rate-limit:login:ip:${authIp}`).digest("hex");
 const authAccountBucketId = createHash("sha256").update("flyero-auth-rate-limit:login:account:kunde.immobilien@example.com").digest("hex");
 let server = null;
-
-function cookieHeaderFrom(response) {
-  const setCookie = response.headers.get("set-cookie");
-  if (!setCookie) return "";
-  return setCookie.split(/,(?=[^;,]+=)/).map((item) => item.split(";")[0]).join("; ");
-}
 
 const [protection, autocomplete, geocode, intelligence] = await Promise.all([
   readFile("src/lib/publicAbuseProtection.ts", "utf8"),
@@ -34,10 +28,16 @@ for (const scope of ["maps-autocomplete", "maps-geocode", "maps-intelligence"]) 
 assert.match(protection, /PUBLIC_MAPS_AUTOCOMPLETE/);
 assert.match(protection, /PUBLIC_MAPS_GEOCODE/);
 assert.match(protection, /PUBLIC_MAPS_INTELLIGENCE/);
-assert.match(autocomplete, /enforcePublicRateLimit\(request, "maps-autocomplete"\)/);
-assert.match(geocode, /enforcePublicRateLimit\(request, "maps-geocode"\)/);
-assert.match(intelligence, /enforcePublicRateLimit\(request, "maps-intelligence"\)/);
-for (const route of [autocomplete, geocode, intelligence]) assert.match(route, /publicRateLimitResponse/);
+for (const [route, publicScope, customerScope] of [
+  [autocomplete, "maps-autocomplete", "customer-maps-autocomplete"],
+  [geocode, "maps-geocode", "customer-maps-geocode"],
+  [intelligence, "maps-intelligence", "customer-maps-intelligence"],
+]) {
+  assert.match(route, new RegExp(`"${publicScope}"`));
+  assert.match(route, new RegExp(`"${customerScope}"`));
+  assert.match(route, /publicRateLimitResponse/);
+  assert.match(route, /customerRateLimitResponse/);
+}
 
 async function startServer() {
   for (const candidate of [baseUrl, `http://localhost:${port}`]) {
@@ -85,12 +85,11 @@ try {
     body: JSON.stringify({ email: "kunde.immobilien@example.com", password: "DemoPasswort123!" }),
   });
   assert.equal(login.status, 200, `Kundenlogin fuer Maps-Smoke fehlgeschlagen: ${login.status}`);
-  const cookie = cookieHeaderFrom(login);
 
   const responses = [];
   for (let attempt = 0; attempt < 61; attempt += 1) {
-    const response = await fetch(`${baseUrl}/api/maps/autocomplete?q=`, {
-      headers: { cookie, "x-forwarded-for": mapIp },
+    const response = await fetch(`${baseUrl}/api/public/planner/autocomplete?q=`, {
+      headers: { "x-forwarded-for": mapIp },
     });
     responses.push(response.status);
   }

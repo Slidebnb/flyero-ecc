@@ -2,7 +2,7 @@ import { UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { requireTenantSession } from "@/lib/tenant";
 import { getOrderIntelligence } from "@/lib/smartMaps";
-import { enforcePublicRateLimit, publicRateLimitResponse } from "@/lib/publicAbuseProtection";
+import { customerRateLimitResponse, enforcePublicRateLimit, publicRateLimitResponse } from "@/lib/publicAbuseProtection";
 import { routeErrorResponse } from "@/lib/request";
 
 function numberParam(value: string | null) {
@@ -28,8 +28,13 @@ function boundedCoordinate(value: string | null, min: number, max: number) {
 export async function GET(request: Request) {
   try {
     const baseSession = await requireRole([UserRole.CUSTOMER, UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER]);
-    const abuseDecision = await enforcePublicRateLimit(request, "maps-intelligence");
-    if (!abuseDecision.allowed) return publicRateLimitResponse(abuseDecision);
+    const customer = baseSession.role === UserRole.CUSTOMER;
+    const abuseDecision = await enforcePublicRateLimit(
+      request,
+      customer ? "customer-maps-intelligence" : "maps-intelligence",
+      customer ? { tenantId: baseSession.tenantId ?? "", userId: baseSession.id } : undefined,
+    );
+    if (!abuseDecision.allowed) return customer ? customerRateLimitResponse(abuseDecision) : publicRateLimitResponse(abuseDecision);
     const session = baseSession.role === UserRole.CUSTOMER ? await requireTenantSession() : baseSession;
     const params = new URL(request.url).searchParams;
     const data = await getOrderIntelligence({
@@ -46,6 +51,7 @@ export async function GET(request: Request) {
       longitude: boundedCoordinate(params.get("longitude"), -180, 180),
       distributionAreaId: params.get("distributionAreaId"),
       flyerQuantity: numberParam(params.get("flyerQuantity")),
+      targetAreaGeoJson: jsonParam(params.get("targetAreaGeoJson")),
       coverageAreaSqm: numberParam(params.get("coverageAreaSqm")),
       distanceMeters: numberParam(params.get("distanceMeters")),
       perimeterMeters: numberParam(params.get("perimeterMeters")),

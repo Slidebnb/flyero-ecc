@@ -531,6 +531,41 @@ export async function getActivePricingRule(
   });
 }
 
+type PricingRuleWrite = {
+  minQuantity: number;
+  maxQuantity: number | null;
+  basePrice: Prisma.Decimal;
+  pricePerUnit: Prisma.Decimal;
+  minimumNetPrice: Prisma.Decimal;
+  isActive: boolean;
+  pricingVersion: string;
+  configurationVersion: string;
+  validFrom: Date | null;
+  validTo: Date | null;
+  notes: string | null;
+};
+
+export async function mirrorLegacyFlyerRule(
+  tx: Prisma.TransactionClient,
+  previous: { minQuantity: number; maxQuantity: number | null },
+  next: PricingRuleWrite,
+) {
+  const canonical = await tx.pricingRule.findFirst({
+    where: {
+      serviceType: ServiceType.FLYER_STANDARD,
+      minQuantity: previous.minQuantity,
+      maxQuantity: previous.maxQuantity,
+    },
+    select: { id: true },
+  });
+  const data = { ...next, serviceType: ServiceType.FLYER_STANDARD };
+  if (canonical) {
+    await tx.pricingRule.update({ where: { id: canonical.id }, data });
+  } else {
+    await tx.pricingRule.create({ data });
+  }
+}
+
 export async function getActivePricingRules(serviceType: ServiceType): Promise<PricingRuleLike[]> {
   await ensureDefaultServicePricingRules();
   return prisma.pricingRule.findMany({

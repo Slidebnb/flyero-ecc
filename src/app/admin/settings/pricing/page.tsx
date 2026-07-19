@@ -5,7 +5,7 @@ import { createAuditLog } from "@/lib/audit";
 import { notifyAdmins } from "@/lib/notifications";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { syncOpenOrderPrices, validatePricingRuleChanges } from "@/lib/pricing";
+import { mirrorLegacyFlyerRule, syncOpenOrderPrices, validatePricingRuleChanges } from "@/lib/pricing";
 import { getPricingSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 import { serviceCatalogLabel } from "@/lib/serviceCatalog";
 import { PricingSimulationForm } from "./PricingSimulationForm";
@@ -15,7 +15,7 @@ async function savePricing(formData: FormData) {
   const session = await requirePermission(Permission.PRICING_MANAGE);
   const before = await getPricingSettings();
   const ids = formData.getAll("ruleId").map(String);
-  const existingRules = await prisma.pricingRule.findMany({ where: { id: { in: ids } }, select: { id: true, serviceType: true } });
+  const existingRules = await prisma.pricingRule.findMany({ where: { id: { in: ids } }, select: { id: true, serviceType: true, minQuantity: true, maxQuantity: true } });
   const serviceTypeById = new Map(existingRules.map((rule) => [rule.id, rule.serviceType]));
   const validationError = await validatePricingRuleChanges(ids.map((id) => ({
     id,
@@ -41,22 +41,30 @@ async function savePricing(formData: FormData) {
       }
     }
     for (const id of ids) {
+      const existing = existingRules.find((rule) => rule.id === id);
+      const data = {
+        minQuantity: Number(formData.get(`minQuantity-${id}`)),
+        maxQuantity: formData.get(`maxQuantity-${id}`) ? Number(formData.get(`maxQuantity-${id}`)) : null,
+        minimumNetPrice: new Prisma.Decimal(String(formData.get(`minimumNetPrice-${id}`) ?? "0")),
+        pricePerUnit: new Prisma.Decimal(String(formData.get(`pricePerUnit-${id}`) ?? "0")),
+        basePrice: new Prisma.Decimal(String(formData.get(`basePrice-${id}`) ?? "0")),
+        isActive: formData.get(`isActive-${id}`) === "on",
+        pricingVersion: String(formData.get(`pricingVersion-${id}`) ?? "service-pricing-v1"),
+        configurationVersion: String(formData.get(`configurationVersion-${id}`) ?? "pricing-config-v1"),
+        notes: String(formData.get(`notes-${id}`) ?? "") || null,
+        validFrom: formData.get(`validFrom-${id}`) ? new Date(String(formData.get(`validFrom-${id}`))) : null,
+        validTo: formData.get(`validTo-${id}`) ? new Date(String(formData.get(`validTo-${id}`))) : null,
+      };
       await tx.pricingRule.update({
         where: { id },
-        data: {
-          minQuantity: Number(formData.get(`minQuantity-${id}`)),
-          maxQuantity: formData.get(`maxQuantity-${id}`) ? Number(formData.get(`maxQuantity-${id}`)) : null,
-          minimumNetPrice: new Prisma.Decimal(String(formData.get(`minimumNetPrice-${id}`) ?? "0")),
-          pricePerUnit: new Prisma.Decimal(String(formData.get(`pricePerUnit-${id}`) ?? "0")),
-          basePrice: new Prisma.Decimal(String(formData.get(`basePrice-${id}`) ?? "0")),
-          isActive: formData.get(`isActive-${id}`) === "on",
-          pricingVersion: String(formData.get(`pricingVersion-${id}`) ?? "service-pricing-v1"),
-          configurationVersion: String(formData.get(`configurationVersion-${id}`) ?? "pricing-config-v1"),
-          notes: String(formData.get(`notes-${id}`) ?? "") || null,
-          validFrom: formData.get(`validFrom-${id}`) ? new Date(String(formData.get(`validFrom-${id}`))) : null,
-          validTo: formData.get(`validTo-${id}`) ? new Date(String(formData.get(`validTo-${id}`))) : null,
-        },
+        data,
       });
+      if (existing?.serviceType === ServiceType.FLYER_DISTRIBUTION) {
+        await mirrorLegacyFlyerRule(tx, {
+          minQuantity: existing.minQuantity,
+          maxQuantity: existing.maxQuantity,
+        }, data);
+      }
     }
   });
   await syncOpenOrderPrices();

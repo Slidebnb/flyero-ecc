@@ -343,6 +343,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
   };
   let payment = existing;
   let createdPayment = false;
+  let reopenedPayment = false;
   if (!payment) {
     try {
       payment = await prisma.payment.create({
@@ -362,15 +363,34 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
       createdPayment = true;
     } catch (error) {
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
-      payment = (await prisma.payment.findFirst({
-        where: { orderId: order.id, status: { in: ["CREATED", "CHECKOUT_CREATED", "PENDING"] } },
+      const reusablePayment = await prisma.payment.findFirst({
+        where: { orderId: order.id, status: { in: ["FAILED", "CANCELLED"] } },
         orderBy: { createdAt: "desc" },
-      })) ?? undefined;
-      if (!payment) throw error;
+      });
+      if (!reusablePayment) throw error;
+      payment = await prisma.payment.update({
+        where: { id: reusablePayment.id },
+        data: {
+          status: "CREATED",
+          amount,
+          description,
+          metadata,
+          checkoutUrl: null,
+          checkoutKey: order.id,
+          checkoutClaimToken: null,
+          checkoutClaimedAt: null,
+          stripeCheckoutSessionId: null,
+          stripePaymentIntentId: null,
+          failedAt: null,
+          cancelledAt: null,
+        },
+      });
+      reopenedPayment = true;
+      await addPaymentHistory({ paymentId: payment.id, fromStatus: reusablePayment.status, toStatus: "CREATED", reason: "checkout_retry" });
     }
   }
   if (createdPayment) await addPaymentHistory({ paymentId: payment.id, toStatus: "CREATED", reason: "checkout_requested" });
-  if (existing) {
+  if (existing && !reopenedPayment) {
     await prisma.payment.update({
       where: { id: existing.id },
       data: { amount, description, metadata },
@@ -399,9 +419,9 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
   try {
     session = isMockStripe()
       ? {
-          id: `cs_test_mock_${payment.id}`,
-          url: `${appUrl()}/mock-stripe/checkout/${payment.id}`,
-          payment_intent: `pi_mock_${payment.id}`,
+          id: `cs_test_mock_${payment.id}_${randomUUID()}`,
+          url: `${appUrl()}/mock-stripe/checkout/${payment.id}?session=${randomUUID()}`,
+          payment_intent: `pi_mock_${payment.id}_${randomUUID()}`,
         }
       : await stripeClient().checkout.sessions.create({
           mode: "payment",

@@ -131,6 +131,7 @@ type Intelligence = {
       distributionAreaId: string | null;
     }>;
     needsManualReview?: boolean;
+    manualReviewRequired?: boolean;
   };
   warehouse?: { id: string; name: string; code: string; city: string; reason: string } | null;
   combinations?: Array<{ key: string; orders: unknown[]; savedDistanceMeters: number; savedMinutes: number; savedCostEstimate: string }>;
@@ -189,6 +190,13 @@ type OrderDraft = {
   productFormat?: string;
   weightInGrams?: number;
   productDetails?: Record<string, unknown>;
+  samplingDetails?: Record<string, unknown>;
+  effectiveWeightClass?: string;
+  quoteFingerprint?: string;
+  pricingVersion?: string;
+  pricingRuleSignature?: string;
+  polygonHash?: string;
+  intelligenceStatus?: string;
   flyerSource?: string;
   printDataStatus?: string;
   targetGroup?: string;
@@ -555,7 +563,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const drawingPreviewRef = useRef<GooglePolygon | null>(null);
   const drawingPointsRef = useRef<LatLng[]>([]);
   const finishDrawingRef = useRef<() => void>(() => undefined);
-  const areaSelectionModeRef = useRef<"boundary" | "draw">("boundary");
+  const areaSelectionModeRef = useRef<"boundary" | "draw">("draw");
   const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
   const boundaryLayerRefs = useRef(new Map<string, GoogleFeatureLayer>());
   const boundaryLayerListenersRef = useRef<GoogleEventListener[]>([]);
@@ -569,6 +577,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const trackedPublicStepsRef = useRef(new Set<number>());
   const [isPending, startTransition] = useTransition();
   const [mapsReady, setMapsReady] = useState(false);
+  const [mapsLoadStatus, setMapsLoadStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [draftRestored, setDraftRestored] = useState(false);
   const [activeStep, setActiveStep] = useState(1);
   const [query, setQuery] = useState("");
@@ -618,7 +627,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [contactPhone, setContactPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [mapMode, setMapMode] = useState<"map" | "satellite">("map");
-  const [areaSelectionMode, setAreaSelectionMode] = useState<"boundary" | "draw">("boundary");
+  // Drawing is the universal path. Boundary selection is an optional Google
+  // vector-map enhancement and must never block a customer without a Map ID.
+  const [areaSelectionMode, setAreaSelectionMode] = useState<"boundary" | "draw">("draw");
+  const [boundaryLayerStatus, setBoundaryLayerStatus] = useState<"unknown" | "available" | "unavailable">("unknown");
   const [selectedBoundaryPlaceIds, setSelectedBoundaryPlaceIds] = useState<string[]>([]);
   const [mapNotice, setMapNotice] = useState("");
   const [usedAutocomplete, setUsedAutocomplete] = useState(false);
@@ -637,6 +649,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
   const mapsBoundaryMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "";
   const mapsBoundaryConfigured = Boolean(mapsBoundaryMapId);
+
+  useEffect(() => {
+    if (!mapsBoundaryConfigured) {
+      setBoundaryLayerStatus("unavailable");
+      setAreaSelectionMode("draw");
+    }
+  }, [mapsBoundaryConfigured]);
 
   useEffect(() => {
     areaSegmentsRef.current = areaSegments;
@@ -705,6 +724,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonAreaSqm(segment.points), 0),
     [areaSegmentsPayload],
   );
+  // Show the local drawing preview immediately. Server-backed pricing and
+  // order data continue to use the committed polygon in areaSegmentsPayload.
+  const previewCoverageAreaSqm = drawingPoints.length >= 3
+    ? polygonAreaSqm(drawingPoints)
+    : coverageAreaSqm;
   const perimeterMeters = useMemo(
     () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segment.points), 0),
     [areaSegmentsPayload],
@@ -725,13 +749,22 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const netPrice = intelligence?.metrics.netPrice ?? "0";
   const vatAmount = intelligence?.metrics.vatAmount ?? "0";
   const grossPrice = intelligence?.metrics.grossPrice ?? "0";
-  const pricePreviewText = Number(netPrice) > 0
+  const pricePreviewTextLegacy = Number(netPrice) > 0
     ? formatCurrency(netPrice)
     : coverageAreaSqm > 0 && intelligenceStatus === "error"
       ? "Preis wird von FLYERO geprüft"
       : coverageAreaSqm > 0
         ? "Preis wird aktualisiert"
         : "Gebiet auf der Karte auswählen";
+  const priceRequiresReview = Boolean(intelligence?.metrics.needsManualReview || intelligence?.metrics.manualReviewRequired);
+  const priceReady = intelligenceStatus === "live" && !priceRequiresReview && Number(netPrice) > 0;
+  const pricePreviewText = coverageAreaSqm <= 0
+    ? "Gebiet auswählen"
+    : intelligenceStatus === "error" || priceRequiresReview
+      ? "Preis wird von FLYERO geprüft"
+      : priceReady
+        ? formatCurrency(netPrice)
+        : pricePreviewTextLegacy;
   const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
   const recommendedFlyerQuantity = intelligence?.metrics.recommendedFlyerQuantity ?? MINIMUM_FLYER_QUANTITY;
   const deliverabilityScore = intelligence?.metrics.score ?? null;
@@ -755,7 +788,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     productFormat,
     weightClass: effectiveWeightClass,
     weightInGrams: numericWeightInGrams === undefined ? "" : String(numericWeightInGrams),
-    areaDifficulty: "NORMAL",
+    clientDifficultyHint: "NORMAL",
     printDataStatus,
     preferredStartDate: startDate,
     preferredEndDate: endDate,
@@ -866,7 +899,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   ]);
 
   const warehouseSuggestionLabel = coverageAreaSqm > 0
-    ? areaStats.warehouseSuggestion ?? "Wird von FLYERO geprüft"
+    ? areaStats.warehouseSuggestion ?? (intelligenceStatus === "live" ? "Wird von FLYERO geprüft" : "Wird zugeordnet")
     : "Gebiet auswählen";
 
   const findAreaForLocation = useCallback((result: LocationResult) => {
@@ -1105,7 +1138,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setFlyerSource("CUSTOMER_OWN");
       if (draft.serviceType) setServiceType(normalizeOnlineServiceType(draft.serviceType));
       if (draft.weightInGrams) setWeightInGrams(String(draft.weightInGrams));
-      if (draft.productDetails && typeof draft.productDetails === "object") setSamplingDetails((current) => ({ ...current, ...draft.productDetails }));
+      const restoredSamplingDetails = draft.samplingDetails ?? draft.productDetails;
+      if (restoredSamplingDetails && typeof restoredSamplingDetails === "object") setSamplingDetails((current) => ({ ...current, ...restoredSamplingDetails }));
       if (draft.printDataStatus) setPrintDataStatus(draft.printDataStatus);
       if (draft.targetGroup) setTargetGroup(draft.targetGroup);
       if (draft.distributionType) setDistributionType(draft.distributionType);
@@ -1179,7 +1213,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           setFlyerSource("CUSTOMER_OWN");
           if (draft.serviceType) setServiceType(normalizeOnlineServiceType(draft.serviceType));
           if (draft.weightInGrams) setWeightInGrams(String(draft.weightInGrams));
-          if (draft.productDetails && typeof draft.productDetails === "object") setSamplingDetails((current) => ({ ...current, ...draft.productDetails }));
+          const repeatedSamplingDetails = draft.samplingDetails ?? draft.productDetails;
+          if (repeatedSamplingDetails && typeof repeatedSamplingDetails === "object") setSamplingDetails((current) => ({ ...current, ...repeatedSamplingDetails }));
           if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
           const repeatedPrintDataStatus = draft.printDataStatus ?? "UPLOAD_LATER";
           setRepeatPrintChoice("pending");
@@ -1234,6 +1269,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       serviceType,
       weightInGrams: numericWeightInGrams,
       productDetails,
+      samplingDetails: serviceType === "PRODUCT_SAMPLING" ? samplingDetails : undefined,
       flyerQuantityTouched,
       productFormat,
       flyerSource,
@@ -1269,6 +1305,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     flyerQuantity,
     numericWeightInGrams,
     productDetails,
+    samplingDetails,
     selectedWarehouseId,
     flyerSource,
     houseNumber,
@@ -1377,7 +1414,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setHistoryIndex(0);
         areaSegmentsRef.current = [];
         setAreaSegments([]);
-        setMapNotice("Ort gefunden. Klicke jetzt eine markierte Grenze an oder zeichne dein genaues Verteilgebiet auf der Karte.");
+        setMapNotice("Ort gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte. Wenn eine markierte Fläche verfügbar ist, kannst du sie zusätzlich auswählen.");
       }
     }
     setPendingLocation(null);
@@ -1569,7 +1606,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   useEffect(() => {
     let isMounted = true;
     loadGoogleMaps().then((ready) => {
-      if (isMounted) setMapsReady(ready);
+      if (isMounted) {
+        setMapsReady(ready);
+        setMapsLoadStatus(ready ? "ready" : "unavailable");
+      }
     });
     return () => {
       isMounted = false;
@@ -1762,14 +1802,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }, [activeSegmentId, areaSelectionMode, center, city, mapMode, mapsBoundaryMapId, mapsReady, postalCode, pushPolygon, targetAreaName]);
 
   useEffect(() => {
-    if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps?.FeatureType) return;
+    if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps) return;
     const maps = window.google.maps;
     const installBoundaryLayers = () => {
       if (!mapRef.current?.getFeatureLayer) return;
-      const featureTypes = [
-        maps.FeatureType?.POSTAL_CODE ?? "POSTAL_CODE",
-        maps.FeatureType?.LOCALITY ?? "LOCALITY",
-      ];
+      // Google documents these string feature types as the stable API surface.
+      // FeatureType is not guaranteed to exist as a runtime namespace.
+      const featureTypes = ["POSTAL_CODE", "LOCALITY"];
+      let availableLayerCount = 0;
       for (const featureType of featureTypes) {
         if (boundaryLayerRefs.current.has(featureType)) continue;
         let layer: GoogleFeatureLayer;
@@ -1779,6 +1819,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           continue;
         }
         if (!layer || layer.isAvailable === false) continue;
+        availableLayerCount += 1;
         layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current);
         boundaryLayerRefs.current.set(featureType, layer);
         const listener = layer.addListener?.("click", (event) => {
@@ -1786,6 +1827,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           if (placeId) selectBoundaryAreaRef.current(placeId);
         });
         if (listener) boundaryLayerListenersRef.current.push(listener);
+      }
+      if (availableLayerCount > 0 || boundaryLayerRefs.current.size > 0) {
+        setBoundaryLayerStatus("available");
+      } else {
+        setBoundaryLayerStatus("unavailable");
+        setAreaSelectionMode("draw");
+        setMapNotice("Die Auswahl von PLZ- und Stadtgrenzen ist für diese Karte gerade nicht verfügbar. Zeichne dein Gebiet direkt auf der Karte.");
       }
     };
 
@@ -1878,12 +1926,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }, [activeSegmentId, areaSegmentsPayload, mapsReady]);
 
   useEffect(() => {
-    if (!mapsReady || !mapRef.current || !polygonRef.current || !window.google?.maps) return;
+    if (!mapsReady || !mapRef.current || !window.google?.maps) return;
     mapRef.current.setMapTypeId(mapMode === "satellite" ? "satellite" : "roadmap");
     mapRef.current.setCenter(center);
     mapRef.current.setZoom(street ? 16 : 14);
-    polygonRef.current.setPath(polygon);
-    if (polygon.length === 0) return;
+    polygonRef.current?.setPath(polygon);
+    if (polygon.length < 3 || areaSegmentsPayload.length === 0) return;
     const bounds = new window.google.maps.LatLngBounds();
     areaSegmentsPayload.forEach((segment) => segment.points.forEach((point) => bounds.extend(point)));
     mapRef.current.fitBounds(bounds);
@@ -1955,7 +2003,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   function closeSuggestionsSoon() {
     blurTimerRef.current = setTimeout(() => {
       setShowSuggestions(false);
-      if (query.trim()) geocodeAddress();
     }, 140);
   }
 
@@ -1994,7 +2041,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       );
       return;
     }
-    setMapNotice("Klicke auf der Karte die Eckpunkte deines Gebiets. Zum Abschließen den ersten Punkt wieder anklicken.");
     setMapNotice("Klicke auf der Karte mindestens drei Eckpunkte. Danach kannst du das Gebiet abschließen.");
   }
 
@@ -2028,6 +2074,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         flyerQuantityTouched,
         serviceType,
         productFormat,
+        weightInGrams: numericWeightInGrams,
+        effectiveWeightClass,
+        productDetails,
+        samplingDetails: serviceType === "PRODUCT_SAMPLING" ? samplingDetails : undefined,
         flyerSource,
         printDataStatus,
         targetGroup,
@@ -2035,6 +2085,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         startDate,
         endDate,
         flexibleScheduling,
+        warehouseId: selectedWarehouseId || undefined,
+        contactPerson,
+        contactPhone,
+        notes,
+        quoteFingerprint: intelligence?.metrics.fingerprint,
+        pricingVersion: intelligence?.metrics.pricingVersion,
+        pricingRuleSignature: intelligence?.metrics.pricingRuleSignature,
+        polygonHash: intelligence?.metrics.polygonHash,
+        intelligenceStatus,
       };
       window.localStorage.setItem(ORDER_DRAFT_KEY, JSON.stringify(handoffDraft));
     }
@@ -2105,7 +2164,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       productFormat,
       weightClass: effectiveWeightClass,
       weightInGrams: numericWeightInGrams,
-      areaDifficulty: "NORMAL",
+      clientDifficultyHint: "NORMAL",
       productDetails,
       printDataStatus,
       completionPath,
@@ -2120,6 +2179,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }
 
   async function finishOrder(completionPath: "direct_payment" | "inquiry") {
+    if (completionPath === "direct_payment" && serviceType === "PRODUCT_SAMPLING") {
+      setFinishStatus("Produktproben prüfen wir vorab. Bitte sende ein individuelles Sampling-Angebot.");
+      return;
+    }
     if (flyerQuantity < MINIMUM_FLYER_QUANTITY) {
       setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
       setFlyerQuantityTouched(true);
@@ -2266,7 +2329,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         <section className="orderPanelBlock inlineStepBlock" data-testid="order-completion-step">
           <p className="orderStepHint">Fast geschafft. Prüfe deine Angaben und entscheide, wie du fortfahren möchtest.</p>
           <div className="orderFinishChoices">
-            {flyerSource === "CUSTOMER_OWN" && effectiveWeightClass !== "CUSTOM" ? (
+            {flyerSource === "CUSTOMER_OWN" && effectiveWeightClass !== "CUSTOM" && serviceType !== "PRODUCT_SAMPLING" ? (
               <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
                 Jetzt buchen und bezahlen
                 <small>Auftrag anlegen und sicher zur Zahlung weitergehen.</small>
@@ -2324,7 +2387,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           </label>
           <div className="selectedLocationBar">
             <strong>{city ? `${postalCode} ${city}` : query ? query : "Noch kein Gebiet gewählt"}</strong>
-            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : query && !city ? "Ort wird gesucht ..." : "Die Grenzen kannst du danach direkt auf der Karte anpassen."}</span>
+            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : query && !city ? "Ort wird gesucht ..." : "Du kannst die Fläche danach direkt auf der Karte anpassen."}</span>
           </div>
           {pendingLocation ? (
             <div className="replaceAreaNotice" role="alert">
@@ -2347,19 +2410,21 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </div>
           ) : null}
           <div className="modeTabs areaSelectionTabs">
-            <button
-              type="button"
-              className={areaSelectionMode === "boundary" && mapsBoundaryConfigured ? "selected" : ""}
-              disabled={!mapsBoundaryConfigured}
-              onClick={() => {
-                setAreaSelectionMode("boundary");
-                setMapNotice("Klicke auf eine markierte PLZ- oder Stadtfläche, um sie auszuwählen.");
-              }}
-            >
-              Gebiet auswählen
-            </button>
-            <button data-testid="order-draw-area" type="button" className={areaSelectionMode === "draw" || !mapsBoundaryConfigured ? "selected" : ""} onClick={startDrawingArea}>
-              Eigenes Gebiet zeichnen
+            {boundaryLayerStatus === "available" ? (
+              <button
+                data-testid="order-select-boundary"
+                type="button"
+                className={areaSelectionMode === "boundary" ? "selected" : ""}
+                onClick={() => {
+                  setAreaSelectionMode("boundary");
+                  setMapNotice("Wähle eine farbig markierte PLZ- oder Stadtfläche auf der Karte aus.");
+                }}
+              >
+                Markierte Fläche auswählen
+              </button>
+            ) : null}
+            <button data-testid="order-draw-area" type="button" className={areaSelectionMode === "draw" || boundaryLayerStatus !== "available" ? "selected" : ""} onClick={startDrawingArea}>
+              Gebiet auf der Karte zeichnen
             </button>
           </div>
           {areaSelectionMode === "draw" && drawingPoints.length >= 3 ? (
@@ -2368,14 +2433,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </button>
           ) : null}
           <small className="orderSegmentHint">
-            {mapsBoundaryConfigured
-              ? "Wähle eine markierte PLZ- oder Stadtfläche oder zeichne dein Gebiet selbst."
-              : "Du kannst dein Gebiet direkt zeichnen. Die Auswahl fertiger PLZ- und Stadtflächen wird nach der Kartenfreigabe aktiviert."}
+            {boundaryLayerStatus === "available"
+              ? "Wähle eine farbig markierte PLZ- oder Stadtfläche oder zeichne dein Gebiet selbst."
+              : "Zeichne dein Verteilgebiet direkt auf der Karte. Du kannst die Fläche jederzeit anpassen."}
           </small>
           <div className="savedAreaMini">
             <div>
               <span>Dein Verteilgebiet</span>
-              <strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>
+              <strong>{(previewCoverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>
               <small>{polygonSourceLabel()}</small>
             </div>
             <div className="miniPolygon" aria-hidden="true" />
@@ -2573,9 +2638,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
             <span><strong>{selectedService.label}</strong>Werbemittel</span>
             <span><strong>{formatNumber(flyerQuantity)}</strong>Stück</span>
-            <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
-            <span><strong>{intelligence ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
-            <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
+            <span data-testid="order-price-net"><strong>{priceReady ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
+            <span><strong>{priceReady ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
+            <span className="summaryTotal"><strong>{priceReady ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
             <span><strong>{selectedWarehouse?.name ?? "Bitte auswählen"}</strong>Empfangslager</span>
           </div>
           <p className="orderReviewNotice">Deine Flyer sind bereits gedruckt und werden nach der Buchung an das ausgewählte Empfangslager gesendet. FLYERO prüft Gebiet und Zustellbarkeit vor der Durchführung.</p>
@@ -2604,9 +2669,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
             <span><strong>{selectedService.label}</strong>Werbemittel</span>
             <span><strong>{formatNumber(flyerQuantity)}</strong>Stück</span>
-            <span data-testid="order-price-net"><strong>{intelligence ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
-            <span><strong>{intelligence ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
-            <span className="summaryTotal"><strong>{intelligence ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
+            <span data-testid="order-price-net"><strong>{priceReady ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
+            <span><strong>{priceReady ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
+            <span className="summaryTotal"><strong>{priceReady ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
             <span><strong>{warehouseSuggestionLabel}</strong>Nächstes Lager</span>
           </div>
           <p className="orderReviewNotice">Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist. Falls sich etwas ändert, melden wir uns.</p>
@@ -2637,8 +2702,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </button>
           ) : null}
           <button data-testid="order-finish-inquiry" type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
-            Unverbindlich anfragen
-            <small>Wir prüfen Gebiet, Druck und Preis und melden uns schnell.</small>
+            {serviceType === "PRODUCT_SAMPLING" ? "Individuelles Sampling-Angebot anfragen" : "Unverbindlich anfragen"}
+            <small>{serviceType === "PRODUCT_SAMPLING" ? "Gewicht, Verpackung, Lagerung und Übergabe werden vorab geprüft." : "Wir prüfen Gebiet, Druck und Preis und melden uns schnell."}</small>
           </button>
           <a href={inquiryFormHref} download>
             <Download aria-hidden="true" />
@@ -2699,7 +2764,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       <input type="hidden" name="productFormat" value={productFormat} />
       <input type="hidden" name="weightClass" value={effectiveWeightClass} />
       <input type="hidden" name="weightInGrams" value={numericWeightInGrams ?? ""} />
-      <input type="hidden" name="areaDifficulty" value="NORMAL" />
+      <input type="hidden" name="clientDifficultyHint" value="NORMAL" />
       <input type="hidden" name="productDetails" value={productDetails ? JSON.stringify(productDetails) : ""} />
       <input type="hidden" name="printDataStatus" value={printDataStatus} />
       <input type="hidden" name="preferredStartDate" value={startDate} />
@@ -2785,9 +2850,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         {!mapsReady ? <MiniMapFallback /> : null}
         {!mapsReady ? (
           <div className="mapConfigNotice" role="status">
-            <strong>{mapsBrowserKeyConfigured ? "Karte wird geladen" : "Karte gerade nicht verfügbar"}</strong>
+            <strong>{mapsLoadStatus === "loading" ? "Karte wird geladen" : "Karte gerade nicht verfügbar"}</strong>
             <span>
-              {mapsBrowserKeyConfigured
+              {mapsLoadStatus === "loading"
                 ? "Einen Moment bitte. Falls die Karte nicht erscheint, kannst du die Anfrage trotzdem senden."
                 : "Du kannst die Anfrage trotzdem senden. FLYERO bespricht das Gebiet anschließend persönlich mit dir."}
             </span>
@@ -2830,7 +2895,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             ) : null}
           </div>
           <dl>
-            <div><dt>Fläche</dt><dd>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
+            <div><dt>Fläche</dt><dd>{(previewCoverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
             <div><dt>Empfohlene Flyerzahl</dt><dd>{formatNumber(recommendedFlyerQuantity)} Flyer</dd></div>
             <div><dt>Preis netto zzgl. MwSt.</dt><dd>{pricePreviewText}</dd></div>
             <div><dt>Nächstes Lager</dt><dd>{warehouseSuggestionLabel}</dd></div>

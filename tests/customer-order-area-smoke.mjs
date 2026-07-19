@@ -126,6 +126,22 @@ const premiumPricingExamples = [
   [20000, "6700"],
 ];
 
+function squareGeoJson(sideDegrees) {
+  const west = 7.58;
+  const south = 50.35;
+  return {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Polygon",
+        coordinates: [[[west, south], [west + sideDegrees, south], [west + sideDegrees, south + sideDegrees], [west, south + sideDegrees], [west, south]]],
+      },
+    }],
+  };
+}
+
 const server = await ensureServer();
 try {
   await resetMapsRateLimitBucket();
@@ -150,7 +166,7 @@ try {
     "POSTAL_CODE",
     "LOCALITY",
     "Gebiet ausw\u00e4hlen",
-    "Eigenes Gebiet zeichnen",
+    "Gebiet auf der Karte zeichnen",
   ]);
   assert(!wizard.includes("Math.random"), "Wizard darf keine Zufallswerte fuer Gebietsuebersicht nutzen.");
   for (const forbidden of ["8.414", "8414", "1.249,50", "1249.50", "FeatureCollection</", "GeoJSON</"]) {
@@ -185,7 +201,7 @@ try {
 
   const areas = await prisma.distributionArea.findMany({
     where: { status: "ACTIVE", reusable: true, city: { in: ["Koblenz", "Bendorf", "Neuwied"] }, geoJson: { not: Prisma.DbNull } },
-    select: { city: true, postalCode: true, estimatedFlyers: true, coverageAreaSqm: true },
+    select: { city: true, postalCode: true, estimatedFlyers: true, coverageAreaSqm: true, geoJson: true },
     orderBy: [{ city: "asc" }, { coverageAreaSqm: "desc" }],
   });
   const areaByCity = new Map();
@@ -221,7 +237,8 @@ try {
     const area = areaByCity.get(city);
     const coverageAreaSqm = Number(area.coverageAreaSqm);
     const flyerQuantity = area.estimatedFlyers ?? 2500;
-    intelligence.push(await json(`/api/maps/order-intelligence?city=${encodeURIComponent(city)}&postalCode=${area.postalCode}&coverageAreaSqm=${coverageAreaSqm}&flyerQuantity=${flyerQuantity}`, { cookie: customerCookie }));
+    const targetAreaGeoJson = encodeURIComponent(JSON.stringify(area.geoJson));
+    intelligence.push(await json(`/api/maps/order-intelligence?city=${encodeURIComponent(city)}&postalCode=${area.postalCode}&targetAreaGeoJson=${targetAreaGeoJson}&coverageAreaSqm=${coverageAreaSqm}&flyerQuantity=${flyerQuantity}`, { cookie: customerCookie }));
   }
   const households = intelligence.map((item) => item.data.metrics.households);
   const prices = intelligence.map((item) => item.data.metrics.grossPrice);
@@ -249,15 +266,17 @@ try {
   const koblenz = areaByCity.get("Koblenz");
   const smallArea = Number(koblenz.coverageAreaSqm);
   const largeArea = Math.round(smallArea * 1.8);
-  const small = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&coverageAreaSqm=${smallArea}&flyerQuantity=${recommendedFlyers(Math.round(smallArea / 125))}`, { cookie: customerCookie });
-  const large = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&coverageAreaSqm=${largeArea}&flyerQuantity=${recommendedFlyers(Math.round(largeArea / 125))}`, { cookie: customerCookie });
+  const smallPolygon = encodeURIComponent(JSON.stringify(squareGeoJson(0.01)));
+  const largePolygon = encodeURIComponent(JSON.stringify(squareGeoJson(0.018)));
+  const small = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&targetAreaGeoJson=${smallPolygon}&coverageAreaSqm=${smallArea}&flyerQuantity=${recommendedFlyers(Math.round(smallArea / 125))}`, { cookie: customerCookie });
+  const large = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&targetAreaGeoJson=${largePolygon}&coverageAreaSqm=${largeArea}&flyerQuantity=${recommendedFlyers(Math.round(largeArea / 125))}`, { cookie: customerCookie });
   assert(large.data.metrics.households > small.data.metrics.households, "Manuelle Gebietsgroesse aendert Haushalte nicht.");
   assert(large.data.metrics.routeDistanceMeters > small.data.metrics.routeDistanceMeters, "Manuelle Gebietsgroesse aendert Laufstrecke nicht.");
   assert(Number(large.data.metrics.grossPrice) > Number(small.data.metrics.grossPrice), "Manuelle Gebietsgroesse aendert Preis nicht.");
 
   const pricingQuotes = new Map();
   for (const [flyerQuantity, expectedNet] of premiumPricingExamples) {
-    const quote = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&coverageAreaSqm=${smallArea}&flyerQuantity=${flyerQuantity}`, { cookie: customerCookie });
+    const quote = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&targetAreaGeoJson=${smallPolygon}&coverageAreaSqm=${smallArea}&flyerQuantity=${flyerQuantity}`, { cookie: customerCookie });
     assert(quote.data.metrics.netPrice === expectedNet, `${flyerQuantity} Flyer: erwartet ${expectedNet} netto, bekam ${quote.data.metrics.netPrice}`);
     pricingQuotes.set(flyerQuantity, quote.data.metrics.netPrice);
   }

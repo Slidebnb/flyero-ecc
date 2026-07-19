@@ -6,6 +6,7 @@ import { productionAreaWhere, productionOrderExperienceEventWhere, productionOrd
 import { calculateOrderPrice } from "@/lib/pricing";
 import { aggregateOrderAreaSegments, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
 import { buildAuthoritativePlanningQuote, buildPlanningInputFingerprint, planningGeometry } from "@/lib/planningQuote";
+import { deriveAreaDifficulty } from "@/lib/areaDifficulty";
 import { geocodeResultMatchesRequestedPostalCode, parseGeocodeQuery } from "@/lib/geocodeQuery";
 import { MINIMUM_FLYER_QUANTITY } from "@/lib/constants";
 
@@ -365,7 +366,11 @@ export async function getOrderIntelligence(input: {
   const primarySegment = areaSelection?.primarySegment ?? null;
   const effectiveCity = primarySegment?.city ?? input.city;
   const effectivePostalCode = primarySegment?.postalCode ?? input.postalCode;
-  const effectiveCoverageAreaSqm = planning.coverageAreaSqm ?? areaSelection?.totalAreaSqm ?? input.coverageAreaSqm;
+  // A client-supplied area number is only a preview. The server accepts area
+  // measurements when they can be derived from a submitted polygon/segment.
+  const effectiveCoverageAreaSqm = planning.segments.length
+    ? planning.coverageAreaSqm ?? areaSelection?.totalAreaSqm ?? null
+    : null;
   const areaFilters = [
     input.distributionAreaId ? { id: input.distributionAreaId } : null,
     effectiveCity ? { city: { equals: effectiveCity, mode: "insensitive" as const } } : null,
@@ -477,7 +482,7 @@ export async function getOrderIntelligence(input: {
     households,
     distributorCount: distributorNeed,
   });
-  const price = await calculateOrderPrice({
+  const initialPrice = await calculateOrderPrice({
     serviceType: input.serviceType ?? ServiceType.FLYER_DISTRIBUTION,
     flyerQuantity,
     weightClass: input.weightClass,
@@ -507,7 +512,7 @@ export async function getOrderIntelligence(input: {
     locationSource: input.locationSource,
     latitude: input.latitude,
     longitude: input.longitude,
-    pricingRuleSignature: price.snapshot.pricingRuleSignature,
+    pricingRuleSignature: initialPrice.snapshot.pricingRuleSignature,
   });
   const householdCountSource = segmentCalculations
     ? segmentCalculations.map((item) => estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source)).join(", ")
@@ -541,11 +546,66 @@ export async function getOrderIntelligence(input: {
     !segmentWarehouseData.length || segmentWarehouseData.some((item) => !item.matchedRegion)
   ));
   const singleAreaNeedsManualReview = Boolean(!areaSelection && !warehouseMatch?.matchedRegion);
-  const needsManualReview = Boolean(includeOperationalData && (segmentNeedsManualReview || singleAreaNeedsManualReview));
+  const areaNeedsManualReview = !effectiveCoverageAreaSqm || effectiveCoverageAreaSqm <= 0;
+  const needsManualReview = Boolean(includeOperationalData && (areaNeedsManualReview || segmentNeedsManualReview || singleAreaNeedsManualReview));
   const areaConfidence = referenceArea?.dataSourceType === "OFFICIAL" || referenceArea?.dataSourceType === "LICENSED"
     ? "verified" as const
     : effectiveCoverageAreaSqm ? "estimated" as const : "unavailable" as const;
   const householdConfidence = confidence === "high" ? "verified" as const : households ? "estimated" as const : "unavailable" as const;
+  const deliverabilityScore = scoreArea({
+    city: effectiveCity,
+    postalCode: effectivePostalCode,
+    households,
+    flyerQuantity,
+    coverageAreaSqm: effectiveCoverageAreaSqm,
+    distanceMeters: routeDistanceMeters,
+  });
+  const derivedAreaDifficulty = deriveAreaDifficulty({
+    coverageAreaSqm: effectiveCoverageAreaSqm ?? 0,
+    households,
+    routeDistanceMeters,
+    routeDurationMinutes,
+    segmentCount: areaSelection?.segments.length ?? 1,
+    confidence,
+    source: householdCountSource,
+    warehouseMatched: !needsManualReview,
+    deliverabilityScore,
+    clientHint: input.areaDifficulty,
+  });
+  const price = await calculateOrderPrice({
+    serviceType: input.serviceType ?? ServiceType.FLYER_DISTRIBUTION,
+    flyerQuantity,
+    weightClass: input.weightClass,
+    weightInGrams: input.weightInGrams,
+    areaDifficulty: derivedAreaDifficulty.areaDifficulty,
+  });
+  // Re-sign the authoritative quote after the server has derived difficulty.
+  // The client hint must never be part of the final price truth.
+  quoteFingerprint = buildPlanningInputFingerprint({
+    serviceType: input.serviceType,
+    flyerQuantity,
+    city: input.city,
+    postalCode: input.postalCode,
+    street: input.street,
+    houseNumber: input.houseNumber,
+    targetAreaGeoJson: input.targetAreaGeoJson,
+    areaSegments: input.segments,
+    coverageAreaSqm: effectiveCoverageAreaSqm,
+    perimeterMeters: planning.segments.length ? planning.perimeterMeters : null,
+    flyerSource: input.flyerSource,
+    productFormat: input.productFormat,
+    weightClass: input.weightClass,
+    weightInGrams: input.weightInGrams,
+    areaDifficulty: derivedAreaDifficulty.areaDifficulty,
+    printDataStatus: input.printDataStatus,
+    preferredStartDate: input.preferredStartDate,
+    preferredEndDate: input.preferredEndDate,
+    placeId: input.placeId,
+    locationSource: input.locationSource,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    pricingRuleSignature: price.snapshot.pricingRuleSignature,
+  });
   const authoritativeQuote = buildAuthoritativePlanningQuote({
     fingerprint: quoteFingerprint,
     flyerQuantity,
@@ -587,7 +647,7 @@ export async function getOrderIntelligence(input: {
       vatAmount: price.vat.toString(),
       vatRate: price.snapshot.vatRate,
       distributorNeed,
-      score: scoreArea({ city: effectiveCity, postalCode: effectivePostalCode, households, flyerQuantity, coverageAreaSqm: effectiveCoverageAreaSqm, distanceMeters: routeDistanceMeters }),
+      score: deliverabilityScore,
       source: referenceArea?.estimatedHouseholds ? "area-household-estimate" : "area-formula",
       confidence,
       calculatedAt: new Date().toISOString(),
@@ -604,6 +664,8 @@ export async function getOrderIntelligence(input: {
       weightFactor: price.snapshot.weightFactor,
       areaDifficulty: price.snapshot.areaDifficulty,
       areaDifficultyFactor: price.snapshot.areaDifficultyFactor,
+      clientDifficultyHint: input.areaDifficulty ?? null,
+      derivationReasons: derivedAreaDifficulty.derivationReasons,
       checkoutAllowed: price.snapshot.checkoutAllowed,
       manualReviewRequired: price.snapshot.manualReviewRequired,
       areaReference: referenceArea

@@ -225,6 +225,7 @@ export const orderCreateSchema = z
     weightClass: z.enum(["LIGHT", "STANDARD", "MEDIUM", "HEAVY", "CUSTOM"]).optional().default("LIGHT"),
     weightInGrams: z.coerce.number().int().min(1).max(10000).optional(),
     areaDifficulty: z.enum(["NORMAL", "MIXED", "LOW_DENSITY", "RURAL", "HARD"]).optional().default("NORMAL"),
+    clientDifficultyHint: z.enum(["NORMAL", "MIXED", "LOW_DENSITY", "RURAL", "HARD"]).optional(),
     flyerQuantity: z.coerce.number().int().min(100, "Die Mindestmenge beträgt 100 Stück."),
     flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]),
     warehouseId: z.string().trim().min(1).optional(),

@@ -14,6 +14,7 @@ async function resetTestRateLimits() {
   const ids = [
     createHash("sha256").update(`flyero-auth-rate-limit:login:ip:${TEST_IP}`).digest("hex"),
     createHash("sha256").update("flyero-auth-rate-limit:login:account:kunde.immobilien@example.com").digest("hex"),
+    createHash("sha256").update("flyero-auth-rate-limit:login:account:admin@example.com").digest("hex"),
   ];
   await prisma.authRateLimitBucket.deleteMany({ where: { id: { in: ids } } });
 }
@@ -147,7 +148,15 @@ try {
   const addressJump = await json("/api/maps/geocode?postalCode=56068&city=Koblenz&street=Schlossstrasse", { cookie: customerCookie });
   assert(Number.isFinite(addressJump.data.lat) && Number.isFinite(addressJump.data.lng), "Adress-Sprung liefert keine Koordinaten.");
 
-  const intelligence = await json("/api/maps/order-intelligence?city=Koblenz&postalCode=56068&coverageAreaSqm=900000&flyerQuantity=2200", { cookie: customerCookie });
+  const targetAreaGeoJson = encodeURIComponent(JSON.stringify({
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: { type: "Polygon", coordinates: [[[7.58, 50.35], [7.59, 50.35], [7.59, 50.36], [7.58, 50.36], [7.58, 50.35]]] },
+    }],
+  }));
+  const intelligence = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=56068&targetAreaGeoJson=${targetAreaGeoJson}&coverageAreaSqm=900000&flyerQuantity=2200`, { cookie: customerCookie });
   assert(intelligence.data.metrics.grossPrice, "Live Preis fehlt.");
   assert(intelligence.data.metrics.households > 0, "Live Haushalte fehlen.");
   assert(intelligence.data.metrics.flyerQuantity > 0, "Live Flyer fehlen.");

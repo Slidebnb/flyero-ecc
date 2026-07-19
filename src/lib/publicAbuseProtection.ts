@@ -7,6 +7,9 @@ export type PublicRateLimitScope =
   | "maps-autocomplete"
   | "maps-geocode"
   | "maps-intelligence"
+  | "customer-maps-autocomplete"
+  | "customer-maps-geocode"
+  | "customer-maps-intelligence"
   | "client-error"
   | "public-planner-autocomplete"
   | "public-planner-geocode"
@@ -23,6 +26,9 @@ const defaults: Record<PublicRateLimitScope, { maxAttempts: number; windowMs: nu
   "maps-autocomplete": { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
   "maps-geocode": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
   "maps-intelligence": { maxAttempts: 120, windowMs: 15 * 60 * 1000 },
+  "customer-maps-autocomplete": { maxAttempts: 120, windowMs: 15 * 60 * 1000 },
+  "customer-maps-geocode": { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
+  "customer-maps-intelligence": { maxAttempts: 240, windowMs: 15 * 60 * 1000 },
   "client-error": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
   "public-planner-autocomplete": { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
   "public-planner-geocode": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
@@ -43,9 +49,12 @@ function clientIp(request: Request) {
   );
 }
 
-function bucketId(scope: PublicRateLimitScope, request: Request) {
+function bucketId(scope: PublicRateLimitScope, request: Request, identity?: { tenantId: string; userId: string }) {
+  const subject = identity
+    ? `tenantId:${identity.tenantId}:userId:${identity.userId}`
+    : `ip:${clientIp(request)}`;
   return createHash("sha256")
-    .update(`flyero-public-rate-limit:${scope}:${clientIp(request)}`)
+    .update(`flyero-public-rate-limit:${scope}:${subject}`)
     .digest("hex");
 }
 
@@ -64,8 +73,14 @@ function settingsFor(scope: PublicRateLimitScope) {
               ? "PUBLIC_MAPS_GEOCODE"
               : scope === "maps-intelligence"
                 ? "PUBLIC_MAPS_INTELLIGENCE"
-                : scope === "public-planner-autocomplete"
-                  ? "PUBLIC_PLANNER_AUTOCOMPLETE"
+              : scope === "customer-maps-autocomplete"
+                ? "CUSTOMER_MAPS_AUTOCOMPLETE"
+                : scope === "customer-maps-geocode"
+                  ? "CUSTOMER_MAPS_GEOCODE"
+                  : scope === "customer-maps-intelligence"
+                    ? "CUSTOMER_MAPS_INTELLIGENCE"
+                    : scope === "public-planner-autocomplete"
+                      ? "PUBLIC_PLANNER_AUTOCOMPLETE"
                   : scope === "public-planner-geocode"
                     ? "PUBLIC_PLANNER_GEOCODE"
                     : "PUBLIC_PLANNER_QUOTE";
@@ -79,9 +94,10 @@ function settingsFor(scope: PublicRateLimitScope) {
 export async function enforcePublicRateLimit(
   request: Request,
   scope: PublicRateLimitScope,
+  identity?: { tenantId: string; userId: string },
 ): Promise<PublicRateLimitDecision> {
   const settings = settingsFor(scope);
-  const id = bucketId(scope, request);
+  const id = bucketId(scope, request, identity);
   const now = new Date();
   const current = await prisma.publicRateLimitBucket.findUnique({ where: { id } });
 
@@ -114,9 +130,18 @@ export async function enforcePublicRateLimit(
   return { allowed: true };
 }
 
-export function publicRateLimitResponse(decision: Extract<PublicRateLimitDecision, { allowed: false }>) {
+export function publicRateLimitResponse(
+  decision: Extract<PublicRateLimitDecision, { allowed: false }>,
+) {
   return Response.json(
     { ok: false, error: "Zu viele Anfragen. Bitte versuche es später erneut." },
+    { status: 429, headers: { "retry-after": String(decision.retryAfterSeconds) } },
+  );
+}
+
+export function customerRateLimitResponse(decision: Extract<PublicRateLimitDecision, { allowed: false }>) {
+  return Response.json(
+    { ok: false, error: "Die Suche ist gerade ausgelastet. Bitte kurz warten und erneut versuchen." },
     { status: 429, headers: { "retry-after": String(decision.retryAfterSeconds) } },
   );
 }

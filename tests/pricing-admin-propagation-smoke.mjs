@@ -205,8 +205,12 @@ try {
   const intelligence = await requestJson("/api/maps/order-intelligence?city=Koblenz&postalCode=56068&coverageAreaSqm=640000&flyerQuantity=2000", {
     headers: { cookie: customerCookie },
   });
-  assert.equal(intelligence.data.metrics.netPrice, "2000", "Kunden-Wizard verwendet die geaenderte Admin-Preisregel nicht.");
-  assert.equal(intelligence.data.metrics.grossPrice, "2140", "Kunden-Wizard verwendet den geaenderten Bruttopreis nicht.");
+  const derivedAreaFactor = Number(intelligence.data.metrics.areaDifficultyFactor);
+  const normalizeMoney = (value) => Number(value).toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+  const expectedIntelligenceNet = normalizeMoney(2000 * derivedAreaFactor);
+  const expectedIntelligenceGross = normalizeMoney(Number(expectedIntelligenceNet) * 1.07);
+  assert.equal(intelligence.data.metrics.netPrice, expectedIntelligenceNet, "Kunden-Wizard verwendet die geaenderte Admin-Preisregel oder den serverseitigen Gebietsfaktor nicht.");
+  assert.equal(intelligence.data.metrics.grossPrice, expectedIntelligenceGross, "Kunden-Wizard verwendet den geaenderten Bruttopreis oder Gebietsfaktor nicht.");
 
   const created = await requestJson("/api/customer/orders", {
     method: "POST",

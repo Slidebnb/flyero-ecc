@@ -6,7 +6,7 @@ import { notifyAdmins } from "@/lib/notifications";
 import { Permission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
-import { syncOpenOrderPrices, validatePricingRuleChanges } from "@/lib/pricing";
+import { mirrorLegacyFlyerRule, syncOpenOrderPrices, validatePricingRuleChanges } from "@/lib/pricing";
 import { ensureDefaultPricingSettings, getPricingSettings, PRICING_SETTING_KEYS } from "@/lib/settings";
 
 export async function GET() {
@@ -87,10 +87,19 @@ export async function PATCH(request: NextRequest) {
           validTo: rule.validTo ? new Date(String(rule.validTo)) : null,
           notes: rule.notes ? String(rule.notes) : null,
         };
+        const previous = rule.id
+          ? await tx.pricingRule.findUnique({ where: { id: String(rule.id) }, select: { serviceType: true, minQuantity: true, maxQuantity: true } })
+          : null;
         if (rule.id) {
           await tx.pricingRule.update({ where: { id: String(rule.id) }, data });
         } else {
           await tx.pricingRule.create({ data });
+        }
+        if ((previous?.serviceType ?? data.serviceType) === ServiceType.FLYER_DISTRIBUTION) {
+          await mirrorLegacyFlyerRule(tx, {
+            minQuantity: previous?.minQuantity ?? data.minQuantity,
+            maxQuantity: previous?.maxQuantity ?? data.maxQuantity,
+          }, data);
         }
       }
     });

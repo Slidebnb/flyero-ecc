@@ -6,6 +6,7 @@ const pricingPage = readFileSync("src/app/preise/page.tsx", "utf8");
 const pricing = readFileSync("src/lib/pricing.ts", "utf8");
 const smartMaps = readFileSync("src/lib/smartMaps.ts", "utf8");
 const publicQuote = readFileSync("src/app/api/public/planner/quote/route.ts", "utf8");
+const intelligenceRoute = readFileSync("src/app/api/maps/order-intelligence/route.ts", "utf8");
 const deployment = readFileSync("DEPLOYMENT_HETZNER.md", "utf8");
 const dockerfile = readFileSync("Dockerfile", "utf8");
 
@@ -20,6 +21,12 @@ assertMatch(
 assertMatch(
   /const nextCenter = \{ lat: Number\(result\.lat\), lng: Number\(result\.lng\) \};[\s\S]*?mapRef\.current\?\.setCenter\(nextCenter\);/,
   "Ein neues Geocode-Ergebnis muss die bestehende Google-Karte direkt zentrieren.",
+);
+const viewportCenterIndex = wizard.indexOf("mapRef.current.setCenter(center);");
+assert.ok(viewportCenterIndex >= 0, "Die Kartenansicht muss ihr Zentrum aus dem aktuellen Standort beziehen.");
+assert.ok(
+  wizard.indexOf("if (polygon.length < 3", viewportCenterIndex) > viewportCenterIndex,
+  "Die Karte muss auch ohne bestehendes Polygon auf eine neue PLZ zentriert werden.",
 );
 assertMatch(
   /const hasFreshLocationInput = Boolean\(placeId\s*\|\|\s*currentQuery\.trim\(\) !== query\.trim\(\)\);/,
@@ -44,6 +51,16 @@ assert.doesNotMatch(wizard, /libraries=drawing|maps\.drawing|DrawingManager|poly
 assert.match(wizard, /order-finish-drawing|Klicke auf der Karte.*Eckpunkte|Eckpunkte.*Gebiet/, "Der Planner braucht einen eigenen, sichtbaren Abschluss für gezeichnete Gebiete.");
 assert.match(wizard, /maps\.event\.addListener\(mapRef\.current, ["']click["']|mapRef\.current\.addListener\(["']click["']/, "Gebiete müssen über die stabile Map-Klick-API gezeichnet werden.");
 assert.match(
+  wizard,
+  /const previewCoverageAreaSqm = drawingPoints\.length >= 3\s*\?\s*polygonAreaSqm\(drawingPoints\)\s*:\s*coverageAreaSqm;/,
+  "Während des Zeichnens muss die lokale Flächenvorschau sofort sichtbar werden.",
+);
+assert.match(
+  wizard,
+  /previewCoverageAreaSqm[^\n]*toLocaleString\("de-DE"/,
+  "Die Gebietsübersicht muss die aktuelle Zeichenfläche statt dauerhaft 0 km² anzeigen.",
+);
+assert.match(
   pricingPage,
   /calculateOrderPrice\(\{ serviceType: ServiceType\.FLYER_STANDARD,/,
   "Die oeffentliche Preisseite muss die aktuelle FLYER_STANDARD-Preisquelle verwenden.",
@@ -59,8 +76,28 @@ assert.match(
   "Historische ServiceType-Werte muessen vor einer neuen Preisberechnung auf die aktuelle Regelquelle normalisiert werden.",
 );
 assertMatch(
-  /Gebiet auf der Karte ausw[aä]hlen/,
+  /Gebiet ausw[aä]hlen/,
   "Bei fehlender Flaeche muss der Kunde eine klare naechste Aktion sehen.",
+);
+assert.match(
+  wizard,
+  /useState<"boundary" \| "draw">\("draw"\)/,
+  "Der Wizard darf Kunden ohne Boundary-Konfiguration nicht in einen unbedienbaren Grenzmodus zwingen.",
+);
+assert.doesNotMatch(
+  wizard,
+  /Ort gefunden\. Klicke jetzt eine markierte Grenze an/,
+  "Nach einer Ortssuche darf keine nicht verfuegbare Grenzauswahl als Pflichtschritt erscheinen.",
+);
+assert.doesNotMatch(
+  wizard,
+  /Die Grenzen kannst du danach direkt auf der Karte anpassen\./,
+  "Der Kunde darf nicht auf eine nicht vorhandene Grenzinteraktion verwiesen werden.",
+);
+assert.match(
+  wizard,
+  /const priceReady = intelligenceStatus === "live"[\s\S]*?const pricePreviewText = coverageAreaSqm <= 0[\s\S]*?"Gebiet ausw[aä]hlen"/,
+  "Preisstatus muss Gebiet, laufende Berechnung und manuelle Pruefung unterscheiden.",
 );
 
 assertMatch(
@@ -77,9 +114,21 @@ assert.match(
   /recommendedFlyerQuantity: safeData\.metrics\.recommendedFlyerQuantity/,
   "Der oeffentliche Planer muss dieselbe serverseitige Flyerempfehlung erhalten.",
 );
+assert.match(
+  intelligenceRoute,
+  /targetAreaGeoJson: jsonParam\(params\.get\("targetAreaGeoJson"\)\)/,
+  "Die geschuetzte Live-Berechnung muss die gezeichnete Flaeche serverseitig verarbeiten.",
+);
 assertMatch(
   /setMapNotice\("Standort wird gesucht\.\.\."\);/,
   "Eine neue PLZ-Suche muss den alten Suchhinweis sofort ersetzen.",
+);
+const blurHandler = wizard.match(/function closeSuggestionsSoon\(\)\s*\{[\s\S]*?\n\s*\}/)?.[0] ?? "";
+assert.ok(blurHandler, "Der Suchfeld-Blur-Handler muss vorhanden sein.");
+assert.doesNotMatch(
+  blurHandler,
+  /geocodeAddress\(\)/,
+  "Ein normales Verlassen des Suchfelds darf keinen Geocode-Request ausloesen.",
 );
 assertMatch(
   /const warehouseSuggestionLabel = coverageAreaSqm > 0[\s\S]*?"Gebiet auswählen";/,
@@ -101,6 +150,26 @@ assertMatch(
 assertMatch(
   /deliverabilityLabel\(deliverabilityScore, coverageAreaSqm > 0\)/,
   "Der Verfuegbarkeitsstatus muss an die aktuelle Flaeche gebunden sein.",
+);
+assert.match(
+  wizard,
+  /const featureTypes = \[\s*"POSTAL_CODE",\s*"LOCALITY"\s*\];/,
+  "Boundary-Layer muessen mit den von Google dokumentierten Feature-Typen aktiviert werden.",
+);
+assert.doesNotMatch(
+  wizard,
+  /if \(!mapsReady \|\| !mapsBoundaryConfigured \|\| !mapRef\.current \|\| !window\.google\?\.maps\?\.FeatureType\) return;/,
+  "Die Auswahl darf nicht ausfallen, nur weil FeatureType nicht als Laufzeitobjekt exponiert ist.",
+);
+assert.match(
+  wizard,
+  /if \(!mapsBoundaryConfigured\)[\s\S]*?setAreaSelectionMode\("draw"\);/,
+  "Ohne verfuegbare Boundary-Layer muss der Wizard direkt in den Zeichenmodus wechseln.",
+);
+assert.match(
+  wizard,
+  /boundaryLayerStatus === "available" \? \([\s\S]*?data-testid="order-select-boundary"/,
+  "Eine Grenzauswahl darf nur angezeigt werden, wenn Google die Boundary-Layer wirklich bereitstellt.",
 );
 
 const migrationCommand = "docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy";
