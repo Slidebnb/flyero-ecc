@@ -8,7 +8,9 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { chromium } from "playwright";
 
 const baseUrl = process.env.CUSTOMER_ORDER_NEW_PLAYWRIGHT_BASE_URL || "http://localhost:3000";
-const outDir = join(process.cwd(), ".tmp", "customer-order-new-playwright");
+const outDir = join(process.cwd(), ".tmp", "customer-order-new");
+const desktopDir = join(outDir, "desktop");
+const mobileDir = join(outDir, "mobile");
 const email = "kunde.immobilien@example.com";
 const password = "DemoPasswort123!";
 const testIp = `198.51.100.${(Date.now() % 150) + 70}`;
@@ -60,7 +62,8 @@ async function login(page) {
   }
 }
 
-await mkdir(outDir, { recursive: true });
+await mkdir(desktopDir, { recursive: true });
+await mkdir(mobileDir, { recursive: true });
 await ensureServer();
 await prisma.authRateLimitBucket.deleteMany({ where: { id: { in: bucketIds } } });
 
@@ -72,6 +75,7 @@ const context = await browser.newContext({
 const page = await context.newPage();
 const browserErrors = [];
 const failedRequests = [];
+const rateLimitResponses = [];
 page.on("console", (message) => {
   if (message.type() === "error"
     && !message.text().includes("maps.googleapis.com/$rpc")
@@ -81,6 +85,9 @@ page.on("console", (message) => {
   }
 });
 page.on("pageerror", (error) => browserErrors.push(error.message));
+page.on("response", (response) => {
+  if (response.status() === 429 && response.url().includes("/api/maps/")) rateLimitResponses.push(response.url());
+});
 page.on("requestfailed", (request) => failedRequests.push({ url: request.url(), error: request.failure()?.errorText ?? "unknown" }));
 
 try {
@@ -115,26 +122,40 @@ try {
   }
   assert(desktopMetrics.hasDrawAction, "Der funktionierende Zeichenweg fehlt.");
   assert(!desktopMetrics.hasDisabledBoundaryAction, "Eine nicht verfügbare Grenzschaltfläche darf nicht als deaktivierter Hauptweg erscheinen.");
+  const locationInput = page.locator('[data-testid="order-location-input"]');
+  await locationInput.fill("56068");
+  await page.waitForTimeout(900);
+  const suggestion = page.locator(".orderSuggestions button").first();
+  assert((await suggestion.count()) > 0, "Die PLZ-Suche zeigt keinen auswählbaren Ortsvorschlag.");
+  await suggestion.click();
+  await page.waitForTimeout(1600);
+  assert((await locationInput.inputValue()).includes("56068"), "Die ausgewählte PLZ bleibt nicht im Kundenwizard sichtbar.");
+  assert.equal(rateLimitResponses.length, 0, `Die normale PLZ-Auswahl löste 429 aus: ${rateLimitResponses.join(", ")}`);
   if (desktopMetrics.mapReady) {
     await page.locator('[data-testid="order-draw-area"]').click();
     const mapBox = await page.locator('[data-testid="order-map"]').boundingBox();
     assert(mapBox, "Die Kartenfläche muss für die Gebietsauswahl sichtbar sein.");
     // The overview panel intentionally sits above the right side of the map;
     // use the unobstructed map area so this tests the real drawing interaction.
-    for (const [x, y] of [[0.2, 0.2], [0.3, 0.2], [0.3, 0.4]]) {
+    for (const [x, y] of [[0.08, 0.32], [0.16, 0.68], [0.32, 0.68], [0.2, 0.48], [0.1, 0.58]]) {
       await page.mouse.click(mapBox.x + mapBox.width * x, mapBox.y + mapBox.height * y);
       await page.waitForTimeout(700);
+      if (await page.locator('[data-testid="order-finish-drawing"]').isVisible().catch(() => false)) break;
     }
     const finishDrawing = page.locator('[data-testid="order-finish-drawing"]');
     if (!(await finishDrawing.isVisible().catch(() => false))) {
       const notice = await page.locator('.mapNotice').textContent().catch(() => "");
       throw new Error(`Der Zeichenweg hat nach drei Kartenklicks keinen Abschluss angeboten. Kartenhinweis: ${notice}`);
     }
+    await finishDrawing.click();
+    await page.waitForTimeout(1800);
+    const priceStatus = await page.locator(".orderPriceFooter strong").textContent();
+    assert(priceStatus && !["Gebiet auswÃ¤hlen", "Preis wird aktualisiert"].includes(priceStatus.trim()), `Nach dem Zeichnen wurde kein nutzbarer Preisstatus angezeigt: ${priceStatus}`);
   }
   for (const forbidden of ["Beispielhafter Ablauf", "keine echte Kampagne", "Fallback", "Quote", "Fingerprint", "Wartet intern"]) {
     assert(!desktopMetrics.bodyText.includes(forbidden), `Der Kunden-Wizard zeigt verbotenen Begriff: ${forbidden}`);
   }
-  await page.screenshot({ path: join(outDir, "customer-order-new-desktop.png"), fullPage: true });
+  await page.screenshot({ path: join(desktopDir, "customer-order-new.png"), fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(300);
@@ -147,7 +168,7 @@ try {
   assert.equal(mobileMetrics.scrollWidth, mobileMetrics.clientWidth, "Der Mobile-Wizard erzeugt horizontalen Überlauf.");
   assert(mobileMetrics.hasMap, "Die Kartenfläche fehlt mobil.");
   assert(mobileMetrics.hasDrawAction, "Der Zeichenweg fehlt mobil.");
-  await page.screenshot({ path: join(outDir, "customer-order-new-mobile.png"), fullPage: true });
+  await page.screenshot({ path: join(mobileDir, "customer-order-new.png"), fullPage: true });
 
   const unexpectedFailedRequests = failedRequests.filter(({ url, error }) => {
     const isGoogleMaps = url.includes("maps.googleapis.com") || url.includes("maps.gstatic.com");
