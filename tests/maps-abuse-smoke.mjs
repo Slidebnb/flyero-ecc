@@ -76,6 +76,9 @@ async function startServer() {
 
 try {
   if (!sharedBaseUrl) await startServer();
+  // A prior interrupted run may leave the dynamically selected bucket behind.
+  // Reset only this smoke test's own identity before asserting the threshold.
+  await prisma.publicRateLimitBucket.deleteMany({ where: { id: bucketId } });
   const login = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-forwarded-for": authIp },
