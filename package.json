@@ -141,6 +141,7 @@
     "test:upload-security": "node tests/upload-security-smoke.mjs",
     "test:protected-download-headers": "node tests/protected-download-headers-smoke.mjs",
     "test:ci-config": "node tests/ci-config-smoke.mjs",
+    "test:production-deploy-workflow": "node tests/production-deploy-workflow-smoke.mjs",
     "backup:config": "node tests/backup-config-smoke.mjs",
     "backup:verify": "bash scripts/verify-backup.sh",
     "test:storage-layout": "node tests/storage-layout-smoke.mjs",

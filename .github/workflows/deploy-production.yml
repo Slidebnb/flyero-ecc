@@ -1,0 +1,107 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://flyero.org
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Validate deployment contract
+        run: npm run test:production-deploy-workflow
+
+      - name: Prepare pinned SSH identity
+        shell: bash
+        env:
+          DEPLOY_KEY: ${{ secrets.FLYERO_DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.FLYERO_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$DEPLOY_KEY"
+          test -n "$KNOWN_HOSTS"
+          umask 077
+          printf '%s\n' "$DEPLOY_KEY" > "$RUNNER_TEMP/flyero-deploy-key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$RUNNER_TEMP/flyero-known-hosts"
+
+      - name: Deploy tested commit to Hetzner
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.FLYERO_DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.FLYERO_DEPLOY_USER }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          ssh \
+            -i "$RUNNER_TEMP/flyero-deploy-key" \
+            -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$RUNNER_TEMP/flyero-known-hosts" \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=4 \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "EXPECTED_SHA='$DEPLOY_SHA' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+
+          cd /opt/flyero
+          git config --global --add safe.directory /opt/flyero
+          git fetch --prune origin main
+
+          remote_sha="$(git rev-parse origin/main)"
+          if [ "$remote_sha" != "$EXPECTED_SHA" ]; then
+            echo "Der getestete Commit ist nicht mehr der aktuelle origin/main-Stand." >&2
+            echo "Erwartet: $EXPECTED_SHA" >&2
+            echo "Gefunden: $remote_sha" >&2
+            exit 1
+          fi
+
+          git pull --ff-only origin main
+
+          compose=(docker compose --env-file /opt/flyero/.env.production -f /opt/flyero/docker-compose.production.yml)
+          "${compose[@]}" build app
+          "${compose[@]}" run --rm --no-deps app node scripts/production-preflight.mjs
+          "${compose[@]}" run --rm --no-deps app npx prisma migrate deploy
+          "${compose[@]}" up -d --force-recreate --no-deps app
+
+          for attempt in $(seq 1 30); do
+            if "${compose[@]}" exec -T app node -e "fetch('http://127.0.0.1:3000/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              "${compose[@]}" logs --tail=120 app >&2 || true
+              exit 1
+            fi
+            sleep 2
+          done
+
+          "${compose[@]}" exec -T app node scripts/production-preflight.mjs
+          curl --fail --silent --show-error https://flyero.org/api/health
+          echo
+          REMOTE
