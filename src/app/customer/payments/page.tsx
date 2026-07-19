@@ -70,7 +70,7 @@ export default async function CustomerPaymentsPage() {
             <EmptyState
               title="Noch keine Zahlungen vorhanden."
               description="Zahlungen entstehen, sobald eine Kampagne zur Buchung vorbereitet wird."
-              action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }}
+              action={{ href: "/customer/orders/new?fresh=1", label: "Neue Kampagne starten" }}
             />
           ) : null}
         </div>

@@ -38,7 +38,7 @@ export default async function PublicDistributionPlannerPage({ searchParams }: Pa
         <span>Preisvorschau ohne Registrierung</span>
         <div className="orderTopActions" aria-label="Planeraktionen">
           <a href="/verteilung-anfragen">Anfrage senden</a>
-          <a href="/login?next=%2Fcustomer%2Forders%2Fnew">Einloggen</a>
+          <a href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1">Einloggen</a>
         </div>
         <MobileMenu
           items={[
@@ -46,7 +46,7 @@ export default async function PublicDistributionPlannerPage({ searchParams }: Pa
             { label: "Preise", href: "/preise" },
             { label: "Anfrage senden", href: "/verteilung-anfragen" },
           ]}
-          cta={{ label: "Einloggen", href: "/login?next=%2Fcustomer%2Forders%2Fnew" }}
+          cta={{ label: "Einloggen", href: "/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1" }}
         />
       </header>
       <SmartOrderWizard areas={[]} today={new Date().toISOString().slice(0, 10)} mode="public_quote" initialLocation={initialLocation} />

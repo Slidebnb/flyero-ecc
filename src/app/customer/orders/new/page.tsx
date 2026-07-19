@@ -57,7 +57,7 @@ export default async function NewCustomerOrderPage() {
             { label: "Rechnungen", href: "/customer/invoices" },
             { label: "Hilfe", href: "/customer/support" },
           ]}
-          cta={{ label: "Neue Verteilung", href: "/customer/orders/new" }}
+          cta={{ label: "Neue Verteilung", href: "/customer/orders/new?fresh=1" }}
           showLogout
         />
       </header>

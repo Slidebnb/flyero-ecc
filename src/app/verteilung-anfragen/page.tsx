@@ -11,7 +11,7 @@ import {
 import { createSeoMetadata } from "@/app/seo";
 import { getPublicPrintMessage } from "@/lib/publicCapabilities";
 
-const directBookingNext = "/customer/orders/new";
+const directBookingNext = "/customer/orders/new?fresh=1";
 const directBookingParam = encodeURIComponent(directBookingNext);
 
 export const metadata = createSeoMetadata({

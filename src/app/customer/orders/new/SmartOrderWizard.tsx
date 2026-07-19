@@ -44,7 +44,7 @@ import { useOrderMap } from "./hooks/useOrderMap";
 
 const orderNavItems = [
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
-  { href: "/customer/orders/new", label: "Neue Verteilung", icon: Plus, group: "Start", active: true },
+  { href: "/customer/orders/new?fresh=1", label: "Neue Verteilung", icon: Plus, group: "Start", active: true },
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks, group: "Start" },
   { href: "/customer/reports", label: "Nachweise", icon: FileText, group: "Ergebnisse" },
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Ergebnisse" },
@@ -56,7 +56,7 @@ const publicPlannerNavItems = [
   { href: "/", label: "FLYERO Start", icon: LayoutDashboard, group: "FLYERO" },
   { href: "/preise", label: "Preise", icon: ReceiptText, group: "FLYERO" },
   { href: "/verteilung-anfragen", label: "Anfrage senden", icon: Mail, group: "FLYERO" },
-  { href: "/login?next=%2Fcustomer%2Forders%2Fnew", label: "Einloggen", icon: CircleHelp, group: "Konto" },
+  { href: "/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1", label: "Einloggen", icon: CircleHelp, group: "Konto" },
 ];
 
 type GoogleLatLng = { lat: () => number; lng: () => number };
@@ -1069,6 +1069,59 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   // Explicit public navigation data wins over any saved browser state.
   useEffect(() => {
     try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const repeatFrom = searchParams.get("repeatFrom");
+      const freshStart = searchParams.get("fresh") === "1";
+      if (freshStart && !repeatFrom && !isPublicPlanner) {
+        window.localStorage.removeItem(draftStorageKey);
+        window.localStorage.removeItem(LEGACY_ORDER_DRAFT_KEY);
+        setActiveStep(1);
+        setQuery("");
+        setSelectedLocation(null);
+        setSelectedAreaId("");
+        setCity("");
+        setPostalCode("");
+        setStreet("");
+        setHouseNumber("");
+        setTargetAreaName("");
+        setCenter(PUBLIC_DEFAULT_CENTER);
+        setPolygon([]);
+        setPolygonSource("postal_code");
+        setDrawingPoints([]);
+        setAreaSegments([]);
+        setActiveSegmentId(null);
+        setSelectedWarehouseId("");
+        setPendingLocation(null);
+        setSelectedBoundaryPlaceIds([]);
+        setAreaSelectionMode("draw");
+        setHistory([]);
+        setHistoryIndex(0);
+        resetIntelligence();
+        setFinishStatus("");
+        setRepeatPrintChoice(null);
+        setUsedAutocomplete(false);
+        setClickCount(0);
+        setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
+        setFlyerQuantityTouched(false);
+        setServiceType("FLYER_STANDARD");
+        setProductFormat(serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
+        setWeightInGrams("");
+        setSamplingDetails({ size: "", packaging: "", fragile: false, personalHandover: false, storage: "" });
+        setPrintDataStatus("UPLOAD_LATER");
+        setTargetGroup("Alle Haushalte");
+        setDistributionType("Haushaltsverteilung");
+        setStartDate(minimumStartDate);
+        setEndDate(minimumStartDate);
+        setFlexibleScheduling(true);
+        setContactPerson("");
+        setContactPhone("");
+        setNotes("");
+        setMapNotice("");
+        setDraftStatus("Neue Verteilung vorbereitet");
+        draftRestoredRef.current = true;
+        setDraftRestored(true);
+        return;
+      }
       const initialLocation = isPublicPlanner ? initialLocationProp : null;
       const hasExplicitLocation = hasExplicitPublicLocationContext(initialLocation);
       if (initialLocation) initialSearchRef.current = initialLocation;
@@ -1157,7 +1210,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       draftRestoredRef.current = true;
       setDraftRestored(true);
     }
-  }, [draftStorageKey, experienceEndpoint, initialLocationProp, isPublicPlanner, minimumStartDate]);
+  }, [draftStorageKey, experienceEndpoint, initialLocationProp, isPublicPlanner, minimumStartDate, resetIntelligence]);
 
   useEffect(() => {
     if (isPublicPlanner || repeatLoadedRef.current) return;
@@ -2078,7 +2131,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         eventType: completionPath === "direct_payment" ? "AUTH_GATE_VIEWED" : "INQUIRY_SUBMITTED",
       });
       if (completionPath === "direct_payment") {
-        window.location.href = `/register/customer?next=${encodeURIComponent("/customer/orders/new")}`;
+        window.location.href = `/register/customer?next=${encodeURIComponent("/customer/orders/new?fresh=1")}`;
       } else {
         window.location.href = "/verteilung-anfragen?from=planner";
       }

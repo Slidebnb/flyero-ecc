@@ -55,6 +55,7 @@
     "test:customer-own-flyer-warehouse": "node tests/customer-own-flyer-warehouse-smoke.mjs",
     "test:customer-order-planner-state": "node tests/customer-order-planner-state-smoke.mjs",
     "test:customer-planner-integrity": "node tests/customer-planner-integrity-smoke.mjs",
+    "test:customer-new-order-fresh-start": "node tests/customer-new-order-fresh-start-smoke.mjs",
     "test:order-planner-handoff": "node tests/order-planner-handoff-smoke.mjs",
     "test:order-planner-pricing": "node tests/order-planner-pricing-transparency-smoke.mjs",
     "test:module26": "npm run test:public-order-planner && npm run test:order-planner-handoff && npm run test:order-planner-pricing && npm run test:order-repeat",

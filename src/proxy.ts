@@ -67,7 +67,7 @@ export async function proxy(request: NextRequest) {
 
   if (!role) {
     const loginUrl = publicUrl("/login", request.url);
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
     const response = NextResponse.redirect(loginUrl);
     response.headers.set("x-request-id", requestId);
     return response;

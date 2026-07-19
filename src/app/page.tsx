@@ -92,7 +92,7 @@ export default function HomePage() {
             <PublicPlannerSearch />
             <div className="mkHeroActions">
               <MarketingButton href="/verteilung-anfragen">Verteilung anfragen</MarketingButton>
-              <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="ghost">Online buchen</MarketingButton>
+              <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1" variant="ghost">Online buchen</MarketingButton>
             </div>
             <div className="mkTrustRow" aria-label="FLYERO Nachweise">
               <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweis</TrustBadge>
@@ -243,7 +243,7 @@ export default function HomePage() {
               <h3>Online buchen</h3>
               <p>Gebiet wählen, Preis prüfen und den Auftrag geschützt über Ihr Kundenkonto abschließen.</p>
             </div>
-            <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew" variant="dark">Buchung starten</MarketingButton>
+            <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1" variant="dark">Buchung starten</MarketingButton>
           </article>
         </div>
       </MarketingSection>

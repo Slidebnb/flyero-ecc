@@ -259,7 +259,7 @@ export default async function CustomerDashboardPage() {
           <h2>Was möchten Sie jetzt erledigen?</h2>
           <p>Die drei wichtigsten Wege stehen direkt bereit: neue Verteilung starten, aktuelle Kampagne öffnen oder Nachweis/Rechnung ansehen.</p>
           <div className="customerCommandActions">
-            <Link className="primaryCommand" href="/customer/orders/new">Neue Verteilung starten<ArrowRight aria-hidden="true" /></Link>
+            <Link className="primaryCommand" href="/customer/orders/new?fresh=1">Neue Verteilung starten<ArrowRight aria-hidden="true" /></Link>
             <Link href={currentActionHref}>Aktuelle Kampagne</Link>
             <Link href={primaryReportHref}>Nachweis oder Rechnung</Link>
           </div>
@@ -295,7 +295,7 @@ export default async function CustomerDashboardPage() {
             <EmptyState
               title="Starten Sie Ihre erste Verteilung."
               description="Der Karten-Flow berechnet Gebiet, Preis und Bedarf live."
-              action={{ href: "/customer/orders/new", label: "Jetzt starten" }}
+              action={{ href: "/customer/orders/new?fresh=1", label: "Jetzt starten" }}
             />
           )}
         </section>
@@ -322,7 +322,7 @@ export default async function CustomerDashboardPage() {
             <h2>Alles Wichtige in maximal 3 Klicks.</h2>
           </div>
           <div className="customerActionStack">
-            <Link href="/customer/orders/new"><MapPinned aria-hidden="true" /><span>Gebiet planen</span><strong>1 Klick</strong></Link>
+            <Link href="/customer/orders/new?fresh=1"><MapPinned aria-hidden="true" /><span>Gebiet planen</span><strong>1 Klick</strong></Link>
             <Link href="/customer/documents"><UploadCloud aria-hidden="true" /><span>Druckdaten senden</span><strong>2 Klicks</strong></Link>
             <Link href={latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/invoices"}><ReceiptText aria-hidden="true" /><span>Rechnung öffnen</span><strong>{latestInvoice ? formatCurrency(latestInvoice.totalGross) : "sobald vorhanden"}</strong></Link>
             <Link href="/customer/support"><ShieldCheck aria-hidden="true" /><span>Hilfe bekommen</span><strong>{openSupportTickets} offen</strong></Link>

@@ -91,7 +91,7 @@ export default function BusinessPage() {
       >
         <div className="mkServiceList" aria-label="FLYERO Leistungen">
           {distributionServiceCatalog.map((service, index) => (
-            <a className="mkServiceRow" key={service.serviceType} href="/login?next=%2Fcustomer%2Forders%2Fnew">
+            <a className="mkServiceRow" key={service.serviceType} href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1">
               <span className="mkServiceNumber" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
               <span className="mkServiceCopy">
                 <strong>{service.label}</strong>
@@ -144,7 +144,7 @@ export default function BusinessPage() {
             title="Online Buchung ansehen"
             text="Wenn Gebiet, Menge und Timing feststehen, starten Sie direkt im Kundenkonto."
             bullets={["Verteilgebiet wählen", "Preis vor Zahlung prüfen", "Nachweis im Portal erhalten"]}
-            href="/login?next=%2Fcustomer%2Forders%2Fnew"
+            href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1"
             buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}

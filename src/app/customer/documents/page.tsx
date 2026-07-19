@@ -80,7 +80,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
         {hasOrders ? (
           <a className="primaryButton" href="#flyer-upload">Datei hochladen</a>
         ) : (
-          <Link className="primaryButton" href="/customer/orders/new">Kampagne starten</Link>
+          <Link className="primaryButton" href="/customer/orders/new?fresh=1">Kampagne starten</Link>
         )}
       </section>
 
@@ -105,7 +105,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
             </form>
           ) : (
             <div className="customerUploadLocked">
-              <EmptyState title="Noch keine Kampagne." description="Starten Sie zuerst eine Verteilung, dann können Dateien zugeordnet werden." action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }} />
+              <EmptyState title="Noch keine Kampagne." description="Starten Sie zuerst eine Verteilung, dann können Dateien zugeordnet werden." action={{ href: "/customer/orders/new?fresh=1", label: "Neue Kampagne starten" }} />
               <button type="button" disabled={orders.length === 0}>Erst Kampagne starten</button>
             </div>
           )}
@@ -130,7 +130,7 @@ export default async function CustomerDocumentsPage({ searchParams }: { searchPa
               <button type="submit">Druck anfragen</button>
             </form>
           ) : (
-            <EmptyState title="Druck braucht eine Kampagne." description="So wissen wir, für welches Gebiet und welche Menge geplant wird." action={{ href: "/customer/orders/new", label: "Kampagne starten" }} />
+            <EmptyState title="Druck braucht eine Kampagne." description="So wissen wir, für welches Gebiet und welche Menge geplant wird." action={{ href: "/customer/orders/new?fresh=1", label: "Kampagne starten" }} />
           )}
         </div>
       </details>

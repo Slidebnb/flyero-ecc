@@ -22,7 +22,7 @@ type CustomerPortalShellProps = {
 
 const navItems = [
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
-  { href: "/customer/orders/new", label: "Neue Verteilung", icon: Plus, group: "Start" },
+  { href: "/customer/orders/new?fresh=1", label: "Neue Verteilung", icon: Plus, group: "Start" },
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks, group: "Start" },
   { href: "/customer/reports", label: "Nachweise", icon: FileText, group: "Ergebnisse" },
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Ergebnisse" },
@@ -60,7 +60,7 @@ export function CustomerPortalShell({
           <h1>{title}</h1>
         </div>
         <div className="orderTopActions" aria-label="Kontoaktionen">
-          <Link className="topPrimaryAction" href="/customer/orders/new">Neue Verteilung</Link>
+          <Link className="topPrimaryAction" href="/customer/orders/new?fresh=1">Neue Verteilung</Link>
           <Link href="/customer/reports">Nachweise</Link>
           <Link href="/customer/support">Hilfe</Link>
           <Link href="/customer/profile" aria-label="Profil">

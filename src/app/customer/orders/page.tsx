@@ -37,7 +37,7 @@ export default async function CustomerOrdersPage() {
           <h2>{latestOrder ? "Aktuelle Kampagne öffnen oder neue Verteilung starten." : "Starten Sie Ihre erste Verteilung."}</h2>
           <p>{openPayment ? `${openPayment} Zahlung wartet noch auf Abschluss.` : "FLYERO zeigt hier nur die nächsten sinnvollen Schritte."}</p>
         </div>
-        <Link className="primaryButton" href="/customer/orders/new">Neue Kampagne starten</Link>
+        <Link className="primaryButton" href="/customer/orders/new?fresh=1">Neue Kampagne starten</Link>
       </section>
 
       <DataSection title="Meine Kampagnen" description="Die neuesten Kampagnen zuerst. Pro Kampagne gibt es genau die nächste sinnvolle Aktion.">
@@ -75,7 +75,7 @@ export default async function CustomerOrdersPage() {
             <EmptyState
               title="Noch keine Kampagnen."
               description="Starten Sie die erste Verteilung direkt online."
-              action={{ href: "/customer/orders/new", label: "Neue Kampagne starten" }}
+              action={{ href: "/customer/orders/new?fresh=1", label: "Neue Kampagne starten" }}
             />
           ) : null}
         </div>

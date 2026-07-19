@@ -92,7 +92,7 @@ export default function HowItWorksPage() {
             title="Online Buchung ansehen"
             text="Wenn die Kampagne konkret ist und der Auftrag direkt angelegt werden soll."
             bullets={["Konto nutzen", "Gebiet wählen", "Preis prüfen"]}
-            href="/login?next=%2Fcustomer%2Forders%2Fnew"
+            href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1"
             buttonLabel="Buchung starten"
             tone="dark"
             icon={defaultProofIcons.gps}
