@@ -10,8 +10,11 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: proc
 const port = process.env.MAPS_ABUSE_PORT || "3044";
 const sharedBaseUrl = process.env.MAPS_ABUSE_BASE_URL || "";
 let baseUrl = sharedBaseUrl || "http://localhost:3000";
-const mapIp = "198.51.100.241";
-const bucketId = createHash("sha256").update(`flyero-public-rate-limit:maps:${mapIp}`).digest("hex");
+const mapIp = process.env.MAPS_ABUSE_IP || `198.51.100.${(Date.now() % 200) + 20}`;
+const authIp = `198.51.100.${(Date.now() % 200) + 220}`;
+const bucketId = createHash("sha256").update(`flyero-public-rate-limit:maps-autocomplete:${mapIp}`).digest("hex");
+const authIpBucketId = createHash("sha256").update(`flyero-auth-rate-limit:login:ip:${authIp}`).digest("hex");
+const authAccountBucketId = createHash("sha256").update("flyero-auth-rate-limit:login:account:kunde.immobilien@example.com").digest("hex");
 let server = null;
 
 function cookieHeaderFrom(response) {
@@ -27,12 +30,14 @@ const [protection, autocomplete, geocode, intelligence] = await Promise.all([
   readFile("src/app/api/maps/order-intelligence/route.ts", "utf8"),
 ]);
 
-assert.match(protection, /"maps"/);
-assert.match(protection, /PUBLIC_MAPS/);
-for (const route of [autocomplete, geocode, intelligence]) {
-  assert.match(route, /enforcePublicRateLimit\(request, "maps"\)/);
-  assert.match(route, /publicRateLimitResponse/);
-}
+for (const scope of ["maps-autocomplete", "maps-geocode", "maps-intelligence"]) assert.match(protection, new RegExp(`"${scope}"`));
+assert.match(protection, /PUBLIC_MAPS_AUTOCOMPLETE/);
+assert.match(protection, /PUBLIC_MAPS_GEOCODE/);
+assert.match(protection, /PUBLIC_MAPS_INTELLIGENCE/);
+assert.match(autocomplete, /enforcePublicRateLimit\(request, "maps-autocomplete"\)/);
+assert.match(geocode, /enforcePublicRateLimit\(request, "maps-geocode"\)/);
+assert.match(intelligence, /enforcePublicRateLimit\(request, "maps-intelligence"\)/);
+for (const route of [autocomplete, geocode, intelligence]) assert.match(route, /publicRateLimitResponse/);
 
 async function startServer() {
   for (const candidate of [baseUrl, `http://localhost:${port}`]) {
@@ -73,7 +78,7 @@ try {
   if (!sharedBaseUrl) await startServer();
   const login = await fetch(`${baseUrl}/api/auth/login`, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-forwarded-for": "127.0.0.234" },
+    headers: { "content-type": "application/json", "x-forwarded-for": authIp },
     body: JSON.stringify({ email: "kunde.immobilien@example.com", password: "DemoPasswort123!" }),
   });
   assert.equal(login.status, 200, `Kundenlogin fuer Maps-Smoke fehlgeschlagen: ${login.status}`);
@@ -96,5 +101,6 @@ try {
     else server.kill();
   }
   await prisma.publicRateLimitBucket.deleteMany({ where: { id: bucketId } });
+  await prisma.authRateLimitBucket.deleteMany({ where: { id: { in: [authIpBucketId, authAccountBucketId] } } });
   await prisma.$disconnect();
 }
