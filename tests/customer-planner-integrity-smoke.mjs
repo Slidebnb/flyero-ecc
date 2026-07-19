@@ -6,6 +6,7 @@ const pricingPage = readFileSync("src/app/preise/page.tsx", "utf8");
 const pricing = readFileSync("src/lib/pricing.ts", "utf8");
 const smartMaps = readFileSync("src/lib/smartMaps.ts", "utf8");
 const publicQuote = readFileSync("src/app/api/public/planner/quote/route.ts", "utf8");
+const planningQuote = readFileSync("src/lib/planningQuote.ts", "utf8");
 const intelligenceRoute = readFileSync("src/app/api/maps/order-intelligence/route.ts", "utf8");
 const deployment = readFileSync("DEPLOYMENT_HETZNER.md", "utf8");
 const dockerfile = readFileSync("Dockerfile", "utf8");
@@ -120,6 +121,11 @@ assert.match(
   "Server und Kundenwizard muessen dieselbe Mindestempfehlung verwenden.",
 );
 assert.match(
+  planningQuote,
+  /productFormat:\s*normalizeServiceProductFormat\(/,
+  "Public Planner und Kundenauftrag muessen das Flyerformat vor dem Fingerprint zentral normalisieren.",
+);
+assert.match(
   publicQuote,
   /recommendedFlyerQuantity: safeData\.metrics\.recommendedFlyerQuantity/,
   "Der oeffentliche Planer muss dieselbe serverseitige Flyerempfehlung erhalten.",
@@ -178,8 +184,23 @@ assert.match(
 );
 assert.match(
   wizard,
-  /boundaryLayerStatus === "available" \? \([\s\S]*?data-testid="order-select-boundary"/,
+  /boundarySelectionEnabled \? \([\s\S]*?data-testid="order-select-boundary"/,
   "Eine Grenzauswahl darf nur angezeigt werden, wenn Google die Boundary-Layer wirklich bereitstellt.",
+);
+assert.match(
+  wizard,
+  /const hasReusableBoundaryGeometry = areas\.some\([\s\S]*?featurePoints\(area\.geoJson\)\.length >= 3[\s\S]*?\);[\s\S]*?const boundarySelectionEnabled = boundaryLayerStatus === "available" && hasReusableBoundaryGeometry;/,
+  "Eine Grenzauswahl darf nur erscheinen, wenn die angeklickte Grenze auch als echte uebernehmbare Flaeche vorliegt.",
+);
+assert.match(
+  wizard,
+  /boundarySelectionEnabled \? \([\s\S]*?data-testid="order-select-boundary"/,
+  "Ein verfuegbarer Google-Layer allein darf keinen nicht buchbaren Grenzmodus anzeigen.",
+);
+assert.match(
+  wizard,
+  /if \(!area\) \{[\s\S]*?setAreaSelectionMode\("draw"\);[\s\S]*?Zeichne dein genaues Verteilgebiet direkt auf der Karte/,
+  "Wenn Google nur eine placeId, aber keine uebernehmbare Flaeche liefert, muss der Kunde direkt zeichnen koennen.",
 );
 
 const migrationCommand = "docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy";

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { aggregateOrderAreaSegments, normalizeOrderAreaSegments, type FeatureCollection, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
+import { normalizeServiceProductFormat } from "@/lib/serviceCatalog";
 
 export const PLANNING_QUOTE_VERSION = "planning-quote-v1";
 export const PLANNING_QUOTE_CHANGED = "PLANNING_QUOTE_CHANGED" as const;
@@ -198,7 +199,7 @@ export function normalizePlanningInput(input: PlanningQuoteInput): PlanningInput
     coverageAreaSqm,
     flyerSource: input.flyerSource ?? "CUSTOMER_OWN",
     printDataStatus: input.printDataStatus ?? "UPLOAD_LATER",
-    productFormat: input.productFormat?.trim() || "DIN Lang (99 x 210 mm)",
+    productFormat: normalizeServiceProductFormat(serviceType, input.productFormat ?? undefined),
     // Always sign the server-derived class. The client enum is only a preview
     // and must not create a second fingerprint for the same weight.
     weightClass: weightClassFromInput(input.weightInGrams),

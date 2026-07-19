@@ -915,6 +915,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     return scored[0] ?? null;
   }, [areas]);
 
+  // Google can display a boundary layer without returning a polygon that the
+  // order can actually use. Only expose boundary selection for stored,
+  // reusable geometry; every other location stays on the reliable draw path.
+  const hasReusableBoundaryGeometry = areas.some((area) => Boolean(area.googlePlaceId) && featurePoints(area.geoJson).length >= 3);
+  const boundarySelectionEnabled = boundaryLayerStatus === "available" && hasReusableBoundaryGeometry;
+
   const selectBoundaryArea = useCallback((placeId: string) => {
     const area = areas.find((candidate) => candidate.googlePlaceId === placeId);
     if (!area) {
@@ -927,16 +933,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             setMapNotice("Dieses Gebiet konnte nicht geladen werden. Zeichne die genaue Fläche bitte direkt auf der Karte.");
             return;
           }
-          setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
           applyLocationResultRef.current(result, { forceReplace: true });
-          setAreaSelectionMode("boundary");
-          setMapNotice("Ort ausgewählt. Zeichne jetzt die genaue Verteilfläche ein oder wähle ein bereits geprüftes Gebiet.");
+          setAreaSelectionMode("draw");
+          setMapNotice("Ort übernommen. Zeichne dein genaues Verteilgebiet direkt auf der Karte.");
         })
         .catch(() => setMapNotice("Dieses Gebiet konnte nicht geladen werden. Zeichne die genaue Fläche bitte direkt auf der Karte."));
       return;
     }
     const points = featurePoints(area.geoJson);
     if (points.length < 3) {
+      setAreaSelectionMode("draw");
       setMapNotice("Für dieses Gebiet liegt noch keine geprüfte Flächenkarte vor. FLYERO prüft es gerne manuell für dich.");
       return;
     }
@@ -1799,7 +1805,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }, [activeSegmentId, areaSelectionMode, center, city, mapMode, mapsBoundaryMapId, mapsReady, postalCode, pushPolygon, targetAreaName]);
 
   useEffect(() => {
-    if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps) return;
+    if (!mapsReady || !mapsBoundaryConfigured || !hasReusableBoundaryGeometry || !mapRef.current || !window.google?.maps) {
+      if (!hasReusableBoundaryGeometry) {
+        setBoundaryLayerStatus("unavailable");
+        setAreaSelectionMode("draw");
+      }
+      return;
+    }
     const maps = window.google.maps;
     const installBoundaryLayers = () => {
       if (!mapRef.current?.getFeatureLayer) return;
@@ -1830,7 +1842,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       } else {
         setBoundaryLayerStatus("unavailable");
         setAreaSelectionMode("draw");
-        setMapNotice("Die Auswahl von PLZ- und Stadtgrenzen ist für diese Karte gerade nicht verfügbar. Zeichne dein Gebiet direkt auf der Karte.");
+        setMapNotice("Für diesen Ort liegt keine fertige Gebietsfläche vor. Zeichne dein genaues Verteilgebiet direkt auf der Karte.");
       }
     };
 
@@ -1842,7 +1854,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         boundaryLayerListenersRef.current.push(idleListener);
       }
     }
-  }, [mapsBoundaryConfigured, mapsReady]);
+  }, [hasReusableBoundaryGeometry, mapsBoundaryConfigured, mapsReady]);
 
   useEffect(() => {
     for (const layer of boundaryLayerRefs.current.values()) {
@@ -2407,7 +2419,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </div>
           ) : null}
           <div className="modeTabs areaSelectionTabs">
-            {boundaryLayerStatus === "available" ? (
+            {boundarySelectionEnabled ? (
               <button
                 data-testid="order-select-boundary"
                 type="button"
@@ -2430,7 +2442,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </button>
           ) : null}
           <small className="orderSegmentHint">
-            {boundaryLayerStatus === "available"
+            {boundarySelectionEnabled
               ? "Wähle eine farbig markierte PLZ- oder Stadtfläche oder zeichne dein Gebiet selbst."
               : "Zeichne dein Verteilgebiet direkt auf der Karte. Du kannst die Fläche jederzeit anpassen."}
           </small>
