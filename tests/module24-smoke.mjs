@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -6,6 +7,16 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 let baseUrl = process.env.MODULE24_BASE_URL || `http://localhost:${process.env.MODULE24_PORT || "3025"}`;
 const PASSWORD = "DemoPasswort123!";
+const TEST_IP = process.env.SMOKE_MAPS_IP || `198.51.100.${(Date.now() % 200) + 20}`;
+
+async function resetTestRateLimits() {
+  if (process.env.NODE_ENV === "production") return;
+  const ids = [
+    createHash("sha256").update(`flyero-auth-rate-limit:login:ip:${TEST_IP}`).digest("hex"),
+    createHash("sha256").update("flyero-auth-rate-limit:login:account:kunde.immobilien@example.com").digest("hex"),
+  ];
+  await prisma.authRateLimitBucket.deleteMany({ where: { id: { in: ids } } });
+}
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -60,7 +71,7 @@ async function login(email) {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "x-forwarded-for": process.env.SMOKE_MAPS_IP || "198.51.100.204",
+      "x-forwarded-for": TEST_IP,
     },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
@@ -71,7 +82,7 @@ async function login(email) {
 async function json(path, { cookie = "", expected = [200] } = {}) {
   const response = await fetchWithTimeout(`${baseUrl}${path}`, {
     headers: {
-      "x-forwarded-for": process.env.SMOKE_MAPS_IP || "198.51.100.204",
+      "x-forwarded-for": TEST_IP,
       ...(cookie ? { cookie } : {}),
     },
   });
@@ -88,6 +99,7 @@ function includes(path, snippets) {
 
 const server = await ensureServer();
 try {
+  await resetTestRateLimits();
   const customerCookie = await login("kunde.immobilien@example.com");
   const adminCookie = await login("admin@example.com");
 
