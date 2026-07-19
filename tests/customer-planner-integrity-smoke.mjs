@@ -210,18 +210,33 @@ assert.match(
 );
 assert.match(
   wizard,
-  /new URLSearchParams\(\{\s*placeId,\s*q: query,\s*postalCode,\s*city\s*\}\)/,
-  "Ein Boundary-Klick muss den aktuellen Suchkontext an die Standortpruefung uebergeben.",
-);
-assert.match(
-  wizard,
-  /Kartenbereich gefunden[\s\S]*?genaues Verteilgebiet direkt auf der Karte/,
+  /Gebiet ausgewählt[\s\S]*?genaues Verteilgebiet direkt auf der Karte/,
   "Eine Boundary ohne gespeicherte FLYERO-Flaeche muss verstaendlich in den Zeichenmodus fuehren.",
 );
 assert.doesNotMatch(
   wizard,
   /Dieses Gebiet konnte nicht geladen werden/,
   "Ein Google-Boundary-Klick darf keinen irrefuehrenden Ladefehler im Kundenwizard anzeigen.",
+);
+assert.match(
+  wizard,
+  /fetchPlace\?\.\(\)/,
+  "Ein Boundary-Klick muss die von Google bereitgestellten Ortsdetails verwenden.",
+);
+assert.match(
+  wizard,
+  /new maps\.Geocoder\(\)/,
+  "Ein Boundary-Klick muss bei fehlenden Ortsdetails den Google-Geocoder verwenden.",
+);
+assert.match(
+  wizard,
+  /fitBounds\(boundaryViewport\)/,
+  "Ein ausgewähltes Google-Gebiet muss auf seinen echten Kartenbereich zoomen.",
+);
+assert.match(
+  wizard,
+  /setTargetAreaName\(boundaryLabel\)/,
+  "Ein ausgewähltes Google-Gebiet muss seinen echten Ortsnamen im Wizard anzeigen.",
 );
 
 const migrationCommand = "docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy";

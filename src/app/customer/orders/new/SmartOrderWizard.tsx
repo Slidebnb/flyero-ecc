@@ -75,7 +75,21 @@ type GoogleMap = {
   setMapTypeId: (mapTypeId: "roadmap" | "satellite") => void;
   getFeatureLayer?: (featureType: string) => GoogleFeatureLayer;
 };
-type GoogleFeature = { placeId?: string };
+type GoogleAddressComponent = {
+  longText?: string;
+  long_name?: string;
+  types?: string[];
+};
+type GoogleBoundaryPlace = {
+  displayName?: string;
+  formattedAddress?: string;
+  addressComponents?: GoogleAddressComponent[];
+  geometry?: { location?: GoogleLatLng | LatLng; viewport?: unknown };
+};
+type GoogleFeature = {
+  placeId?: string;
+  fetchPlace?: () => Promise<GoogleBoundaryPlace>;
+};
 type GoogleFeatureMouseEvent = { features?: GoogleFeature[] };
 type GoogleFeatureLayer = {
   isAvailable?: boolean;
@@ -92,10 +106,17 @@ type GoogleNamespace = {
   maps: {
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
     Polygon: new (options: Record<string, unknown>) => GooglePolygon;
+    Geocoder: new () => { geocode: (request: { placeId: string }) => Promise<{ results?: GoogleGeocodeResult[] }> };
     LatLngBounds: new () => { extend: (point: LatLng) => void };
     event: { addListener: (target: unknown, eventName: string, callback: (event?: GoogleMapMouseEvent) => void) => GoogleEventListener | void };
     FeatureType?: { POSTAL_CODE?: string; LOCALITY?: string };
   };
+};
+
+type GoogleGeocodeResult = {
+  formatted_address?: string;
+  address_components?: GoogleAddressComponent[];
+  geometry?: { location?: GoogleLatLng; viewport?: unknown };
 };
 
 declare global {
@@ -214,6 +235,24 @@ function featurePoints(geoJson: unknown) {
 
 function normalizeLocationPart(value?: string | null) {
   return (value ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function googleCoordinate(value?: GoogleLatLng | LatLng | null) {
+  if (!value) return null;
+  const lat = typeof value.lat === "function" ? value.lat() : value.lat;
+  const lng = typeof value.lng === "function" ? value.lng() : value.lng;
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function googleComponent(components: GoogleAddressComponent[] | undefined, types: string[]) {
+  const component = components?.find((candidate) => candidate.types?.some((type) => types.includes(type)));
+  return component?.longText ?? component?.long_name ?? "";
+}
+
+function googleBoundaryLabel(place?: GoogleBoundaryPlace | null, fallback = "Gebiet") {
+  return place?.displayName?.trim()
+    || place?.formattedAddress?.split(",")[0]?.trim()
+    || fallback;
 }
 
 function areaCenter(area: ReusableAreaOption, fallback: LatLng) {
@@ -386,7 +425,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const boundaryIdleListenerRef = useRef<GoogleEventListener | null>(null);
   const selectedBoundaryPlaceIdsRef = useRef<string[]>([]);
   const areaSegmentsRef = useRef<OrderAreaSegmentDraft[]>([]);
-  const selectBoundaryAreaRef = useRef<(placeId: string) => void>(() => undefined);
+  const selectBoundaryAreaRef = useRef<(placeId: string, feature?: GoogleFeature) => void>(() => undefined);
   const applyLocationResultRef = useRef<(result: LocationResult, options?: { forceReplace?: boolean }) => void>(() => undefined);
   const overviewDragRef = useRef<OverviewDragState | null>(null);
   const initialSearchRef = useRef<PublicLocationContext | null>(null);
@@ -832,27 +871,67 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const hasReusableBoundaryGeometry = areas.some((area) => Boolean(area.googlePlaceId) && featurePoints(area.geoJson).length >= 3);
   const boundarySelectionEnabled = boundaryLayerStatus === "available" && hasReusableBoundaryGeometry;
 
-  const selectBoundaryArea = useCallback((placeId: string) => {
+  const selectBoundaryArea = useCallback((placeId: string, feature?: GoogleFeature) => {
     const area = areas.find((candidate) => candidate.googlePlaceId === placeId);
     if (!area) {
-      const endpoint = isPublicPlanner ? "/api/public/planner/geocode" : "/api/maps/geocode";
-      fetch(`${endpoint}?${new URLSearchParams({ placeId, q: query, postalCode, city }).toString()}`)
-        .then((response) => response.ok ? response.json() : null)
-        .then((payload) => {
-          const result = payload?.data as LocationResult | null;
-          if (!result) {
-            setAreaSelectionMode("draw");
-            setMapNotice("Kartenbereich gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.");
-            return;
+      setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
+      setAreaSelectionMode("draw");
+      setMapNotice("Gebiet ausgewählt. Die Ortsdaten werden übernommen.");
+      void (async () => {
+        const maps = window.google?.maps;
+        let boundaryPlace: GoogleBoundaryPlace | null = null;
+        try {
+          boundaryPlace = await feature?.fetchPlace?.() ?? null;
+        } catch {
+          boundaryPlace = null;
+        }
+
+        let geocodeResult: GoogleGeocodeResult | null = null;
+        const placeComponents = boundaryPlace?.addressComponents;
+        const hasPlaceLabel = Boolean(boundaryPlace?.displayName || boundaryPlace?.formattedAddress);
+        if ((!hasPlaceLabel || !placeComponents?.length) && maps?.Geocoder) {
+          try {
+            const response = await new maps.Geocoder().geocode({ placeId });
+            geocodeResult = response.results?.[0] ?? null;
+          } catch {
+            geocodeResult = null;
           }
-          applyLocationResultRef.current(result, { forceReplace: true });
-          setAreaSelectionMode("draw");
-          setMapNotice("Ort übernommen. Zeichne dein genaues Verteilgebiet direkt auf der Karte.");
-        })
-        .catch(() => {
-          setAreaSelectionMode("draw");
-          setMapNotice("Kartenbereich gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.");
+        }
+
+        const components = placeComponents ?? geocodeResult?.address_components;
+        const boundaryCity = googleComponent(components, ["locality", "postal_town", "administrative_area_level_3"]);
+        const boundaryPostalCode = googleComponent(components, ["postal_code"]);
+        const boundaryCenter = googleCoordinate(boundaryPlace?.geometry?.location ?? geocodeResult?.geometry?.location);
+        const boundaryViewport = boundaryPlace?.geometry?.viewport ?? geocodeResult?.geometry?.viewport;
+        const boundaryLabel = googleBoundaryLabel(boundaryPlace, boundaryCity || city || query || "Gebiet");
+        const nextCity = boundaryCity || city;
+        const nextPostalCode = boundaryPostalCode || postalCode;
+        const nextQuery = [nextPostalCode, nextCity].filter(Boolean).join(" ") || boundaryLabel;
+
+        if (boundaryCenter) setCenter(boundaryCenter);
+        if (boundaryViewport) mapRef.current?.fitBounds(boundaryViewport);
+        else if (boundaryCenter) {
+          mapRef.current?.setCenter(boundaryCenter);
+          mapRef.current?.setZoom(14);
+        }
+        setSelectedLocation({
+          query: nextQuery,
+          placeId,
+          postalCode: nextPostalCode || undefined,
+          city: nextCity || undefined,
+          lat: boundaryCenter?.lat,
+          lng: boundaryCenter?.lng,
+          source: "google",
         });
+        setCity(nextCity);
+        setPostalCode(nextPostalCode);
+        setTargetAreaName(boundaryLabel);
+        setQuery(nextQuery);
+        setSelectedAreaId("");
+        setMapNotice(`${boundaryLabel} gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.`);
+      })().catch(() => {
+        setMapNotice(`${city || "Der Kartenbereich"} ist markiert. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.`);
+      });
       return;
     }
     const points = featurePoints(area.geoJson);
@@ -897,7 +976,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setAreaSelectionMode("boundary");
     setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
-  }, [areas, city, isPublicPlanner, postalCode, query]);
+  }, [areas, city, postalCode, query]);
 
   useEffect(() => {
     selectBoundaryAreaRef.current = selectBoundaryArea;
@@ -1589,8 +1668,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current);
         boundaryLayerRefs.current.set(featureType, layer);
         const listener = layer.addListener?.("click", (event) => {
-          const placeId = event.features?.[0]?.placeId;
-          if (placeId) selectBoundaryAreaRef.current(placeId);
+          const feature = event.features?.[0];
+          const placeId = feature?.placeId;
+          if (placeId) selectBoundaryAreaRef.current(placeId, feature);
         });
         if (listener) boundaryLayerListenersRef.current.push(listener);
       }
