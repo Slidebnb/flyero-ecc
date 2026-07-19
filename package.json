@@ -108,6 +108,7 @@
     "test:public-sitemap-runtime": "node tests/public-sitemap-runtime-smoke.mjs",
     "test:public-link-integrity": "node tests/public-link-integrity-smoke.mjs",
     "test:customer-portal-ux": "node -r dotenv/config tests/customer-portal-ux-smoke.mjs",
+    "test:customer-portal-playwright": "node -r dotenv/config tests/customer-portal-playwright.mjs",
     "test:auth-ux": "node -r dotenv/config tests/auth-ux-smoke.mjs",
     "test:auth-session": "node -r dotenv/config tests/auth-session-smoke.mjs",
     "test:auth-abuse": "node -r dotenv/config tests/auth-abuse-smoke.mjs",

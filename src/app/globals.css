@@ -7646,7 +7646,7 @@ body {
   gap: 7px;
 }
 
-.customerUnifiedContent {
+  .customerUnifiedContent {
   padding: clamp(20px, 2.4vw, 34px);
 }
 
@@ -8320,7 +8320,7 @@ body {
     display: none;
   }
 
-  .customerUnifiedContent {
+.customerUnifiedContent {
     width: 100%;
     min-width: 0;
     padding: 16px;
@@ -8328,5 +8328,46 @@ body {
 
   .customerTwoColumn {
     grid-template-columns: 1fr;
+  }
+
+  .customerCommandHero,
+  .customerMissionGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customerCommandCopy,
+  .customerEvidencePreview,
+  .customerMissionPanel {
+    min-width: 0;
+    min-height: auto;
+  }
+
+  .customerCommandCopy {
+    padding: 22px 18px;
+  }
+
+  .customerCommandCopy h2 {
+    font-size: clamp(1.9rem, 9vw, 2.65rem);
+  }
+
+  .customerCommandActions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customerCommandActions a {
+    width: 100%;
+  }
+
+  .customerEvidencePreview {
+    grid-template-rows: auto auto auto;
+  }
+
+  .evidenceStatusGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customerOutcomeMetrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
