@@ -94,6 +94,16 @@ assert.doesNotMatch(
   /Die Grenzen kannst du danach direkt auf der Karte anpassen\./,
   "Der Kunde darf nicht auf eine nicht vorhandene Grenzinteraktion verwiesen werden.",
 );
+assert.doesNotMatch(
+  wizard,
+  /Wenn eine markierte Fl[aÃ¤]che verf[aÃ¼]gbar ist/,
+  "Nach der Ortssuche darf der Kunde nicht auf eine optionale, nicht sichtbare Grenzfläche verwiesen werden.",
+);
+assert.match(
+  wizard,
+  /areaSegmentsRef\.current = \[\];\s*setAreaSegments\(\[\]\);\s*setAreaSelectionMode\("draw"\);/,
+  "Eine neue Ortssuche muss den nutzbaren Zeichenmodus sicher aktivieren.",
+);
 assert.match(
   wizard,
   /const priceReady = intelligenceStatus === "live"[\s\S]*?const pricePreviewText = coverageAreaSqm <= 0[\s\S]*?"Gebiet ausw[aä]hlen"/,

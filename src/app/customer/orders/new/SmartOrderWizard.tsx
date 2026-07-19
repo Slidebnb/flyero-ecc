@@ -1414,7 +1414,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setHistoryIndex(0);
         areaSegmentsRef.current = [];
         setAreaSegments([]);
-        setMapNotice("Ort gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte. Wenn eine markierte Fläche verfügbar ist, kannst du sie zusätzlich auswählen.");
+        setAreaSelectionMode("draw");
+        setMapNotice("Ort gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.");
       }
     }
     setPendingLocation(null);
