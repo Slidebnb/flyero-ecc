@@ -216,11 +216,15 @@ async function planningQuote(completionPath, includeSegments = true) {
 const server = await ensureServer();
 try {
   await ensureCheckoutWarehouse();
-  includes("src/app/customer/orders/new/SmartOrderWizard.tsx", [
+  includes("src/app/customer/orders/new/OrderFinishStep.tsx", [
     "Jetzt buchen und bezahlen",
     "Unverbindlich anfragen",
     "Anfrageformular herunterladen",
+  ]);
+  includes("src/app/customer/orders/new/SmartOrderWizard.tsx", [
     "Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist.",
+  ]);
+  includes("src/app/customer/orders/new/OrderSummaryStep.tsx", [
     "GPS-Nachweis",
     "Foto-Dokumentation",
     "PDF-Bericht",

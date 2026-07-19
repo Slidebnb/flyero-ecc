@@ -7,7 +7,6 @@ import Link from "next/link";
 import { hasExplicitPublicLocationContext, isGermanPostalCode, type PublicLocationContext } from "@/lib/publicLocationContext";
 import {
   CircleHelp,
-  Download,
   FileStack,
   FileText,
   Mail,
@@ -17,197 +16,27 @@ import {
   Maximize2,
   Plus,
   ReceiptText,
-  Search,
 } from "lucide-react";
 import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor";
-import { distributionServiceCatalog, normalizeOnlineServiceType, normalizeServiceProductFormat, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
+import { normalizeOnlineServiceType, normalizeServiceProductFormat, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
 import { MINIMUM_FLYER_QUANTITY } from "@/lib/constants";
-
-type LatLng = { lat: number; lng: number };
-type PolygonSource = "postal_code" | "manual" | "saved_area" | "drawn";
-type OverviewDragState = { pointerId: number; startX: number; startY: number; baseX: number; baseY: number };
-type OrderAreaSegmentDraft = {
-  id: string;
-  name: string;
-  city: string;
-  postalCode: string;
-  district: string;
-  country: string;
-  points: LatLng[];
-  polygonSource: PolygonSource;
-  distributionAreaId?: string;
-  flyerQuantity?: number;
-  notes?: string;
-};
-
-type LocationResult = {
-  city?: string | null;
-  postalCode?: string | null;
-  street?: string | null;
-  houseNumber?: string | null;
-  label?: string | null;
-  placeId?: string | null;
-  source?: "google" | "local" | "manual" | null;
-  lat: number;
-  lng: number;
-};
-
-type Props = {
-  areas: ReusableAreaOption[];
-  today: string;
-  mode?: "public_quote" | "authenticated_order";
-  initialLocation?: PublicLocationContext | null;
-};
-
-type Suggestion = {
-  id: string;
-  label: string;
-  description: string;
-  city: string;
-  postalCode: string;
-  street?: string | null;
-  lat: number;
-  lng: number;
-  source: "local" | "google";
-};
-
-type CustomerWarehouse = {
-  id: string;
-  name: string;
-  code: string;
-  city: string;
-  postalCode: string;
-  country: string;
-};
-
-type Intelligence = {
-  suggestions: ReusableAreaOption[];
-  metrics: {
-    households: number;
-    recommendedFlyerQuantity?: number;
-    flyerQuantity: number;
-    routeDistanceMeters: number;
-    routeDurationMinutes: number;
-    coverageAreaSqm: number;
-    grossPrice: string;
-    netPrice: string;
-    vatAmount?: string;
-    vatRate?: string;
-    distributorNeed: number;
-    score: number;
-    source?: string;
-    confidence?: "high" | "medium" | "low";
-    calculatedAt?: string;
-    calculationVersion?: string;
-    householdCountSource?: string;
-    pricingVersion?: string;
-    fingerprint?: string;
-    polygonHash?: string;
-    pricingRuleSignature?: string;
-    quote?: {
-      fingerprint: string;
-      polygonHash: string;
-      pricingVersion: string;
-      pricingRuleSignature: string;
-    };
-    areaReference?: {
-      distributionAreaId: string | null;
-      name: string | null;
-      city: string | null;
-      postalCode: string | null;
-      coverageAreaSqm: number | null;
-      estimateMethod: string | null;
-      estimateSource: string | null;
-      estimateConfidence: number | null;
-    };
-    segments?: Array<{
-      name: string;
-      city: string | null;
-      postalCode: string | null;
-      coverageAreaSqm: number;
-      households: number;
-      householdCountSource: string;
-      confidence: "high" | "medium" | "low";
-      distributionAreaId: string | null;
-    }>;
-    needsManualReview?: boolean;
-    manualReviewRequired?: boolean;
-  };
-  warehouse?: { id: string; name: string; code: string; city: string; reason: string } | null;
-  combinations?: Array<{ key: string; orders: unknown[]; savedDistanceMeters: number; savedMinutes: number; savedCostEstimate: string }>;
-};
-
-type OrderDraft = {
-  serviceType?: OnlineServiceType;
-  activeStep?: number;
-  query?: string;
-  selectedLocation?: PublicLocationContext | null;
-  selectedAreaId?: string;
-  city?: string;
-  postalCode?: string;
-  street?: string;
-  houseNumber?: string;
-  targetAreaName?: string;
-  center?: LatLng;
-  polygon?: LatLng[];
-  polygonSource?: PolygonSource;
-  areaSegments?: OrderAreaSegmentDraft[];
-  areaStats?: {
-    polygonSource: PolygonSource;
-    areaKm2: number;
-    householdCount: number;
-    recommendedFlyerQuantity: number;
-    pricePreview: string;
-    walkingDistanceKm: number;
-    deliveryDurationMinutes: number;
-    warehouseSuggestion: string | null;
-    distributorDemand: number;
-    deliverabilityScore: number | null;
-    source: string;
-    confidence: "high" | "medium" | "low";
-    calculatedAt: string;
-    calculationVersion: string;
-    householdCountSource: string;
-    pricingVersion: string;
-    needsManualReview?: boolean;
-    segments?: Array<{ name: string; city: string; postalCode: string; areaSqm: number; flyerQuantity?: number }>;
-    areaReference: {
-      distributionAreaId: string | null;
-      targetAreaName: string;
-      city: string;
-      postalCode: string;
-      polygonSource: PolygonSource;
-      coverageAreaSqm: number;
-      sourceAreaCoverageAreaSqm: number | null;
-      estimateMethod: string | null;
-      estimateSource: string | null;
-      estimateConfidence: number | null;
-    };
-  };
-  flyerQuantity?: number;
-  warehouseId?: string;
-  flyerQuantityTouched?: boolean;
-  productFormat?: string;
-  weightInGrams?: number;
-  productDetails?: Record<string, unknown>;
-  samplingDetails?: Record<string, unknown>;
-  effectiveWeightClass?: string;
-  quoteFingerprint?: string;
-  pricingVersion?: string;
-  pricingRuleSignature?: string;
-  polygonHash?: string;
-  intelligenceStatus?: string;
-  flyerSource?: string;
-  printDataStatus?: string;
-  targetGroup?: string;
-  distributionType?: string;
-  startDate?: string;
-  endDate?: string;
-  flexibleScheduling?: boolean;
-  contactPerson?: string;
-  contactPhone?: string;
-  notes?: string;
-};
+import type {
+  CustomerWarehouse,
+  Intelligence,
+  LatLng,
+  LocationResult,
+  OrderAreaSegmentDraft,
+  OrderDraft,
+  OverviewDragState,
+  PolygonSource,
+  Suggestion,
+  WizardProps,
+} from "./orderWizardTypes";
+import { OrderAreaStep } from "./OrderAreaStep";
+import { OrderFinishStep } from "./OrderFinishStep";
+import { OrderMaterialStep } from "./OrderMaterialStep";
+import { OrderScheduleStep } from "./OrderScheduleStep";
+import { OrderSummaryStep } from "./OrderSummaryStep";
 
 const orderNavItems = [
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
@@ -529,7 +358,7 @@ function MiniMapFallback() {
   );
 }
 
-export function SmartOrderWizard({ areas, today, mode = "authenticated_order", initialLocation: initialLocationProp = null }: Props) {
+export function SmartOrderWizard({ areas, today, mode = "authenticated_order", initialLocation: initialLocationProp = null }: WizardProps) {
   const isPublicPlanner = mode === "public_quote";
   const minimumStartDate = useMemo(() => addDaysToIsoDate(today, 7), [today]);
   const draftStorageKey = isPublicPlanner ? PUBLIC_ORDER_DRAFT_KEY : ORDER_DRAFT_KEY;
@@ -2334,266 +2163,100 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   function renderStepContent(stepId: number) {
     if (stepId === 6) {
-      return (
-        <section className="orderPanelBlock inlineStepBlock" data-testid="order-completion-step">
-          <p className="orderStepHint">Fast geschafft. Prüfe deine Angaben und entscheide, wie du fortfahren möchtest.</p>
-          <div className="orderFinishChoices">
-            {flyerSource === "CUSTOMER_OWN" && effectiveWeightClass !== "CUSTOM" && serviceType !== "PRODUCT_SAMPLING" ? (
-              <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
-                Jetzt buchen und bezahlen
-                <small>Auftrag anlegen und sicher zur Zahlung weitergehen.</small>
-              </button>
-            ) : null}
-            <button data-testid="order-finish-inquiry" type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
-              Unverbindlich anfragen
-              <small>Wir prüfen Gebiet, Zustellbarkeit und deine Flyer und melden uns schnell.</small>
-            </button>
-            <a href={inquiryFormHref} download>
-              <Download aria-hidden="true" />
-              Anfrageformular herunterladen
-            </a>
-            <a href={inquiryMailHref}>
-              <Mail aria-hidden="true" />
-              Per E-Mail anfragen
-            </a>
-          </div>
-          <p className="orderReviewNotice">Deine Flyer sind bereits gedruckt. Nach der Verteilung erhältst du GPS-Nachweis, Foto-Dokumentation und PDF-Bericht.</p>
-          {finishStatus ? <p className="finishStatus" role="status">{finishStatus}</p> : null}
-        </section>
-      );
+      return <OrderFinishStep
+        flyerSource={flyerSource}
+        effectiveWeightClass={effectiveWeightClass}
+        serviceType={serviceType}
+        isFinishing={isFinishing}
+        finishStatus={finishStatus}
+        inquiryFormHref={inquiryFormHref}
+        inquiryMailHref={inquiryMailHref}
+        onFinish={finishOrder}
+      />;
     }
 
     if (stepId === 1) {
-      return (
-        <section className="orderPanelBlock primary inlineStepBlock">
-          <p className="orderStepHint">Gib eine Adresse oder PLZ ein. Danach kannst du das Gebiet direkt auf der Karte anpassen.</p>
-          <label>
-            PLZ, Ort oder Adresse
-            <div className="searchInputShell">
-              <input
-                data-testid="order-location-input"
-                value={query}
-                ref={searchInputRef}
-                onChange={(event) => {
-                  clearLocationSelection();
-                  setQuery(event.target.value);
-                  setShowSuggestions(true);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    setShowSuggestions(false);
-                    geocodeAddress();
-                  }
-                }}
-                onFocus={openSuggestions}
-                onBlur={closeSuggestionsSoon}
-                placeholder="z. B. PLZ, Ort oder Straße"
-                autoComplete="off"
-              />
-              <button type="button" onClick={() => geocodeAddress(searchInputRef.current?.value)} aria-label="Adresse suchen"><Search aria-hidden="true" /></button>
-            </div>
-          </label>
-          <div className="selectedLocationBar">
-            <strong>{city ? `${postalCode} ${city}` : query ? query : "Noch kein Gebiet gewählt"}</strong>
-            <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : query && !city ? "Ort wird gesucht ..." : "Du kannst die Fläche danach direkt auf der Karte anpassen."}</span>
-          </div>
-          {pendingLocation ? (
-            <div className="replaceAreaNotice" role="alert">
-              <strong>Dein Gebiet wurde auf der Karte angepasst.</strong>
-              <p>Wenn du eine neue PLZ übernimmst, ersetzt sie dein aktuelles Gebiet.</p>
-              <div>
-                <button type="button" onClick={() => applyLocationResult(pendingLocation, { forceReplace: true })}>Neues Gebiet übernehmen</button>
-                <button type="button" onClick={keepCurrentArea}>Aktuelles Gebiet behalten</button>
-              </div>
-            </div>
-          ) : null}
-          {showSuggestions && suggestions.length > 0 ? (
-            <div className="orderSuggestions">
-              {suggestions.map((suggestion) => (
-                <button type="button" key={suggestion.id} onMouseDown={(event) => event.preventDefault()} onClick={() => applySuggestion(suggestion)}>
-                  <strong>{suggestion.label}</strong>
-                  <span>{suggestion.description}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <div className="modeTabs areaSelectionTabs">
-            {boundarySelectionEnabled ? (
-              <button
-                data-testid="order-select-boundary"
-                type="button"
-                className={areaSelectionMode === "boundary" ? "selected" : ""}
-                onClick={() => {
-                  setAreaSelectionMode("boundary");
-                  setMapNotice("Wähle eine farbig markierte PLZ- oder Stadtfläche auf der Karte aus.");
-                }}
-              >
-                Markierte Fläche auswählen
-              </button>
-            ) : null}
-            <button data-testid="order-draw-area" type="button" className={areaSelectionMode === "draw" || boundaryLayerStatus !== "available" ? "selected" : ""} onClick={startDrawingArea}>
-              Gebiet auf der Karte zeichnen
-            </button>
-          </div>
-          {areaSelectionMode === "draw" && drawingPoints.length >= 3 ? (
-            <button data-testid="order-finish-drawing" type="button" className="orderDrawingFinish" onClick={finishDrawingArea}>
-              Gebiet abschließen
-            </button>
-          ) : null}
-          <small className="orderSegmentHint">
-            {boundarySelectionEnabled
-              ? "Wähle eine farbig markierte PLZ- oder Stadtfläche oder zeichne dein Gebiet selbst."
-              : "Zeichne dein Verteilgebiet direkt auf der Karte. Du kannst die Fläche jederzeit anpassen."}
-          </small>
-          <div className="savedAreaMini">
-            <div>
-              <span>Dein Verteilgebiet</span>
-              <strong>{(previewCoverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>
-              <small>{polygonSourceLabel()}</small>
-            </div>
-            <div className="miniPolygon" aria-hidden="true" />
-          </div>
-          <div className="orderSegmentList" aria-label="Teilgebiete">
-            <div className="orderSegmentListHeader">
-              <span>Teilgebiete deiner Planung</span>
-              <strong>{areaSegmentsPayload.length}</strong>
-            </div>
-            {areaSegments.map((segment, index) => (
-              <div className={segment.id === activeSegmentId ? "orderSegmentRow active" : "orderSegmentRow"} key={segment.id}>
-                <button type="button" onClick={() => selectSegment(segment)}>
-                  <span className="orderSegmentIndex">{index + 1}</span>
-                  <span>
-                    <strong>{segment.name || `Teilgebiet ${index + 1}`}</strong>
-                    <small>{[segment.postalCode, segment.city].filter(Boolean).join(" ") || "Noch nicht festgelegt"}</small>
-                  </span>
-                </button>
-                <button type="button" className="orderSegmentRemove" onClick={() => removeSegment(segment.id)} disabled={areaSegments.length <= 1} aria-label={`${segment.name || "Teilgebiet"} entfernen`}>Entfernen</button>
-              </div>
-            ))}
-            <button type="button" className="orderSegmentAdd" onClick={addSegment}>Teilgebiet hinzufügen</button>
-            <small className="orderSegmentHint">Mehrere Orte und Stadtteile bleiben getrennt sichtbar und werden gemeinsam geplant.</small>
-          </div>
-        </section>
-      );
+      return <OrderAreaStep
+        query={query}
+        city={city}
+        postalCode={postalCode}
+        street={street}
+        houseNumber={houseNumber}
+        searchInputRef={searchInputRef}
+        suggestions={suggestions}
+        showSuggestions={showSuggestions}
+        pendingLocation={pendingLocation}
+        boundarySelectionEnabled={boundarySelectionEnabled}
+        areaSelectionMode={areaSelectionMode}
+        boundaryLayerAvailable={boundaryLayerStatus === "available"}
+        drawingPoints={drawingPoints}
+        previewCoverageAreaSqm={previewCoverageAreaSqm}
+        areaSegmentsPayload={areaSegmentsPayload}
+        areaSegments={areaSegments}
+        activeSegmentId={activeSegmentId}
+        onQueryChange={(value) => {
+          clearLocationSelection();
+          setQuery(value);
+          setShowSuggestions(true);
+        }}
+        onEnter={() => {
+          setShowSuggestions(false);
+          geocodeAddress();
+        }}
+        onSearch={() => geocodeAddress(searchInputRef.current?.value)}
+        onFocus={openSuggestions}
+        onBlur={closeSuggestionsSoon}
+        onApplySuggestion={applySuggestion}
+        onApplyPendingLocation={() => applyLocationResult(pendingLocation!, { forceReplace: true })}
+        onKeepCurrentArea={keepCurrentArea}
+        onEnableBoundary={() => {
+          setAreaSelectionMode("boundary");
+          setMapNotice("Wähle eine farbig markierte PLZ- oder Stadtfläche auf der Karte aus.");
+        }}
+        onStartDrawing={startDrawingArea}
+        onFinishDrawing={finishDrawingArea}
+        onSelectSegment={selectSegment}
+        onRemoveSegment={removeSegment}
+        onAddSegment={addSegment}
+        polygonSourceLabel={polygonSourceLabel}
+      />;
     }
 
     if (stepId === 2) {
-      return (
-        <section className="orderPanelBlock inlineStepBlock" data-testid="customer-own-flyer-step">
-          <p className="orderStepHint">Wähle zuerst, welches Werbemittel du verteilen lassen möchtest. Online buchbar sind bereits gedruckte Materialien, die an ein FLYERO-Lager gesendet werden.</p>
-          <div className="serviceChoiceList" aria-label="Werbemittel auswählen" data-testid="order-service-type">
-            {distributionServiceCatalog.map((service) => (
-              <button
-                key={service.serviceType}
-                type="button"
-                className={serviceType === service.serviceType ? "serviceChoice isSelected" : "serviceChoice"}
-                aria-pressed={serviceType === service.serviceType}
-                onClick={() => {
-                  setServiceType(service.serviceType);
-                  setProductFormat(normalizeServiceProductFormat(service.serviceType));
-                }}
-              >
-                <span className="serviceChoiceMarker" aria-hidden="true" />
-                <span>
-                  <strong>{service.label}</strong>
-                  <small>{service.description}</small>
-                </span>
-              </button>
-            ))}
-          </div>
-          <p className="orderReviewNotice">Du sendest deine fertigen Materialien nach der Buchung an das ausgewählte Lager. Den Druck selbst übernimmt FLYERO in diesem Online-Ablauf nicht.</p>
-          <label className="selectLine">
-            <span>Format</span>
-            <select data-testid="order-product-format" value={productFormat} onChange={(event) => setProductFormat(normalizeServiceProductFormat(serviceType, event.target.value))}>
-              {selectedService.formatOptions.map((format) => <option key={format} value={format}>{format}</option>)}
-            </select>
-            <small>Wähle das Format, das du bereits gedruckt an das Lager sendest.</small>
-          </label>
-          <label className="selectLine">
-            <span>Ungefähres Einzelgewicht</span>
-            <input type="number" min="1" max="10000" inputMode="numeric" value={weightInGrams} onChange={(event) => setWeightInGrams(event.target.value)} placeholder="z. B. 35" />
-            <small>{numericWeightInGrams ? `Gewichtsklasse: ${effectiveWeightClass === "CUSTOM" ? "individuelles Angebot" : effectiveWeightClass}` : "Optional. Ohne Angabe kalkulieren wir mit LIGHT."}</small>
-          </label>
-          {effectiveWeightClass === "CUSTOM" ? (
-            <p className="orderReviewNotice" role="status">
-              Bei mehr als 250 g prüfen wir die sichere Zustellung persönlich. Eine direkte Zahlung ist für dieses Gewicht nicht verfügbar; sende uns bitte zuerst eine unverbindliche Anfrage.
-            </p>
-          ) : null}
-          {serviceType === "PRODUCT_SAMPLING" ? (
-            <div className="samplingDetails" data-testid="sampling-details">
-              <strong>Angaben zur Produktprobe</strong>
-              <label>Größe<input value={samplingDetails.size} onChange={(event) => setSamplingDetails((current) => ({ ...current, size: event.target.value }))} placeholder="z. B. 10 ml oder 8 x 5 cm" /></label>
-              <label>Verpackung<input value={samplingDetails.packaging} onChange={(event) => setSamplingDetails((current) => ({ ...current, packaging: event.target.value }))} placeholder="z. B. Beutel, Karton oder Fläschchen" /></label>
-              <label>Lagerbedingungen<input value={samplingDetails.storage} onChange={(event) => setSamplingDetails((current) => ({ ...current, storage: event.target.value }))} placeholder="z. B. trocken lagern" /></label>
-              <label className="checkLine"><input type="checkbox" checked={samplingDetails.fragile} onChange={(event) => setSamplingDetails((current) => ({ ...current, fragile: event.target.checked }))} />Empfindlich oder zerbrechlich</label>
-              <label className="checkLine"><input type="checkbox" checked={samplingDetails.personalHandover} onChange={(event) => setSamplingDetails((current) => ({ ...current, personalHandover: event.target.checked }))} />Persönliche Übergabe erforderlich</label>
-            </div>
-          ) : null}
-          {repeatPrintChoice === "pending" ? (
-            <div className="repeatPrintNotice" role="alert">
-              <strong>Ist deine Flyerauflage noch aktuell?</strong>
-              <p>Gebiet und Flyerzahl wurden von deiner letzten Kampagne übernommen.</p>
-              <div className="repeatPrintActions">
-                <button type="button" className="primaryButton" onClick={() => {
-                  setRepeatPrintChoice("same");
-                  setPrintDataStatus("UPLOAD_LATER");
-                }}>Ja, ich sende dieselben Flyer</button>
-                <button type="button" className="secondaryButton" onClick={() => {
-                  setRepeatPrintChoice("changed");
-                  setPrintDataStatus("UPLOAD_LATER");
-                }}>Nein, ich sende neue Flyer</button>
-              </div>
-            </div>
-          ) : null}
-          {!isPublicPlanner ? (
-            <label className="selectLine">
-              <span>Empfangslager für deine Flyer</span>
-              <select
-                data-testid="order-warehouse-select"
-                value={selectedWarehouseId}
-                onChange={(event) => setSelectedWarehouseId(event.target.value)}
-                disabled={warehouseOptionsStatus === "loading"}
-              >
-                <option value="">
-                  {warehouseOptionsStatus === "loading" ? "Lager werden geladen ..." : "Lager auswählen"}
-                </option>
-                {warehouseOptions.map((warehouse) => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name} · {warehouse.postalCode} {warehouse.city}
-                  </option>
-                ))}
-              </select>
-              <small>
-                Du sendest die bereits gedruckten Flyer nach der Buchung an dieses Lager.
-                {warehouseOptionsStatus === "error" ? " Die Lager konnten gerade nicht geladen werden." : ""}
-              </small>
-            </label>
-          ) : (
-            <p className="orderReviewNotice">Nach deiner Registrierung wählst du das Empfangslager für deine bereits gedruckten Flyer aus.</p>
-          )}
-          <div className="flyerRecommendation">
-            <span>Unser Vorschlag</span>
-            <strong>{formatNumber(recommendedFlyerQuantity)} Stück mit 10 % Reserve</strong>
-            <small>Du kannst die Menge jederzeit ändern.</small>
-          </div>
-          <div className="quantityControl">
-            <button type="button" onClick={() => moveQuantity(-1000)}>−</button>
-            <input
-              data-testid="order-flyer-quantity"
-              value={flyerQuantity}
-              onChange={(event) => {
-                setFlyerQuantityTouched(true);
-                setFlyerQuantity(Number(event.target.value) || MINIMUM_FLYER_QUANTITY);
-              }}
-              onBlur={() => setFlyerQuantity((value) => Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, value)))}
-              inputMode="numeric"
-            />
-            <button type="button" onClick={() => moveQuantity(1000)}>+</button>
-            <span>Stück</span>
-          </div>
-        </section>
-      );
+      return <OrderMaterialStep
+        isPublicPlanner={isPublicPlanner}
+        serviceType={serviceType}
+        selectedService={selectedService}
+        productFormat={productFormat}
+        weightInGrams={weightInGrams}
+        numericWeightInGrams={numericWeightInGrams}
+        effectiveWeightClass={effectiveWeightClass}
+        samplingDetails={samplingDetails}
+        repeatPrintChoice={repeatPrintChoice}
+        warehouseOptionsStatus={warehouseOptionsStatus}
+        warehouseOptions={warehouseOptions}
+        selectedWarehouseId={selectedWarehouseId}
+        recommendedFlyerQuantity={recommendedFlyerQuantity}
+        flyerQuantity={flyerQuantity}
+        onServiceTypeChange={(next) => {
+          setServiceType(next);
+          setProductFormat(normalizeServiceProductFormat(next));
+        }}
+        onProductFormatChange={(format) => setProductFormat(normalizeServiceProductFormat(serviceType, format))}
+        onWeightChange={setWeightInGrams}
+        onSamplingDetailsChange={(details) => setSamplingDetails(details)}
+        onRepeatPrintChoice={(choice) => {
+          setRepeatPrintChoice(choice);
+          setPrintDataStatus("UPLOAD_LATER");
+        }}
+        onWarehouseChange={setSelectedWarehouseId}
+        onMoveQuantity={moveQuantity}
+        onQuantityChange={(quantity) => {
+          setFlyerQuantityTouched(true);
+          setFlyerQuantity(quantity);
+        }}
+        onQuantityBlur={() => setFlyerQuantity((value) => Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, value)))}
+      />;
     }
 
     if (stepId === 3) {
@@ -2630,113 +2293,61 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
 
     if (stepId === 4) {
-      return (
-        <section className="orderPanelBlock inlineStepBlock">
-          <p className="orderStepHint">Wähle deinen Zeitraum. Der früheste Start ist sieben Tage nach deiner Buchung.</p>
-          <div className="dateGrid">
-            <label>Frühester möglicher Start<input type="date" min={minimumStartDate} value={startDate} onChange={(event) => {
-              const nextStartDate = clampIsoDate(event.target.value, minimumStartDate);
-              setStartDate(nextStartDate);
-              if (endDate < nextStartDate) setEndDate(nextStartDate);
-            }} /></label>
-            <label>Spätestes Zustelldatum<input type="date" min={startDate} value={endDate} onChange={(event) => setEndDate(clampIsoDate(event.target.value, startDate))} /></label>
-          </div>
-          <label className="checkLine">
-            <input type="checkbox" checked={flexibleScheduling} onChange={(event) => setFlexibleScheduling(event.target.checked)} />
-            Zeitraum flexibel abstimmen
-          </label>
-        </section>
-      );
+      return <OrderScheduleStep
+        minimumStartDate={minimumStartDate}
+        startDate={startDate}
+        endDate={endDate}
+        flexibleScheduling={flexibleScheduling}
+        onStartDateChange={(value) => {
+          const nextStartDate = clampIsoDate(value, minimumStartDate);
+          setStartDate(nextStartDate);
+          if (endDate < nextStartDate) setEndDate(nextStartDate);
+        }}
+        onEndDateChange={(value) => setEndDate(clampIsoDate(value, startDate))}
+        onFlexibleSchedulingChange={setFlexibleScheduling}
+      />;
     }
 
-    if (stepId === 5 && flyerSource === "CUSTOMER_OWN") {
-      return (
-        <section className="orderPanelBlock inlineStepBlock" data-testid="customer-own-flyer-summary">
-          <div className="summaryMiniGrid">
-            <span><strong>{postalCode} {city}</strong>Gebiet</span>
-            <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
-            <span><strong>{selectedService.label}</strong>Werbemittel</span>
-            <span><strong>{formatNumber(flyerQuantity)}</strong>Stück</span>
-            <span data-testid="order-price-net"><strong>{priceReady ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
-            <span><strong>{priceReady ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
-            <span className="summaryTotal"><strong>{priceReady ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
-            <span><strong>{selectedWarehouse?.name ?? "Bitte auswählen"}</strong>Empfangslager</span>
-          </div>
-          <p className="orderReviewNotice">Deine Flyer sind bereits gedruckt und werden nach der Buchung an das ausgewählte Empfangslager gesendet. FLYERO prüft Gebiet und Zustellbarkeit vor der Durchführung.</p>
-          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, coverageAreaSqm > 0)}</p>
-          <div className="proofIncludedList">
-            <span>GPS-Nachweis nach der Verteilung</span>
-            <span>Foto-Dokumentation nach der Verteilung</span>
-            <span>PDF-Bericht nach Abschluss</span>
-          </div>
-          <details className="orderDetails inlineDetails">
-            <summary>Kontakt & Hinweise</summary>
-            <label>Kontaktperson<input value={contactPerson} onChange={(event) => setContactPerson(event.target.value)} /></label>
-            <label>Telefon<input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} /></label>
-            <label>Hinweise<textarea value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-          </details>
-        </section>
-      );
+    if (stepId === 5) {
+      const ownFlyers = flyerSource === "CUSTOMER_OWN";
+      return <OrderSummaryStep
+        postalCode={postalCode}
+        city={city}
+        coverageAreaSqm={coverageAreaSqm}
+        service={selectedService}
+        flyerQuantity={flyerQuantity}
+        priceReady={priceReady}
+        netPrice={netPrice}
+        vatAmount={vatAmount}
+        grossPrice={grossPrice}
+        pricePreviewText={pricePreviewText}
+        selectedWarehouse={ownFlyers ? selectedWarehouse ?? undefined : undefined}
+        warehouseLabel={ownFlyers ? "Bitte auswählen" : warehouseSuggestionLabel}
+        dataBasisLabel={confidenceLabel(areaStats.confidence, coverageAreaSqm > 0)}
+        notice={ownFlyers
+          ? "Deine Flyer sind bereits gedruckt und werden nach der Buchung an das ausgewählte Empfangslager gesendet. FLYERO prüft Gebiet und Zustellbarkeit vor der Durchführung."
+          : "Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist. Falls sich etwas ändert, melden wir uns."}
+        contactPerson={contactPerson}
+        contactPhone={contactPhone}
+        notes={notes}
+        onContactPersonChange={setContactPerson}
+        onContactPhoneChange={setContactPhone}
+        onNotesChange={setNotes}
+        formatNumber={formatNumber}
+        formatCurrency={formatCurrency}
+      />;
     }
 
-    if (stepId === 5 && flyerSource !== "CUSTOMER_OWN") {
-      return (
-        <section className="orderPanelBlock inlineStepBlock">
-          <div className="summaryMiniGrid">
-            <span><strong>{postalCode} {city}</strong>Gebiet</span>
-            <span><strong>{formatNumber(households)}</strong>Haushalte geschätzt</span>
-            <span><strong>{(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</strong>Fläche</span>
-            <span><strong>{selectedService.label}</strong>Werbemittel</span>
-            <span><strong>{formatNumber(flyerQuantity)}</strong>Stück</span>
-            <span data-testid="order-price-net"><strong>{priceReady ? formatCurrency(netPrice) : pricePreviewText}</strong>Preis netto</span>
-            <span><strong>{priceReady ? formatCurrency(vatAmount) : pricePreviewText}</strong>Umsatzsteuer</span>
-            <span className="summaryTotal"><strong>{priceReady ? formatCurrency(grossPrice) : pricePreviewText}</strong>Gesamt brutto</span>
-            <span><strong>{warehouseSuggestionLabel}</strong>Nächstes Lager</span>
-          </div>
-          <p className="orderReviewNotice">Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist. Falls sich etwas ändert, melden wir uns.</p>
-          <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, coverageAreaSqm > 0)}</p>
-          <div className="proofIncludedList">
-            <span>GPS-Nachweis nach der Verteilung</span>
-            <span>Foto-Dokumentation nach der Verteilung</span>
-            <span>PDF-Bericht nach Abschluss</span>
-          </div>
-          <details className="orderDetails inlineDetails">
-            <summary>Kontakt & Hinweise</summary>
-            <label>Kontaktperson<input value={contactPerson} onChange={(event) => setContactPerson(event.target.value)} /></label>
-            <label>Telefon<input value={contactPhone} onChange={(event) => setContactPhone(event.target.value)} /></label>
-            <label>Hinweise<textarea value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-          </details>
-        </section>
-      );
-    }
-
-    return (
-      <section className="orderPanelBlock inlineStepBlock">
-        <p className="orderStepHint">Wähle, wie du fortfahren möchtest. Eine Anfrage ist unverbindlich und löst keine Zahlung aus.</p>
-        <div className="orderFinishChoices">
-            {flyerSource === "CUSTOMER_OWN" && effectiveWeightClass !== "CUSTOM" ? (
-            <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => finishOrder("direct_payment")}>
-              Jetzt buchen und bezahlen
-              <small>Buchung anlegen und sicher zur Zahlung weitergehen.</small>
-            </button>
-          ) : null}
-          <button data-testid="order-finish-inquiry" type="button" disabled={isFinishing} onClick={() => finishOrder("inquiry")}>
-            {serviceType === "PRODUCT_SAMPLING" ? "Individuelles Sampling-Angebot anfragen" : "Unverbindlich anfragen"}
-            <small>{serviceType === "PRODUCT_SAMPLING" ? "Gewicht, Verpackung, Lagerung und Übergabe werden vorab geprüft." : "Wir prüfen Gebiet, Druck und Preis und melden uns schnell."}</small>
-          </button>
-          <a href={inquiryFormHref} download>
-            <Download aria-hidden="true" />
-            Anfrageformular herunterladen
-          </a>
-          <a href={inquiryMailHref}>
-            <Mail aria-hidden="true" />
-            Per E-Mail anfragen
-          </a>
-        </div>
-        <p className="orderReviewNotice">Nach der Verteilung erhältst du GPS-Nachweis, Foto-Dokumentation und PDF-Bericht.</p>
-        {finishStatus ? <p className="finishStatus" role="status">{finishStatus}</p> : null}
-      </section>
-    );
+    return <OrderFinishStep
+      flyerSource={flyerSource}
+      effectiveWeightClass={effectiveWeightClass}
+      serviceType={serviceType}
+      isFinishing={isFinishing}
+      finishStatus={finishStatus}
+      inquiryFormHref={inquiryFormHref}
+      inquiryMailHref={inquiryMailHref}
+      onFinish={finishOrder}
+    />;
   }
 
   return (

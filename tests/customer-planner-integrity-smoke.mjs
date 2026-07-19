@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
+const areaStep = readFileSync("src/app/customer/orders/new/OrderAreaStep.tsx", "utf8");
 const pricingPage = readFileSync("src/app/preise/page.tsx", "utf8");
 const pricing = readFileSync("src/lib/pricing.ts", "utf8");
 const smartMaps = readFileSync("src/lib/smartMaps.ts", "utf8");
@@ -183,9 +184,14 @@ assert.match(
   "Ohne verfuegbare Boundary-Layer muss der Wizard direkt in den Zeichenmodus wechseln.",
 );
 assert.match(
-  wizard,
+  areaStep,
   /boundarySelectionEnabled \? \([\s\S]*?data-testid="order-select-boundary"/,
   "Eine Grenzauswahl darf nur angezeigt werden, wenn Google die Boundary-Layer wirklich bereitstellt.",
+);
+assert.match(
+  areaStep,
+  /Klicke auf der Karte nacheinander auf die Eckpunkte[\s\S]*?Gebiet abschließen/,
+  "Der Zeichenweg muss für Kunden ohne technische Erklärung verständlich sein.",
 );
 assert.match(
   wizard,
@@ -193,7 +199,7 @@ assert.match(
   "Eine Grenzauswahl darf nur erscheinen, wenn die angeklickte Grenze auch als echte uebernehmbare Flaeche vorliegt.",
 );
 assert.match(
-  wizard,
+  areaStep,
   /boundarySelectionEnabled \? \([\s\S]*?data-testid="order-select-boundary"/,
   "Ein verfuegbarer Google-Layer allein darf keinen nicht buchbaren Grenzmodus anzeigen.",
 );

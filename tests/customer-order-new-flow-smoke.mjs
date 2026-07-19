@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
+const finishStep = readFileSync("src/app/customer/orders/new/OrderFinishStep.tsx", "utf8");
 const orderRoute = readFileSync("src/app/api/customer/orders/route.ts", "utf8");
 
 assert.match(wizard, /serviceType === "PRODUCT_SAMPLING"/);
-assert.match(wizard, /serviceType !== "PRODUCT_SAMPLING"/);
-assert.match(wizard, /Individuelles Sampling-Angebot anfragen/);
+assert.match(finishStep, /serviceType === "PRODUCT_SAMPLING"/);
+assert.match(finishStep, /!sampling/);
+assert.match(finishStep, /Individuelles Sampling-Angebot anfragen/);
 assert.match(wizard, /samplingDetails: serviceType === "PRODUCT_SAMPLING"/);
 assert.match(wizard, /quoteFingerprint: intelligence\?\.metrics\.fingerprint/);
 assert.match(wizard, /pricingRuleSignature: intelligence\?\.metrics\.pricingRuleSignature/);

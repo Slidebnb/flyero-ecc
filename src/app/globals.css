@@ -4525,6 +4525,16 @@ body {
   line-height: 1.45;
 }
 
+.orderDrawingGuide {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-left: 2px solid #a7ff00;
+  background: rgba(167,255,0,0.06);
+  color: rgba(255,255,255,0.78);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .replaceAreaNotice {
   display: grid;
   gap: 8px;

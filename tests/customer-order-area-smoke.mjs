@@ -152,9 +152,6 @@ try {
     "areaCalculationSnapshot",
     "mapNotice",
     "setMapTypeId",
-    "Dein Gebiet wurde auf der Karte angepasst.",
-    "Neues Gebiet \u00fcbernehmen",
-    "Aktuelles Gebiet behalten",
     "orderNavGroups",
     "customerSideNavSection",
     'className="orderSideNav customerSideNav"',
@@ -166,6 +163,11 @@ try {
     "POSTAL_CODE",
     "LOCALITY",
     "Gebiet ausw\u00e4hlen",
+  ]);
+  includes("src/app/customer/orders/new/OrderAreaStep.tsx", [
+    "Dein Gebiet wurde auf der Karte angepasst.",
+    "Neues Gebiet \u00fcbernehmen",
+    "Aktuelles Gebiet behalten",
     "Gebiet auf der Karte zeichnen",
   ]);
   assert(!wizard.includes("Math.random"), "Wizard darf keine Zufallswerte fuer Gebietsuebersicht nutzen.");

@@ -184,6 +184,7 @@ async function run() {
     errors.push(`customer console: ${message.text()}`);
   });
   customerPage.on("pageerror", (error) => errors.push(`customer pageerror: ${error.message}`));
+  let samplingOrderId = null;
 
   try {
     await login(customerPage, "kunde.immobilien@example.com", "/customer/orders/new");
@@ -228,6 +229,62 @@ async function run() {
     assert(!visiblePrice.includes("wird berechnet"), "Der Preis bleibt in der Browserplanung unberechnet.");
     await customerPage.locator('[data-testid="order-step-6"]').click();
     await customerPage.locator('[data-testid="order-finish-inquiry"]').waitFor();
+
+    // Product samples must always go through manual review and must never
+    // expose direct payment in the real customer wizard.
+    await customerPage.locator('[data-testid="order-step-2"]').click();
+    await customerPage.getByRole("button", { name: /Sampling/ }).click();
+    const samplingDetails = customerPage.locator('[data-testid="sampling-details"]');
+    await samplingDetails.waitFor();
+    const samplingInputs = samplingDetails.locator("input:not([type=checkbox])");
+    await samplingInputs.nth(0).fill("10 ml");
+    await samplingInputs.nth(1).fill("Beutel");
+    await samplingInputs.nth(2).fill("trocken lagern");
+    const warehouseSelect = customerPage.locator('[data-testid="order-warehouse-select"]');
+    if (await warehouseSelect.count()) {
+      await warehouseSelect.waitFor({ state: "attached" });
+      const warehouseOptions = warehouseSelect.locator("option");
+      if (await warehouseOptions.count() > 1) await warehouseSelect.selectOption({ index: 1 });
+    }
+    await customerPage.waitForTimeout(1800);
+    await customerPage.locator('[data-testid="order-step-6"]').click();
+    assert((await customerPage.locator('[data-testid="order-finish-direct"]').count()) === 0, "Sampling darf keinen Direktzahlungsbutton anzeigen.");
+    const samplingInquiryButton = customerPage.locator('[data-testid="order-finish-inquiry"]');
+    await samplingInquiryButton.waitFor();
+    assert((await samplingInquiryButton.innerText()).includes("Sampling"), "Sampling muss als individuelles Angebot angefragt werden.");
+    await samplingInquiryButton.click();
+    await customerPage.waitForURL(/\/customer\/orders\/[^/?]+/, { timeout: 15000 });
+    samplingOrderId = new URL(customerPage.url()).pathname.split("/").filter(Boolean).pop();
+    assert(samplingOrderId, "Die Sampling-Anfrage wurde nicht mit einem Auftrag verknüpft.");
+    assert((await customerPage.locator("body").innerText()).includes("Kampagne"), "Die Sampling-Anfrage führt nicht zur Auftragsbestätigung.");
+
+    const manipulatedSegment = {
+      name: "Playwright-Prüfgebiet",
+      city: "Unbekannter Ort",
+      postalCode: "99999",
+      geometryGeoJson: {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {},
+          geometry: { type: "Polygon", coordinates: [[[7.5, 50.3], [7.52, 50.3], [7.52, 50.31], [7.5, 50.31], [7.5, 50.3]]] },
+        }],
+      },
+    };
+    const manipulatedParams = new URLSearchParams({
+      city: manipulatedSegment.city,
+      postalCode: manipulatedSegment.postalCode,
+      flyerQuantity: "3000",
+      flyerSource: "CUSTOMER_OWN",
+      productFormat: "DIN Lang (99 × 210 mm)",
+      printDataStatus: "UPLOAD_LATER",
+      areaDifficulty: "NORMAL",
+      segments: JSON.stringify([manipulatedSegment]),
+    });
+    const manipulatedResponse = await customerPage.request.get(`${baseUrl}/api/maps/order-intelligence?${manipulatedParams.toString()}`);
+    const manipulatedBody = await manipulatedResponse.json();
+    assert(manipulatedResponse.ok(), `Serverprüfung des manipulierten Gebiets fehlgeschlagen: ${manipulatedResponse.status()}`);
+    assert(manipulatedBody?.data?.metrics?.areaDifficulty !== "NORMAL", "Der manipulierte NORMAL-Hinweis darf nicht als serverseitige Gebietsart zurückkommen.");
 
     const inquiry = await createInquiry(customerPage);
     const customerOrderPage = await customerContext.newPage();
@@ -274,6 +331,10 @@ async function run() {
     for (const testOrder of testOrders) {
       await prisma.invoice.deleteMany({ where: { orderId: testOrder.id } });
       await prisma.order.delete({ where: { id: testOrder.id } });
+    }
+    if (samplingOrderId) {
+      await prisma.invoice.deleteMany({ where: { orderId: samplingOrderId } });
+      await prisma.order.delete({ where: { id: samplingOrderId } }).catch(() => undefined);
     }
     await prisma.$disconnect();
     if (serverProcess) serverProcess.kill();
