@@ -195,8 +195,13 @@ assert.match(
 );
 assert.match(
   wizard,
-  /const hasReusableBoundaryGeometry = areas\.some\([\s\S]*?featurePoints\(area\.geoJson\)\.length >= 3[\s\S]*?\);[\s\S]*?const boundarySelectionEnabled = boundaryLayerStatus === "available" && hasReusableBoundaryGeometry;/,
-  "Eine Grenzauswahl darf nur erscheinen, wenn die angeklickte Grenze auch als echte uebernehmbare Flaeche vorliegt.",
+  /const boundarySelectionEnabled = boundaryLayerStatus === "available";/,
+  "Die deutschlandweite Google-Grenzauswahl darf nicht von bereits gespeicherten FLYERO-Flaechen abhaengen.",
+);
+assert.doesNotMatch(
+  wizard,
+  /hasReusableBoundaryGeometry/,
+  "Neue Orte duerfen nicht aus dem Google-Boundary-Layer ausgeschlossen werden, nur weil noch keine lokale Flaeche gespeichert ist.",
 );
 assert.match(
   areaStep,
@@ -217,6 +222,31 @@ assert.doesNotMatch(
   wizard,
   /Dieses Gebiet konnte nicht geladen werden/,
   "Ein Google-Boundary-Klick darf keinen irrefuehrenden Ladefehler im Kundenwizard anzeigen.",
+);
+assert.doesNotMatch(
+  wizard,
+  /keine fertige Gebietsfl[äa]che vor/,
+  "Eine technische Boundary-Konfiguration darf Kunden nicht mit einer falschen Ortsaussage verwirren.",
+);
+assert.match(
+  wizard,
+  /const mapLocationLabel = \[postalCode, city\]\.filter\(Boolean\)\.join\(" "\) \|\| targetAreaName \|\| query \|\| "Deutschland";/,
+  "Die Karte muss immer einen echten Such- oder Ortsbezug anzeigen und darf nicht ohne Ortsnamen bleiben.",
+);
+assert.match(
+  wizard,
+  /<span aria-live="polite">\{mapLocationLabel\}<\/span>/,
+  "Der aktuelle Ortsname muss im Kartenkopf sichtbar aktualisiert werden.",
+);
+assert.match(
+  wizard,
+  /language=de&region=DE&libraries=places/,
+  "Die Google-Karte muss fuer Kunden in Deutschland lokalisiert geladen werden.",
+);
+assert.match(
+  wizard,
+  /const scheduleInstallRetry = \(\) => \{[\s\S]*?retryCount >= 20[\s\S]*?window\.setTimeout\(\(\) => \{[\s\S]*?installBoundaryLayers\(\);/,
+  "Boundary-Ebenen muessen nach dem asynchronen Kartenstil-Laden erneut geprueft werden.",
 );
 assert.match(
   wizard,

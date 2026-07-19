@@ -360,7 +360,7 @@ function loadGoogleMaps() {
   if (!window.__flyeroMapsLoading) {
     window.__flyeroMapsLoading = new Promise<void>((resolve, reject) => {
       const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&loading=async&libraries=places`;
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&loading=async&language=de&region=DE&libraries=places`;
       script.async = true;
       script.onload = () => {
         const startedAt = Date.now();
@@ -866,16 +866,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }, [areas]);
 
   // Google can display a boundary layer without returning a polygon that the
-  // order can actually use. Only expose boundary selection for stored,
-  // reusable geometry; every other location stays on the reliable draw path.
-  const hasReusableBoundaryGeometry = areas.some((area) => Boolean(area.googlePlaceId) && featurePoints(area.geoJson).length >= 3);
-  const boundarySelectionEnabled = boundaryLayerStatus === "available" && hasReusableBoundaryGeometry;
+  // order can actually use. The boundary is a location aid; the customer still
+  // draws the exact delivery area before it becomes part of the order.
+  const boundarySelectionEnabled = boundaryLayerStatus === "available";
 
   const selectBoundaryArea = useCallback((placeId: string, feature?: GoogleFeature) => {
     const area = areas.find((candidate) => candidate.googlePlaceId === placeId);
     if (!area) {
       setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
       setAreaSelectionMode("draw");
+      // Zeichne dein genaues Verteilgebiet direkt auf der Karte.
       setMapNotice("Gebiet ausgewählt. Die Ortsdaten werden übernommen.");
       void (async () => {
         const maps = window.google?.maps;
@@ -1641,16 +1641,30 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }, [activeSegmentId, areaSelectionMode, center, city, mapMode, mapsBoundaryMapId, mapsReady, postalCode, pushPolygon, targetAreaName]);
 
   useEffect(() => {
-    if (!mapsReady || !mapsBoundaryConfigured || !hasReusableBoundaryGeometry || !mapRef.current || !window.google?.maps) {
-      if (!hasReusableBoundaryGeometry) {
+    if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps) {
+      if (!mapsReady || !mapsBoundaryConfigured) {
         setBoundaryLayerStatus("unavailable");
         setAreaSelectionMode("draw");
       }
       return;
     }
     const maps = window.google.maps;
-    const installBoundaryLayers = () => {
-      if (!mapRef.current?.getFeatureLayer) return;
+    let retryTimer: number | null = null;
+    let retryCount = 0;
+    let installBoundaryLayers: () => void = () => undefined;
+    const scheduleInstallRetry = () => {
+      if (retryTimer !== null || retryCount >= 20) return;
+      retryCount += 1;
+      retryTimer = window.setTimeout(() => {
+        retryTimer = null;
+        installBoundaryLayers();
+      }, 500);
+    };
+    installBoundaryLayers = () => {
+      if (!mapRef.current?.getFeatureLayer) {
+        scheduleInstallRetry();
+        return;
+      }
       // Google documents these string feature types as the stable API surface.
       // FeatureType is not guaranteed to exist as a runtime namespace.
       const featureTypes = ["POSTAL_CODE", "LOCALITY"];
@@ -1663,7 +1677,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         } catch {
           continue;
         }
-        if (!layer || layer.isAvailable === false) continue;
+        if (!layer || layer.isAvailable === false) {
+          scheduleInstallRetry();
+          continue;
+        }
         availableLayerCount += 1;
         layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current);
         boundaryLayerRefs.current.set(featureType, layer);
@@ -1679,7 +1696,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       } else {
         setBoundaryLayerStatus("unavailable");
         setAreaSelectionMode("draw");
-        setMapNotice("Für diesen Ort liegt keine fertige Gebietsfläche vor. Zeichne dein genaues Verteilgebiet direkt auf der Karte.");
+        setMapNotice("Du kannst dein genaues Verteilgebiet direkt auf der Karte zeichnen.");
       }
     };
 
@@ -1691,7 +1708,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         boundaryLayerListenersRef.current.push(idleListener);
       }
     }
-  }, [hasReusableBoundaryGeometry, mapsBoundaryConfigured, mapsReady]);
+    return () => {
+      if (retryTimer !== null) window.clearTimeout(retryTimer);
+    };
+  }, [mapsBoundaryConfigured, mapsReady]);
 
   useEffect(() => {
     for (const layer of boundaryLayerRefs.current.values()) {
@@ -2133,6 +2153,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   ];
   const activeNavItems = isPublicPlanner ? publicPlannerNavItems : orderNavItems;
   const orderNavGroups = Array.from(new Set(activeNavItems.map((item) => item.group)));
+  const mapLocationLabel = [postalCode, city].filter(Boolean).join(" ") || targetAreaName || query || "Deutschland";
 
   function beginOverviewDrag(event: PointerEvent<HTMLButtonElement>) {
     if (event.button !== 0) return;
@@ -2472,7 +2493,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
       <section className={`orderMapStage ${mapMode}`}>
         <div className="mapChromeTop">
-          <span>{postalCode} {city}</span>
+          <span aria-live="polite">{mapLocationLabel}</span>
         </div>
         <div className="mapTabs">
           <button type="button" className={mapMode === "map" ? "selected" : ""} onClick={() => setMapMode("map")}>Karte</button>
