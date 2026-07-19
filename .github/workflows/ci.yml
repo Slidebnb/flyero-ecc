@@ -345,11 +345,17 @@ jobs:
       - name: Geocode query normalization smoke
         run: npm run test:geocode-query-normalization
 
+      - name: Google place-id postal fallback smoke
+        run: npm run test:geocode-place-postal-fallback
+
       - name: Customer area calculation smoke
         run: npm run test:customer-order-area
 
       - name: Customer checkout smoke
         run: npm run test:customer-order-checkout
+
+      - name: Customer portal browser smoke
+        run: npm run test:customer-portal-playwright
 
       - name: Distribution report smoke
         run: npm run test:distribution-reports

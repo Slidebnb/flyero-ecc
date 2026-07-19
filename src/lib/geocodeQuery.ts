@@ -9,3 +9,9 @@ export function parseGeocodeQuery(query: string) {
     city: city || null,
   };
 }
+
+export function geocodeResultMatchesRequestedPostalCode(resultPostalCode: string | null | undefined, query: string) {
+  const requestedPostalCode = query.match(/\b(\d{5})\b/)?.[1] ?? null;
+  if (!requestedPostalCode) return true;
+  return resultPostalCode === requestedPostalCode;
+}

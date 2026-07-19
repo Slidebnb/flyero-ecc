@@ -6,7 +6,7 @@ import { productionAreaWhere, productionOrderExperienceEventWhere, productionOrd
 import { calculateOrderPrice } from "@/lib/pricing";
 import { aggregateOrderAreaSegments, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
 import { buildAuthoritativePlanningQuote, buildPlanningInputFingerprint, planningGeometry } from "@/lib/planningQuote";
-import { parseGeocodeQuery } from "@/lib/geocodeQuery";
+import { geocodeResultMatchesRequestedPostalCode, parseGeocodeQuery } from "@/lib/geocodeQuery";
 import { MINIMUM_FLYER_QUANTITY } from "@/lib/constants";
 
 export type SmartPlaceSuggestion = {
@@ -113,7 +113,7 @@ async function googleGeocode(query: string, placeId?: string) {
     });
     if (!first) continue;
     const component = (type: string) => first.address_components.find((item) => item.types.includes(type));
-    return {
+    const result = {
       label: first.formatted_address,
       placeId: (first as { place_id?: string }).place_id ?? placeId ?? null,
       city: component("locality")?.long_name ?? component("postal_town")?.long_name ?? "",
@@ -124,6 +124,8 @@ async function googleGeocode(query: string, placeId?: string) {
       lng: first.geometry.location.lng,
       source: "google" as const,
     };
+    if (!geocodeResultMatchesRequestedPostalCode(result.postalCode, query)) continue;
+    return result;
   }
   return null;
 }
