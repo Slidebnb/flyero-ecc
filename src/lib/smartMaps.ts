@@ -90,39 +90,42 @@ export async function getPlaceAutocomplete(query: string, options?: { publicOnly
 async function googleGeocode(query: string, placeId?: string) {
   const key = process.env.GOOGLE_MAPS_SERVER_KEY;
   if (!key || query.trim().length < 3) return null;
-  const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
-  if (placeId) url.searchParams.set("place_id", placeId);
-  else url.searchParams.set("address", query);
-  url.searchParams.set("key", key);
-  url.searchParams.set("components", "country:DE");
-  url.searchParams.set("language", "de");
-  const response = await fetch(url, { next: { revalidate: 60 * 60 * 24 } });
-  if (!response.ok) return null;
-  const payload = await response.json() as {
-    results?: Array<{
-      formatted_address: string;
-      geometry: { location: { lat: number; lng: number } };
-      address_components: Array<{ long_name: string; short_name: string; types: string[] }>;
-    }>;
-  };
-  const results = payload.results ?? [];
-  const first = results.find((item) => {
-    const types = item.address_components.flatMap((component) => component.types);
-    return types.includes("postal_code") || types.includes("locality") || types.includes("postal_town") || types.includes("route");
-  });
-  if (!first) return null;
-  const component = (type: string) => first.address_components.find((item) => item.types.includes(type));
-  return {
-    label: first.formatted_address,
-    placeId: (first as { place_id?: string }).place_id ?? placeId ?? null,
-    city: component("locality")?.long_name ?? component("postal_town")?.long_name ?? "",
-    postalCode: component("postal_code")?.long_name ?? "",
-    street: component("route")?.long_name ?? "",
-    houseNumber: component("street_number")?.long_name ?? "",
-    lat: first.geometry.location.lat,
-    lng: first.geometry.location.lng,
-    source: "google" as const,
-  };
+  const lookupModes = placeId ? ["placeId", "address"] as const : ["address"] as const;
+  for (const lookupMode of lookupModes) {
+    const url = new URL("https://maps.googleapis.com/maps/api/geocode/json");
+    if (lookupMode === "placeId") url.searchParams.set("place_id", placeId ?? "");
+    else url.searchParams.set("address", query);
+    url.searchParams.set("key", key);
+    url.searchParams.set("components", "country:DE");
+    url.searchParams.set("language", "de");
+    const response = await fetch(url, { next: { revalidate: 60 * 60 * 24 } });
+    if (!response.ok) continue;
+    const payload = await response.json() as {
+      results?: Array<{
+        formatted_address: string;
+        geometry: { location: { lat: number; lng: number } };
+        address_components: Array<{ long_name: string; short_name: string; types: string[] }>;
+      }>;
+    };
+    const first = (payload.results ?? []).find((item) => {
+      const types = item.address_components.flatMap((component) => component.types);
+      return types.includes("postal_code") || types.includes("locality") || types.includes("postal_town") || types.includes("route");
+    });
+    if (!first) continue;
+    const component = (type: string) => first.address_components.find((item) => item.types.includes(type));
+    return {
+      label: first.formatted_address,
+      placeId: (first as { place_id?: string }).place_id ?? placeId ?? null,
+      city: component("locality")?.long_name ?? component("postal_town")?.long_name ?? "",
+      postalCode: component("postal_code")?.long_name ?? "",
+      street: component("route")?.long_name ?? "",
+      houseNumber: component("street_number")?.long_name ?? "",
+      lat: first.geometry.location.lat,
+      lng: first.geometry.location.lng,
+      source: "google" as const,
+    };
+  }
+  return null;
 }
 
 export async function geocodeSmartAddress(input: {

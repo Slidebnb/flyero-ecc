@@ -60,7 +60,7 @@ assert.match(publicGeocode, /geocodeSmartAddress/);
 assert.match(publicGeocode, /public-planner/);
 assert.match(protection, /"public-planner-(autocomplete|geocode|quote)"/);
 assert.match(smartMaps, /publicOnly\?: boolean/);
-assert.match(smartMaps, /results\.find/);
+assert.match(smartMaps, /\(payload\.results \?\? \[\]\)\.find/);
 assert.match(publicQuote, /publicOnly: true/);
 assert.match(smartMaps, /\{ tenantId: null \}/);
 assert.match(publicAutocomplete, /publicOnly: true/);

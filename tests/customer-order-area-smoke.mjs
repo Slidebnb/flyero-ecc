@@ -203,6 +203,18 @@ try {
   assert(geocodes[1].data.city === "Bendorf", "Bendorf-Geocode stimmt nicht.");
   assert(geocodes[2].data.city === "Neuwied", "Neuwied-Geocode stimmt nicht.");
   assert(new Set(geocodes.map((item) => `${item.data.lat}:${item.data.lng}`)).size === 3, "PLZ-Wechsel liefert keine unterschiedlichen Karten-Zentren.");
+  const placeSuggestions = await json("/api/maps/autocomplete?q=56170", { cookie: customerCookie });
+  const googlePlace = placeSuggestions.data.find((item) => item.source === "google");
+  assert(googlePlace?.id, "Google-PLZ-Vorschlag fehlt.");
+  const selectedPlaceGeocode = await json(`/api/maps/geocode?q=56170&placeId=${encodeURIComponent(googlePlace.id)}`, { cookie: customerCookie });
+  assert(selectedPlaceGeocode.data.postalCode === "56170", "Ausgewählter Google-PLZ-Vorschlag wird nicht korrekt geocodiert.");
+  assert(typeof selectedPlaceGeocode.data.lat === "number" && typeof selectedPlaceGeocode.data.lng === "number", "Ausgewählter Google-PLZ-Vorschlag liefert keine Koordinaten.");
+  const publicSelectedResponse = await fetchWithTimeout(`${baseUrl}/api/public/planner/geocode?q=56170&placeId=${encodeURIComponent(googlePlace.id)}`, {
+    headers: { "x-forwarded-for": "198.51.100.202" },
+  });
+  const publicSelectedPlaceGeocode = await publicSelectedResponse.json();
+  assert(publicSelectedResponse.status === 200, `Öffentliche Google-PLZ-Auswahl lieferte ${publicSelectedResponse.status}: ${JSON.stringify(publicSelectedPlaceGeocode)}`);
+  assert(publicSelectedPlaceGeocode.data.postalCode === "56170", "Öffentliche Google-PLZ-Auswahl wird nicht korrekt geocodiert.");
 
   const intelligence = [];
   for (const city of ["Koblenz", "Bendorf", "Neuwied"]) {

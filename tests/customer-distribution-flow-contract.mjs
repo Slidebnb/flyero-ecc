@@ -23,6 +23,8 @@ assert.match(wizard, /locationRequestSequenceRef/);
 assert.match(wizard, /PUBLIC_GEOCODE_POSTAL_MISMATCH/);
 assert.match(maps, /placeId\?: string/);
 assert.match(maps, /url\.searchParams\.set\("place_id", placeId\)/);
+assert.match(maps, /lookupModes = placeId \? \["placeId", "address"\]/);
+assert.match(maps, /if \(lookupMode === "placeId"\)/);
 assert.match(publicGeocodeRoute, /placeId: z\.string\(\)\.trim\(\)\.max\(160\)\.optional\(\)/);
 assert.match(orderRoute, /PAYMENT_PENDING/);
 assert.match(orderRoute, /PAYMENT_FAILED/);
@@ -32,7 +34,8 @@ assert.match(
   "Der Löschschutz muss erfolgreiche Zahlungen serverseitig prüfen.",
 );
 assert.match(wizard, /repeatPrintChoice/);
-assert.match(wizard, /Druckdaten sind unverändert/);
-assert.match(wizard, /Druckdaten haben sich geändert/);
+assert.match(wizard, /Druckdaten unverändert sind/);
+assert.match(wizard, /sende dieselben Flyer/);
+assert.match(wizard, /sende neue Flyer/);
 
 console.log("Customer distribution flow contract checks passed.");
