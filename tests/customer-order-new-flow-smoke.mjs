@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
+const intelligenceHook = readFileSync("src/app/customer/orders/new/hooks/useOrderIntelligence.ts", "utf8");
+const locationHook = readFileSync("src/app/customer/orders/new/hooks/useOrderLocationSearch.ts", "utf8");
+const draftHook = readFileSync("src/app/customer/orders/new/hooks/useOrderDraft.ts", "utf8");
+const submissionHook = readFileSync("src/app/customer/orders/new/hooks/useOrderSubmission.ts", "utf8");
+const mapHook = readFileSync("src/app/customer/orders/new/hooks/useOrderMap.ts", "utf8");
 const finishStep = readFileSync("src/app/customer/orders/new/OrderFinishStep.tsx", "utf8");
 const orderRoute = readFileSync("src/app/api/customer/orders/route.ts", "utf8");
 
@@ -13,6 +18,16 @@ assert.match(wizard, /samplingDetails: serviceType === "PRODUCT_SAMPLING"/);
 assert.match(wizard, /quoteFingerprint: intelligence\?\.metrics\.fingerprint/);
 assert.match(wizard, /pricingRuleSignature: intelligence\?\.metrics\.pricingRuleSignature/);
 assert.match(wizard, /intelligenceStatus/);
+assert.match(intelligenceHook, /export function useOrderIntelligence/);
+assert.match(intelligenceHook, /fetch\(`\$\{endpoint\}\?/);
+assert.match(locationHook, /export function useOrderLocationSearch/);
+assert.match(locationHook, /autocompleteEndpoint/);
+assert.match(draftHook, /export function useOrderDraft/);
+assert.match(draftHook, /localStorage\.setItem/);
+assert.match(submissionHook, /export function useOrderSubmission/);
+assert.match(submissionHook, /beginSubmission/);
+assert.match(mapHook, /export function useOrderMap/);
+assert.match(mapHook, /loadGoogleMaps/);
 assert.doesNotMatch(wizard, /areaDifficulty: "NORMAL"/);
 assert.match(orderRoute, /samplingRequiresManualReview = data\.serviceType === "PRODUCT_SAMPLING"/);
 assert.match(orderRoute, /SAMPLING_MANUAL_REVIEW/);

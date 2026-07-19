@@ -148,7 +148,6 @@ try {
   const customerCookie = await login("kunde.immobilien@example.com");
   const wizard = includes("src/app/customer/orders/new/SmartOrderWizard.tsx", [
     "findAreaForLocation",
-    "setIntelligence(null)",
     "areaCalculationSnapshot",
     "mapNotice",
     "setMapTypeId",
@@ -163,6 +162,10 @@ try {
     "POSTAL_CODE",
     "LOCALITY",
     "Gebiet ausw\u00e4hlen",
+  ]);
+  includes("src/app/customer/orders/new/hooks/useOrderIntelligence.ts", [
+    "setIntelligence(null)",
+    "confirmedRequestRef",
   ]);
   includes("src/app/customer/orders/new/OrderAreaStep.tsx", [
     "Dein Gebiet wurde auf der Karte angepasst.",
