@@ -35,8 +35,8 @@ assertMatch(
   "Bei einer neuen Suche darf der alte PLZ-/Ort-Kontext nicht an die Geocode-API gehen.",
 );
 assertMatch(
-  /const localHouseholds = useMemo\(\(\) => coverageAreaSqm > 0 \? estimateHouseholdsFromArea\(coverageAreaSqm\) : 0,/,
-  "Ohne gezeichnete Flaeche darf der Wizard keine Haushalte als Grundlage anzeigen.",
+  /const localHouseholds = useMemo\(\(\) => planningAreaSqm > 0 \? estimateHouseholdsFromArea\(planningAreaSqm\) : 0,/,
+  "Ohne aktuelle Flaeche darf der Wizard keine Haushalte als Grundlage anzeigen.",
 );
 assert.doesNotMatch(wizard, /"Preisvorschau folgt"/, "Der veraltete Dauerstatus darf nicht mehr im Kundenwizard stehen.");
 assert.match(
@@ -46,7 +46,7 @@ assert.match(
 );
 assert.match(
   wizard,
-  /intelligence\?\.metrics\.recommendedFlyerQuantity \?\? MINIMUM_FLYER_QUANTITY/,
+  /intelligence\?\.metrics\.householdRecommendationAllowed === true[\s\S]*?intelligence\.metrics\.recommendedFlyerQuantity/,
   "Die Flyerempfehlung muss vom serverseitigen Gebietsergebnis kommen.",
 );
 assert.doesNotMatch(wizard, /libraries=drawing|maps\.drawing|DrawingManager|polygoncomplete/, "Der Planner darf nicht von der abgekündigten Google-Drawing-Bibliothek abhängen.");
@@ -113,8 +113,8 @@ assert.match(
 );
 
 assertMatch(
-  /const recommendedFlyerQuantity = intelligence\?\.metrics\.recommendedFlyerQuantity \?\? MINIMUM_FLYER_QUANTITY/,
-  "Ohne Flaeche darf die Empfehlung nicht kuenstlich auf 500 Flyer springen.",
+  /const recommendedFlyerQuantity = intelligenceStatus === "live"[\s\S]*?MINIMUM_FLYER_QUANTITY/,
+  "Ohne Flaeche darf die Empfehlung nicht kuenstlich auf eine alte Menge springen.",
 );
 assert.match(
   smartMaps,
@@ -148,7 +148,7 @@ assert.doesNotMatch(
   "Ein normales Verlassen des Suchfelds darf keinen Geocode-Request ausloesen.",
 );
 assertMatch(
-  /const warehouseSuggestionLabel = coverageAreaSqm > 0[\s\S]*?"Gebiet auswählen";/,
+  /const warehouseSuggestionLabel = hasPlanningArea[\s\S]*?"Gebiet auswählen";/,
   "Ohne Flaeche darf das Lagerfeld keine offene Pruefung suggerieren.",
 );
 assert.doesNotMatch(
@@ -157,7 +157,7 @@ assert.doesNotMatch(
   "Der alte offene Lagerstatus darf nicht zurueckkehren.",
 );
 assertMatch(
-  /confidenceLabel\(areaStats\.confidence, coverageAreaSqm > 0\)/,
+  /confidenceLabel\(areaStats\.confidence, hasPlanningArea\)/,
   "Die Datenbasis muss ohne Flaeche einen klaren naechsten Schritt anzeigen.",
 );
 assertMatch(
@@ -165,7 +165,7 @@ assertMatch(
   "Ohne Flaeche darf der Verfuegbarkeitsstatus keine laufende Pruefung suggerieren.",
 );
 assertMatch(
-  /deliverabilityLabel\(deliverabilityScore, coverageAreaSqm > 0\)/,
+  /deliverabilityLabel\(deliverabilityScore, hasPlanningArea\)/,
   "Der Verfuegbarkeitsstatus muss an die aktuelle Flaeche gebunden sein.",
 );
 assert.match(
@@ -215,7 +215,7 @@ assert.match(
 );
 assert.match(
   wizard,
-  /Gebiet ausgewählt[\s\S]*?genaues Verteilgebiet direkt auf der Karte/,
+  /Ort gefunden\. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte/,
   "Eine Boundary ohne gespeicherte FLYERO-Flaeche muss verstaendlich in den Zeichenmodus fuehren.",
 );
 assert.doesNotMatch(

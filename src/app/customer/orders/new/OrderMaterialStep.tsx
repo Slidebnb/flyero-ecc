@@ -25,6 +25,7 @@ type OrderMaterialStepProps = {
   warehouseOptions: CustomerWarehouse[];
   selectedWarehouseId: string;
   recommendedFlyerQuantity: number;
+  recommendationLabel: string;
   flyerQuantity: number;
   onServiceTypeChange: (serviceType: OnlineServiceType) => void;
   onProductFormatChange: (format: string) => void;
@@ -51,6 +52,7 @@ export function OrderMaterialStep({
   warehouseOptions,
   selectedWarehouseId,
   recommendedFlyerQuantity,
+  recommendationLabel,
   flyerQuantity,
   onServiceTypeChange,
   onProductFormatChange,
@@ -133,8 +135,8 @@ export function OrderMaterialStep({
         <p className="orderReviewNotice">Nach deiner Registrierung wählst du das Empfangslager für deine bereits gedruckten Flyer aus.</p>
       )}
       <div className="flyerRecommendation">
-        <span>Unser Vorschlag</span>
-        <strong>{new Intl.NumberFormat("de-DE").format(Math.round(recommendedFlyerQuantity || 0))} Stück mit 10 % Reserve</strong>
+        <span>{recommendationLabel}</span>
+        <strong>{new Intl.NumberFormat("de-DE").format(Math.round(recommendedFlyerQuantity || 0))} Stück</strong>
         <small>Du kannst die Menge jederzeit ändern.</small>
       </div>
       <div className="quantityControl">

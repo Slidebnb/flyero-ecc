@@ -403,13 +403,13 @@ export async function getOrderIntelligence(input: {
       take: areaSelection ? 40 : 8,
     }),
     includeOperationalData
-      ? findBestWarehouseForArea({ city: effectiveCity, postalCode: effectivePostalCode }).catch(() => null)
+      ? findBestWarehouseForArea({ city: effectiveCity, postalCode: effectivePostalCode, allowDefault: false }).catch(() => null)
       : Promise.resolve(null),
     includeOperationalData
       ? combineOrders({ city: effectiveCity, postalCode: effectivePostalCode }).catch(() => [])
       : Promise.resolve([]),
     includeOperationalData && areaSelection
-      ? Promise.all(areaSelection.segments.map((segment) => findBestWarehouseForArea({ city: segment.city, postalCode: segment.postalCode }).catch(() => null)))
+      ? Promise.all(areaSelection.segments.map((segment) => findBestWarehouseForArea({ city: segment.city, postalCode: segment.postalCode, allowDefault: false }).catch(() => null)))
       : Promise.resolve([]),
   ]);
   const densitySamples = matchingAreas
@@ -638,6 +638,7 @@ export async function getOrderIntelligence(input: {
     metrics: {
       households,
       recommendedFlyerQuantity,
+      householdRecommendationAllowed,
       flyerQuantity,
       routeDistanceMeters,
       routeDurationMinutes,

@@ -65,6 +65,7 @@ export type Intelligence = {
   metrics: {
     households: number;
     recommendedFlyerQuantity?: number;
+    householdRecommendationAllowed?: boolean;
     flyerQuantity: number;
     routeDistanceMeters: number;
     routeDurationMinutes: number;

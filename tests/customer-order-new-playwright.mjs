@@ -70,6 +70,7 @@ await prisma.authRateLimitBucket.deleteMany({ where: { id: { in: bucketIds } } }
 const browser = await chromium.launch();
 const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
+  serviceWorkers: "block",
   extraHTTPHeaders: { "x-forwarded-for": testIp },
 });
 const page = await context.newPage();

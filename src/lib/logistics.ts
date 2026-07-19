@@ -87,6 +87,7 @@ export async function findBestWarehouseForArea(area: {
   postalCode?: string | null;
   lat?: number | null;
   lng?: number | null;
+  allowDefault?: boolean;
 }) {
   const warehouses = await prisma.warehouse.findMany({
     where: { isActive: true, ...warehouseSourceWhere() },
@@ -105,6 +106,14 @@ export async function findBestWarehouseForArea(area: {
       warehouse: regionMatchesByWarehouse[0].warehouse,
       reason: `WarehouseRegion ${regionMatchesByWarehouse[0].region?.name} passt zu ${area.postalCode || area.city}.`,
       matchedRegion: regionMatchesByWarehouse[0].region,
+    };
+  }
+
+  if (area.allowDefault === false) {
+    return {
+      warehouse: null,
+      reason: "Kein aktives Lager ist dieser Region zugeordnet.",
+      matchedRegion: null,
     };
   }
 
@@ -138,6 +147,9 @@ export async function assignWarehouseForOrder(input: { orderId: string; userId?:
     lng: order.targetLng ? Number(order.targetLng) : null,
   };
   const best = await findBestWarehouseForArea(area);
+  if (!best.warehouse) {
+    throw new Error("Für dieses Gebiet ist derzeit kein aktives Lager hinterlegt.");
+  }
   const updated = await prisma.order.update({
     where: { id: order.id },
     data: {

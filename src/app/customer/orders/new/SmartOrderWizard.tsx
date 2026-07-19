@@ -571,14 +571,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const previewCoverageAreaSqm = drawingPoints.length >= 3
     ? polygonAreaSqm(drawingPoints)
     : coverageAreaSqm;
+  const planningAreaSqm = previewCoverageAreaSqm;
+  const hasPlanningArea = planningAreaSqm > 0;
   const perimeterMeters = useMemo(
     () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segment.points), 0),
     [areaSegmentsPayload],
   );
-  const localHouseholds = useMemo(() => coverageAreaSqm > 0 ? estimateHouseholdsFromArea(coverageAreaSqm) : 0, [coverageAreaSqm]);
+  const localHouseholds = useMemo(() => planningAreaSqm > 0 ? estimateHouseholdsFromArea(planningAreaSqm) : 0, [planningAreaSqm]);
   const localRouteDistanceMeters = useMemo(
-    () => estimateWalkingDistanceMeters(coverageAreaSqm, perimeterMeters, localHouseholds),
-    [coverageAreaSqm, localHouseholds, perimeterMeters],
+    () => estimateWalkingDistanceMeters(planningAreaSqm, perimeterMeters, localHouseholds),
+    [localHouseholds, perimeterMeters, planningAreaSqm],
   );
   const localRouteDurationMinutes = useMemo(
     () => estimateTeamDurationMinutes(localRouteDistanceMeters, localHouseholds, flyerQuantity),
@@ -668,17 +670,27 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       : coverageAreaSqm > 0
         ? "Preis wird aktualisiert"
         : "Gebiet auf der Karte auswählen";
-  const priceRequiresReview = Boolean(intelligence?.metrics.needsManualReview || intelligence?.metrics.manualReviewRequired);
-  const priceReady = intelligenceStatus === "live" && !priceRequiresReview && Number(netPrice) > 0;
+  const priceReady = intelligenceStatus === "live" && Number(netPrice) > 0;
   const pricePreviewText = coverageAreaSqm <= 0
     ? "Gebiet auswählen"
-    : intelligenceStatus === "error" || priceRequiresReview
+    : intelligenceStatus === "error"
       ? "Preis wird von FLYERO geprüft"
       : priceReady
         ? formatCurrency(netPrice)
         : pricePreviewTextLegacy;
   const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
-  const recommendedFlyerQuantity = intelligence?.metrics.recommendedFlyerQuantity ?? MINIMUM_FLYER_QUANTITY;
+  const recommendedFlyerQuantity = intelligenceStatus === "live"
+    ? intelligence?.metrics.householdRecommendationAllowed === true
+      ? intelligence.metrics.recommendedFlyerQuantity ?? MINIMUM_FLYER_QUANTITY
+      : Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil(((intelligence?.metrics.households ?? localHouseholds) * 1.1) / 100) * 100)
+    : hasPlanningArea
+      ? Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((localHouseholds * 1.1) / 100) * 100)
+      : MINIMUM_FLYER_QUANTITY;
+  const recommendationLabel = !hasPlanningArea
+    ? "Mindestmenge für die Buchung"
+    : intelligence?.metrics.householdRecommendationAllowed === true
+      ? "Empfehlung aus Gebietsdaten"
+      : "Gebietsdaten geschätzt";
   const deliverabilityScore = intelligence?.metrics.score ?? null;
   const calculationConfidence = intelligence?.metrics.confidence ?? (intelligenceStatus === "live" ? "medium" : "low");
   const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
@@ -840,7 +852,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     onStatusChange: setDraftStatus,
   });
 
-  const warehouseSuggestionLabel = coverageAreaSqm > 0
+  const warehouseSuggestionLabel = hasPlanningArea
     ? areaStats.warehouseSuggestion ?? (intelligenceStatus === "live" ? "Wird von FLYERO geprüft" : "Wird zugeordnet")
     : "Gebiet auswählen";
 
@@ -876,7 +888,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
       setAreaSelectionMode("draw");
       // Zeichne dein genaues Verteilgebiet direkt auf der Karte.
-      setMapNotice("Gebiet ausgewählt. Die Ortsdaten werden übernommen.");
+      setMapNotice("Ort gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.");
       void (async () => {
         const maps = window.google?.maps;
         let boundaryPlace: GoogleBoundaryPlace | null = null;
@@ -1299,6 +1311,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       areaSegmentsRef.current = [];
       setAreaSegments([]);
       setActiveSegmentId(null);
+      setSelectedWarehouseId("");
       setSelectedBoundaryPlaceIds([]);
       setSelectedAreaId("");
       setPolygon([]);
@@ -1868,6 +1881,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     selectedBoundaryPlaceIdsRef.current = [];
     setSelectedAreaId("");
     setSelectedLocation(null);
+    setSelectedWarehouseId("");
     setCity("");
     setPostalCode("");
     setStreet("");
@@ -2314,6 +2328,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         warehouseOptions={warehouseOptions}
         selectedWarehouseId={selectedWarehouseId}
         recommendedFlyerQuantity={recommendedFlyerQuantity}
+        recommendationLabel={recommendationLabel}
         flyerQuantity={flyerQuantity}
         onServiceTypeChange={(next) => {
           setServiceType(next);
@@ -2400,7 +2415,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         pricePreviewText={pricePreviewText}
         selectedWarehouse={ownFlyers ? selectedWarehouse ?? undefined : undefined}
         warehouseLabel={ownFlyers ? "Bitte auswählen" : warehouseSuggestionLabel}
-        dataBasisLabel={confidenceLabel(areaStats.confidence, coverageAreaSqm > 0)}
+        dataBasisLabel={confidenceLabel(areaStats.confidence, hasPlanningArea)}
         notice={ownFlyers
           ? "Deine Flyer sind bereits gedruckt und werden nach der Buchung an das ausgewählte Empfangslager gesendet. FLYERO prüft Gebiet und Zustellbarkeit vor der Durchführung."
           : "Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist. Falls sich etwas ändert, melden wir uns."}
@@ -2581,7 +2596,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               <p>Aktualisiert sich, sobald du das Gebiet änderst.</p>
             </div>
             <span className={`overviewSyncState ${intelligenceStatus}`}>
-              {syncStateLabel(intelligenceStatus, areaStats.confidence, isPending, coverageAreaSqm > 0)}
+              {syncStateLabel(intelligenceStatus, areaStats.confidence, isPending, hasPlanningArea)}
             </span>
             <button
               type="button"
@@ -2596,7 +2611,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </button>
           </div>
           <div className="overviewMetaRow">
-            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, coverageAreaSqm > 0)}</p>
+            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, hasPlanningArea)}</p>
             {overviewOffset.x !== 0 || overviewOffset.y !== 0 ? (
               <button type="button" onClick={() => setOverviewOffset({ x: 0, y: 0 })}>Zurücksetzen</button>
             ) : null}
@@ -2607,7 +2622,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <div><dt>Preis netto zzgl. MwSt.</dt><dd>{pricePreviewText}</dd></div>
             <div><dt>Nächstes Lager</dt><dd>{warehouseSuggestionLabel}</dd></div>
           </dl>
-          <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore, coverageAreaSqm > 0)}</p>
+          <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore, hasPlanningArea)}</p>
         </aside>
       </section>
     </form>
