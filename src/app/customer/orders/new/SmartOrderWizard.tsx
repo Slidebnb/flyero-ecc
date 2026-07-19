@@ -836,19 +836,23 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     const area = areas.find((candidate) => candidate.googlePlaceId === placeId);
     if (!area) {
       const endpoint = isPublicPlanner ? "/api/public/planner/geocode" : "/api/maps/geocode";
-      fetch(`${endpoint}?${new URLSearchParams({ placeId }).toString()}`)
+      fetch(`${endpoint}?${new URLSearchParams({ placeId, q: query, postalCode, city }).toString()}`)
         .then((response) => response.ok ? response.json() : null)
         .then((payload) => {
           const result = payload?.data as LocationResult | null;
           if (!result) {
-            setMapNotice("Dieses Gebiet konnte nicht geladen werden. Zeichne die genaue Fläche bitte direkt auf der Karte.");
+            setAreaSelectionMode("draw");
+            setMapNotice("Kartenbereich gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.");
             return;
           }
           applyLocationResultRef.current(result, { forceReplace: true });
           setAreaSelectionMode("draw");
           setMapNotice("Ort übernommen. Zeichne dein genaues Verteilgebiet direkt auf der Karte.");
         })
-        .catch(() => setMapNotice("Dieses Gebiet konnte nicht geladen werden. Zeichne die genaue Fläche bitte direkt auf der Karte."));
+        .catch(() => {
+          setAreaSelectionMode("draw");
+          setMapNotice("Kartenbereich gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.");
+        });
       return;
     }
     const points = featurePoints(area.geoJson);
@@ -893,7 +897,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setAreaSelectionMode("boundary");
     setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
-  }, [areas, isPublicPlanner]);
+  }, [areas, city, isPublicPlanner, postalCode, query]);
 
   useEffect(() => {
     selectBoundaryAreaRef.current = selectBoundaryArea;

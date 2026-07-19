@@ -14,6 +14,7 @@ assert.match(caddy, /object-src 'none'/, "CSP muss eingebettete Objekte blockier
 assert.match(caddy, /maps\.googleapis\.com/, "CSP muss Google Maps erlauben.");
 assert.match(caddy, /connect-src[^;]*mapsresources-pa\.googleapis\.com/, "CSP muss die Google-Maps-Vector-Konfiguration erlauben.");
 assert.match(caddy, /worker-src[^;]*blob:/, "CSP muss Google-Maps-Vector-Worker erlauben.");
+assert.match(caddy, /script-src[^;]*'unsafe-eval'/, "CSP muss die von Google Maps benoetigte WebAssembly-Ausfuehrung erlauben.");
 assert.match(caddy, /js\.stripe\.com/, "CSP muss Stripe Checkout erlauben.");
 assert.match(nextConfig, /poweredByHeader:\s*false/, "Next darf X-Powered-By nicht ausliefern.");
 

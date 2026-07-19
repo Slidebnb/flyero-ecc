@@ -208,6 +208,21 @@ assert.match(
   /if \(!area\) \{[\s\S]*?setAreaSelectionMode\("draw"\);[\s\S]*?Zeichne dein genaues Verteilgebiet direkt auf der Karte/,
   "Wenn Google nur eine placeId, aber keine uebernehmbare Flaeche liefert, muss der Kunde direkt zeichnen koennen.",
 );
+assert.match(
+  wizard,
+  /new URLSearchParams\(\{\s*placeId,\s*q: query,\s*postalCode,\s*city\s*\}\)/,
+  "Ein Boundary-Klick muss den aktuellen Suchkontext an die Standortpruefung uebergeben.",
+);
+assert.match(
+  wizard,
+  /Kartenbereich gefunden[\s\S]*?genaues Verteilgebiet direkt auf der Karte/,
+  "Eine Boundary ohne gespeicherte FLYERO-Flaeche muss verstaendlich in den Zeichenmodus fuehren.",
+);
+assert.doesNotMatch(
+  wizard,
+  /Dieses Gebiet konnte nicht geladen werden/,
+  "Ein Google-Boundary-Klick darf keinen irrefuehrenden Ladefehler im Kundenwizard anzeigen.",
+);
 
 const migrationCommand = "docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy";
 assert.ok(deployment.includes(migrationCommand), "Das Produktions-Deployment muss Prisma-Migrationen vor dem Start ausfuehren.");
