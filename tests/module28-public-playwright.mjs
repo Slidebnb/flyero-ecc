@@ -38,6 +38,10 @@ try {
     assert.doesNotMatch(metrics.bodyText, /GPS-Nachweis aktiv|Tour Koblenz|Zustellquote geprüft|Druckoption wählen/);
     assert.equal(await page.locator("h1").count(), 1, `${path} must have exactly one H1.`);
     assert.equal(await page.locator('link[rel="canonical"]').count(), 1, `${path} needs exactly one canonical link.`);
+    if (name === "planner-mobile") {
+      const locationValue = await page.locator('[data-testid="order-location-input"]').inputValue();
+      assert.equal(locationValue, "56112 Lahnstein", "Eine ausgewählte PLZ darf im mobilen Planner nicht mit abgeschnittenem Deutschland-Label angezeigt werden.");
+    }
     await page.screenshot({ path: join(outDir, `${name}.png`), fullPage: true });
     await page.close();
   }

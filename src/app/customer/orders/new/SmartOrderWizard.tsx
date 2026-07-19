@@ -1319,8 +1319,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
     setIntelligence(null);
     setIntelligenceStatus("updating");
+    const displayQuery = result.street || result.houseNumber || result.label?.includes("Straße")
+      ? result.label ?? ""
+      : [result.postalCode, result.city].filter(Boolean).join(" ") || result.label || "";
     setSelectedLocation({
-      query: result.label || [result.postalCode, result.city].filter(Boolean).join(" "),
+      query: displayQuery,
       placeId: result.source === "google" ? result.placeId ?? undefined : undefined,
       postalCode: result.postalCode ?? undefined,
       city: result.city ?? undefined,
@@ -1332,8 +1335,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setPostalCode(result.postalCode ?? "");
     setStreet(result.street ?? "");
     setHouseNumber(result.houseNumber ?? "");
-    if (result.label) setQuery(result.label);
-    else if (result.postalCode || result.city) setQuery([result.postalCode, result.city].filter(Boolean).join(" "));
+    if (displayQuery) setQuery(displayQuery);
     const nextCenter = { lat: Number(result.lat), lng: Number(result.lng) };
     if (Number.isFinite(nextCenter.lat) && Number.isFinite(nextCenter.lng)) {
       mapRef.current?.setCenter(nextCenter);
@@ -1923,8 +1925,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   function applySuggestion(suggestion: Suggestion) {
     clearLocationSelection();
+    const displayQuery = suggestion.street || suggestion.label.includes("Straße")
+      ? suggestion.label
+      : [suggestion.postalCode, suggestion.city].filter(Boolean).join(" ") || suggestion.label;
     setSelectedLocation({
-      query: suggestion.label,
+      query: displayQuery,
       placeId: suggestion.source === "google" ? suggestion.id : undefined,
       postalCode: suggestion.postalCode || undefined,
       city: suggestion.city || undefined,
@@ -1932,7 +1937,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       lng: Number.isFinite(suggestion.lng) && suggestion.lng !== 0 ? suggestion.lng : undefined,
       source: suggestion.source,
     });
-    setQuery(suggestion.label);
+    setQuery(displayQuery);
     setUsedAutocomplete(true);
     setShowSuggestions(false);
     setSuggestions([]);
