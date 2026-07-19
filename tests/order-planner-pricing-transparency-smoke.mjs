@@ -19,6 +19,7 @@ assert.match(smartMaps, /vatAmount/);
 assert.match(pricing, /minimumNetPrice/);
 assert.match(route, /safeMetrics/);
 assert.doesNotMatch(route, /metrics: safeData\.metrics/);
-assert.doesNotMatch(route, /checkout/);
+assert.match(route, /checkoutAllowed/);
+assert.doesNotMatch(route, /api\/payments\/checkout/);
 assert.doesNotMatch(route, /customer\/orders/);
 console.log("Order planner pricing transparency checks passed.");
