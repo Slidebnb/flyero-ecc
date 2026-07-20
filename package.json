@@ -200,6 +200,7 @@
     "test:area-difficulty-derivation": "node --experimental-strip-types tests/area-difficulty-derivation-smoke.mjs",
     "test:server-area-snapshot": "node --experimental-strip-types tests/server-area-snapshot-integrity-smoke.mjs",
     "test:customer-order-new-flow": "node tests/customer-order-new-flow-smoke.mjs",
+    "test:customer-order-map-capabilities": "node tests/customer-order-map-capabilities-smoke.mjs",
     "test:customer-order-new-playwright": "node -r dotenv/config tests/customer-order-new-playwright.mjs",
     "test:auth-session-management": "node -r dotenv/config tests/auth-session-management-smoke.mjs",
     "test:backup-scheduler": "node tests/backup-scheduler-smoke.mjs",

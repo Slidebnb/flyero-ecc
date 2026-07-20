@@ -8316,6 +8316,33 @@ body {
   .areaOverview dl {
     grid-template-columns: 1fr;
   }
+
+  .mapChromeTop {
+    top: 14px;
+    left: 14px;
+    right: 14px;
+    max-width: none;
+  }
+
+  .mapChromeTop span {
+    display: block;
+    max-width: calc(100% - 146px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mapTabs {
+    top: 66px;
+    right: 14px;
+  }
+
+  .mapNotice {
+    top: 124px;
+    left: 14px;
+    right: 88px;
+    max-width: none;
+  }
 }
 
 
@@ -8379,5 +8406,39 @@ body {
 
   .customerOutcomeMetrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Keep the shared portal navigation mobile-first after the later portal theme rules. */
+@media (max-width: 820px) {
+  .portalShell {
+    display: block;
+    min-height: 100svh;
+  }
+
+  .portalSidebar {
+    display: none;
+  }
+
+  .portalMobileTopbar {
+    display: flex;
+  }
+
+  .portalMain {
+    min-width: 0;
+    padding: 0 14px 28px;
+  }
+}
+
+/* The desktop wizard grid is declared later than the first responsive rules.
+   Keep the map full-width on phones after all order theme overrides. */
+@media (max-width: 820px) {
+  .orderExperience {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .orderMapStage {
+    width: 100%;
+    min-width: 0;
   }
 }

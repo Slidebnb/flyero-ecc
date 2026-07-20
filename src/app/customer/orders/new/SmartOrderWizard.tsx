@@ -73,6 +73,7 @@ type GoogleMap = {
   setZoom: (zoom: number) => void;
   fitBounds: (bounds: unknown) => void;
   setMapTypeId: (mapTypeId: "roadmap" | "satellite") => void;
+  getMapCapabilities?: () => { isDataDrivenStylingAvailable?: boolean };
   getFeatureLayer?: (featureType: string) => GoogleFeatureLayer;
 };
 type GoogleAddressComponent = {
@@ -498,6 +499,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
   const mapsBoundaryMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "";
   const mapsBoundaryConfigured = Boolean(mapsBoundaryMapId);
+  const [mapRenderMode, setMapRenderMode] = useState<"boundary" | "standard">(
+    mapsBoundaryConfigured ? "boundary" : "standard",
+  );
 
   useEffect(() => {
     if (!mapsBoundaryConfigured) {
@@ -1592,8 +1596,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           disableDefaultUI: true,
           mapTypeId: mapMode === "satellite" ? "satellite" : "roadmap",
         };
-        if (mapsBoundaryMapId) mapOptions.mapId = mapsBoundaryMapId;
-        if (!mapsBoundaryMapId && mapMode === "map") {
+        if (mapsBoundaryConfigured && mapRenderMode === "boundary") mapOptions.mapId = mapsBoundaryMapId;
+        if (mapRenderMode === "standard" && mapMode === "map") {
           mapOptions.styles = [
             { elementType: "geometry", stylers: [{ color: "#182638" }] },
             { elementType: "labels.text.fill", stylers: [{ color: "#b8c7d9" }] },
@@ -1704,7 +1708,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       isActive = false;
       clearPolygonListeners();
     };
-  }, [activeSegmentId, areaSelectionMode, center, city, mapMode, mapsBoundaryMapId, mapsReady, postalCode, pushPolygon, targetAreaName]);
+  }, [activeSegmentId, areaSelectionMode, center, city, mapMode, mapRenderMode, mapsBoundaryConfigured, mapsBoundaryMapId, mapsReady, postalCode, pushPolygon, targetAreaName]);
 
   useEffect(() => {
     if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps) {
@@ -1727,6 +1731,36 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }, 500);
     };
     installBoundaryLayers = () => {
+      const activeMap = mapRef.current;
+      if (!activeMap) return;
+      const mapCapabilities = activeMap.getMapCapabilities?.();
+      if (mapCapabilities?.isDataDrivenStylingAvailable !== true) {
+        for (const handle of boundaryLayerListenersRef.current) {
+          try {
+            handle.remove?.();
+          } catch {
+            // Google may already have disposed the feature layer.
+          }
+        }
+        boundaryLayerListenersRef.current = [];
+        boundaryLayerRefs.current.clear();
+        try {
+          drawingClickListenerRef.current?.remove?.();
+        } catch {
+          // The Google map may already have disposed the click listener.
+        }
+        drawingClickListenerRef.current = null;
+        polygonRef.current?.setMap(null);
+        polygonRef.current = null;
+        for (const overlay of segmentPolygonsRef.current.values()) overlay.setMap(null);
+        segmentPolygonsRef.current.clear();
+        mapRef.current = null;
+        setMapRenderMode("standard");
+        setBoundaryLayerStatus("unavailable");
+        setAreaSelectionMode("draw");
+        setMapNotice("Die markierten Kartenflächen stehen gerade nicht zur Verfügung. Zeichne dein genaues Verteilgebiet direkt auf der Karte.");
+        return;
+      }
       if (!mapRef.current?.getFeatureLayer) {
         scheduleInstallRetry();
         return;

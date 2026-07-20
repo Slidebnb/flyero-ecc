@@ -3,6 +3,7 @@ import fs from "node:fs";
 
 const catalog = fs.readFileSync("src/lib/serviceCatalog.ts", "utf8");
 const wizard = fs.readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
+const materialStep = fs.readFileSync("src/app/customer/orders/new/OrderMaterialStep.tsx", "utf8");
 const validators = fs.readFileSync("src/lib/validators.ts", "utf8");
 const orderRoute = fs.readFileSync("src/app/api/customer/orders/route.ts", "utf8");
 
@@ -27,8 +28,8 @@ for (const [serviceType, formats] of Object.entries(expectedFormats)) {
 }
 
 assert.match(wizard, /const \[productFormat, setProductFormat\] = useState/);
-assert.match(wizard, /selectedService\.formatOptions/);
-assert.match(wizard, /value=\{productFormat\}/);
+assert.match(materialStep, /selectedService\.formatOptions/);
+assert.match(materialStep, /value=\{productFormat\}/);
 assert.match(wizard, /setProductFormat\(normalizeServiceProductFormat\(/);
 assert.match(validators, /normalizeServiceProductFormat/);
 assert.match(orderRoute, /productFormat: normalizeServiceProductFormat\(/);

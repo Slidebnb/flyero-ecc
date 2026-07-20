@@ -98,13 +98,26 @@ function includes(path, snippets) {
   for (const snippet of snippets) assert(content.includes(snippet), `${path} enthaelt nicht: ${snippet}`);
 }
 
+function includesContent(label, content, snippets) {
+  for (const snippet of snippets) assert(content.includes(snippet), `${label} enthaelt nicht: ${snippet}`);
+}
+
+const customerOrderFlow = [
+  "SmartOrderWizard.tsx",
+  "OrderAreaStep.tsx",
+  "OrderMaterialStep.tsx",
+  "OrderScheduleStep.tsx",
+  "OrderSummaryStep.tsx",
+  "OrderFinishStep.tsx",
+].map((file) => readFileSync(`src/app/customer/orders/new/${file}`, "utf8")).join("\n");
+
 const server = await ensureServer();
 try {
   await resetTestRateLimits();
   const customerCookie = await login("kunde.immobilien@example.com");
   const adminCookie = await login("admin@example.com");
 
-  includes("src/app/customer/orders/new/SmartOrderWizard.tsx", [
+  includesContent("Kunden-Bestellflow", customerOrderFlow, [
     "orderExperience",
     "/api/maps/autocomplete",
     "/api/maps/geocode",

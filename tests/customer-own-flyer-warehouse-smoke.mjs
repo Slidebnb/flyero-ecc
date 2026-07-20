@@ -9,6 +9,7 @@ const warehouseRoute = read("src/app/api/customer/warehouses/route.ts");
 const orderRoute = read("src/app/api/customer/orders/route.ts");
 const validators = read("src/lib/validators.ts");
 const wizard = read("src/app/customer/orders/new/SmartOrderWizard.tsx");
+const materialStep = read("src/app/customer/orders/new/OrderMaterialStep.tsx");
 const orderDetail = read("src/app/customer/orders/[id]/page.tsx");
 
 assert.match(warehouseRoute, /requireTenantSession/);
@@ -24,7 +25,7 @@ assert.match(orderRoute, /assignedWarehouseId/);
 assert.match(wizard, /api\/customer\/warehouses/);
 assert.match(wizard, /selectedWarehouseId/);
 assert.match(wizard, /warehouseId: selectedWarehouseId/);
-assert.match(wizard, /data-testid=\"customer-own-flyer-step\"/);
+assert.match(materialStep, /data-testid=\"customer-own-flyer-step\"/);
 assert.doesNotMatch(wizard, /setFlyerSource\("PRINT_SERVICE"\)/);
 assert.match(wizard, /Flyer sind bereits gedruckt/);
 assert.match(wizard, /Empfangslager/);

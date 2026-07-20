@@ -77,10 +77,17 @@ const page = await context.newPage();
 const browserErrors = [];
 const failedRequests = [];
 const rateLimitResponses = [];
+const isExpectedLocalMapsConfigurationMessage = (text) => baseUrl.startsWith("http://localhost") && [
+  "maps.googleapis.com/maps/api/mapsjs/mapConfigs:batchGet",
+  "Unable to fetch configuration for mapId",
+  "The map is initialized without a valid map ID",
+  "The Map Style does not have the following FeatureLayer configured",
+].some((fragment) => text.includes(fragment));
 page.on("console", (message) => {
   if (message.type() === "error"
     && !message.text().includes("maps.googleapis.com/$rpc")
     && !message.text().includes("maps.googleapis.com/maps/api/mapsjs/gen_204")
+    && !isExpectedLocalMapsConfigurationMessage(message.text())
     && !message.text().includes("Failed to load resource: net::ERR_FAILED")) {
     browserErrors.push(message.text());
   }
@@ -165,10 +172,30 @@ try {
     clientWidth: document.documentElement.clientWidth,
     hasMap: Boolean(document.querySelector('[data-testid="order-map"]')),
     hasDrawAction: Boolean(document.querySelector('[data-testid="order-draw-area"]')),
+    mapStageWidth: document.querySelector('.orderMapStage')?.getBoundingClientRect().width ?? 0,
+    viewportWidth: window.innerWidth,
   }));
   assert.equal(mobileMetrics.scrollWidth, mobileMetrics.clientWidth, "Der Mobile-Wizard erzeugt horizontalen Überlauf.");
   assert(mobileMetrics.hasMap, "Die Kartenfläche fehlt mobil.");
   assert(mobileMetrics.hasDrawAction, "Der Zeichenweg fehlt mobil.");
+  assert(mobileMetrics.mapStageWidth >= mobileMetrics.viewportWidth - 2, "Die Kartenfläche darf mobil nicht auf eine schmale Desktop-Spalte schrumpfen.");
+  const mobileMapLabel = await page.locator(".mapChromeTop span").boundingBox();
+  const mobileMapTabs = await page.locator(".mapTabs").boundingBox();
+  const mobileMapNotice = await page.locator(".mapNotice").boundingBox();
+  const mobileMapZoomRail = await page.locator(".mapZoomRail").boundingBox();
+  if (mobileMapLabel && mobileMapTabs) {
+    const separatedHorizontally = mobileMapLabel.x + mobileMapLabel.width + 6 <= mobileMapTabs.x;
+    const separatedVertically = mobileMapLabel.y + mobileMapLabel.height + 6 <= mobileMapTabs.y
+      || mobileMapTabs.y + mobileMapTabs.height + 6 <= mobileMapLabel.y;
+    assert(separatedHorizontally || separatedVertically, "Ortsbezeichnung und Kartenumschaltung überlappen mobil.");
+  }
+  if (mobileMapNotice && mobileMapZoomRail) {
+    const separatedFromZoomRail = mobileMapNotice.x + mobileMapNotice.width + 6 <= mobileMapZoomRail.x
+      || mobileMapZoomRail.x + mobileMapZoomRail.width + 6 <= mobileMapNotice.x
+      || mobileMapNotice.y + mobileMapNotice.height + 6 <= mobileMapZoomRail.y
+      || mobileMapZoomRail.y + mobileMapZoomRail.height + 6 <= mobileMapNotice.y;
+    assert(separatedFromZoomRail, "Der Kartenhinweis darf mobil nicht unter der Zoom-Leiste liegen.");
+  }
   await page.screenshot({ path: join(mobileDir, "customer-order-new.png"), fullPage: true });
 
   const unexpectedFailedRequests = failedRequests.filter(({ url, error }) => {
