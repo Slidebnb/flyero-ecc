@@ -239,7 +239,7 @@ function confidenceForEstimate(
   if ((sourceType === "OFFICIAL" || sourceType === "LICENSED") && sourceYear) return "high" as const;
   if ((method === "OFFICIAL_IMPORT" || method === "LICENSED_IMPORT") && source && sourceYear) return "high" as const;
   if (method === "IMPORT" && source && !source.toLowerCase().includes("seed")) return "medium" as const;
-  if (method === "SEED" || source?.toLowerCase().includes("seed")) return "medium" as const;
+  if (method === "SEED" || source?.toLowerCase().includes("seed")) return "low" as const;
   if (method === "MANUAL" || method === "AUTOMATIC" || hasAreaData) return "medium" as const;
   return "low" as const;
 }

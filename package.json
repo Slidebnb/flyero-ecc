@@ -198,6 +198,7 @@
     "test:maps-abuse": "node -r dotenv/config tests/maps-abuse-smoke.mjs",
     "test:customer-maps-rate-limit": "node tests/customer-maps-rate-limit-smoke.mjs",
     "test:area-difficulty-derivation": "node --experimental-strip-types tests/area-difficulty-derivation-smoke.mjs",
+    "test:seed-confidence": "node tests/seed-confidence-smoke.mjs",
     "test:server-area-snapshot": "node --experimental-strip-types tests/server-area-snapshot-integrity-smoke.mjs",
     "test:customer-order-new-flow": "node tests/customer-order-new-flow-smoke.mjs",
     "test:customer-order-map-capabilities": "node tests/customer-order-map-capabilities-smoke.mjs",

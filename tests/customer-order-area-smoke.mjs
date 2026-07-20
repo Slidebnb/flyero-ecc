@@ -29,6 +29,12 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+const smartMapsSource = readFileSync("src/lib/smartMaps.ts", "utf8");
+assert(
+  /if \(method === "SEED" \|\| source\?\.toLowerCase\(\)\.includes\("seed"\)\) return "low" as const;/.test(smartMapsSource),
+  "Seed-Haushaltsschätzungen dürfen im Kundenfluss nicht als mittlere oder hohe Vertrauensstufe erscheinen.",
+);
+
 async function sleep(ms) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
