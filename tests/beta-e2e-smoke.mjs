@@ -123,6 +123,24 @@ async function pageOk(path, cookie, label) {
   assert(status === 200, `${label} (${path}) lieferte ${status}`);
 }
 
+const betaSegment = {
+  name: "Beta Zentrum",
+  city: "Koblenz",
+  postalCode: "56068",
+  country: "DE",
+  geometryGeoJson: {
+    type: "FeatureCollection",
+    features: [{
+      type: "Feature",
+      properties: {},
+      geometry: {
+        type: "Polygon",
+        coordinates: [[[7.58, 50.35], [7.59, 50.35], [7.59, 50.36], [7.58, 50.36], [7.58, 50.35]]],
+      },
+    }],
+  },
+};
+
 async function main() {
   const server = await ensureServer();
   try {
@@ -156,7 +174,7 @@ async function main() {
 
     const customerCookie = await login(email, "198.51.100.201");
     const adminCookie = await login("admin@example.com", "198.51.100.202");
-    const warehouseCookie = await login("warehouse@example.com", "198.51.100.203");
+    let warehouseCookie = await login("warehouse@example.com", "198.51.100.203");
     const distributorCookie = await login("verteiler.approved1@example.com", "198.51.100.204");
     const pendingDistributorCookie = await login("verteiler.pending1@example.com", "198.51.100.205");
 
@@ -184,21 +202,24 @@ async function main() {
 
     const startDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 10).toISOString();
     const endDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString();
-    const planningQuote = await jsonRequest("/api/public/planner/quote", {
-      method: "POST",
+    const planningParams = new URLSearchParams({
+      city: "Koblenz",
+      postalCode: "56068",
+      street: "Betaallee",
+      houseNumber: "7",
+      flyerQuantity: "1400",
+      coverageAreaSqm: "640000",
+      flyerSource: "CUSTOMER_OWN",
+      printDataStatus: "UPLOAD_LATER",
+      preferredStartDate: startDate,
+      preferredEndDate: endDate,
+      weightClass: "LIGHT",
+      areaDifficulty: "NORMAL",
+      segments: JSON.stringify([betaSegment]),
+    });
+    const planningQuote = await jsonRequest(`/api/maps/order-intelligence?${planningParams.toString()}`, {
+      cookie: customerCookie,
       expected: [200],
-      body: {
-        city: "Koblenz",
-        postalCode: "56068",
-        street: "Betaallee",
-        houseNumber: "7",
-        flyerQuantity: 1400,
-        coverageAreaSqm: 640000,
-        flyerSource: "CUSTOMER_OWN",
-        printDataStatus: "UPLOAD_LATER",
-        preferredStartDate: startDate,
-        preferredEndDate: endDate,
-      },
     });
     assert(planningQuote.data.metrics.fingerprint, "Beta-Planungsquote lieferte keinen Quote-Fingerprint.");
     const orderResponse = await jsonRequest("/api/customer/orders", {
@@ -212,7 +233,9 @@ async function main() {
         street: "Betaallee",
         houseNumber: "7",
         targetAreaName: "Beta Zentrum",
-        areaType: "CITY",
+        areaType: "POLYGON",
+        targetAreaGeoJson: JSON.stringify(betaSegment.geometryGeoJson),
+        areaSegments: JSON.stringify([betaSegment]),
         estimatedHouseholds: 1200,
         estimatedFlyers: 1300,
         flyerQuantity: 1400,
@@ -261,11 +284,34 @@ async function main() {
     assert(invoice.subtotalNet.equals(expectedNet), "Rechnung verwendet nicht den gleichen Nettopreis wie der Auftrag.");
     assert(pricedOrder.manualPriceOverride !== null || invoice.totalGross.equals(pricedOrder.calculatedGrossPrice), "Rechnung und gespeicherter Auftragspreis laufen auseinander.");
 
-    const warehouseUser = await prisma.user.findUnique({
+    const assignedOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { assignedWarehouseId: true },
+    });
+    assert(assignedOrder?.assignedWarehouseId, "Auftrag wurde nach der Freigabe keinem Lager zugewiesen.");
+    await prisma.warehouseLocation.upsert({
+      where: {
+        warehouseId_fullLabel: {
+          warehouseId: assignedOrder.assignedWarehouseId,
+          fullLabel: "BETA-A-01",
+        },
+      },
+      update: {},
+      create: {
+        warehouseId: assignedOrder.assignedWarehouseId,
+        aisle: "BETA",
+        shelf: "A",
+        compartment: "01",
+        fullLabel: "BETA-A-01",
+      },
+    });
+    const warehouseUser = await prisma.user.update({
       where: { email: "warehouse@example.com" },
+      data: { warehouseId: assignedOrder.assignedWarehouseId },
       include: { warehouse: { include: { locations: true } } },
     });
-    const warehouse = warehouseUser?.warehouse;
+    warehouseCookie = await login("warehouse@example.com", "198.51.100.203");
+    const warehouse = warehouseUser.warehouse;
     assert(warehouse?.locations[0], "Warehouse Seed-Daten fuer Demo-Lager fehlen.");
     const checkin = await jsonRequest("/api/warehouse/checkin", {
       method: "POST",

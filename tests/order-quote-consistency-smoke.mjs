@@ -7,6 +7,7 @@ function assert(condition, message) {
 const quoteSource = readFileSync("src/lib/planningQuote.ts", "utf8");
 const mapsSource = readFileSync("src/lib/smartMaps.ts", "utf8");
 const orderSource = readFileSync("src/app/api/customer/orders/route.ts", "utf8");
+const betaSource = readFileSync("tests/beta-e2e-smoke.mjs", "utf8");
 assert(existsSync("src/lib/planningQuote.ts"), "Zentrale Quote-Datei fehlt.");
 for (const snippet of ["buildPlanningInputFingerprint", "PLANNING_QUOTE_VERSION", "pricingRuleSignature", "polygonHash"]) {
   assert(quoteSource.includes(snippet), `Quote-Vertrag fehlt: ${snippet}`);
@@ -16,6 +17,10 @@ for (const snippet of ["buildAuthoritativePlanningQuote", "calculateOrderPrice",
 }
 assert(orderSource.includes("data.quoteFingerprint !== intelligence.metrics.fingerprint"), "Order muss die Quote serverseitig vergleichen.");
 assert(orderSource.includes('code: "PLANNING_QUOTE_CHANGED"'), "Stale-Quote-Code fehlt.");
+assert(betaSource.includes("/api/maps/order-intelligence?"), "Beta-Flow muss die authentifizierte Kundenquote verwenden.");
+assert(!betaSource.includes("/api/public/planner/quote"), "Beta-Flow darf keine öffentliche Vorabquote direkt fuer einen Kundenauftrag verwenden.");
+assert(betaSource.includes("assignedOrder.assignedWarehouseId"), "Beta-Flow muss das tatsaechlich zugewiesene Lager pruefen.");
+assert(betaSource.includes('data: { warehouseId: assignedOrder.assignedWarehouseId }'), "Beta-Flow darf beim Lager-Check-in kein fest verdrahtetes Demo-Lager voraussetzen.");
 
 const baseUrl = process.env.CORE_ORDER_BASE_URL;
 if (baseUrl) {
