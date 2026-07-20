@@ -53,8 +53,7 @@ try {
     }
     // Google Maps keeps loading external map resources after the document is
     // usable, so networkidle is not a stable readiness signal for the planner.
-    const waitUntil = path.startsWith("/verteilung-planen") ? "domcontentloaded" : "networkidle";
-    await page.goto(new URL(path, baseUrl).toString(), { waitUntil });
+    await page.goto(new URL(path, baseUrl).toString(), { waitUntil: "domcontentloaded" });
     await page.locator("h1").waitFor({ state: "visible" });
     if (path.startsWith("/verteilung-planen")) {
       await page.locator('[data-testid="order-location-input"]').waitFor({ state: "visible" });
@@ -77,7 +76,7 @@ try {
   }
 
   const menuPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await menuPage.goto(new URL("/", baseUrl).toString(), { waitUntil: "networkidle" });
+  await menuPage.goto(new URL("/", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   const menuButton = menuPage.locator(".flyeroMobileMenuButton");
   assert.equal(await menuButton.count(), 1, "Mobile Navigation fehlt.");
   await menuButton.click();
@@ -98,7 +97,7 @@ try {
       body: JSON.stringify({ ok: true, data: { id: "playwright-lead", inquiryNumber: "ANF-2026-PLAYWRIGHT", status: "NEW" } }),
     });
   });
-  await inquiryPage.goto(new URL("/verteilung-anfragen", baseUrl).toString(), { waitUntil: "networkidle" });
+  await inquiryPage.goto(new URL("/verteilung-anfragen", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   assert.ok(await inquiryPage.locator('a[href="/datenschutz"]').first().isVisible(), "Anfrageformular braucht einen sichtbaren Datenschutzlink.");
   await inquiryPage.locator('input[name="name"]').fill("Playwright Anfrage");
   await inquiryPage.locator('input[name="companyName"]').fill("FLYERO Testbetrieb");
@@ -118,8 +117,13 @@ try {
   await inquiryPage.close();
 
   const anchorPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
-  await anchorPage.goto(new URL("/fuer-unternehmen#zielgruppen", baseUrl).toString(), { waitUntil: "networkidle" });
-  await anchorPage.waitForTimeout(700);
+  await anchorPage.goto(new URL("/fuer-unternehmen#zielgruppen", baseUrl).toString(), { waitUntil: "domcontentloaded" });
+  await anchorPage.waitForFunction(() => {
+    const element = document.querySelector("#zielgruppen");
+    if (!element) return false;
+    const top = element.getBoundingClientRect().top;
+    return top >= -120 && top <= 180;
+  }, { timeout: 5000 });
   const anchorTop = await anchorPage.locator("#zielgruppen").evaluate((element) => element.getBoundingClientRect().top);
   assert.ok(anchorTop >= -120 && anchorTop <= 180, "Zielgruppen-Anchor liegt nicht sichtbar unter dem Header.");
   const audienceCtas = anchorPage.locator("#zielgruppen .mkTextLink");
