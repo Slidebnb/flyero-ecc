@@ -130,6 +130,7 @@ try {
   }
   assert(desktopMetrics.hasDrawAction, "Der funktionierende Zeichenweg fehlt.");
   assert(!desktopMetrics.hasDisabledBoundaryAction, "Eine nicht verfügbare Grenzschaltfläche darf nicht als deaktivierter Hauptweg erscheinen.");
+  await page.screenshot({ path: join(desktopDir, "start.png"), fullPage: true });
   const locationInput = page.locator('[data-testid="order-location-input"]');
   await locationInput.fill("56068");
   await page.waitForTimeout(900);
@@ -137,6 +138,7 @@ try {
   assert((await suggestion.count()) > 0, "Die PLZ-Suche zeigt keinen auswählbaren Ortsvorschlag.");
   await suggestion.click();
   await page.waitForTimeout(1600);
+  await page.screenshot({ path: join(desktopDir, "location-selected.png"), fullPage: true });
   assert((await locationInput.inputValue()).includes("56068"), "Die ausgewählte PLZ bleibt nicht im Kundenwizard sichtbar.");
   assert.equal(rateLimitResponses.length, 0, `Die normale PLZ-Auswahl löste 429 aus: ${rateLimitResponses.join(", ")}`);
   if (desktopMetrics.mapReady) {
@@ -157,12 +159,26 @@ try {
     }
     await finishDrawing.click();
     await page.waitForTimeout(1800);
+    await page.screenshot({ path: join(desktopDir, "area-drawn.png"), fullPage: true });
+    await page.screenshot({ path: join(desktopDir, "price-ready.png"), fullPage: true });
     const priceStatus = await page.locator(".orderPriceFooter strong").textContent();
     assert(priceStatus && !["Gebiet auswÃ¤hlen", "Preis wird aktualisiert"].includes(priceStatus.trim()), `Nach dem Zeichnen wurde kein nutzbarer Preisstatus angezeigt: ${priceStatus}`);
   }
   for (const forbidden of ["Beispielhafter Ablauf", "keine echte Kampagne", "Fallback", "Quote", "Fingerprint", "Wartet intern"]) {
     assert(!desktopMetrics.bodyText.includes(forbidden), `Der Kunden-Wizard zeigt verbotenen Begriff: ${forbidden}`);
   }
+  await page.locator('[data-testid="order-step-5"]').click();
+  await page.locator('[data-testid="order-price-net"]').waitFor();
+  await page.screenshot({ path: join(desktopDir, "summary.png"), fullPage: true });
+  await page.locator('[data-testid="order-step-2"]').click();
+  await page.getByRole("button", { name: /Sampling/ }).click();
+  await page.locator('[data-testid="sampling-details"]').waitFor();
+  await page.screenshot({ path: join(desktopDir, "sampling.png"), fullPage: true });
+  await page.locator('[data-testid="order-step-6"]').click();
+  await page.locator('[data-testid="order-finish-inquiry"]').waitFor();
+  await page.screenshot({ path: join(desktopDir, "manual-review.png"), fullPage: true });
+  await page.locator('[data-testid="order-step-1"]').click();
+  await page.waitForTimeout(300);
   await page.screenshot({ path: join(desktopDir, "customer-order-new.png"), fullPage: true });
 
   await page.setViewportSize({ width: 390, height: 844 });

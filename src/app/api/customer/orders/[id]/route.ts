@@ -115,7 +115,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       preferredEndDate: data.preferredEndDate,
       includeOperationalData: true,
     });
-    if (data.quoteFingerprint !== intelligence.metrics.fingerprint) {
+    if (data.completionPath === "direct_payment" && data.quoteFingerprint !== intelligence.metrics.fingerprint) {
       return Response.json({
         ok: false,
         code: "PLANNING_QUOTE_CHANGED",

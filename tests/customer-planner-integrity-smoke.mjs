@@ -271,6 +271,11 @@ assert.match(
 
 const migrationCommand = "docker compose -f docker-compose.production.yml run --rm app npx prisma migrate deploy";
 assert.ok(deployment.includes(migrationCommand), "Das Produktions-Deployment muss Prisma-Migrationen vor dem Start ausfuehren.");
+assert.match(
+  wizard,
+  /const removeSegment = useCallback[\s\S]*?setSelectedWarehouseId\(""\)[\s\S]*?setSelectedAreaId\(replacement\?\.distributionAreaId \?\? ""\)/,
+  "Beim Entfernen eines Teilgebiets muessen Lager- und Gebietsreferenz zum verbleibenden Gebiet passen.",
+);
 const fullStackStart = deployment.search(/docker compose -f docker-compose\.production\.yml up -d\r?\n/);
 assert.ok(fullStackStart >= 0 && deployment.indexOf(migrationCommand) < fullStackStart, "Migrationen muessen vor dem Produktionsstart dokumentiert sein.");
 assert.match(dockerfile, /prisma migrate deploy && npm run start/, "Der Produktionscontainer muss vor Next.js den Prisma-Schemaabgleich ausfuehren.");

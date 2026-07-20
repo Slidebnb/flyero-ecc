@@ -456,7 +456,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [serviceType, setServiceType] = useState<OnlineServiceType>("FLYER_STANDARD");
   const [productFormat, setProductFormat] = useState(() => serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
   const [weightInGrams, setWeightInGrams] = useState("");
-  const [samplingDetails, setSamplingDetails] = useState({ size: "", packaging: "", fragile: false, personalHandover: false, storage: "" });
+  const [samplingDetails, setSamplingDetails] = useState({ sampleType: "", size: "", packaging: "", fragile: false, personalHandover: false, storage: "" });
   const [warehouseOptions, setWarehouseOptions] = useState<CustomerWarehouse[]>([]);
   const [warehouseOptionsStatus, setWarehouseOptionsStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
@@ -1070,13 +1070,19 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setAreaSegments((current) => {
       const next = current.filter((segment) => segment.id !== segmentId);
       const replacement = next[next.length - 1];
+      setSelectedWarehouseId("");
       if (segmentId === activeSegmentId) {
         setActiveSegmentId(replacement?.id ?? null);
         setPolygon(replacement?.points ?? []);
         setPolygonSource(replacement?.polygonSource ?? "drawn");
+        setSelectedAreaId(replacement?.distributionAreaId ?? "");
         setCity(replacement?.city ?? "");
         setPostalCode(replacement?.postalCode ?? "");
         setTargetAreaName(replacement?.name ?? "");
+        setQuery(replacement ? [replacement.postalCode, replacement.city].filter(Boolean).join(" ") : "");
+        setSelectedLocation(null);
+        setStreet("");
+        setHouseNumber("");
       }
       return next;
     });
@@ -1122,7 +1128,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setServiceType("FLYER_STANDARD");
         setProductFormat(serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
         setWeightInGrams("");
-        setSamplingDetails({ size: "", packaging: "", fragile: false, personalHandover: false, storage: "" });
+        setSamplingDetails({ sampleType: "", size: "", packaging: "", fragile: false, personalHandover: false, storage: "" });
         setPrintDataStatus("UPLOAD_LATER");
         setTargetGroup("Alle Haushalte");
         setDistributionType("Haushaltsverteilung");
@@ -2158,12 +2164,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setFinishStatus("Bitte bestätige zuerst, ob deine Druckdaten unverändert sind.");
       return;
     }
-    if (!isPublicPlanner && !selectedWarehouseId) {
+    if (completionPath === "direct_payment" && !isPublicPlanner && !selectedWarehouseId) {
       setActiveStep(2);
       setFinishStatus("Bitte wähle zuerst das Empfangslager für deine bereits gedruckten Flyer.");
       return;
     }
-    if (!isPublicPlanner && (
+    if (completionPath === "direct_payment" && !isPublicPlanner && (
       intelligenceStatus !== "live" ||
       !isIntelligenceConfirmed(intelligenceRequestQuery) ||
       !intelligence?.metrics.fingerprint

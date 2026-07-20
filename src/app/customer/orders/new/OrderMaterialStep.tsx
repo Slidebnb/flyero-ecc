@@ -4,6 +4,7 @@ import { distributionServiceCatalog, type OnlineServiceType, type ServiceCatalog
 import type { CustomerWarehouse } from "./orderWizardTypes";
 
 type SamplingDetails = {
+  sampleType: string;
   size: string;
   packaging: string;
   fragile: boolean;
@@ -94,7 +95,7 @@ export function OrderMaterialStep({
       </label>
       <label className="selectLine">
         <span>Ungefähres Einzelgewicht</span>
-        <input type="number" min="1" max="10000" inputMode="numeric" value={weightInGrams} onChange={(event) => onWeightChange(event.target.value)} placeholder="z. B. 35" />
+        <input type="number" min="1" max="10000" inputMode="numeric" value={weightInGrams} onChange={(event) => onWeightChange(event.target.value)} placeholder="z. B. 35" required={serviceType === "PRODUCT_SAMPLING"} />
         <small>{numericWeightInGrams ? `Gewichtsklasse: ${effectiveWeightClass === "CUSTOM" ? "individuelles Angebot" : effectiveWeightClass}` : "Optional. Ohne Angabe kalkulieren wir mit LIGHT."}</small>
       </label>
       {effectiveWeightClass === "CUSTOM" ? (
@@ -105,9 +106,10 @@ export function OrderMaterialStep({
       {serviceType === "PRODUCT_SAMPLING" ? (
         <div className="samplingDetails" data-testid="sampling-details">
           <strong>Angaben zur Produktprobe</strong>
-          <label>Größe<input value={samplingDetails.size} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, size: event.target.value })} placeholder="z. B. 10 ml oder 8 x 5 cm" /></label>
-          <label>Verpackung<input value={samplingDetails.packaging} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, packaging: event.target.value })} placeholder="z. B. Beutel, Karton oder Fläschchen" /></label>
-          <label>Lagerbedingungen<input value={samplingDetails.storage} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, storage: event.target.value })} placeholder="z. B. trocken lagern" /></label>
+          <label>Art der Probe<input value={samplingDetails.sampleType} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, sampleType: event.target.value })} placeholder="z. B. Kaffeestick, Kosmetikprobe oder Snack" required /></label>
+          <label>Größe<input value={samplingDetails.size} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, size: event.target.value })} placeholder="z. B. 10 ml oder 8 x 5 cm" required /></label>
+          <label>Verpackung<input value={samplingDetails.packaging} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, packaging: event.target.value })} placeholder="z. B. Beutel, Karton oder Fläschchen" required /></label>
+          <label>Lagerbedingungen<input value={samplingDetails.storage} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, storage: event.target.value })} placeholder="z. B. trocken lagern" required /></label>
           <label className="checkLine"><input type="checkbox" checked={samplingDetails.fragile} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, fragile: event.target.checked })} />Empfindlich oder zerbrechlich</label>
           <label className="checkLine"><input type="checkbox" checked={samplingDetails.personalHandover} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, personalHandover: event.target.checked })} />Persönliche Übergabe erforderlich</label>
         </div>

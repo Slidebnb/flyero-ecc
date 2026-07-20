@@ -79,6 +79,15 @@ const optionalJson = z
     }
   });
 
+const samplingProductDetails = z.object({
+  sampleType: z.string().trim().min(2),
+  size: z.string().trim().min(2),
+  packaging: z.string().trim().min(2),
+  storage: z.string().trim().min(2),
+  fragile: z.boolean(),
+  personalHandover: z.boolean(),
+}).passthrough();
+
 const optionalOrderAreaSegments = z.preprocess(
   (value) => {
     if (Array.isArray(value)) return value;
@@ -219,7 +228,10 @@ export const orderCreateSchema = z
     coverageAreaSqm: optionalPositiveNumber,
     areaCalculationSnapshot: optionalJson,
       areaSegments: optionalOrderAreaSegments,
-      quoteFingerprint: z.string().regex(/^[a-f0-9]{64}$/, "Die Preisvorschau ist abgelaufen. Bitte aktualisiere die Planung."),
+      quoteFingerprint: z.preprocess(
+        (value) => (typeof value === "string" && !value.trim() ? undefined : value),
+        z.string().regex(/^[a-f0-9]{64}$/, "Die Preisvorschau ist abgelaufen. Bitte aktualisiere die Planung.").optional(),
+      ),
       centerLat: z.coerce.number().optional(),
     centerLng: z.coerce.number().optional(),
     radiusMeters: optionalNonNegativeInt,
@@ -260,6 +272,17 @@ export const orderCreateSchema = z
   .refine((data) => data.productFormat?.replace(" x ", " × ") === normalizeServiceProductFormat(data.serviceType, data.productFormat), {
     message: "Bitte wähle ein passendes Format für das ausgewählte Werbemittel.",
     path: ["productFormat"],
+  })
+  .refine((data) => data.completionPath !== "direct_payment" || Boolean(data.quoteFingerprint), {
+    message: "Bitte aktualisiere zuerst die Preisvorschau.",
+    path: ["quoteFingerprint"],
+  })
+  .refine((data) => {
+    if (data.serviceType !== "PRODUCT_SAMPLING") return true;
+    return Boolean(data.weightInGrams) && samplingProductDetails.safeParse(data.productDetails).success;
+  }, {
+    message: "Bitte ergänze Art, Größe, Verpackung, Gewicht und Lagerbedingungen der Produktprobe.",
+    path: ["productDetails"],
   });
 
 export const orderUpdateSchema = orderCreateSchema.extend({

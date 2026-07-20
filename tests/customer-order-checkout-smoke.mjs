@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
@@ -7,6 +8,7 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: proc
 let baseUrl = process.env.CUSTOMER_ORDER_CHECKOUT_BASE_URL || "http://localhost:3000";
 let createdSmokeWarehouseId = null;
 const PASSWORD = "DemoPasswort123!";
+const LOGIN_TEST_IP = process.env.SMOKE_TEST_IP || "198.51.100.24";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -40,7 +42,13 @@ async function ensureServer() {
   }
   const child = spawn(process.platform === "win32" ? "npm.cmd" : "npm", ["run", "dev"], {
     cwd: process.cwd(),
-    env: { ...process.env, PORT: new URL(baseUrl).port || "3000" },
+    env: {
+      ...process.env,
+      NODE_ENV: "development",
+      ENABLE_MOCK_PAYMENTS: "true",
+      STRIPE_SECRET_KEY: "sk_test_mock",
+      PORT: new URL(baseUrl).port || "3000",
+    },
     stdio: "ignore",
     shell: process.platform === "win32",
   });
@@ -55,6 +63,15 @@ async function ensureServer() {
   throw new Error("Dev-Server konnte fuer Customer Order Checkout Smoke nicht gestartet werden.");
 }
 
+async function resetAuthRateLimitBuckets() {
+  const ids = [
+    createHash("sha256").update(`flyero-auth-rate-limit:login:ip:${LOGIN_TEST_IP}`).digest("hex"),
+    createHash("sha256").update("flyero-auth-rate-limit:login:account:kunde.immobilien@example.com").digest("hex"),
+    createHash("sha256").update("flyero-auth-rate-limit:login:account:admin@example.com").digest("hex"),
+  ];
+  await prisma.authRateLimitBucket.deleteMany({ where: { id: { in: ids } } });
+}
+
 function cookieHeaderFrom(response) {
   return (response.headers.get("set-cookie") || "").split(/,(?=[^;,]+=)/).map((item) => item.split(";")[0]).join("; ");
 }
@@ -64,8 +81,8 @@ async function login(email) {
     method: "POST",
     headers: {
       "content-type": "application/json",
+      "x-forwarded-for": LOGIN_TEST_IP,
       // Use a TEST-NET address so repeated local smoke runs do not share the developer's auth bucket.
-      "x-forwarded-for": process.env.SMOKE_TEST_IP || "198.51.100.24",
     },
     body: JSON.stringify({ email, password: PASSWORD }),
   });
@@ -215,6 +232,7 @@ async function planningQuote(completionPath, includeSegments = true) {
 
 const server = await ensureServer();
 try {
+  await resetAuthRateLimitBuckets();
   await ensureCheckoutWarehouse();
   includes("src/app/customer/orders/new/OrderFinishStep.tsx", [
     "Jetzt buchen und bezahlen",
@@ -268,12 +286,24 @@ try {
   assert(directOrder?.priceRuleSnapshot?.calculatedNet === directOrder?.calculatedNetPrice.toString(), "Netto-Snapshot stimmt nicht mit Order-Preis ueberein.");
   assert(directOrder.payments.length >= 1, "Payment wurde nicht angelegt.");
 
-  const inquiry = await postJson("/api/customer/orders", orderPayload("Inquiry", "inquiry", await planningQuote("inquiry")), customerCookie);
+  const inquiry = await postJson("/api/customer/orders", orderPayload("Inquiry", "inquiry"), customerCookie);
   assert(inquiry.data.id, "Anfrage hat keine Order-ID geliefert.");
   assert(inquiry.data.status === "SUBMITTED", `Anfrage Status falsch: ${inquiry.data.status}`);
   const inquiryOrder = await prisma.order.findUnique({ where: { id: inquiry.data.id }, include: { payments: true } });
   assert(inquiryOrder?.payments.length === 0, "Anfrage darf keine Zahlung erzwingen.");
   assert(inquiryOrder?.priceRuleSnapshot?.completionPath === "inquiry", "Abschlussweg inquiry fehlt.");
+
+  const inquiryWithoutPolygonPayload = orderPayload("Inquiry Without Polygon", "inquiry", undefined, false);
+  delete inquiryWithoutPolygonPayload.targetAreaGeoJson;
+  delete inquiryWithoutPolygonPayload.coverageAreaSqm;
+  delete inquiryWithoutPolygonPayload.estimatedHouseholds;
+  delete inquiryWithoutPolygonPayload.estimatedDistanceMeters;
+  inquiryWithoutPolygonPayload.areaType = "POSTAL_CODE";
+  const inquiryWithoutPolygon = await postJson("/api/customer/orders", inquiryWithoutPolygonPayload, customerCookie);
+  assert(inquiryWithoutPolygon.data.id, "Anfrage ohne Polygon hat keine Order-ID geliefert.");
+  assert(inquiryWithoutPolygon.data.status === "SUBMITTED", `Anfrage ohne Polygon Status falsch: ${inquiryWithoutPolygon.data.status}`);
+  const inquiryWithoutPolygonOrder = await prisma.order.findUnique({ where: { id: inquiryWithoutPolygon.data.id }, include: { payments: true } });
+  assert(inquiryWithoutPolygonOrder?.payments.length === 0, "Eine Anfrage ohne Polygon darf keine Zahlung erzwingen.");
 
   const manual = await postJson("/api/customer/orders", orderPayload("Manual", "direct_payment", await planningQuote("direct_payment", false), false), customerCookie);
   await postJson(`/api/admin/orders/${manual.data.id}/price`, { manualPriceOverride: "1000", note: "Manual pricing smoke." }, adminCookie);

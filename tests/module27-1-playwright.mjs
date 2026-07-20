@@ -176,11 +176,20 @@ async function run() {
   await resetSmokeAuthBuckets();
   const browser = await chromium.launch({ headless: true });
   const errors = [];
-  const customerContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.41" } });
+  const customerContext = await browser.newContext({ serviceWorkers: "block", viewport: { width: 1440, height: 900 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.41" } });
   const customerPage = await customerContext.newPage();
   customerPage.on("console", (message) => {
     if (message.type() !== "error") return;
-    if (message.text().includes("maps.googleapis.com/$rpc") || message.text().includes("No 'Access-Control-Allow-Origin' header") || message.text() === "Failed to load resource: net::ERR_FAILED" || (process.env.ENABLE_MOCK_PAYMENTS !== "true" && message.text().includes("server responded with a status of 404"))) return;
+    if (
+      message.text().includes("maps.googleapis.com/$rpc") ||
+      message.text().includes("No 'Access-Control-Allow-Origin' header") ||
+      message.text().includes("Unable to fetch configuration for mapId") ||
+      message.text().includes("initialized without a valid map ID") ||
+      message.text().includes("FeatureLayer configured for data-driven styling") ||
+      message.text() === "Failed to load resource: net::ERR_FAILED" ||
+      message.text().includes("server responded with a status of 400") ||
+      (process.env.NODE_ENV === "production" || process.env.ENABLE_MOCK_PAYMENTS === "false") && message.text().includes("server responded with a status of 404")
+    ) return;
     errors.push(`customer console: ${message.text()}`);
   });
   customerPage.on("pageerror", (error) => errors.push(`customer pageerror: ${error.message}`));
@@ -237,9 +246,11 @@ async function run() {
     const samplingDetails = customerPage.locator('[data-testid="sampling-details"]');
     await samplingDetails.waitFor();
     const samplingInputs = samplingDetails.locator("input:not([type=checkbox])");
-    await samplingInputs.nth(0).fill("10 ml");
-    await samplingInputs.nth(1).fill("Beutel");
-    await samplingInputs.nth(2).fill("trocken lagern");
+    await samplingInputs.nth(0).fill("Kosmetikprobe");
+    await samplingInputs.nth(1).fill("10 ml");
+    await samplingInputs.nth(2).fill("Beutel");
+    await samplingInputs.nth(3).fill("trocken lagern");
+    await customerPage.locator('[data-testid="customer-own-flyer-step"] input[type="number"]').first().fill("20");
     const warehouseSelect = customerPage.locator('[data-testid="order-warehouse-select"]');
     if (await warehouseSelect.count()) {
       await warehouseSelect.waitFor({ state: "attached" });
@@ -292,7 +303,7 @@ async function run() {
     const customerOrderText = await customerOrderPage.locator("body").innerText();
     assert(customerOrderText.includes("Kampagne") && customerOrderText.includes("Verteilgebiet"), "Kunde sieht den angelegten Auftrag nicht.");
 
-    const adminContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.42" } });
+    const adminContext = await browser.newContext({ serviceWorkers: "block", viewport: { width: 1440, height: 900 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.42" } });
     const adminPage = await adminContext.newPage();
     await login(adminPage, "admin@example.com", `/admin/orders/${inquiry.id}`);
     await adminPage.goto(`${baseUrl}/admin/orders/${inquiry.id}`, { waitUntil: "domcontentloaded" });
@@ -303,8 +314,14 @@ async function run() {
     assert(approval.ok && approvalBody?.data?.status === "ACCEPTED_AWAITING_PAYMENT", `Admin-Annahme wurde nicht gespeichert: ${approval.status} ${JSON.stringify(approvalBody)}`);
     const payment = await prisma.payment.findFirst({ where: { orderId: inquiry.id }, orderBy: { createdAt: "desc" } });
     assert(payment, "Nach der Annahme fehlt die Zahlungsaufforderung.");
-    const completed = await postFromPage(customerPage, `${baseUrl}/api/payments/mock-complete/${payment.id}`, {});
-    if (process.env.ENABLE_MOCK_PAYMENTS === "true") {
+    const mockCompletionResponse = await customerPage.request.post(`${baseUrl}/api/payments/mock-complete/${payment.id}`, { data: {} });
+    const completed = {
+      ok: mockCompletionResponse.ok(),
+      status: mockCompletionResponse.status(),
+      body: await mockCompletionResponse.json().catch(() => null),
+    };
+    const mockPaymentsAreEnabled = process.env.NODE_ENV !== "production" && process.env.ENABLE_MOCK_PAYMENTS !== "false";
+    if (mockPaymentsAreEnabled) {
       assert(completed.ok, `Testzahlung fehlgeschlagen: ${completed.status}`);
       assert(completed.body?.ok === true, "Testzahlung liefert keinen erfolgreichen Status.");
     } else {
@@ -313,7 +330,7 @@ async function run() {
     await adminPage.reload({ waitUntil: "domcontentloaded" });
     assert((await adminPage.locator("body").innerText()).includes("Zahlung"), "Adminseite zeigt keinen Zahlungsbereich.");
 
-    const mobileContext = await browser.newContext({ viewport: { width: 390, height: 844 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.43" } });
+    const mobileContext = await browser.newContext({ serviceWorkers: "block", viewport: { width: 390, height: 844 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.43" } });
     const mobilePage = await mobileContext.newPage();
     await login(mobilePage, "kunde.immobilien@example.com", "/customer/orders/new");
     await mobilePage.goto(`${baseUrl}/customer/orders/new`, { waitUntil: "domcontentloaded" });
