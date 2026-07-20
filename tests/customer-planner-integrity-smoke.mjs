@@ -93,6 +93,11 @@ assert.doesNotMatch(
 );
 assert.doesNotMatch(
   wizard,
+  /setMapNotice\("Ort gefunden\. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte\."\)/,
+  "Nach einer Ortssuche darf der alte, unklare Gebietshinweis nicht zurueckkehren.",
+);
+assert.doesNotMatch(
+  wizard,
   /Die Grenzen kannst du danach direkt auf der Karte anpassen\./,
   "Der Kunde darf nicht auf eine nicht vorhandene Grenzinteraktion verwiesen werden.",
 );
@@ -187,6 +192,16 @@ assert.match(
   areaStep,
   /boundarySelectionEnabled \? \([\s\S]*?data-testid="order-select-boundary"/,
   "Eine Grenzauswahl darf nur angezeigt werden, wenn Google die Boundary-Layer wirklich bereitstellt.",
+);
+assert.match(
+  areaStep,
+  /onApplyBoundary[\s\S]*?Gebiet übernehmen/,
+  "Eine vorhandene gespeicherte Gebietsfläche muss mit einer direkten, verständlichen Aktion übernommen werden können.",
+);
+assert.doesNotMatch(
+  areaStep,
+  /Markierte Fläche auswählen/,
+  "Der Wizard darf keine unklare Grenz-Schaltfläche anzeigen, die einen zweiten unsichtbaren Klick verlangt.",
 );
 assert.match(
   areaStep,

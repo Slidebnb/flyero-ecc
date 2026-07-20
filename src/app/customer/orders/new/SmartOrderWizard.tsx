@@ -959,7 +959,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setAreaSelectionMode("boundary");
-    setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
+    setMapNotice("Gebiet übernommen. Du kannst die Fläche auf der Karte anpassen.");
     return true;
   }, []);
 
@@ -1495,7 +1495,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         areaSegmentsRef.current = [];
         setAreaSegments([]);
         setAreaSelectionMode("draw");
-        setMapNotice("Ort gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.");
+        setMapNotice("PLZ gefunden. Zeichne jetzt dein gewünschtes Verteilgebiet direkt auf der Karte.");
       }
     }
     setPendingLocation(null);
@@ -2437,9 +2437,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         onApplySuggestion={applySuggestion}
         onApplyPendingLocation={() => applyLocationResult(pendingLocation!, { forceReplace: true })}
         onKeepCurrentArea={keepCurrentArea}
-        onEnableBoundary={() => {
-          setAreaSelectionMode("boundary");
-          setMapNotice("Wähle eine farbig markierte PLZ- oder Stadtfläche auf der Karte aus.");
+        onApplyBoundary={() => {
+          if (!boundaryAreaForLocation) return;
+          applySavedArea(boundaryAreaForLocation, selectedLocation?.placeId ?? boundaryAreaForLocation.googlePlaceId ?? "");
         }}
         onStartDrawing={startDrawingArea}
         onFinishDrawing={finishDrawingArea}

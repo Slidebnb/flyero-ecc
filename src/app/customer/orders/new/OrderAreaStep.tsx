@@ -30,7 +30,7 @@ type OrderAreaStepProps = {
   onApplySuggestion: (suggestion: Suggestion) => void;
   onApplyPendingLocation: () => void;
   onKeepCurrentArea: () => void;
-  onEnableBoundary: () => void;
+  onApplyBoundary: () => void;
   onStartDrawing: () => void;
   onFinishDrawing: () => void;
   onSelectSegment: (segment: OrderAreaSegmentDraft) => void;
@@ -65,7 +65,7 @@ export function OrderAreaStep({
   onApplySuggestion,
   onApplyPendingLocation,
   onKeepCurrentArea,
-  onEnableBoundary,
+  onApplyBoundary,
   onStartDrawing,
   onFinishDrawing,
   onSelectSegment,
@@ -128,9 +128,9 @@ export function OrderAreaStep({
             data-testid="order-select-boundary"
             type="button"
             className={areaSelectionMode === "boundary" ? "selected" : ""}
-            onClick={onEnableBoundary}
+            onClick={onApplyBoundary}
           >
-            Markierte Fläche auswählen
+            Gebiet übernehmen
           </button>
         ) : null}
         <button data-testid="order-draw-area" type="button" className={areaSelectionMode === "draw" || !boundaryLayerAvailable ? "selected" : ""} onClick={onStartDrawing}>
@@ -144,7 +144,7 @@ export function OrderAreaStep({
       ) : null}
       <small className="orderSegmentHint">
         {boundarySelectionEnabled
-          ? "Wähle eine farbig markierte PLZ- oder Stadtfläche oder zeichne dein Gebiet selbst."
+          ? "Für diesen Ort liegt eine gespeicherte Flächenkarte vor. Du kannst sie übernehmen oder dein Gebiet selbst zeichnen."
           : "Zeichne dein Verteilgebiet direkt auf der Karte. Du kannst die Fläche jederzeit anpassen."}
       </small>
       {areaSelectionMode === "draw" ? (
