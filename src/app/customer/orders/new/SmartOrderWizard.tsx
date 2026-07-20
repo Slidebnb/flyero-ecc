@@ -660,52 +660,55 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   });
 
 
-  const households = intelligence?.metrics.households ?? localHouseholds;
+  // A response is usable only while it is still confirmed for the exact
+  // current planning input. This prevents a previous area's price or
+  // warehouse from flashing while the next calculation is in flight.
+  const currentIntelligence = isIntelligenceConfirmed(intelligenceRequestQuery) ? intelligence : null;
+  const currentIntelligenceStatus = currentIntelligence ? intelligenceStatus : hasPlanningArea ? "updating" : "local";
+  const households = currentIntelligence?.metrics.households ?? localHouseholds;
   const selectedWarehouse = warehouseOptions.find((warehouse) => warehouse.id === selectedWarehouseId) ?? null;
-  const routeDistanceMeters = intelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
-  const routeDurationMinutes = intelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
-  const netPrice = intelligence?.metrics.netPrice ?? "0";
-  const vatAmount = intelligence?.metrics.vatAmount ?? "0";
-  const grossPrice = intelligence?.metrics.grossPrice ?? "0";
+  const routeDistanceMeters = currentIntelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
+  const routeDurationMinutes = currentIntelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
+  const netPrice = currentIntelligence?.metrics.netPrice ?? "0";
+  const vatAmount = currentIntelligence?.metrics.vatAmount ?? "0";
+  const grossPrice = currentIntelligence?.metrics.grossPrice ?? "0";
   const pricePreviewTextLegacy = Number(netPrice) > 0
     ? formatCurrency(netPrice)
-    : coverageAreaSqm > 0 && intelligenceStatus === "error"
+    : coverageAreaSqm > 0 && currentIntelligenceStatus === "error"
       ? "Preis wird von FLYERO geprüft"
       : coverageAreaSqm > 0
         ? "Preis wird aktualisiert"
         : "Gebiet auf der Karte auswählen";
-  const priceReady = intelligenceStatus === "live" && Number(netPrice) > 0;
+  const priceReady = currentIntelligenceStatus === "live" && Number(netPrice) > 0;
   const pricePreviewText = coverageAreaSqm <= 0
     ? "Gebiet auswählen"
-    : intelligenceStatus === "error"
+    : currentIntelligenceStatus === "error"
       ? "Preis wird von FLYERO geprüft"
       : priceReady
         ? formatCurrency(netPrice)
         : pricePreviewTextLegacy;
-  const distributorNeed = intelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
-  const recommendedFlyerQuantity = intelligenceStatus === "live"
-    ? intelligence?.metrics.householdRecommendationAllowed === true
-      ? intelligence.metrics.recommendedFlyerQuantity ?? MINIMUM_FLYER_QUANTITY
-      : Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil(((intelligence?.metrics.households ?? localHouseholds) * 1.1) / 100) * 100)
-    : hasPlanningArea
-      ? Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((localHouseholds * 1.1) / 100) * 100)
-      : MINIMUM_FLYER_QUANTITY;
+  const distributorNeed = currentIntelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
+  const recommendedFlyerQuantity = currentIntelligenceStatus === "live"
+    && currentIntelligence?.metrics.householdRecommendationAllowed === true
+    ? currentIntelligence.metrics.recommendedFlyerQuantity ?? MINIMUM_FLYER_QUANTITY
+    : MINIMUM_FLYER_QUANTITY;
   const recommendationLabel = !hasPlanningArea
     ? "Mindestmenge für die Buchung"
-    : intelligence?.metrics.householdRecommendationAllowed === true
+    : currentIntelligenceStatus === "live"
+      && currentIntelligence?.metrics.householdRecommendationAllowed === true
       ? "Empfehlung aus Gebietsdaten"
       : "Gebietsdaten geschätzt";
-  const deliverabilityScore = intelligence?.metrics.score ?? null;
-  const calculationConfidence = intelligence?.metrics.confidence ?? (intelligenceStatus === "live" ? "medium" : "low");
-  const calculationSource = intelligence?.metrics.source ?? (intelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
-  const householdCountSource = intelligence?.metrics.householdCountSource ?? (intelligenceStatus === "live" ? "area-density-formula" : "client-area-estimate");
-  const pricingVersion = intelligence?.metrics.pricingVersion ?? "pricing-rule-pending";
+  const deliverabilityScore = currentIntelligence?.metrics.score ?? null;
+  const calculationConfidence = currentIntelligence?.metrics.confidence ?? (currentIntelligenceStatus === "live" ? "medium" : "low");
+  const calculationSource = currentIntelligence?.metrics.source ?? (currentIntelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
+  const householdCountSource = currentIntelligence?.metrics.householdCountSource ?? (currentIntelligenceStatus === "live" ? "area-density-formula" : "client-area-estimate");
+  const pricingVersion = currentIntelligence?.metrics.pricingVersion ?? "pricing-rule-pending";
   useEffect(() => {
-    if (isPublicPlanner || selectedWarehouseId || !intelligence?.warehouse?.id) return;
-    if (warehouseOptions.some((warehouse) => warehouse.id === intelligence.warehouse?.id)) {
-      setSelectedWarehouseId(intelligence.warehouse.id);
+    if (isPublicPlanner || selectedWarehouseId || !currentIntelligence?.warehouse?.id) return;
+    if (warehouseOptions.some((warehouse) => warehouse.id === currentIntelligence.warehouse?.id)) {
+      setSelectedWarehouseId(currentIntelligence.warehouse.id);
     }
-  }, [intelligence?.warehouse?.id, isPublicPlanner, selectedWarehouseId, warehouseOptions]);
+  }, [currentIntelligence?.warehouse?.id, isPublicPlanner, selectedWarehouseId, warehouseOptions]);
 
   const geoJson = useMemo(() => segmentsToGeoJson(areaSegmentsPayload), [areaSegmentsPayload]);
   const areaStats = useMemo(() => ({
@@ -718,16 +721,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     deliveryDurationMinutes: routeDurationMinutes,
     warehouseSuggestion: selectedWarehouse
       ? `${selectedWarehouse.name} · ${selectedWarehouse.postalCode} ${selectedWarehouse.city}`
-      : intelligence?.metrics.needsManualReview ? null : intelligence?.warehouse?.city ?? null,
+      : currentIntelligence?.metrics.needsManualReview ? null : currentIntelligence?.warehouse?.city ?? null,
     distributorDemand: distributorNeed,
     deliverabilityScore,
     source: calculationSource,
     confidence: calculationConfidence,
-    calculatedAt: intelligence?.metrics.calculatedAt ?? new Date().toISOString(),
-    calculationVersion: intelligence?.metrics.calculationVersion ?? "client-area-estimate-v1",
+    calculatedAt: currentIntelligence?.metrics.calculatedAt ?? new Date().toISOString(),
+    calculationVersion: currentIntelligence?.metrics.calculationVersion ?? "client-area-estimate-v1",
     householdCountSource,
     pricingVersion,
-    needsManualReview: intelligence?.metrics.needsManualReview ?? false,
+    needsManualReview: currentIntelligence?.metrics.needsManualReview ?? false,
     segments: areaSegmentsPayload.map((segment) => ({
       name: segment.name,
       city: segment.city,
@@ -736,16 +739,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       flyerQuantity: segment.flyerQuantity,
     })),
     areaReference: {
-      distributionAreaId: intelligence?.metrics.areaReference?.distributionAreaId ?? selectedAreaId ?? null,
+      distributionAreaId: currentIntelligence?.metrics.areaReference?.distributionAreaId ?? selectedAreaId ?? null,
       targetAreaName,
       city,
       postalCode,
       polygonSource,
       coverageAreaSqm,
-      sourceAreaCoverageAreaSqm: intelligence?.metrics.areaReference?.coverageAreaSqm ?? null,
-      estimateMethod: intelligence?.metrics.areaReference?.estimateMethod ?? null,
-      estimateSource: intelligence?.metrics.areaReference?.estimateSource ?? null,
-      estimateConfidence: intelligence?.metrics.areaReference?.estimateConfidence ?? null,
+      sourceAreaCoverageAreaSqm: currentIntelligence?.metrics.areaReference?.coverageAreaSqm ?? null,
+      estimateMethod: currentIntelligence?.metrics.areaReference?.estimateMethod ?? null,
+      estimateSource: currentIntelligence?.metrics.areaReference?.estimateSource ?? null,
+      estimateConfidence: currentIntelligence?.metrics.areaReference?.estimateConfidence ?? null,
     },
   }), [
     calculationConfidence,
@@ -757,15 +760,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     netPrice,
     households,
     householdCountSource,
-    intelligence?.metrics.areaReference?.coverageAreaSqm,
-    intelligence?.metrics.areaReference?.distributionAreaId,
-    intelligence?.metrics.areaReference?.estimateConfidence,
-    intelligence?.metrics.areaReference?.estimateMethod,
-    intelligence?.metrics.areaReference?.estimateSource,
-    intelligence?.metrics.calculatedAt,
-    intelligence?.metrics.calculationVersion,
-    intelligence?.warehouse?.city,
-    intelligence?.metrics.needsManualReview,
+    currentIntelligence?.metrics.areaReference?.coverageAreaSqm,
+    currentIntelligence?.metrics.areaReference?.distributionAreaId,
+    currentIntelligence?.metrics.areaReference?.estimateConfidence,
+    currentIntelligence?.metrics.areaReference?.estimateMethod,
+    currentIntelligence?.metrics.areaReference?.estimateSource,
+    currentIntelligence?.metrics.calculatedAt,
+    currentIntelligence?.metrics.calculationVersion,
+    currentIntelligence?.warehouse?.city,
+    currentIntelligence?.metrics.needsManualReview,
     areaSegmentsPayload,
     polygonSource,
     postalCode,
@@ -857,7 +860,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   });
 
   const warehouseSuggestionLabel = hasPlanningArea
-    ? areaStats.warehouseSuggestion ?? (intelligenceStatus === "live" ? "Wird von FLYERO geprüft" : "Wird zugeordnet")
+    ? areaStats.warehouseSuggestion ?? (currentIntelligenceStatus === "live" ? "Wird von FLYERO geprüft" : "Wird zugeordnet")
     : "Gebiet auswählen";
 
   const findAreaForLocation = useCallback((result: LocationResult) => {
@@ -2058,11 +2061,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         contactPerson,
         contactPhone,
         notes,
-        quoteFingerprint: intelligence?.metrics.fingerprint,
-        pricingVersion: intelligence?.metrics.pricingVersion,
-        pricingRuleSignature: intelligence?.metrics.pricingRuleSignature,
-        polygonHash: intelligence?.metrics.polygonHash,
-        intelligenceStatus,
+        quoteFingerprint: currentIntelligence?.metrics.fingerprint,
+        pricingVersion: currentIntelligence?.metrics.pricingVersion,
+        pricingRuleSignature: currentIntelligence?.metrics.pricingRuleSignature,
+        polygonHash: currentIntelligence?.metrics.polygonHash,
+        intelligenceStatus: currentIntelligenceStatus,
       };
       window.localStorage.setItem(ORDER_DRAFT_KEY, JSON.stringify(handoffDraft));
     }
@@ -2143,7 +2146,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       contactPerson,
       contactPhone,
       notes: `${notes}${notes ? "\n" : ""}Zielgruppe: ${targetGroup}. Verteilung: ${distributionType}.`,
-      quoteFingerprint: intelligence?.metrics.fingerprint ?? "",
+      quoteFingerprint: currentIntelligence?.metrics.fingerprint ?? "",
     };
   }
 
@@ -2170,9 +2173,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       return;
     }
     if (completionPath === "direct_payment" && !isPublicPlanner && (
-      intelligenceStatus !== "live" ||
+      currentIntelligenceStatus !== "live" ||
       !isIntelligenceConfirmed(intelligenceRequestQuery) ||
-      !intelligence?.metrics.fingerprint
+      !currentIntelligence?.metrics.fingerprint
     )) {
       setFinishStatus("Preis wird aktualisiert. Bitte bestätige die aktuelle Planung erneut.");
       return;
@@ -2635,8 +2638,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               <h2>Deine Planung</h2>
               <p>Aktualisiert sich, sobald du das Gebiet änderst.</p>
             </div>
-            <span className={`overviewSyncState ${intelligenceStatus}`}>
-              {syncStateLabel(intelligenceStatus, areaStats.confidence, isPending, hasPlanningArea)}
+            <span className={`overviewSyncState ${currentIntelligenceStatus}`}>
+              {syncStateLabel(currentIntelligenceStatus, areaStats.confidence, isPending, hasPlanningArea)}
             </span>
             <button
               type="button"

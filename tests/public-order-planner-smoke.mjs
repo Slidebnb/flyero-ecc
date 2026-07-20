@@ -38,7 +38,7 @@ assert.match(prices, /href="\/verteilung-anfragen"/);
 assert.match(prices, /buttonLabel="Anfrage starten"/);
 assert.match(wizardTypes, /mode\?: "public_quote" \| "authenticated_order"/);
 assert.match(wizardTypes, /initialLocation\?: PublicLocationContext \| null/);
-assert.match(wizard, /const \[query, setQuery\] = useState\(""\)/);
+assert.match(wizard, /const \[query, setQuery\] = useState\(initialLocationProp\?\.query \?\? ""\)/);
 assert.doesNotMatch(wizard, /Koblenz|Neuwied|Bendorf|56068/);
 assert.match(wizard, /PUBLIC_PLANNER_STARTED/);
 assert.match(wizard, /flyero:order-planner:draft:v2/);

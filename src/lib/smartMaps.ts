@@ -432,7 +432,12 @@ export async function getOrderIntelligence(input: {
   const segmentCalculations = areaSelection?.segments.map((segment) => {
     const segmentArea = areaReferenceForSegment(segment, matchingAreas);
     const segmentEstimate = segmentArea?.estimates?.[0] ?? null;
-    const segmentDensity = densityFromArea(segmentArea ?? undefined) ?? densityFactor;
+    // In a multi-area campaign, an unknown segment must not inherit the
+    // density of another city. That would make the household estimate look
+    // precise while actually borrowing unrelated local data. Keep the
+    // neutral estimate and mark it low-confidence until area data exists.
+    const segmentDensity = densityFromArea(segmentArea ?? undefined)
+      ?? (areaSelection?.segments.length > 1 ? 125 : densityFactor);
     const households = estimateHouseholds({ coverageAreaSqm: segment.areaSqm, cityDensityFactor: segmentDensity });
     const confidence = confidenceForEstimate(
       segmentEstimate?.method,

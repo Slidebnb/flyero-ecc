@@ -173,6 +173,26 @@ try {
     "setIntelligence(null)",
     "confirmedRequestRef",
   ]);
+  assert(
+    !wizard.includes("(localHouseholds * 1.1)"),
+    "Eine nicht bestaetigte lokale Flaechenschaetzung darf keine grosse Flyerempfehlung im Kundenportal erzeugen.",
+  );
+  assert(
+    /recommendedFlyerQuantity = currentIntelligenceStatus === "live"[\s\S]*householdRecommendationAllowed/.test(wizard),
+    "Eine Flyerempfehlung darf erst aus serverseitig bestaetigten Gebietsdaten stammen.",
+  );
+  assert(
+    /const currentIntelligence = isIntelligenceConfirmed\(intelligenceRequestQuery\) \? intelligence : null/.test(wizard),
+    "Preis- und Gebietswerte muessen an die aktuell bestaetigte Berechnung gebunden sein.",
+  );
+  assert(
+    /if \(isPublicPlanner \|\| selectedWarehouseId \|\| !currentIntelligence\?\.warehouse\?\.id\)/.test(wizard),
+    "Die automatische Lagerauswahl darf keine veraltete Gebietsantwort verwenden.",
+  );
+  assert(
+    /currentIntelligenceStatus === "live"[\s\S]*currentIntelligence\?\.metrics\.householdRecommendationAllowed === true/.test(wizard),
+    "Die Empfehlung darf nur bei einer bestaetigten aktuellen Berechnung als Gebietsdaten-Empfehlung bezeichnet werden.",
+  );
   includes("src/app/customer/orders/new/OrderAreaStep.tsx", [
     "Dein Gebiet wurde auf der Karte angepasst.",
     "Neues Gebiet \u00fcbernehmen",
@@ -199,6 +219,10 @@ try {
     "singleDistributorMinutes",
     "distributionArea.findMany",
   ]);
+  assert(
+    /areaSelection\?\.segments\.length > 1/.test(smartMaps),
+    "Mehrere Teilgebiete duerfen keine Haushaltsdichte aus einer anderen Stadt uebernehmen.",
+  );
   assert(!smartMaps.includes("LOCAL_PLACES"), "Smart Maps darf keine lokal hartcodierten Ortsdaten als echte Vorschläge ausgeben.");
   includes("src/lib/pricing.ts", [
     "premium-distribution-v4",
