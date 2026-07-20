@@ -174,7 +174,7 @@ export function OrderAreaStep({
                 <small>{[segment.postalCode, segment.city].filter(Boolean).join(" ") || "Noch nicht festgelegt"}</small>
               </span>
             </button>
-            <button type="button" className="orderSegmentRemove" onClick={() => onRemoveSegment(segment.id)} disabled={areaSegments.length <= 1} aria-label={`${segment.name || "Teilgebiet"} entfernen`}>Entfernen</button>
+            <button type="button" className="orderSegmentRemove" onClick={() => onRemoveSegment(segment.id)} aria-label={`${segment.name || "Teilgebiet"} entfernen`}>Entfernen</button>
           </div>
         ))}
         <button type="button" className="orderSegmentAdd" onClick={onAddSegment}>Teilgebiet hinzufügen</button>

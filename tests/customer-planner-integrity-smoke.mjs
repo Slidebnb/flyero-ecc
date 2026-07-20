@@ -276,6 +276,11 @@ assert.match(
   /const removeSegment = useCallback[\s\S]*?setSelectedWarehouseId\(""\)[\s\S]*?setSelectedAreaId\(replacement\?\.distributionAreaId \?\? ""\)/,
   "Beim Entfernen eines Teilgebiets muessen Lager- und Gebietsreferenz zum verbleibenden Gebiet passen.",
 );
+assert.match(
+  wizard,
+  /const removeSegment = useCallback[\s\S]*?polygonRef\.current\?\.setMap\(null\)[\s\S]*?setPolygon\(replacement\?\.points \?\? \[\]\)[\s\S]*?setSelectedBoundaryPlaceIds\(\[\]\)/,
+  "Auch das letzte Gebiet muss ohne alte Polygon-, Boundary- oder Preisreferenz entfernt werden koennen.",
+);
 const fullStackStart = deployment.search(/docker compose -f docker-compose\.production\.yml up -d\r?\n/);
 assert.ok(fullStackStart >= 0 && deployment.indexOf(migrationCommand) < fullStackStart, "Migrationen muessen vor dem Produktionsstart dokumentiert sein.");
 assert.match(dockerfile, /prisma migrate deploy && npm run start/, "Der Produktionscontainer muss vor Next.js den Prisma-Schemaabgleich ausfuehren.");

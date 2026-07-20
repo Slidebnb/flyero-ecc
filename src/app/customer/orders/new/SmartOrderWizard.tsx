@@ -1129,26 +1129,44 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }, []);
 
   const removeSegment = useCallback((segmentId: string) => {
-    setAreaSegments((current) => {
-      const next = current.filter((segment) => segment.id !== segmentId);
-      const replacement = next[next.length - 1];
-      setSelectedWarehouseId("");
-      if (segmentId === activeSegmentId) {
-        setActiveSegmentId(replacement?.id ?? null);
-        setPolygon(replacement?.points ?? []);
-        setPolygonSource(replacement?.polygonSource ?? "drawn");
-        setSelectedAreaId(replacement?.distributionAreaId ?? "");
-        setCity(replacement?.city ?? "");
-        setPostalCode(replacement?.postalCode ?? "");
-        setTargetAreaName(replacement?.name ?? "");
-        setQuery(replacement ? [replacement.postalCode, replacement.city].filter(Boolean).join(" ") : "");
-        setSelectedLocation(null);
-        setStreet("");
-        setHouseNumber("");
-      }
-      return next;
-    });
-  }, [activeSegmentId]);
+    const current = areaSegmentsRef.current;
+    const next = current.filter((segment) => segment.id !== segmentId);
+    if (next.length === current.length) return;
+
+    const replacement = next[next.length - 1];
+    areaSegmentsRef.current = next;
+    setAreaSegments(next);
+    setSelectedWarehouseId("");
+    resetIntelligence();
+
+    const removeActivePolygon = segmentId === activeSegmentId;
+    if (removeActivePolygon) {
+      polygonRef.current?.setMap(null);
+      polygonRef.current = null;
+      drawingPreviewRef.current?.setMap(null);
+      drawingPreviewRef.current = null;
+      drawingPointsRef.current = [];
+      setDrawingPoints([]);
+      setActiveSegmentId(replacement?.id ?? null);
+      setPolygon(replacement?.points ?? []);
+      setPolygonSource(replacement?.polygonSource ?? "postal_code");
+      setSelectedAreaId(replacement?.distributionAreaId ?? "");
+      setCity(replacement?.city ?? "");
+      setPostalCode(replacement?.postalCode ?? "");
+      setTargetAreaName(replacement?.name ?? "");
+      setQuery(replacement ? [replacement.postalCode, replacement.city].filter(Boolean).join(" ") : "");
+      setSelectedLocation(null);
+      setStreet("");
+      setHouseNumber("");
+      setHistory(replacement ? [replacement.points] : []);
+      setHistoryIndex(0);
+      setSelectedBoundaryPlaceIds([]);
+      setAreaSelectionMode("draw");
+      setMapNotice(replacement
+        ? `${replacement.name} bleibt ausgewählt.`
+        : "Gebiet entfernt. Wähle eine andere markierte Fläche oder zeichne dein Gebiet.");
+    }
+  }, [activeSegmentId, resetIntelligence]);
 
   // Explicit public navigation data wins over any saved browser state.
   useEffect(() => {
