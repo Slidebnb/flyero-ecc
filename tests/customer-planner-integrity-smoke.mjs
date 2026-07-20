@@ -54,6 +54,11 @@ assert.match(wizard, /order-finish-drawing|Klicke auf der Karte.*Eckpunkte|Eckpu
 assert.match(wizard, /maps\.event\.addListener\(mapRef\.current, ["']click["']|mapRef\.current\.addListener\(["']click["']/, "Gebiete müssen über die stabile Map-Klick-API gezeichnet werden.");
 assert.match(
   wizard,
+  /layer\.addListener\?\.\("click", \(event\) => \{[\s\S]*?if \(areaSelectionModeRef\.current === "draw"\) return;/,
+  "Grenzflaechen duerfen Kartenklicks im Zeichenmodus nicht abfangen.",
+);
+assert.match(
+  wizard,
   /const previewCoverageAreaSqm = drawingPoints\.length >= 3\s*\?\s*polygonAreaSqm\(drawingPoints\)\s*:\s*coverageAreaSqm;/,
   "Während des Zeichnens muss die lokale Flächenvorschau sofort sichtbar werden.",
 );

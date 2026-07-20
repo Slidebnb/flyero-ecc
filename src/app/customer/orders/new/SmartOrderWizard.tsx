@@ -1889,6 +1889,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current);
         boundaryLayerRefs.current.set(featureType, layer);
         const listener = layer.addListener?.("click", (event) => {
+          if (areaSelectionModeRef.current === "draw") return;
           const feature = event.features?.[0];
           const placeId = feature?.placeId;
           if (placeId) selectBoundaryAreaRef.current(placeId, feature);
