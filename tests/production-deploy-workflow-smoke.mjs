@@ -16,8 +16,10 @@ assert.match(workflow, /FLYERO_DEPLOY_KNOWN_HOSTS/, "Der SSH-Hostschluessel muss
 assert.match(workflow, /StrictHostKeyChecking=yes/, "SSH darf die Serveridentitaet nicht blind akzeptieren.");
 assert.doesNotMatch(workflow, /StrictHostKeyChecking=no/, "Der Deploy darf die SSH-Hostpruefung nicht abschalten.");
 assert.match(workflow, /git pull --ff-only origin main/, "Der Server darf nur fast-forward auf main aktualisiert werden.");
+assert.match(workflow, /deployed_sha="\$\(git rev-parse HEAD\)"/, "Der laufende Arbeitsstand muss nach dem Pull dem getesteten Commit entsprechen.");
+assert.match(workflow, /\[ "\$deployed_sha" != "\$EXPECTED_SHA" \]/, "Der Deploy darf bei einem abweichenden Arbeitsstand nicht fortfahren.");
 assert.match(workflow, /compose=\(docker compose --env-file \/opt\/flyero\/\.env\.production -f \/opt\/flyero\/docker-compose\.production\.yml\)/, "Alle Compose-Befehle muessen mit der Produktions-ENV laufen.");
-assert.match(workflow, /\"\$\{compose\[@\]\}\" build app/, "Das Produktionsimage muss mit der Produktions-ENV gebaut werden.");
+assert.match(workflow, /\"\$\{compose\[@\]\}\" build --build-arg \"DEPLOY_SHA=\$EXPECTED_SHA\" app/, "Das Produktionsimage muss mit dem getesteten Release-SHA gebaut werden.");
 assert.match(workflow, /npx prisma migrate deploy/, "Ausstehende Migrationen muessen kontrolliert angewendet werden.");
 assert.match(workflow, /production-preflight\.mjs/, "Der Produktions-Preflight muss vor der Freigabe laufen.");
 assert.match(workflow, /api\/health/, "Der Deploy muss den laufenden Healthcheck pruefen.");

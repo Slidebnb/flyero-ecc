@@ -19,6 +19,8 @@ COPY package.json package-lock.json ./
 COPY prisma ./prisma
 RUN npm ci
 
+ARG DEPLOY_SHA=local
+RUN test -n "$DEPLOY_SHA"
 COPY . .
 RUN npm run prisma:generate
 RUN npm run build

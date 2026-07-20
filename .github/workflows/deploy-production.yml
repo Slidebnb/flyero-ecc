@@ -83,9 +83,16 @@ jobs:
           fi
 
           git pull --ff-only origin main
+          deployed_sha="$(git rev-parse HEAD)"
+          if [ "$deployed_sha" != "$EXPECTED_SHA" ]; then
+            echo "Der Arbeitsstand entspricht nicht dem getesteten Commit." >&2
+            echo "Erwartet: $EXPECTED_SHA" >&2
+            echo "Gefunden: $deployed_sha" >&2
+            exit 1
+          fi
 
           compose=(docker compose --env-file /opt/flyero/.env.production -f /opt/flyero/docker-compose.production.yml)
-          "${compose[@]}" build app
+          "${compose[@]}" build --build-arg "DEPLOY_SHA=$EXPECTED_SHA" app
           "${compose[@]}" run --rm --no-deps app node scripts/production-preflight.mjs
           "${compose[@]}" run --rm --no-deps app npx prisma migrate deploy
           "${compose[@]}" up -d --force-recreate --no-deps app
