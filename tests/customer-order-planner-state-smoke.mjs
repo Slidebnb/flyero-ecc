@@ -10,6 +10,7 @@ function assert(condition, message) {
 }
 
 assert(wizard.includes("useState(MINIMUM_FLYER_QUANTITY)"), "Jeder neue Auftrag muss mit der kleinsten Flyerzahl starten.");
+assert(wizard.includes('useState(initialLocationProp?.query ?? "")'), "Ein öffentlicher Planner muss die validierte URL-Suche sofort anzeigen.");
 assert(wizard.includes("setFlyerQuantity(MINIMUM_FLYER_QUANTITY)"), "Alte automatische Flyerempfehlungen duerfen nicht als Auftragsmenge uebernommen werden.");
 assert(constants.includes("export const MINIMUM_FLYER_QUANTITY = 100"), "Die Mindestmenge muss zentral im Projekt benannt sein.");
 assert(wizard.includes('from "@/lib/constants"'), "Der Kundenwizard muss dieselbe zentrale Mindestmenge verwenden.");

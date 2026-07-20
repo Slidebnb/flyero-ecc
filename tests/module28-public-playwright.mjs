@@ -68,6 +68,7 @@ try {
     assert.equal(await page.locator("h1").count(), 1, `${path} must have exactly one H1.`);
     assert.equal(await page.locator('link[rel="canonical"]').count(), 1, `${path} needs exactly one canonical link.`);
     if (name === "planner-mobile") {
+      await page.waitForFunction(() => document.querySelector('[data-testid="order-location-input"]')?.value === "56112 Lahnstein", { timeout: 5000 });
       const locationValue = await page.locator('[data-testid="order-location-input"]').inputValue();
       assert.equal(locationValue, "56112 Lahnstein", "Eine ausgewählte PLZ darf im mobilen Planner nicht mit abgeschnittenem Deutschland-Label angezeigt werden.");
     }
