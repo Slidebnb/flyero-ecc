@@ -28,7 +28,37 @@ const targets = [
 try {
   for (const [name, path, width, height] of targets) {
     const page = await browser.newPage({ viewport: { width, height } });
-    await page.goto(new URL(path, baseUrl).toString(), { waitUntil: "networkidle" });
+    if (path.startsWith("/verteilung-planen")) {
+      // Keep the browser contract deterministic. Provider/API behavior is
+      // covered by the public runtime tests; this smoke verifies the planner
+      // consumes the authoritative location payload correctly.
+      await page.route("**/api/public/planner/geocode**", async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            ok: true,
+            data: {
+              city: "Lahnstein",
+              postalCode: "56112",
+              label: "56112 Lahnstein",
+              placeId: "playwright-place-56112",
+              source: "google",
+              lat: 50.3499,
+              lng: 7.5946,
+            },
+          }),
+        });
+      });
+    }
+    // Google Maps keeps loading external map resources after the document is
+    // usable, so networkidle is not a stable readiness signal for the planner.
+    const waitUntil = path.startsWith("/verteilung-planen") ? "domcontentloaded" : "networkidle";
+    await page.goto(new URL(path, baseUrl).toString(), { waitUntil });
+    await page.locator("h1").waitFor({ state: "visible" });
+    if (path.startsWith("/verteilung-planen")) {
+      await page.locator('[data-testid="order-location-input"]').waitFor({ state: "visible" });
+    }
     const metrics = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
