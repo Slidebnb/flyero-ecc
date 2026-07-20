@@ -144,6 +144,30 @@ export async function POST(request: NextRequest) {
     });
     const requiresManualReview = Boolean(intelligence.metrics.needsManualReview);
     const samplingRequiresManualReview = data.serviceType === "PRODUCT_SAMPLING";
+
+    const price = await calculateOrderPrice({
+      serviceType: data.serviceType,
+      flyerQuantity: data.flyerQuantity,
+      weightClass: weightClassFromGrams(data.weightInGrams),
+      weightInGrams: data.weightInGrams,
+      areaDifficulty: serverAreaDifficulty,
+    });
+    if (data.completionPath === "direct_payment" && (requiresManualReview || samplingRequiresManualReview || !price.snapshot.checkoutAllowed)) {
+      return Response.json({
+        ok: false,
+        code: requiresManualReview
+          ? "AREA_MANUAL_REVIEW_REQUIRED"
+          : samplingRequiresManualReview
+            ? "SAMPLING_MANUAL_REVIEW"
+            : "CUSTOM_WEIGHT_MANUAL_REVIEW",
+        error: requiresManualReview
+          ? "Gebiet und Zustellbarkeit müssen vor der Buchung noch durch FLYERO geprüft werden. Sende bitte zuerst eine unverbindliche Anfrage."
+          : samplingRequiresManualReview
+            ? "Produktproben prüfen wir wegen Gewicht, Verpackung, Lagerung und Übergabe vorab. Bitte sende ein individuelles Sampling-Angebot."
+            : "Dieses Gewicht benötigt ein individuelles Angebot. Bitte sende uns zuerst eine unverbindliche Anfrage.",
+      }, { status: 422 });
+    }
+
     let distributionAreaId = areaSelection ? null : data.distributionAreaId ?? null;
 
     if (!distributionAreaId) {
@@ -167,29 +191,6 @@ export async function POST(request: NextRequest) {
         reusable: false,
       });
       distributionAreaId = area.id;
-    }
-
-    const price = await calculateOrderPrice({
-      serviceType: data.serviceType,
-      flyerQuantity: data.flyerQuantity,
-      weightClass: weightClassFromGrams(data.weightInGrams),
-      weightInGrams: data.weightInGrams,
-      areaDifficulty: serverAreaDifficulty,
-    });
-    if (data.completionPath === "direct_payment" && (requiresManualReview || samplingRequiresManualReview || !price.snapshot.checkoutAllowed)) {
-      return Response.json({
-        ok: false,
-        code: requiresManualReview
-          ? "AREA_MANUAL_REVIEW_REQUIRED"
-          : samplingRequiresManualReview
-            ? "SAMPLING_MANUAL_REVIEW"
-            : "CUSTOM_WEIGHT_MANUAL_REVIEW",
-        error: requiresManualReview
-          ? "Gebiet und Zustellbarkeit müssen vor der Buchung noch durch FLYERO geprüft werden. Sende bitte zuerst eine unverbindliche Anfrage."
-          : samplingRequiresManualReview
-            ? "Produktproben prüfen wir wegen Gewicht, Verpackung, Lagerung und Übergabe vorab. Bitte sende ein individuelles Sampling-Angebot."
-          : "Dieses Gewicht benötigt ein individuelles Angebot. Bitte sende uns zuerst eine unverbindliche Anfrage.",
-      }, { status: 422 });
     }
     const status: OrderStatus = data.completionPath === "direct_payment"
       ? requiresManualReview ? "UNDER_REVIEW" : "PAYMENT_PENDING"
