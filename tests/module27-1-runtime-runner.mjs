@@ -145,7 +145,13 @@ async function quote(segments, flyerQuantity, completionPath) {
     }),
   });
   assertOk(result.response.ok && result.data?.data?.metrics?.fingerprint, `Quote fehlgeschlagen: ${result.response.status} ${result.text}`);
-  return { fingerprint: result.data.data.metrics.fingerprint, date, netPrice: result.data.data.metrics.netPrice };
+  return {
+    fingerprint: result.data.data.metrics.fingerprint,
+    date,
+    netPrice: result.data.data.metrics.netPrice,
+    areaDifficulty: result.data.data.metrics.areaDifficulty,
+    areaDifficultyFactor: result.data.data.metrics.areaDifficultyFactor,
+  };
 }
 
 function orderPayload({ suffix, segments, flyerQuantity, completionPath, quoteFingerprint, date }) {
@@ -198,6 +204,9 @@ async function runCoreFlow() {
   assert.equal(String(tier10000.netPrice), "3600", "10.000 Flyer muessen 3.600 EUR netto ergeben.");
   assert.equal(String(tier10001.netPrice), "3600.31", "10.001 Flyer muessen marginal 3.600,31 EUR netto ergeben.");
   const multiQuote = await quote(multi, 3000, "inquiry");
+  assert.equal(String(multiQuote.netPrice), "1311", "Mehrgebietspreis muss die zentrale Staffel mit dem abgeleiteten Gebietsfaktor berechnen.");
+  assert.equal(multiQuote.areaDifficulty, "MIXED", "Getrennte Teilgebiete muessen serverseitig als gemischte Zustellung bewertet werden.");
+  assert.equal(String(multiQuote.areaDifficultyFactor), "1.15", "Der Gebietsfaktor muss im Mehrgebiet-Angebot transparent feststehen.");
   const inquiry = await createOrder(customerCookie, orderPayload({
     suffix: "Mehrgebiet",
     segments: multi,
@@ -211,9 +220,11 @@ async function runCoreFlow() {
   let stored = await prisma.order.findUnique({ where: { id: inquiry.id }, include: { distributionSegments: true, payments: true } });
   assert.equal(stored.distributionSegments.length, 2, "Mehrere Teilgebiete wurden nicht einzeln gespeichert.");
   assert.equal(stored.payments.length, 0, "Eine Anfrage darf keine Zahlung anlegen.");
-  assert.equal(stored.calculatedNetPrice.toString(), "1140", "Netto-Preis fuer 3.000 Flyer ist nicht die zentrale Staffel.");
-  assert.equal(stored.calculatedVat.toString(), "216.6", "MwSt. muss serverseitig aus dem Netto-Preis kommen.");
-  assert.equal(stored.calculatedGrossPrice.toString(), "1356.6", "Brutto-Preis muss Netto plus MwSt. sein.");
+  assert.equal(stored.calculatedNetPrice.toString(), "1311", "Mehrgebietspreis muss die zentrale Staffel plus Gebietsfaktor abbilden.");
+  assert.equal(stored.calculatedVat.toString(), "249.09", "MwSt. muss serverseitig aus dem Mehrgebietspreis kommen.");
+  assert.equal(stored.calculatedGrossPrice.toString(), "1560.09", "Brutto-Preis muss Netto plus MwSt. des Mehrgebiets sein.");
+  assert.equal(stored.priceRuleSnapshot?.areaDifficulty, "MIXED", "Order-Snapshot muss den serverseitig abgeleiteten Gebietstyp speichern.");
+  assert.equal(stored.priceRuleSnapshot?.areaDifficultyFactor, "1.15", "Order-Snapshot muss den angewendeten Gebietsfaktor speichern.");
   assertOk(stored.targetAreaGeoJson && stored.priceRuleSnapshot?.areaCalculationSnapshot, "Order-Snapshot fehlt.");
 
   const inquiryCheckout = await request(`/api/payments/checkout`, {
@@ -291,6 +302,10 @@ async function runCoreFlow() {
   const correctionStored = await prisma.order.findUnique({ where: { id: correction.id }, include: { distributionSegments: true, payments: true } });
   assert.equal(correctionStored.distributionAreaId, null, "Alte DistributionArea-Relation darf bei der Korrektur nicht weiterleben.");
   assert.equal(correctionStored.distributionSegments.length, 1, "Kundenkorrektur muss alte Teilgebiete atomar ersetzen.");
+  assert.equal(correctionStored.areaDifficulty, correctionQuote.areaDifficulty, "Kundenkorrektur muss den serverseitig abgeleiteten Gebietstyp am Auftrag aktualisieren.");
+  assert.equal(correctionStored.calculatedNetPrice.toString(), String(correctionQuote.netPrice), "Kundenkorrektur muss den aktuellen serverseitigen Gebietspreis speichern.");
+  assert.equal(correctionStored.priceRuleSnapshot?.areaDifficulty, correctionQuote.areaDifficulty, "Kundenkorrektur muss den serverseitig abgeleiteten Gebietstyp im Pricing-Snapshot speichern.");
+  assert.equal(correctionStored.priceRuleSnapshot?.areaDifficultyFactor, correctionQuote.areaDifficultyFactor, "Kundenkorrektur muss den angewendeten Gebietsfaktor im Pricing-Snapshot speichern.");
   assert.equal(correctionStored.payments.filter((item) => ["CREATED", "CHECKOUT_CREATED", "PENDING"].includes(item.status)).length, 0, "Offene Zahlungen muessen bei der Korrektur invalidiert werden.");
   const correctionAccepted = await jsonRequest(`/api/admin/orders/${correction.id}/review`, "POST", { action: "approve" }, adminCookie);
   assert.equal(correctionAccepted.data.status, "ACCEPTED_AWAITING_PAYMENT", "Korrigierter Auftrag muss erneut angenommen werden koennen.");

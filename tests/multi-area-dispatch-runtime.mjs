@@ -116,6 +116,7 @@ try {
   const quotePayload = await quoteResponse.json();
   assert.equal(quoteResponse.status, 200, `Gebietsquote fuer Dispatch-Test fehlgeschlagen: ${JSON.stringify(quotePayload)}`);
   const quote = quotePayload.data.quote;
+  const quoteMetrics = quotePayload.data.metrics;
   const quoteInput = {
     flyerQuantity: 8000,
     polygonHash: quote.polygonHash,
@@ -154,8 +155,11 @@ try {
       calculatedNetPrice: quote.net,
       calculatedVat: quote.vat,
       calculatedGrossPrice: quote.gross,
+      areaDifficulty: quoteMetrics.areaDifficulty,
       priceRuleSnapshot: {
         pricingVersion: quote.pricingVersion,
+        areaDifficulty: quoteMetrics.areaDifficulty,
+        areaDifficultyFactor: quoteMetrics.areaDifficultyFactor,
         productFormat: "DIN Lang (99 x 210 mm)",
         printDataStatus: "UPLOAD_LATER",
         areaCalculationSnapshot: {

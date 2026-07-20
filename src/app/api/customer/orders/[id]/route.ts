@@ -12,6 +12,7 @@ import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { orderUpdateSchema } from "@/lib/validators";
 import { notifyAdmins } from "@/lib/notifications";
 import { warehouseSourceWhere } from "@/lib/warehouse";
+import { weightClassFromGrams } from "@/lib/servicePricing";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -154,6 +155,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const price = await calculateOrderPrice({
       serviceType: data.serviceType,
       flyerQuantity: data.flyerQuantity,
+      weightClass: weightClassFromGrams(data.weightInGrams),
+      weightInGrams: data.weightInGrams,
+      areaDifficulty: intelligence.metrics.areaDifficulty ?? "NORMAL",
     });
     const nextStatus = isCustomerCorrection ? "UNDER_REVIEW" : data.status ?? "PAYMENT_PENDING";
 
@@ -163,6 +167,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         data: {
         status: nextStatus,
         serviceType: data.serviceType,
+        areaDifficulty: intelligence.metrics.areaDifficulty ?? "NORMAL",
         city: primarySegment?.city ?? data.city,
         postalCode: primarySegment?.postalCode ?? data.postalCode,
         targetAddress: {
