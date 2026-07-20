@@ -153,8 +153,8 @@ assert.doesNotMatch(
   "Ein normales Verlassen des Suchfelds darf keinen Geocode-Request ausloesen.",
 );
 assertMatch(
-  /const warehouseSuggestionLabel = hasPlanningArea[\s\S]*?"Gebiet auswählen";/,
-  "Ohne Flaeche darf das Lagerfeld keine offene Pruefung suggerieren.",
+  /const warehouseSuggestionLabel = hasPlanningArea[\s\S]*?hasSelectedLocation \? "Nach Flächenauswahl" : "Gebiet auswählen";/,
+  "Ohne Flaeche darf das Lagerfeld keine offene Pruefung suggerieren und muss den Ort beruecksichtigen.",
 );
 assert.doesNotMatch(
   wizard,
@@ -162,16 +162,16 @@ assert.doesNotMatch(
   "Der alte offene Lagerstatus darf nicht zurueckkehren.",
 );
 assertMatch(
-  /confidenceLabel\(areaStats\.confidence, hasPlanningArea\)/,
-  "Die Datenbasis muss ohne Flaeche einen klaren naechsten Schritt anzeigen.",
+  /confidenceLabel\(areaStats\.confidence, hasPlanningArea, hasSelectedLocation\)/,
+  "Die Datenbasis muss Ort und Flaeche unterscheiden.",
 );
 assertMatch(
-  /function deliverabilityLabel\(score\?: number \| null, hasArea = true\)[\s\S]*?if \(!hasArea\) return "Gebiet auswählen";/,
+  /function deliverabilityLabel\(score\?: number \| null, hasArea = true, hasLocation = false\)[\s\S]*?hasLocation \? "Nach Flächenauswahl berechenbar" : "Gebiet auswählen"/,
   "Ohne Flaeche darf der Verfuegbarkeitsstatus keine laufende Pruefung suggerieren.",
 );
 assertMatch(
-  /deliverabilityLabel\(deliverabilityScore, hasPlanningArea\)/,
-  "Der Verfuegbarkeitsstatus muss an die aktuelle Flaeche gebunden sein.",
+  /deliverabilityLabel\(deliverabilityScore, hasPlanningArea, hasSelectedLocation\)/,
+  "Der Verfuegbarkeitsstatus muss an die aktuelle Flaeche und den aktuellen Ort gebunden sein.",
 );
 assert.match(
   wizard,
@@ -203,6 +203,17 @@ assert.doesNotMatch(
   /Markierte Fläche auswählen/,
   "Der Wizard darf keine unklare Grenz-Schaltfläche anzeigen, die einen zweiten unsichtbaren Klick verlangt.",
 );
+assert.match(
+  wizard,
+  /const hasSelectedLocation = Boolean\(selectedLocation\?\.placeId \|\| postalCode \|\| city\)/,
+  "Ein gefundener Ort muss vom leeren Gebietsstatus unterschieden werden.",
+);
+assert.match(
+  wizard,
+  /hasSelectedLocation \? "Fläche festlegen" : "Gebiet auswählen"/,
+  "Die Planung darf nach Ortsauswahl nicht fälschlich wie komplett leer wirken.",
+);
+assert.match(areaStep, /Fläche auf der Karte zeichnen/, "Die nächste Aktion muss als Flächenaktion formuliert sein.");
 assert.match(
   areaStep,
   /Klicke auf der Karte nacheinander auf die Eckpunkte[\s\S]*?Gebiet abschließen/,

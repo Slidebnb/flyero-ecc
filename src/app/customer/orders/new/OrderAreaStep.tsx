@@ -134,7 +134,7 @@ export function OrderAreaStep({
           </button>
         ) : null}
         <button data-testid="order-draw-area" type="button" className={areaSelectionMode === "draw" || !boundaryLayerAvailable ? "selected" : ""} onClick={onStartDrawing}>
-          Gebiet auf der Karte zeichnen
+          Fläche auf der Karte zeichnen
         </button>
       </div>
       {areaSelectionMode === "draw" && drawingPoints.length >= 3 ? (

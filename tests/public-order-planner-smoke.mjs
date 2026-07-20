@@ -102,7 +102,7 @@ assert.match(wizard, /minimumStartDate/);
 assert.match(wizard, /addDaysToIsoDate/);
 assert.match(scheduleStep, /min=\{minimumStartDate\}/);
 assert.doesNotMatch(wizard, /areaQuickList/);
-  assert.match(areaStep, /Gebiet auf der Karte zeichnen/);
+  assert.match(areaStep, /Fläche auf der Karte zeichnen/);
 assert.match(materialStep, /Empfangslager f\u00fcr deine Flyer/);
 assert.doesNotMatch(wizard, /Druck über FLYERO/);
 assert.match(validators, /earliestOrderStartDate/);

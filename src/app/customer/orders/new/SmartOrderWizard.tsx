@@ -260,15 +260,15 @@ function areaCenter(area: ReusableAreaOption, fallback: LatLng) {
   return area.centerLat && area.centerLng ? { lat: area.centerLat, lng: area.centerLng } : fallback;
 }
 
-function confidenceLabel(confidence?: "high" | "medium" | "low", hasArea = true) {
-  if (!hasArea) return "Gebiet auf der Karte auswählen";
+function confidenceLabel(confidence?: "high" | "medium" | "low", hasArea = true, hasLocation = false) {
+  if (!hasArea) return hasLocation ? "Fläche auf der Karte festlegen" : "Gebiet auf der Karte auswählen";
   if (confidence === "high") return "Gebietsdaten geprüft";
   if (confidence === "medium") return "Gebiet aus verfügbaren Daten berechnet";
   return "Gebietsdaten werden geprüft";
 }
 
-function syncStateLabel(status: "local" | "updating" | "live" | "error", confidence?: "high" | "medium" | "low", pending?: boolean, hasArea = true) {
-  if (!hasArea) return "Gebiet auswählen";
+function syncStateLabel(status: "local" | "updating" | "live" | "error", confidence?: "high" | "medium" | "low", pending?: boolean, hasArea = true, hasLocation = false) {
+  if (!hasArea) return hasLocation ? "Fläche festlegen" : "Gebiet auswählen";
   if (status === "updating" || pending) return "Wird aktualisiert";
   if (status === "live" && confidence === "high") return "Gebiet geprüft";
   if (status === "live") return "Gebiet berechnet";
@@ -326,8 +326,8 @@ function clampOverviewOffset(x: number, y: number) {
   };
 }
 
-function deliverabilityLabel(score?: number | null, hasArea = true) {
-  if (!hasArea) return "Gebiet auswählen";
+function deliverabilityLabel(score?: number | null, hasArea = true, hasLocation = false) {
+  if (!hasArea) return hasLocation ? "Nach Flächenauswahl berechenbar" : "Gebiet auswählen";
   if (!Number.isFinite(score ?? NaN)) return "Gebiet wird noch geprüft";
   if ((score ?? 0) >= 82) return "Sehr gut erreichbar";
   if ((score ?? 0) >= 65) return "Gut erreichbar";
@@ -577,6 +577,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     : coverageAreaSqm;
   const planningAreaSqm = previewCoverageAreaSqm;
   const hasPlanningArea = planningAreaSqm > 0;
+  const hasSelectedLocation = Boolean(selectedLocation?.placeId || postalCode || city);
   const perimeterMeters = useMemo(
     () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segment.points), 0),
     [areaSegmentsPayload],
@@ -681,7 +682,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         : "Gebiet auf der Karte auswählen";
   const priceReady = currentIntelligenceStatus === "live" && Number(netPrice) > 0;
   const pricePreviewText = coverageAreaSqm <= 0
-    ? "Gebiet auswählen"
+    ? hasSelectedLocation ? "Fläche festlegen" : "Gebiet auswählen"
     : currentIntelligenceStatus === "error"
       ? "Preis wird von FLYERO geprüft"
       : priceReady
@@ -861,7 +862,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   const warehouseSuggestionLabel = hasPlanningArea
     ? areaStats.warehouseSuggestion ?? (currentIntelligenceStatus === "live" ? "Wird von FLYERO geprüft" : "Wird zugeordnet")
-    : "Gebiet auswählen";
+    : hasSelectedLocation ? "Nach Flächenauswahl" : "Gebiet auswählen";
 
   const findAreaForLocation = useCallback((result: LocationResult) => {
     const resultCity = normalizeLocationPart(result.city);
@@ -2348,11 +2349,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   ];
   void legacyStepState;
   const stepState = [
-    { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Noch offen" },
+    { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : hasSelectedLocation ? "Fläche festlegen" : "Noch offen" },
     { id: 2, title: `${selectedService.shortLabel} & Lager`, detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung", detail: "Ziel und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
-    { id: 5, title: "Zusammenfassung", detail: "Preis und Leistungen prüfen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Noch offen" },
+    { id: 5, title: "Zusammenfassung", detail: "Preis und Leistungen prüfen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : hasSelectedLocation ? "Nach Flächenauswahl" : "Noch offen" },
     { id: 6, title: "Abschluss", detail: "Buchen oder unverbindlich anfragen", value: "Bereit" },
   ];
   const activeNavItems = isPublicPlanner ? publicPlannerNavItems : orderNavItems;
@@ -2733,7 +2734,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               <p>Aktualisiert sich, sobald du das Gebiet änderst.</p>
             </div>
             <span className={`overviewSyncState ${currentIntelligenceStatus}`}>
-              {syncStateLabel(currentIntelligenceStatus, areaStats.confidence, isPending, hasPlanningArea)}
+              {syncStateLabel(currentIntelligenceStatus, areaStats.confidence, isPending, hasPlanningArea, hasSelectedLocation)}
             </span>
             <button
               type="button"
@@ -2748,7 +2749,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </button>
           </div>
           <div className="overviewMetaRow">
-            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, hasPlanningArea)}</p>
+            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, hasPlanningArea, hasSelectedLocation)}</p>
             {overviewOffset.x !== 0 || overviewOffset.y !== 0 ? (
               <button type="button" onClick={() => setOverviewOffset({ x: 0, y: 0 })}>Zurücksetzen</button>
             ) : null}
@@ -2759,7 +2760,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <div><dt>Preis netto zzgl. MwSt.</dt><dd>{pricePreviewText}</dd></div>
             <div><dt>Nächstes Lager</dt><dd>{warehouseSuggestionLabel}</dd></div>
           </dl>
-          <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore, hasPlanningArea)}</p>
+          <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore, hasPlanningArea, hasSelectedLocation)}</p>
         </aside>
       </section>
     </form>
