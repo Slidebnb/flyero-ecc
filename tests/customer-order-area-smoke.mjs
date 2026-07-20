@@ -224,8 +224,8 @@ try {
     "Mehrere Teilgebiete duerfen keine Haushaltsdichte aus einer anderen Stadt uebernehmen.",
   );
   assert(
-    /areas\.find\(\(candidate\) => candidate\.googlePlaceId === placeId\) \?\? areas\.find\(\(candidate\) =>/.test(wizard),
-    "Ein Google-Gebiet muss auch ueber die bestaetigte PLZ oder den Ort mit einem gespeicherten FLYERO-Gebiet verbunden werden koennen.",
+    /areas\.find\(\(candidate\) => candidate\.googlePlaceId === placeId && featurePoints\(candidate\.geoJson\)\.length >= 3\) \?\? areas\.find\(\(candidate\) =>/.test(wizard),
+    "Ein Google-Gebiet darf nur mit einer passenden gespeicherten FLYERO-Geometrie verbunden werden.",
   );
   assert(
     /const resolvedArea = findAreaForBoundaryContext\(placeId, boundaryPostalCode \|\| postalCode, boundaryCity \|\| city\)/.test(wizard),

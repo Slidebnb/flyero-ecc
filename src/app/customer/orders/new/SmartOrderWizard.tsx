@@ -344,7 +344,7 @@ function boundaryLayerStyle(selectedPlaceIds: string[]) {
       strokeOpacity: selected ? 1 : 0.85,
       strokeWeight: selected ? 3 : 1,
       fillColor: selected ? "#a7ff00" : "#52708f",
-      fillOpacity: selected ? 0.28 : 0.1,
+      fillOpacity: selected ? 0.28 : 0.03,
     };
   };
 }
@@ -884,23 +884,42 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     return scored[0] ?? null;
   }, [areas]);
 
-  // Google can display a boundary layer without returning a polygon that the
-  // order can actually use. The boundary is a location aid; the customer still
-  // draws the exact delivery area before it becomes part of the order.
-  const boundarySelectionEnabled = boundaryLayerStatus === "available";
-
   const findAreaForBoundaryContext = useCallback((placeId: string, boundaryPostalCode: string, boundaryCity: string) => {
     const normalizedPostalCode = boundaryPostalCode.trim();
     const normalizedCity = normalizeLocationPart(boundaryCity);
-    return areas.find((candidate) => candidate.googlePlaceId === placeId) ?? areas.find((candidate) => {
+    return areas.find((candidate) => candidate.googlePlaceId === placeId && featurePoints(candidate.geoJson).length >= 3) ?? areas.find((candidate) => {
       const candidatePostalCode = (candidate.postalCode ?? "").trim();
       const candidateCity = normalizeLocationPart(candidate.city);
       const samePostalCode = Boolean(normalizedPostalCode && candidatePostalCode === normalizedPostalCode);
       const sameCity = Boolean(normalizedCity && candidateCity === normalizedCity);
-      return (samePostalCode && (!normalizedCity || !candidateCity || sameCity)) ||
-        (!normalizedPostalCode && sameCity && !candidatePostalCode);
+      return featurePoints(candidate.geoJson).length >= 3 && (
+        (samePostalCode && (!normalizedCity || !candidateCity || sameCity)) ||
+        (!normalizedPostalCode && sameCity && !candidatePostalCode)
+      );
     });
   }, [areas]);
+
+  const boundaryAreaForLocation = useMemo(() => {
+    const normalizedPostalCode = postalCode.trim();
+    const normalizedCity = normalizeLocationPart(city);
+    return areas.find((candidate) => {
+      if (featurePoints(candidate.geoJson).length < 3) return false;
+      const candidatePostalCode = (candidate.postalCode ?? "").trim();
+      const candidateCity = normalizeLocationPart(candidate.city);
+      if (normalizedPostalCode) return candidatePostalCode === normalizedPostalCode;
+      return Boolean(
+        normalizedCity &&
+        candidateCity === normalizedCity &&
+        ["CITY", "CUSTOM"].includes(String(candidate.type)),
+      );
+    }) ?? null;
+  }, [areas, city, postalCode]);
+
+  // Google can display a boundary layer without returning a polygon that the
+  // order can actually use. Offer the marked-area action only when FLYERO has
+  // a real saved geometry for this location; otherwise drawing is the honest
+  // and universally available path.
+  const boundarySelectionEnabled = boundaryLayerStatus === "available" && Boolean(boundaryAreaForLocation);
 
   const applySavedArea = useCallback((area: (typeof areas)[number], placeId: string) => {
     const points = featurePoints(area.geoJson);
@@ -947,10 +966,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const selectBoundaryArea = useCallback((placeId: string, feature?: GoogleFeature) => {
     const area = findAreaForBoundaryContext(placeId, postalCode, city);
     if (!area) {
-      setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
       setAreaSelectionMode("draw");
-      // Zeichne dein genaues Verteilgebiet direkt auf der Karte.
-      setMapNotice("Ort gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.");
+      setMapNotice("Diese PLZ ist gefunden. Zeichne jetzt dein gewünschtes Verteilgebiet direkt auf der Karte.");
       void (async () => {
         const maps = window.google?.maps;
         let boundaryPlace: GoogleBoundaryPlace | null = null;
@@ -1005,9 +1022,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setTargetAreaName(boundaryLabel);
         setQuery(nextQuery);
         setSelectedAreaId("");
-        setMapNotice(`${boundaryLabel} gefunden. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.`);
+        setMapNotice("Diese PLZ ist gefunden. Zeichne jetzt dein gewünschtes Verteilgebiet direkt auf der Karte.");
       })().catch(() => {
-        setMapNotice(`${city || "Der Kartenbereich"} ist markiert. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte.`);
+        setMapNotice("Bitte zeichne jetzt dein gewünschtes Verteilgebiet direkt auf der Karte.");
       });
       return;
     }

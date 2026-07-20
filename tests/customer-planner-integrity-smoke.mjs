@@ -195,8 +195,13 @@ assert.match(
 );
 assert.match(
   wizard,
-  /const boundarySelectionEnabled = boundaryLayerStatus === "available";/,
-  "Die deutschlandweite Google-Grenzauswahl darf nicht von bereits gespeicherten FLYERO-Flaechen abhaengen.",
+  /const boundaryAreaForLocation = useMemo\([\s\S]*?featurePoints\(candidate\.geoJson\)[\s\S]*?postalCode[\s\S]*?city[\s\S]*?\[\"CITY\", \"CUSTOM\"\]\./,
+  "Die Grenzauswahl muss auf eine echte gespeicherte Flaeche fuer den aktuellen Ort begrenzt werden.",
+);
+assert.match(
+  wizard,
+  /const boundarySelectionEnabled = boundaryLayerStatus === "available" && Boolean\(boundaryAreaForLocation\);/,
+  "Ein technisch verfuegbarer Google-Layer darf ohne passende echte Gebietsflaeche keine Auswahl versprechen.",
 );
 assert.doesNotMatch(
   wizard,
@@ -215,8 +220,14 @@ assert.match(
 );
 assert.match(
   wizard,
-  /Ort gefunden\. Zeichne jetzt dein genaues Verteilgebiet direkt auf der Karte/,
+  /if \(!area\) \{[\s\S]*?setAreaSelectionMode\("draw"\);[\s\S]*?setMapNotice\("[^"]+Zeichne[^"\n]+Verteilgebiet direkt auf der Karte\./,
   "Eine Boundary ohne gespeicherte FLYERO-Flaeche muss verstaendlich in den Zeichenmodus fuehren.",
+);
+const boundaryNoAreaBlock = wizard.slice(wizard.indexOf("if (!area)"), wizard.indexOf("const maps = window.google?.maps", wizard.indexOf("if (!area)")));
+assert.doesNotMatch(
+  boundaryNoAreaBlock,
+  /setSelectedBoundaryPlaceIds/,
+  "Eine reine Google-Ortsgrenze darf ohne FLYERO-Geometrie nicht als ausgewaehltes Bestellgebiet markiert werden.",
 );
 assert.doesNotMatch(
   wizard,
