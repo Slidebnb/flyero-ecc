@@ -64,6 +64,11 @@ assert.match(
 );
 assert.match(
   wizard,
+  /if \(next\.length >= 2 && !drawingPreviewRef\.current\)[\s\S]*?new maps\.Polyline\([\s\S]*?if \(drawingPreviewRef\.current\) \{[\s\S]*?drawingPreviewRef\.current\.setPath\(next\);/,
+  "Die Zeichen-Vorschau darf mit einem Punkt kein blockierendes Polygon erzeugen.",
+);
+assert.match(
+  wizard,
   /const previewCoverageAreaSqm = drawingPoints\.length >= 3\s*\?\s*polygonAreaSqm\(drawingPoints\)\s*:\s*coverageAreaSqm;/,
   "Während des Zeichnens muss die lokale Flächenvorschau sofort sichtbar werden.",
 );

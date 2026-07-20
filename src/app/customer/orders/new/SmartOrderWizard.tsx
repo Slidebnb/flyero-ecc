@@ -103,10 +103,15 @@ type GooglePolygon = {
   getPath: () => GooglePath;
   addListener?: (eventName: string, callback: () => void) => GoogleEventListener | void;
 };
+type GooglePolyline = {
+  setMap: (map: GoogleMap | null) => void;
+  setPath: (path: LatLng[]) => void;
+};
 type GoogleNamespace = {
   maps: {
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
     Polygon: new (options: Record<string, unknown>) => GooglePolygon;
+    Polyline: new (options: Record<string, unknown>) => GooglePolyline;
     Geocoder: new () => { geocode: (request: { placeId: string }) => Promise<{ results?: GoogleGeocodeResult[] }> };
     LatLngBounds: new () => { extend: (point: LatLng) => void };
     event: { addListener: (target: unknown, eventName: string, callback: (event?: GoogleMapMouseEvent) => void) => GoogleEventListener | void };
@@ -416,7 +421,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const polygonStateRef = useRef<LatLng[]>([]);
   const polygonListenerHandlesRef = useRef<GoogleEventListener[]>([]);
   const drawingClickListenerRef = useRef<GoogleEventListener | null>(null);
-  const drawingPreviewRef = useRef<GooglePolygon | null>(null);
+  const drawingPreviewRef = useRef<GooglePolyline | null>(null);
   const drawingPointsRef = useRef<LatLng[]>([]);
   const finishDrawingRef = useRef<() => void>(() => undefined);
   const areaSelectionModeRef = useRef<"boundary" | "draw">("draw");
@@ -1786,18 +1791,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           const next = [...drawingPointsRef.current, { lat: point.lat(), lng: point.lng() }];
           drawingPointsRef.current = next;
           setDrawingPoints(next);
-          if (!drawingPreviewRef.current) {
-            drawingPreviewRef.current = new maps.Polygon({
-              paths: next,
+          if (next.length >= 2 && !drawingPreviewRef.current) {
+            drawingPreviewRef.current = new maps.Polyline({
+              path: next,
               strokeColor: "#a7ff00",
               strokeOpacity: 0.9,
               strokeWeight: 2,
-              fillColor: "#1f7aff",
-              fillOpacity: 0.12,
               clickable: false,
             });
             drawingPreviewRef.current.setMap(mapRef.current);
-          } else {
+          } else if (drawingPreviewRef.current) {
             drawingPreviewRef.current.setPath(next);
           }
           setMapNotice(next.length < 3
