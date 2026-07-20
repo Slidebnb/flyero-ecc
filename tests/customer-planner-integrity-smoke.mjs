@@ -54,8 +54,13 @@ assert.match(wizard, /order-finish-drawing|Klicke auf der Karte.*Eckpunkte|Eckpu
 assert.match(wizard, /maps\.event\.addListener\(mapRef\.current, ["']click["']|mapRef\.current\.addListener\(["']click["']/, "Gebiete müssen über die stabile Map-Klick-API gezeichnet werden.");
 assert.match(
   wizard,
-  /layer\.addListener\?\.\("click", \(event\) => \{[\s\S]*?if \(areaSelectionModeRef\.current === "draw"\) return;/,
-  "Grenzflaechen duerfen Kartenklicks im Zeichenmodus nicht abfangen.",
+  /const installBoundaryFeatureListeners = \(\) => \{[\s\S]*?layer\.addListener\?\.\("click", \(event\) => \{[\s\S]*?selectBoundaryAreaRef\.current\(placeId, feature\);/,
+  "Grenz-Listener muessen zentral verwaltet werden.",
+);
+assert.match(
+  wizard,
+  /const boundaryFeatureListenersRef = useRef<GoogleEventListener\[\]>\(\[\]\);[\s\S]*?const installBoundaryFeatureListeners = \(\) => \{[\s\S]*?removeBoundaryFeatureListeners\(\);[\s\S]*?if \(areaSelectionModeRef\.current === "draw"\) return;/,
+  "Grenz-Listener muessen im Zeichenmodus vollstaendig entfernt werden.",
 );
 assert.match(
   wizard,

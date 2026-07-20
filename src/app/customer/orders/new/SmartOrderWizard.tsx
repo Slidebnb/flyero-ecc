@@ -422,6 +422,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const areaSelectionModeRef = useRef<"boundary" | "draw">("draw");
   const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
   const boundaryLayerRefs = useRef(new Map<string, GoogleFeatureLayer>());
+  const boundaryFeatureListenersRef = useRef<GoogleEventListener[]>([]);
   const boundaryLayerListenersRef = useRef<GoogleEventListener[]>([]);
   const boundaryIdleListenerRef = useRef<GoogleEventListener | null>(null);
   const selectedBoundaryPlaceIdsRef = useRef<string[]>([]);
@@ -1826,6 +1827,28 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     let retryTimer: number | null = null;
     let retryCount = 0;
     let installBoundaryLayers: () => void = () => undefined;
+    const removeBoundaryFeatureListeners = () => {
+      for (const handle of boundaryFeatureListenersRef.current) {
+        try {
+          handle.remove?.();
+        } catch {
+          // Google may already have disposed the feature layer.
+        }
+      }
+      boundaryFeatureListenersRef.current = [];
+    };
+    const installBoundaryFeatureListeners = () => {
+      removeBoundaryFeatureListeners();
+      if (areaSelectionModeRef.current === "draw") return;
+      for (const layer of boundaryLayerRefs.current.values()) {
+        const listener = layer.addListener?.("click", (event) => {
+          const feature = event.features?.[0];
+          const placeId = feature?.placeId;
+          if (placeId) selectBoundaryAreaRef.current(placeId, feature);
+        });
+        if (listener) boundaryFeatureListenersRef.current.push(listener);
+      }
+    };
     const scheduleInstallRetry = () => {
       if (retryTimer !== null || retryCount >= 20) return;
       retryCount += 1;
@@ -1839,6 +1862,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       if (!activeMap) return;
       const mapCapabilities = activeMap.getMapCapabilities?.();
       if (mapCapabilities?.isDataDrivenStylingAvailable !== true) {
+        removeBoundaryFeatureListeners();
         for (const handle of boundaryLayerListenersRef.current) {
           try {
             handle.remove?.();
@@ -1888,14 +1912,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         availableLayerCount += 1;
         layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current);
         boundaryLayerRefs.current.set(featureType, layer);
-        const listener = layer.addListener?.("click", (event) => {
-          if (areaSelectionModeRef.current === "draw") return;
-          const feature = event.features?.[0];
-          const placeId = feature?.placeId;
-          if (placeId) selectBoundaryAreaRef.current(placeId, feature);
-        });
-        if (listener) boundaryLayerListenersRef.current.push(listener);
       }
+      installBoundaryFeatureListeners();
       if (availableLayerCount > 0 || boundaryLayerRefs.current.size > 0) {
         setBoundaryLayerStatus("available");
       } else {
@@ -1916,7 +1934,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     return () => {
       if (retryTimer !== null) window.clearTimeout(retryTimer);
     };
-  }, [mapsBoundaryConfigured, mapsReady]);
+  }, [areaSelectionMode, mapsBoundaryConfigured, mapsReady]);
 
   useEffect(() => {
     for (const layer of boundaryLayerRefs.current.values()) {
@@ -1928,6 +1946,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     const boundaryLayerRefsAtMount = boundaryLayerRefs.current;
     const boundaryLayerListenersAtMount = boundaryLayerListenersRef.current;
     return () => {
+      for (const handle of boundaryFeatureListenersRef.current) {
+        try {
+          handle.remove?.();
+        } catch {
+          // Google may already have disposed the feature layer during navigation.
+        }
+      }
+      boundaryFeatureListenersRef.current = [];
       for (const handle of polygonListenerHandlesRef.current) {
         try {
           handle.remove?.();
