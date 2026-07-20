@@ -47,4 +47,20 @@ const normal = deriveAreaDifficulty({
 });
 assert.equal(normal.areaDifficulty, "NORMAL");
 assert.equal(normal.areaDifficultyFactor, "1.00");
+
+const unavailable = deriveAreaDifficulty({
+  coverageAreaSqm: 0,
+  households: 0,
+  routeDistanceMeters: null,
+  routeDurationMinutes: null,
+  segmentCount: 1,
+  confidence: "unavailable",
+  source: "unavailable",
+  warehouseMatched: true,
+  deliverabilityScore: 100,
+});
+assert.equal(unavailable.areaDifficulty, "NORMAL");
+assert.equal(unavailable.areaDifficultyFactor, "1.00");
+assert.ok(unavailable.derivationReasons.includes("area-data-unavailable"));
+
 console.log("Area difficulty derivation smoke checks passed.");

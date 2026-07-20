@@ -29,6 +29,7 @@ export type AreaDifficultyResult = {
 
 export function deriveAreaDifficulty(input: AreaDifficultyInput): AreaDifficultyResult {
   const reasons: string[] = [];
+  const areaDataUnavailable = input.coverageAreaSqm <= 0 || input.households <= 0;
   const densitySqmPerHousehold = input.households > 0 ? input.coverageAreaSqm / input.households : Number.POSITIVE_INFINITY;
   const routeMetersPerHousehold = input.households > 0 && input.routeDistanceMeters != null
     ? input.routeDistanceMeters / input.households
@@ -39,6 +40,7 @@ export function deriveAreaDifficulty(input: AreaDifficultyInput): AreaDifficulty
   if (!input.warehouseMatched) reasons.push("warehouse-unmatched");
   if (score < 45) reasons.push("low-deliverability");
   if (input.segmentCount > 2) reasons.push("multiple-segments");
+  if (areaDataUnavailable) reasons.push("area-data-unavailable");
   if (densitySqmPerHousehold > 1800) reasons.push("low-household-density");
   if (routeMetersPerHousehold > 45) reasons.push("long-route-per-household");
   if (lowConfidence) reasons.push("limited-area-data");
@@ -46,6 +48,10 @@ export function deriveAreaDifficulty(input: AreaDifficultyInput): AreaDifficulty
   let areaDifficulty: AreaDifficultyCode = "NORMAL";
   if (!input.warehouseMatched || score < 45) {
     areaDifficulty = "HARD";
+  } else if (areaDataUnavailable) {
+    // Missing geometry or household data must not be interpreted as rural
+    // simply because the derived density would otherwise be infinite.
+    areaDifficulty = "NORMAL";
   } else if (densitySqmPerHousehold > 1800 || routeMetersPerHousehold > 45) {
     areaDifficulty = "RURAL";
   } else if (input.segmentCount > 1 || score < 65 || densitySqmPerHousehold > 700 || routeMetersPerHousehold > 25) {
