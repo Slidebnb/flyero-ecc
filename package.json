@@ -113,6 +113,7 @@
     "test:public-link-integrity": "node tests/public-link-integrity-smoke.mjs",
     "test:customer-portal-ux": "node -r dotenv/config tests/customer-portal-ux-smoke.mjs",
     "test:customer-portal-playwright": "node -r dotenv/config tests/customer-portal-playwright.mjs",
+    "test:customer-profile-hydration": "node tests/customer-profile-hydration-smoke.mjs",
     "test:role-portals-playwright": "node -r dotenv/config tests/role-portals-playwright.mjs",
     "test:auth-ux": "node -r dotenv/config tests/auth-ux-smoke.mjs",
     "test:auth-session": "node -r dotenv/config tests/auth-session-smoke.mjs",

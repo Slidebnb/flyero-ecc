@@ -269,10 +269,14 @@ try {
   assert(direct.data.id, "Direktbuchung hat keine Order-ID geliefert.");
   assert(direct.data.status === "PAYMENT_PENDING", `Direktbuchung Status falsch: ${direct.data.status}`);
 
-  const checkout = await postJson("/api/payments/checkout", { orderId: direct.data.id }, customerCookie);
-  assert(checkout.data.checkoutUrl, "Checkout-URL fehlt.");
-  assert(checkout.data.orderId === direct.data.id, "Payment ist nicht mit Order verknuepft.");
-
+  const concurrentCheckouts = await Promise.all([
+    postJson("/api/payments/checkout", { orderId: direct.data.id }, customerCookie),
+    postJson("/api/payments/checkout", { orderId: direct.data.id }, customerCookie),
+  ]);
+  for (const checkout of concurrentCheckouts) {
+    assert(checkout.data.checkoutUrl, "Checkout-URL fehlt nach paralleler Anforderung.");
+    assert(checkout.data.orderId === direct.data.id, "Payment ist nicht mit Order verknuepft.");
+  }
   const directOrder = await prisma.order.findUnique({ where: { id: direct.data.id }, include: { payments: true } });
   assert(directOrder?.priceRuleSnapshot?.areaCalculationSnapshot, "Area Calculation Snapshot fehlt bei Direktbuchung.");
   assert(directOrder?.priceRuleSnapshot?.completionPath === "direct_payment", "Abschlussweg direct_payment fehlt.");

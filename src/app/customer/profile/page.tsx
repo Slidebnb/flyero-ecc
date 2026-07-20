@@ -35,25 +35,26 @@ export default async function CustomerProfilePage() {
         <a className="primaryButton" href="#profile-save">Speichern</a>
       </section>
 
+      {/* Browser autofill can add a caret style before React hydrates this server-rendered form. */}
       <form action="/api/customer/profile" method="post" className="customerProfileForm">
         <div className="customerTwoColumn">
           <DataSection title="Kontakt" description="Für Rückfragen zur Kampagne.">
             <div className="form grid">
               <label>
                 Firma
-                <input name="companyName" defaultValue={profile.companyName} required />
+                <input name="companyName" defaultValue={profile.companyName} required suppressHydrationWarning />
               </label>
               <label>
                 Ansprechpartner
-                <input name="contactName" defaultValue={profile.contactName} required />
+                <input name="contactName" defaultValue={profile.contactName} required suppressHydrationWarning />
               </label>
               <label>
                 E-Mail
-                <input value={profile.user.email} disabled />
+                <input value={profile.user.email} disabled suppressHydrationWarning />
               </label>
               <label>
                 Telefon
-                <input name="phone" defaultValue={profile.phone} required />
+                <input name="phone" defaultValue={profile.phone} required suppressHydrationWarning />
               </label>
             </div>
           </DataSection>
@@ -62,27 +63,27 @@ export default async function CustomerProfilePage() {
             <div className="form grid">
               <label>
                 Straße
-                <input name="billingStreet" defaultValue={String(billing.street || "")} required />
+                <input name="billingStreet" defaultValue={String(billing.street || "")} required suppressHydrationWarning />
               </label>
               <label>
                 Hausnummer
-                <input name="billingHouseNumber" defaultValue={String(billing.houseNumber || "")} />
+                <input name="billingHouseNumber" defaultValue={String(billing.houseNumber || "")} suppressHydrationWarning />
               </label>
               <label>
                 PLZ
-                <input name="billingPostalCode" defaultValue={String(billing.postalCode || "")} required />
+                <input name="billingPostalCode" defaultValue={String(billing.postalCode || "")} required suppressHydrationWarning />
               </label>
               <label>
                 Stadt
-                <input name="billingCity" defaultValue={String(billing.city || "")} required />
+                <input name="billingCity" defaultValue={String(billing.city || "")} required suppressHydrationWarning />
               </label>
               <label>
                 USt-ID optional
-                <input name="vatId" defaultValue={profile.vatId || ""} />
+                <input name="vatId" defaultValue={profile.vatId || ""} suppressHydrationWarning />
               </label>
               <label>
                 Logo optional
-                <input name="logoUrl" type="url" defaultValue={profile.logoUrl || ""} />
+                <input name="logoUrl" type="url" defaultValue={profile.logoUrl || ""} suppressHydrationWarning />
               </label>
             </div>
           </DataSection>
@@ -94,19 +95,19 @@ export default async function CustomerProfilePage() {
             <div className="form grid">
               <label>
                 Straße
-                <input name="deliveryStreet" defaultValue={String(delivery.street || "")} />
+                <input name="deliveryStreet" defaultValue={String(delivery.street || "")} suppressHydrationWarning />
               </label>
               <label>
                 Hausnummer
-                <input name="deliveryHouseNumber" defaultValue={String(delivery.houseNumber || "")} />
+                <input name="deliveryHouseNumber" defaultValue={String(delivery.houseNumber || "")} suppressHydrationWarning />
               </label>
               <label>
                 PLZ
-                <input name="deliveryPostalCode" defaultValue={String(delivery.postalCode || "")} />
+                <input name="deliveryPostalCode" defaultValue={String(delivery.postalCode || "")} suppressHydrationWarning />
               </label>
               <label>
                 Stadt
-                <input name="deliveryCity" defaultValue={String(delivery.city || "")} />
+                <input name="deliveryCity" defaultValue={String(delivery.city || "")} suppressHydrationWarning />
               </label>
             </div>
           </DataSection>
@@ -118,11 +119,11 @@ export default async function CustomerProfilePage() {
             <div className="form grid">
               <label>
                 Aktuelles Passwort
-                <input name="currentPassword" type="password" autoComplete="current-password" />
+                <input name="currentPassword" type="password" autoComplete="current-password" suppressHydrationWarning />
               </label>
               <label>
                 Neues Passwort
-                <input name="newPassword" type="password" autoComplete="new-password" minLength={10} />
+                <input name="newPassword" type="password" autoComplete="new-password" minLength={10} suppressHydrationWarning />
               </label>
             </div>
           </DataSection>

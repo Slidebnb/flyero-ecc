@@ -363,36 +363,37 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
       createdPayment = true;
     } catch (error) {
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
-      const reusablePayment = await prisma.payment.findFirst({
-        where: { orderId: order.id, status: { in: ["FAILED", "CANCELLED"] } },
-        orderBy: { createdAt: "desc" },
-      });
-      if (!reusablePayment) throw error;
-      payment = await prisma.payment.update({
-        where: { id: reusablePayment.id },
-        data: {
-          status: "CREATED",
-          amount,
-          description,
-          metadata,
-          checkoutUrl: null,
-          checkoutKey: order.id,
-          checkoutClaimToken: null,
-          checkoutClaimedAt: null,
-          stripeCheckoutSessionId: null,
-          stripePaymentIntentId: null,
-          failedAt: null,
-          cancelledAt: null,
-        },
-      });
-      reopenedPayment = true;
-      await addPaymentHistory({ paymentId: payment.id, fromStatus: reusablePayment.status, toStatus: "CREATED", reason: "checkout_retry" });
+      const conflictingPayment = await prisma.payment.findUnique({ where: { checkoutKey: order.id } });
+      if (!conflictingPayment || conflictingPayment.orderId !== order.id) throw error;
+      if (["FAILED", "CANCELLED"].includes(conflictingPayment.status)) {
+        payment = await prisma.payment.update({
+          where: { id: conflictingPayment.id },
+          data: {
+            status: "CREATED",
+            amount,
+            description,
+            metadata,
+            checkoutUrl: null,
+            checkoutKey: order.id,
+            checkoutClaimToken: null,
+            checkoutClaimedAt: null,
+            stripeCheckoutSessionId: null,
+            stripePaymentIntentId: null,
+            failedAt: null,
+            cancelledAt: null,
+          },
+        });
+        reopenedPayment = true;
+        await addPaymentHistory({ paymentId: payment.id, fromStatus: conflictingPayment.status, toStatus: "CREATED", reason: "checkout_retry" });
+      } else {
+        payment = conflictingPayment;
+      }
     }
   }
   if (createdPayment) await addPaymentHistory({ paymentId: payment.id, toStatus: "CREATED", reason: "checkout_requested" });
-  if (existing && !reopenedPayment) {
+  if (payment && !createdPayment && !reopenedPayment && !payment.checkoutUrl) {
     await prisma.payment.update({
-      where: { id: existing.id },
+      where: { id: payment.id },
       data: { amount, description, metadata },
     });
   }

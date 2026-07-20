@@ -98,13 +98,26 @@ const routes = [
 const browser = await chromium.launch();
 const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
+  serviceWorkers: "block",
   extraHTTPHeaders: { "x-forwarded-for": testIp },
 });
 const page = await context.newPage();
 const errors = [];
 const failedRequests = [];
+const isExpectedLocalMapsConfigurationMessage = (text) => baseUrl.startsWith("http://localhost") && [
+  "maps.googleapis.com/maps/api/mapsjs/mapConfigs:batchGet",
+  "Unable to fetch configuration for mapId",
+  "The map is initialized without a valid map ID",
+  "The Map Style does not have the following FeatureLayer configured",
+].some((fragment) => text.includes(fragment));
 page.on("console", (message) => {
-  if (message.type() === "error" && !message.text().includes("maps.googleapis.com/$rpc") && !message.text().includes("Failed to load resource: net::ERR_FAILED")) errors.push(message.text());
+  if (message.type() === "error"
+    && !message.text().includes("maps.googleapis.com/$rpc")
+    && !message.text().includes("maps.googleapis.com/maps/api/mapsjs/gen_204")
+    && !isExpectedLocalMapsConfigurationMessage(message.text())
+    && !message.text().includes("Failed to load resource: net::ERR_FAILED")) {
+    errors.push(message.text());
+  }
 });
 page.on("pageerror", (error) => errors.push(error.message));
 page.on("requestfailed", (request) => failedRequests.push({ url: request.url(), error: request.failure()?.errorText ?? "unknown" }));

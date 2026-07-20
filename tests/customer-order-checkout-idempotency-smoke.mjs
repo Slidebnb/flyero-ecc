@@ -13,6 +13,8 @@ assert(/checkoutClaimToken\s+String\?\s+@unique/.test(schema), "Payment braucht 
 for (const required of [
   "checkoutKey",
   "P2002",
+  "where: { checkoutKey: order.id }",
+  "conflictingPayment",
   "checkout_race_reused",
   "PAYMENT_PENDING",
 ]) {
