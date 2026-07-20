@@ -289,13 +289,13 @@ async function run() {
       flyerSource: "CUSTOMER_OWN",
       productFormat: "DIN Lang (99 × 210 mm)",
       printDataStatus: "UPLOAD_LATER",
-      areaDifficulty: "NORMAL",
+      areaDifficulty: "HARD",
       segments: JSON.stringify([manipulatedSegment]),
     });
     const manipulatedResponse = await customerPage.request.get(`${baseUrl}/api/maps/order-intelligence?${manipulatedParams.toString()}`);
     const manipulatedBody = await manipulatedResponse.json();
     assert(manipulatedResponse.ok(), `Serverprüfung des manipulierten Gebiets fehlgeschlagen: ${manipulatedResponse.status()}`);
-    assert(manipulatedBody?.data?.metrics?.areaDifficulty !== "NORMAL", "Der manipulierte NORMAL-Hinweis darf nicht als serverseitige Gebietsart zurückkommen.");
+    assert(manipulatedBody?.data?.metrics?.areaDifficulty === "NORMAL", "Der manipulierte HARD-Hinweis darf nicht als serverseitige Gebietsart zurückkommen.");
 
     const inquiry = await createInquiry(customerPage);
     const customerOrderPage = await customerContext.newPage();
