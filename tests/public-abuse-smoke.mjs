@@ -8,11 +8,11 @@ import { PrismaPg } from "@prisma/adapter-pg";
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 const baseUrl = process.env.PUBLIC_ABUSE_BASE_URL || "http://localhost:3000";
 const ip = `198.51.100.${Date.now() % 200 + 20}`;
-const bucketId = createHash("sha256").update(`flyero-public-rate-limit:lead:${ip}`).digest("hex");
+const bucketId = createHash("sha256").update(`flyero-public-rate-limit:lead:ip:${ip}`).digest("hex");
 const verifyIp = `203.0.113.${Date.now() % 200 + 20}`;
-const verifyBucketId = createHash("sha256").update(`flyero-public-rate-limit:report-verify:${verifyIp}`).digest("hex");
+const verifyBucketId = createHash("sha256").update(`flyero-public-rate-limit:report-verify:ip:${verifyIp}`).digest("hex");
 const errorIp = `192.0.2.${Date.now() % 200 + 20}`;
-const errorBucketId = createHash("sha256").update(`flyero-public-rate-limit:client-error:${errorIp}`).digest("hex");
+const errorBucketId = createHash("sha256").update(`flyero-public-rate-limit:client-error:ip:${errorIp}`).digest("hex");
 
 const [schema, protection, leadRoute, verifyRoute, errorRoute, retention] = await Promise.all([
   readFile("prisma/schema.prisma", "utf8"),
