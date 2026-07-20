@@ -889,8 +889,63 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   // draws the exact delivery area before it becomes part of the order.
   const boundarySelectionEnabled = boundaryLayerStatus === "available";
 
+  const findAreaForBoundaryContext = useCallback((placeId: string, boundaryPostalCode: string, boundaryCity: string) => {
+    const normalizedPostalCode = boundaryPostalCode.trim();
+    const normalizedCity = normalizeLocationPart(boundaryCity);
+    return areas.find((candidate) => candidate.googlePlaceId === placeId) ?? areas.find((candidate) => {
+      const candidatePostalCode = (candidate.postalCode ?? "").trim();
+      const candidateCity = normalizeLocationPart(candidate.city);
+      const samePostalCode = Boolean(normalizedPostalCode && candidatePostalCode === normalizedPostalCode);
+      const sameCity = Boolean(normalizedCity && candidateCity === normalizedCity);
+      return (samePostalCode && (!normalizedCity || !candidateCity || sameCity)) ||
+        (!normalizedPostalCode && sameCity && !candidatePostalCode);
+    });
+  }, [areas]);
+
+  const applySavedArea = useCallback((area: (typeof areas)[number], placeId: string) => {
+    const points = featurePoints(area.geoJson);
+    if (points.length < 3) return false;
+
+    const currentSegments = areaSegmentsRef.current;
+    const existingSegment = currentSegments.find((segment) => segment.distributionAreaId === area.id);
+    const replaceDefault = !existingSegment && currentSegments.length === 1 && currentSegments[0]?.id === "segment-default";
+    const segmentId = existingSegment?.id ?? (replaceDefault ? "segment-default" : `segment-boundary-${Date.now()}`);
+    const nextSegment: OrderAreaSegmentDraft = {
+      id: segmentId,
+      name: area.name,
+      city: area.city ?? "",
+      postalCode: area.postalCode ?? "",
+      district: area.district ?? "",
+      country: "DE",
+      points,
+      polygonSource: "saved_area",
+      distributionAreaId: area.id,
+    };
+    const nextSegments = existingSegment
+      ? currentSegments.map((segment) => segment.id === existingSegment.id ? { ...segment, ...nextSegment } : segment)
+      : replaceDefault
+        ? [nextSegment]
+        : [...currentSegments, nextSegment];
+
+    areaSegmentsRef.current = nextSegments;
+    setAreaSegments(nextSegments);
+    setActiveSegmentId(segmentId);
+    setSelectedAreaId(area.id);
+    setPolygon(points);
+    setPolygonSource("saved_area");
+    setCity(area.city ?? "");
+    setPostalCode(area.postalCode ?? "");
+    setTargetAreaName(area.name);
+    setQuery([area.postalCode, area.city].filter(Boolean).join(" "));
+    if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
+    setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
+    setAreaSelectionMode("boundary");
+    setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
+    return true;
+  }, []);
+
   const selectBoundaryArea = useCallback((placeId: string, feature?: GoogleFeature) => {
-    const area = areas.find((candidate) => candidate.googlePlaceId === placeId);
+    const area = findAreaForBoundaryContext(placeId, postalCode, city);
     if (!area) {
       setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
       setAreaSelectionMode("draw");
@@ -927,6 +982,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         const nextPostalCode = boundaryPostalCode || postalCode;
         const nextQuery = [nextPostalCode, nextCity].filter(Boolean).join(" ") || boundaryLabel;
 
+        const resolvedArea = findAreaForBoundaryContext(placeId, boundaryPostalCode || postalCode, boundaryCity || city);
+        if (resolvedArea && applySavedArea(resolvedArea, placeId)) return;
+
         if (boundaryCenter) setCenter(boundaryCenter);
         if (boundaryViewport) mapRef.current?.fitBounds(boundaryViewport);
         else if (boundaryCenter) {
@@ -953,6 +1011,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       });
       return;
     }
+    if (applySavedArea(area, placeId)) return;
     const points = featurePoints(area.geoJson);
     if (points.length < 3) {
       setAreaSelectionMode("draw");
@@ -995,7 +1054,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setAreaSelectionMode("boundary");
     setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
-  }, [areas, city, postalCode, query]);
+  }, [applySavedArea, city, findAreaForBoundaryContext, postalCode, query]);
 
   useEffect(() => {
     selectBoundaryAreaRef.current = selectBoundaryArea;

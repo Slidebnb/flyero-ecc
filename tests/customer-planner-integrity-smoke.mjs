@@ -46,7 +46,7 @@ assert.match(
 );
 assert.match(
   wizard,
-  /intelligence\?\.metrics\.householdRecommendationAllowed === true[\s\S]*?intelligence\.metrics\.recommendedFlyerQuantity/,
+  /currentIntelligenceStatus === "live"[\s\S]*?currentIntelligence\?\.metrics\.householdRecommendationAllowed === true[\s\S]*?currentIntelligence\.metrics\.recommendedFlyerQuantity/,
   "Die Flyerempfehlung muss vom serverseitigen Gebietsergebnis kommen.",
 );
 assert.doesNotMatch(wizard, /libraries=drawing|maps\.drawing|DrawingManager|polygoncomplete/, "Der Planner darf nicht von der abgekündigten Google-Drawing-Bibliothek abhängen.");
@@ -108,12 +108,12 @@ assert.match(
 );
 assert.match(
   wizard,
-  /const priceReady = intelligenceStatus === "live"[\s\S]*?const pricePreviewText = coverageAreaSqm <= 0[\s\S]*?"Gebiet ausw[aä]hlen"/,
+  /const priceReady = currentIntelligenceStatus === "live"[\s\S]*?const pricePreviewText = coverageAreaSqm <= 0[\s\S]*?"Gebiet ausw[aä]hlen"/,
   "Preisstatus muss Gebiet, laufende Berechnung und manuelle Pruefung unterscheiden.",
 );
 
 assertMatch(
-  /const recommendedFlyerQuantity = intelligenceStatus === "live"[\s\S]*?MINIMUM_FLYER_QUANTITY/,
+  /const recommendedFlyerQuantity = currentIntelligenceStatus === "live"[\s\S]*?MINIMUM_FLYER_QUANTITY/,
   "Ohne Flaeche darf die Empfehlung nicht kuenstlich auf eine alte Menge springen.",
 );
 assert.match(

@@ -223,6 +223,14 @@ try {
     /areaSelection\?\.segments\.length > 1/.test(smartMaps),
     "Mehrere Teilgebiete duerfen keine Haushaltsdichte aus einer anderen Stadt uebernehmen.",
   );
+  assert(
+    /areas\.find\(\(candidate\) => candidate\.googlePlaceId === placeId\) \?\? areas\.find\(\(candidate\) =>/.test(wizard),
+    "Ein Google-Gebiet muss auch ueber die bestaetigte PLZ oder den Ort mit einem gespeicherten FLYERO-Gebiet verbunden werden koennen.",
+  );
+  assert(
+    /const resolvedArea = findAreaForBoundaryContext\(placeId, boundaryPostalCode \|\| postalCode, boundaryCity \|\| city\)/.test(wizard),
+    "Ein Google-Gebiet muss nach dem Laden der Boundary-Details erneut mit dem gespeicherten FLYERO-Gebiet abgeglichen werden.",
+  );
   assert(!smartMaps.includes("LOCAL_PLACES"), "Smart Maps darf keine lokal hartcodierten Ortsdaten als echte Vorschläge ausgeben.");
   includes("src/lib/pricing.ts", [
     "premium-distribution-v4",
