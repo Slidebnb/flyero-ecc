@@ -33,6 +33,22 @@ assert.equal(hard.areaDifficulty, "HARD");
 assert.equal(hard.areaDifficultyFactor, "1.60");
 assert.ok(hard.derivationReasons.includes("warehouse-unmatched"));
 
+const logisticsPending = deriveAreaDifficulty({
+  coverageAreaSqm: 1_280_000,
+  households: 2_400,
+  routeDistanceMeters: 8_000,
+  routeDurationMinutes: 500,
+  segmentCount: 2,
+  confidence: "medium",
+  source: "area-formula",
+  warehouseMatched: false,
+  deliverabilityScore: 80,
+  clientHint: "NORMAL",
+});
+assert.equal(logisticsPending.areaDifficulty, "MIXED", "Fehlendes Lager darf die Gebietspreisklasse nicht auf HARD setzen.");
+assert.equal(logisticsPending.areaDifficultyFactor, "1.15", "Die Gebietspreisklasse muss trotz offener LagerprÃ¼fung mit der Vorschau Ã¼bereinstimmen.");
+assert.ok(logisticsPending.derivationReasons.includes("warehouse-unmatched"));
+
 const normal = deriveAreaDifficulty({
   coverageAreaSqm: 100_000,
   households: 900,

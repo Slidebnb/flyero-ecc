@@ -46,7 +46,11 @@ export function deriveAreaDifficulty(input: AreaDifficultyInput): AreaDifficulty
   if (lowConfidence) reasons.push("limited-area-data");
 
   let areaDifficulty: AreaDifficultyCode = "NORMAL";
-  if (!input.warehouseMatched || score < 45) {
+  // An unavailable warehouse is an operational review flag, not a pricing
+  // difficulty. The public quote may not have operational warehouse data,
+  // while order creation does; using it here would make quote and order prices
+  // diverge for the same area.
+  if (score < 45) {
     areaDifficulty = "HARD";
   } else if (areaDataUnavailable) {
     // Missing geometry or household data must not be interpreted as rural
