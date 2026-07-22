@@ -69,6 +69,11 @@ assert.match(
 );
 assert.match(
   wizard,
+  /function startDrawingArea\(\)[\s\S]*?setMapRenderMode\("standard"\);/,
+  "Der Zeichenmodus muss auf die stabile Standardkarte wechseln.",
+);
+assert.match(
+  wizard,
   /const previewCoverageAreaSqm = drawingPoints\.length >= 3\s*\?\s*polygonAreaSqm\(drawingPoints\)\s*:\s*coverageAreaSqm;/,
   "Während des Zeichnens muss die lokale Flächenvorschau sofort sichtbar werden.",
 );

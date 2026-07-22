@@ -417,6 +417,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const mapElementRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMap | null>(null);
+  const mapInstanceRenderModeRef = useRef<"boundary" | "standard" | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
   const polygonStateRef = useRef<LatLng[]>([]);
   const polygonListenerHandlesRef = useRef<GoogleEventListener[]>([]);
@@ -1698,6 +1699,17 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         window.setTimeout(register, 0);
       }
     };
+    if (mapRef.current && mapInstanceRenderModeRef.current !== mapRenderMode) {
+      try {
+        drawingClickListenerRef.current?.remove?.();
+      } catch {
+        // The previous Google map may already have been disposed.
+      }
+      drawingClickListenerRef.current = null;
+      mapRef.current = null;
+      mapInstanceRenderModeRef.current = null;
+      if (mapElementRef.current) mapElementRef.current.replaceChildren();
+    }
     if (!mapRef.current) {
       try {
         const mapOptions: Record<string, unknown> = {
@@ -1719,6 +1731,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         mapRef.current = new maps.Map(mapElementRef.current, {
           ...mapOptions,
         });
+        mapInstanceRenderModeRef.current = mapRenderMode;
       } catch {
         return () => {
           isActive = false;
@@ -1743,8 +1756,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }
     }
     if (polygonRef.current) {
+      polygonRef.current.setMap(mapRef.current);
       attachPolygonListeners(polygonRef.current);
     }
+    for (const overlay of segmentPolygonsRef.current.values()) overlay.setMap(mapRef.current);
     const clearDrawingPreview = () => {
       try {
         drawingPreviewRef.current?.setMap(null);
@@ -1852,6 +1867,18 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         if (listener) boundaryFeatureListenersRef.current.push(listener);
       }
     };
+    const clearBoundaryLayerListeners = () => {
+      for (const handle of boundaryLayerListenersRef.current) {
+        try {
+          handle.remove?.();
+        } catch {
+          // Google may already have disposed the map listener.
+        }
+      }
+      boundaryLayerListenersRef.current = [];
+      boundaryIdleListenerRef.current = null;
+      boundaryLayerRefs.current.clear();
+    };
     const scheduleInstallRetry = () => {
       if (retryTimer !== null || retryCount >= 20) return;
       retryCount += 1;
@@ -1863,18 +1890,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     installBoundaryLayers = () => {
       const activeMap = mapRef.current;
       if (!activeMap) return;
+      if (mapRenderMode !== "boundary") {
+        removeBoundaryFeatureListeners();
+        clearBoundaryLayerListeners();
+        setBoundaryLayerStatus("unavailable");
+        return;
+      }
       const mapCapabilities = activeMap.getMapCapabilities?.();
       if (mapCapabilities?.isDataDrivenStylingAvailable !== true) {
         removeBoundaryFeatureListeners();
-        for (const handle of boundaryLayerListenersRef.current) {
-          try {
-            handle.remove?.();
-          } catch {
-            // Google may already have disposed the feature layer.
-          }
-        }
-        boundaryLayerListenersRef.current = [];
-        boundaryLayerRefs.current.clear();
+        clearBoundaryLayerListeners();
         try {
           drawingClickListenerRef.current?.remove?.();
         } catch {
@@ -1936,8 +1961,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
     return () => {
       if (retryTimer !== null) window.clearTimeout(retryTimer);
+      removeBoundaryFeatureListeners();
+      clearBoundaryLayerListeners();
     };
-  }, [areaSelectionMode, mapsBoundaryConfigured, mapsReady]);
+  }, [areaSelectionMode, mapRenderMode, mapsBoundaryConfigured, mapsReady]);
 
   useEffect(() => {
     for (const layer of boundaryLayerRefs.current.values()) {
@@ -2122,6 +2149,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   function startDrawingArea() {
     setAreaSelectionMode("draw");
+    setMapRenderMode("standard");
     try {
       drawingPreviewRef.current?.setMap(null);
     } catch {
