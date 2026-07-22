@@ -505,7 +505,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const { isSubmitting, beginSubmission, endSubmission } = useOrderSubmission();
   const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
   const mapsBoundaryMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "";
-  const mapsBoundaryConfigured = Boolean(mapsBoundaryMapId);
+  const mapsBoundaryConfigured = Boolean(
+    mapsBoundaryMapId && process.env.NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED === "true",
+  );
   const [mapRenderMode, setMapRenderMode] = useState<"boundary" | "standard">(
     mapsBoundaryConfigured ? "boundary" : "standard",
   );

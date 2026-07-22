@@ -74,6 +74,11 @@ assert.match(
 );
 assert.match(
   wizard,
+  /const mapsBoundaryConfigured = Boolean\(\s*mapsBoundaryMapId\s*&&\s*process\.env\.NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED === "true"\s*,?\s*\);/,
+  "Eine konfigurierte Map-ID darf Boundary-Styles erst nach ausdruecklicher Produktionsfreigabe aktivieren.",
+);
+assert.match(
+  wizard,
   /const previewCoverageAreaSqm = drawingPoints\.length >= 3\s*\?\s*polygonAreaSqm\(drawingPoints\)\s*:\s*coverageAreaSqm;/,
   "Während des Zeichnens muss die lokale Flächenvorschau sofort sichtbar werden.",
 );
