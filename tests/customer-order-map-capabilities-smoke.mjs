@@ -23,6 +23,11 @@ assert.match(wizard, /setMapRenderMode\("standard"\)/, "Bei fehlender Boundary-F
 assert.match(wizard, /mapRenderMode === "boundary"/, "Die Map-ID darf nur im Boundary-Modus verwendet werden.");
 assert.match(
   wizard,
+  /mapsBoundaryConfigured && mapRenderMode === "boundary"[\s\S]{0,500}mapOptions\.renderingType\s*=\s*"VECTOR"/,
+  "Die Boundary-Karte muss den Vektor-Renderer explizit anfordern, damit Google Data-driven Styling nicht auf Raster zurueckfaellt.",
+);
+assert.match(
+  wizard,
   /setBoundaryLayerStatus\("unavailable"\)[\s\S]*setAreaSelectionMode\("draw"\)/,
   "Bei nicht verfügbarer Boundary-Konfiguration muss der Zeichenweg aktiviert bleiben.",
 );

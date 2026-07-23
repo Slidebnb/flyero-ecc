@@ -1751,7 +1751,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           disableDefaultUI: true,
           mapTypeId: mapMode === "satellite" ? "satellite" : "roadmap",
         };
-        if (mapsBoundaryConfigured && mapRenderMode === "boundary") mapOptions.mapId = mapsBoundaryMapId;
+        if (mapsBoundaryConfigured && mapRenderMode === "boundary") {
+          mapOptions.mapId = mapsBoundaryMapId;
+          // Google uses raster by default for a div-backed map. Boundary layers require vector rendering.
+          mapOptions.renderingType = "VECTOR";
+        }
         if (mapRenderMode === "standard" && mapMode === "map") {
           mapOptions.styles = [
             { elementType: "geometry", stylers: [{ color: "#182638" }] },
