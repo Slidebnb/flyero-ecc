@@ -26,6 +26,7 @@
     "test:module3": "node -r dotenv/config tests/module3-smoke.mjs",
     "test:module4": "node -r dotenv/config tests/module4-smoke.mjs",
     "test:module5": "node -r dotenv/config tests/module5-smoke.mjs",
+    "test:service-worker-cache": "node tests/service-worker-cache-smoke.mjs",
     "test:module6": "node -r dotenv/config tests/module6-smoke.mjs",
     "test:module7": "node -r dotenv/config tests/module7-smoke.mjs",
     "test:module8": "node -r dotenv/config tests/module8-smoke.mjs",

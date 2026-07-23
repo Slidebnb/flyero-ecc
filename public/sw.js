@@ -1,4 +1,4 @@
-const FLYERO_DISTRIBUTOR_CACHE = "flyero-distributor-shell-v1";
+const FLYERO_DISTRIBUTOR_CACHE = "flyero-distributor-shell-v2";
 const SHELL_URLS = ["/", "/login", "/distributor/dashboard", "/offline", "/manifest.webmanifest"];
 
 function isPrivateOrApiRequest(request) {
@@ -9,6 +9,10 @@ function isPrivateOrApiRequest(request) {
     url.pathname.startsWith("/customer/") ||
     url.pathname.startsWith("/warehouse/")
   );
+}
+
+function isNextStaticRequest(request) {
+  return new URL(request.url).pathname.startsWith("/_next/static/");
 }
 
 self.addEventListener("install", (event) => {
@@ -29,7 +33,7 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
 
-  if (isPrivateOrApiRequest(request)) {
+  if (isPrivateOrApiRequest(request) || isNextStaticRequest(request)) {
     event.respondWith(fetch(request));
     return;
   }
