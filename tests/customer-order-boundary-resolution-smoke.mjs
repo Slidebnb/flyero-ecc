@@ -3,7 +3,9 @@ import { existsSync, readFileSync } from "node:fs";
 
 const wizardPath = "src/app/customer/orders/new/SmartOrderWizard.tsx";
 const routePath = "src/app/api/maps/boundary-area/route.ts";
+const intelligenceHookPath = "src/app/customer/orders/new/hooks/useOrderIntelligence.ts";
 const wizard = readFileSync(wizardPath, "utf8");
+const intelligenceHook = readFileSync(intelligenceHookPath, "utf8");
 
 assert.ok(existsSync(routePath), "Google-Grenzen brauchen eine serverseitige FLYERO-Flächenauflösung.");
 const route = readFileSync(routePath, "utf8");
@@ -18,6 +20,16 @@ assert.doesNotMatch(
   wizard,
   /setSelectedAreaId\(""\);\s*setMapNotice\("Gebiet erkannt\. FLYERO bereitet die Fläche und Preisvorschau vor\."\);/,
   "Eine erkannte Google-Grenze darf nicht ohne Flächen-Commit im offenen Zustand verbleiben.",
+);
+assert.match(
+  intelligenceHook,
+  /if \(!city \|\| coverageAreaSqm <= 0\)/,
+  "Eine amtliche Ortsgrenze ohne einzelne PLZ muss die serverseitige Berechnung trotzdem starten.",
+);
+assert.doesNotMatch(
+  intelligenceHook,
+  /if \(!city \|\| !postalCode \|\| coverageAreaSqm <= 0\)/,
+  "Die Berechnung darf nicht an einer fehlenden PLZ der Gemeindegrenze hängen.",
 );
 
 console.log("Customer boundary resolution regression smoke test passed.");

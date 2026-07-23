@@ -43,7 +43,9 @@ export function useOrderIntelligence({
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (!city || !postalCode || coverageAreaSqm <= 0) {
+    // Official municipality boundaries do not belong to one postal code.
+    // The city plus the committed geometry is sufficient for server pricing.
+    if (!city || coverageAreaSqm <= 0) {
       lastRequestRef.current = requestQuery;
       confirmedRequestRef.current = null;
       abortRef.current?.abort();
