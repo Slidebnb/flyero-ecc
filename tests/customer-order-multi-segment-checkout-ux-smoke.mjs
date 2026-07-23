@@ -22,6 +22,9 @@ assert.match(
   "Checkout muss fehlende Gebietsgrunddaten vor dem Absenden freundlich erklaeren.",
 );
 assert.match(validators, /postalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5\}\$\/, "Bitte gib eine gültige fünfstellige PLZ ein\."\)/);
+assert.doesNotMatch(validators, /billingPostalCode: z\.string\(\)\.min\(3\)/, "Rechnungs-PLZ darf beim Checkout keine rohe Zod-min-3-Meldung mehr erzeugen.");
+assert.match(validators, /billingPostalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5\}\$\//, "Rechnungs-PLZ muss als fuenfstellige PLZ validiert werden.");
+assert.doesNotMatch(validators, /postalCode: z\.string\(\)\.min\(3\)/, "Adress- und Verteiler-PLZ duerfen keine rohe Zod-min-3-Meldung mehr erzeugen.");
 assert.match(validators, /city: z\.string\(\)\.trim\(\)\.min\(2, "Bitte gib einen Ort an\."\)/);
 const quantityIntroIndex = material.indexOf('className="flyerQuantityIntro"');
 const serviceChoiceIndex = material.indexOf('className="serviceChoiceList"');
