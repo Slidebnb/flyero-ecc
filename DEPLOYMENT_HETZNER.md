@@ -115,6 +115,23 @@ SMTP_FROM="FLYERO <hallo@flyero.org>"
 
 ## Updates
 
+Der Produktions-Deploy wird bewusst nicht mehr durch GitHub Actions ausgefuehrt.
+GitHub bleibt die Quelle fuer Commits auf `main`; der Server wird kontrolliert
+aus der lokalen PowerShell heraus aktualisiert. Der versionierte Befehl prueft
+SSH-Hostschluessel, zieht nur Fast-Forward von `main`, baut mit dem Maps-Key aus
+`.env.production`, fuehrt Preflight und Migrationen aus und prueft danach den
+Healthcheck:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy-production.ps1
+```
+
+Optional kann ein bestimmter Commit erwartet werden:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\deploy-production.ps1 -ExpectedSha bfb19d6
+```
+
 Wichtig: `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY` wird von Next.js beim Image-Build
 in den Browser-Bundle eingebaut. Deshalb muss `--env-file .env.production` beim
 `build`-Befehl stehen. Ohne diese Option kann der laufende Container den Key zwar
