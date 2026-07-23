@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { ZodError } from "zod";
 import { AuthError } from "@/lib/auth";
 
 export function assertSameOrigin(request: NextRequest) {
@@ -60,9 +61,22 @@ export function successResponse<T>(data: T, status = 200) {
   return Response.json({ ok: true, data }, { status });
 }
 
+function validationErrorMessage(error: ZodError) {
+  const issue = error.issues[0];
+  const path = issue?.path.join(".") || "";
+  if (path.includes("postalCode")) return "Bitte gib eine gueltige fuenfstellige PLZ ein.";
+  if (path.includes("city")) return "Bitte gib einen Ort an.";
+  if (issue && !/Too small|Invalid input|expected string|Expected/.test(issue.message)) return issue.message;
+  return "Bitte pruefe deine Angaben und versuche es erneut.";
+}
+
 export function routeErrorResponse(error: unknown) {
   if (error instanceof AuthError) {
     return errorResponse(error.message, error.status);
+  }
+
+  if (error instanceof ZodError) {
+    return errorResponse(validationErrorMessage(error), 422);
   }
 
   if (error instanceof Error && (error as Error & { code?: string }).code === "ORDER_INTEGRITY_FAILED") {

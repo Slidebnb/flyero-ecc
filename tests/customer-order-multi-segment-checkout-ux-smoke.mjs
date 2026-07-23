@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
 const material = readFileSync("src/app/customer/orders/new/OrderMaterialStep.tsx", "utf8");
 const validators = readFileSync("src/lib/validators.ts", "utf8");
+const request = readFileSync("src/lib/request.ts", "utf8");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 
 assert.match(
@@ -25,6 +26,8 @@ assert.match(validators, /postalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5
 assert.doesNotMatch(validators, /billingPostalCode: z\.string\(\)\.min\(3\)/, "Rechnungs-PLZ darf beim Checkout keine rohe Zod-min-3-Meldung mehr erzeugen.");
 assert.match(validators, /billingPostalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5\}\$\//, "Rechnungs-PLZ muss als fuenfstellige PLZ validiert werden.");
 assert.doesNotMatch(validators, /postalCode: z\.string\(\)\.min\(3\)/, "Adress- und Verteiler-PLZ duerfen keine rohe Zod-min-3-Meldung mehr erzeugen.");
+assert.match(request, /ZodError/, "Zod-Fehler muessen zentral in eine kundenfreundliche Meldung umgewandelt werden.");
+assert.match(request, /Too small|Invalid input|Expected/, "Technische Zod-Standardmeldungen duerfen nicht zum Kunden gelangen.");
 assert.match(validators, /city: z\.string\(\)\.trim\(\)\.min\(2, "Bitte gib einen Ort an\."\)/);
 const quantityIntroIndex = material.indexOf('className="flyerQuantityIntro"');
 const serviceChoiceIndex = material.indexOf('className="serviceChoiceList"');
