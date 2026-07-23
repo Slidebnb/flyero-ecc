@@ -33,6 +33,11 @@ assert.match(
 );
 assert.match(
   wizard,
+  /installBoundaryLayers\(\);[\s\S]{0,120}if \(!mapRef\.current\) return;/,
+  "Nach einem sauberen Wechsel in den Zeichenmodus darf kein Karten-Listener auf einer entfernten Map registriert werden.",
+);
+assert.match(
+  wizard,
   /setBoundaryLayerStatus\("unavailable"\)[\s\S]*setAreaSelectionMode\("draw"\)/,
   "Bei nicht verfügbarer Boundary-Konfiguration muss der Zeichenweg aktiviert bleiben.",
 );

@@ -1994,6 +1994,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     };
 
     installBoundaryLayers();
+    if (!mapRef.current) return;
     if (!boundaryIdleListenerRef.current) {
       const idleListener = maps.event.addListener(mapRef.current, "idle", installBoundaryLayers);
       if (idleListener) {
