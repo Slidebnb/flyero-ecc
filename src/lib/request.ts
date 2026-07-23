@@ -70,13 +70,17 @@ function validationErrorMessage(error: ZodError) {
   return "Bitte pruefe deine Angaben und versuche es erneut.";
 }
 
+export function validationErrorResponse(error: ZodError, status = 422) {
+  return errorResponse(validationErrorMessage(error), status);
+}
+
 export function routeErrorResponse(error: unknown) {
   if (error instanceof AuthError) {
     return errorResponse(error.message, error.status);
   }
 
   if (error instanceof ZodError) {
-    return errorResponse(validationErrorMessage(error), 422);
+    return validationErrorResponse(error);
   }
 
   if (error instanceof Error && (error as Error & { code?: string }).code === "ORDER_INTEGRITY_FAILED") {

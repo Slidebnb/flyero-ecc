@@ -5,6 +5,9 @@ const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", 
 const material = readFileSync("src/app/customer/orders/new/OrderMaterialStep.tsx", "utf8");
 const validators = readFileSync("src/lib/validators.ts", "utf8");
 const request = readFileSync("src/lib/request.ts", "utf8");
+const customerOrdersRoute = readFileSync("src/app/api/customer/orders/route.ts", "utf8");
+const customerProfileRoute = readFileSync("src/app/api/customer/profile/route.ts", "utf8");
+const customerProfileCompletionRoute = readFileSync("src/app/api/customer/profile/complete/route.ts", "utf8");
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 
 assert.match(
@@ -28,6 +31,11 @@ assert.match(validators, /billingPostalCode: z\.string\(\)\.trim\(\)\.regex\(\/\
 assert.doesNotMatch(validators, /postalCode: z\.string\(\)\.min\(3\)/, "Adress- und Verteiler-PLZ duerfen keine rohe Zod-min-3-Meldung mehr erzeugen.");
 assert.match(request, /ZodError/, "Zod-Fehler muessen zentral in eine kundenfreundliche Meldung umgewandelt werden.");
 assert.match(request, /Too small|Invalid input|Expected/, "Technische Zod-Standardmeldungen duerfen nicht zum Kunden gelangen.");
+assert.match(request, /export function validationErrorResponse/, "Kundenrouten muessen dieselbe Validierungsantwort verwenden.");
+for (const [name, source] of Object.entries({ customerOrdersRoute, customerProfileRoute, customerProfileCompletionRoute })) {
+  assert.doesNotMatch(source, /parsed\.error\.issues\[0\]\?\.message/, `${name} darf keine rohe Zod-Meldung an Kunden senden.`);
+  assert.match(source, /validationErrorResponse\(parsed\.error/, `${name} muss die zentrale Validierungsantwort verwenden.`);
+}
 assert.match(validators, /city: z\.string\(\)\.trim\(\)\.min\(2, "Bitte gib einen Ort an\."\)/);
 const quantityIntroIndex = material.indexOf('className="flyerQuantityIntro"');
 const serviceChoiceIndex = material.indexOf('className="serviceChoiceList"');

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { createCheckoutForOrder, CustomerProfileIncompleteError } from "@/lib/payments";
-import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
+import { errorResponse, readBody, routeErrorResponse, validationErrorResponse } from "@/lib/request";
 import { prisma } from "@/lib/prisma";
 import { customerProfileCompletionSchema } from "@/lib/validators";
 
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const session = await requireTenantSession();
     const parsed = customerProfileCompletionSchema.safeParse(await readBody(request));
-    if (!parsed.success) return errorResponse(parsed.error.issues[0]?.message || "Bitte vervollständige die markierten Rechnungsdaten.", 422);
+    if (!parsed.success) return validationErrorResponse(parsed.error);
 
     const data = parsed.data;
     const profile = await prisma.customerProfile.findFirst({

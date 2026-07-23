@@ -10,7 +10,7 @@ import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getOrderIntelligence } from "@/lib/smartMaps";
 import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
-import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
+import { errorResponse, readBody, routeErrorResponse, validationErrorResponse } from "@/lib/request";
 import { orderCreateSchema } from "@/lib/validators";
 import { warehouseSourceWhere } from "@/lib/warehouse";
 import { normalizeServiceProductFormat, serviceCatalogLabel } from "@/lib/serviceCatalog";
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const parsed = orderCreateSchema.safeParse(await readBody(request));
 
     if (!parsed.success) {
-      return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
+      return validationErrorResponse(parsed.error);
     }
 
     const customer = await prisma.customerProfile.findFirst({

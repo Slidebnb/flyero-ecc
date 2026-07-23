@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification } from "@/lib/notifications";
-import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
+import { errorResponse, readBody, routeErrorResponse, validationErrorResponse } from "@/lib/request";
 import { customerProfileUpdateSchema } from "@/lib/validators";
 
 export async function POST(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const parsed = customerProfileUpdateSchema.safeParse(await readBody(request));
 
   if (!parsed.success) {
-    return errorResponse(parsed.error.issues[0]?.message || "Ungueltige Eingabe.");
+    return validationErrorResponse(parsed.error);
   }
 
   const data = parsed.data;
