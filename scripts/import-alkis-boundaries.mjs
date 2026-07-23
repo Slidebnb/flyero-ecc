@@ -74,17 +74,32 @@ function slugify(value) {
 function readRows(featureCollection) {
   return featureCollection.features.flatMap((rawFeature, index) => {
     const props = propertiesOf(rawFeature);
-    const name = text(props.gemeinde_n ?? props.GEN_G ?? props.gemeinde_name ?? props.name ?? props.city);
+    const name = text(
+      props.gemeinde_n
+      ?? props.GEN_G
+      ?? props.gemeinde_name
+      ?? props.GeografischerName_GEN
+      ?? props.name
+      ?? props.city,
+    );
     if (!name) throw new Error(`Feature ${index + 1} enthält keinen Gemeindenamen.`);
     const geometry = normalizeFeatureCollection([rawFeature]);
-    const stableId = text(props.gml_id ?? props.AGS_G ?? props.gemeinde_i ?? props.id) ?? `${name}-${index + 1}`;
+    const stableId = text(
+      props.gml_id
+      ?? props.AGS_G
+      ?? props.gemeinde_i
+      ?? props.Gemeindeschlüssel_AGS
+      ?? props.GemeindeschlüsselAufgefüllt
+      ?? props.Objektidentifikator
+      ?? props.id,
+    ) ?? `${name}-${index + 1}`;
     return [{
       slug: `alkis-gemeinde-${slugify(stableId)}`,
       name,
       city: name,
       postalCode: text(props.postalCode ?? props.postleitzahl ?? props.plz),
-      district: text(props.kreis_name ?? props.district),
-      state: text(props.bundesland ?? props.state),
+      district: text(props.kreis_name ?? props.Kreis ?? props.district),
+      state: text(props.bundesland ?? props.Land ?? props.state),
       geometry,
       coverageAreaSqm: Math.round(areaSqm(geometry)),
     }];
