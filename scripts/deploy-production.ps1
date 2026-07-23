@@ -31,11 +31,14 @@ git pull --ff-only origin main
 
 deployed_sha="$(git rev-parse HEAD)"
 expected_sha="__EXPECTED_SHA__"
-if [ -n "$expected_sha" ] && [ "$deployed_sha" != "$expected_sha" ]; then
-  echo "Der Server steht nicht auf dem erwarteten main-Commit." >&2
-  echo "Erwartet: $expected_sha" >&2
-  echo "Gefunden: $deployed_sha" >&2
-  exit 1
+if [ -n "$expected_sha" ]; then
+  expected_commit="$(git rev-parse --verify "${expected_sha}^{commit}")"
+  if [ "$deployed_sha" != "$expected_commit" ]; then
+    echo "Der Server steht nicht auf dem erwarteten main-Commit." >&2
+    echo "Erwartet: $expected_sha" >&2
+    echo "Gefunden: $deployed_sha" >&2
+    exit 1
+  fi
 fi
 
 compose=(docker compose --env-file /opt/flyero/.env.production -f /opt/flyero/docker-compose.production.yml)
