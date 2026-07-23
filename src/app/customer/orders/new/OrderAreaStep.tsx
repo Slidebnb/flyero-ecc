@@ -130,7 +130,7 @@ export function OrderAreaStep({
             className={areaSelectionMode === "boundary" ? "selected" : ""}
             onClick={onApplyBoundary}
           >
-            Gebiet übernehmen
+            Gebiet auf der Karte auswählen
           </button>
         ) : null}
         <button data-testid="order-draw-area" type="button" className={areaSelectionMode === "draw" || !boundaryLayerAvailable ? "selected" : ""} onClick={onStartDrawing}>
@@ -144,7 +144,7 @@ export function OrderAreaStep({
       ) : null}
       <small className="orderSegmentHint">
         {boundarySelectionEnabled
-          ? "Für diesen Ort liegt eine gespeicherte Flächenkarte vor. Du kannst sie übernehmen oder dein Gebiet selbst zeichnen."
+          ? "Wähle eine markierte Orts- oder PLZ-Fläche direkt auf der Karte. Für eine eigene Fläche kannst du jederzeit zeichnen."
           : "Zeichne dein Verteilgebiet direkt auf der Karte. Du kannst die Fläche jederzeit anpassen."}
       </small>
       {areaSelectionMode === "draw" ? (

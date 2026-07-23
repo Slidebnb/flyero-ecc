@@ -604,6 +604,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     : coverageAreaSqm;
   const planningAreaSqm = previewCoverageAreaSqm;
   const hasPlanningArea = planningAreaSqm > 0;
+
+  useEffect(() => {
+    if (boundaryLayerStatus === "available" && !hasPlanningArea && drawingPoints.length === 0) {
+      setAreaSelectionMode("boundary");
+    }
+  }, [boundaryLayerStatus, drawingPoints.length, hasPlanningArea]);
+
   const hasSelectedLocation = Boolean(selectedLocation?.placeId || postalCode || city);
   const perimeterMeters = useMemo(
     () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segment.points), 0),
@@ -945,11 +952,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }) ?? null;
   }, [areas, city, postalCode]);
 
-  // Google can display a boundary layer without returning a polygon that the
-  // order can actually use. Offer the marked-area action only when FLYERO has
-  // a real saved geometry for this location; otherwise drawing is the honest
-  // and universally available path.
-  const boundarySelectionEnabled = boundaryLayerStatus === "available" && Boolean(boundaryAreaForLocation);
+  // Google DDS boundaries are selectable even when FLYERO does not yet have a
+  // persisted polygon for the location. The click identifies the place; only
+  // a persisted or manually drawn polygon can be used for final area pricing.
+  const boundarySelectionEnabled = boundaryLayerStatus === "available";
 
   const applySavedArea = useCallback((area: (typeof areas)[number], placeId: string) => {
     const points = featurePoints(area.geoJson);
@@ -996,8 +1002,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const selectBoundaryArea = useCallback((placeId: string, feature?: GoogleFeature) => {
     const area = findAreaForBoundaryContext(placeId, postalCode, city);
     if (!area) {
-      setAreaSelectionMode("draw");
-      setMapNotice("Diese PLZ ist gefunden. Zeichne jetzt dein gewünschtes Verteilgebiet direkt auf der Karte.");
+      setAreaSelectionMode("boundary");
+      setSelectedBoundaryPlaceIds([placeId]);
+      setMapNotice("Gebiet erkannt. FLYERO bereitet die Fläche und Preisvorschau vor.");
       void (async () => {
         const maps = window.google?.maps;
         let boundaryPlace: GoogleBoundaryPlace | null = null;
@@ -1052,9 +1059,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setTargetAreaName(boundaryLabel);
         setQuery(nextQuery);
         setSelectedAreaId("");
-        setMapNotice("Diese PLZ ist gefunden. Zeichne jetzt dein gewünschtes Verteilgebiet direkt auf der Karte.");
+        setMapNotice("Gebiet erkannt. FLYERO bereitet die Fläche und Preisvorschau vor.");
       })().catch(() => {
-        setMapNotice("Bitte zeichne jetzt dein gewünschtes Verteilgebiet direkt auf der Karte.");
+        setMapNotice("Die Gebietsdetails konnten nicht geladen werden. Bitte wähle eine andere markierte Fläche.");
       });
       return;
     }
@@ -1883,9 +1890,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     };
     const installBoundaryFeatureListeners = () => {
       removeBoundaryFeatureListeners();
-      if (areaSelectionModeRef.current === "draw") return;
       for (const layer of boundaryLayerRefs.current.values()) {
         const listener = layer.addListener?.("click", (event) => {
+          const canSelectBoundary = areaSelectionModeRef.current !== "draw";
+          if (!canSelectBoundary) return;
           const feature = event.features?.[0];
           const placeId = feature?.placeId;
           if (placeId) selectBoundaryAreaRef.current(placeId, feature);
@@ -1964,7 +1972,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           continue;
         }
         availableLayerCount += 1;
-        layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current, selectedBoundaryPlaceIdsRef.current.length > 0, hasActiveCommittedArea);
+        layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current, false, hasActiveCommittedArea);
         boundaryLayerRefs.current.set(featureType, layer);
       }
       installBoundaryFeatureListeners();
@@ -1994,7 +2002,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   useEffect(() => {
     for (const layer of boundaryLayerRefs.current.values()) {
-      layer.style = boundaryLayerStyle(selectedBoundaryPlaceIds, selectedBoundaryPlaceIds.length > 0, hasActiveCommittedArea);
+      layer.style = boundaryLayerStyle(selectedBoundaryPlaceIds, false, hasActiveCommittedArea);
     }
   }, [hasActiveCommittedArea, selectedBoundaryPlaceIds]);
 
@@ -2523,8 +2531,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         onApplyPendingLocation={() => applyLocationResult(pendingLocation!, { forceReplace: true })}
         onKeepCurrentArea={keepCurrentArea}
         onApplyBoundary={() => {
-          if (!boundaryAreaForLocation) return;
-          applySavedArea(boundaryAreaForLocation, selectedLocation?.placeId ?? boundaryAreaForLocation.googlePlaceId ?? "");
+          if (boundaryAreaForLocation) {
+            applySavedArea(boundaryAreaForLocation, selectedLocation?.placeId ?? boundaryAreaForLocation.googlePlaceId ?? "");
+            return;
+          }
+          setAreaSelectionMode("boundary");
+          setMapNotice("Wähle eine markierte Gebietsfläche auf der Karte.");
         }}
         onStartDrawing={startDrawingArea}
         onFinishDrawing={finishDrawingArea}

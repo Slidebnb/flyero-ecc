@@ -35,13 +35,13 @@ assert.match(
 );
 assert.match(
   wizard,
-  /boundaryLayerStyle\(selectedBoundaryPlaceIdsRef\.current, selectedBoundaryPlaceIdsRef\.current\.length > 0, hasActiveCommittedArea\)/,
-  "Die Boundary-Layer muessen bei einer bestaetigten Flaeche vollstaendig ausgeblendet werden.",
+  /boundaryLayerStyle\(selectedBoundaryPlaceIdsRef\.current, false, hasActiveCommittedArea\)/,
+  "Boundary-Layer muessen auch vor einer bestaetigten FLYERO-Flaeche sichtbar bleiben.",
 );
 assert.match(
   wizard,
-  /boundaryLayerStyle\(selectedBoundaryPlaceIds, selectedBoundaryPlaceIds\.length > 0, hasActiveCommittedArea\)/,
-  "Auch spaetere Boundary-Style-Updates muessen die doppelte Flaeche verhindern.",
+  /boundaryLayerStyle\(selectedBoundaryPlaceIds, false, hasActiveCommittedArea\)/,
+  "Auch spaetere Boundary-Style-Updates muessen die Auswahl sichtbar halten.",
 );
 
 console.log("Customer boundary checkout smoke checks passed.");

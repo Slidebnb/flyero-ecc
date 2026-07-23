@@ -60,8 +60,8 @@ assert.match(
 );
 assert.match(
   wizard,
-  /const boundaryFeatureListenersRef = useRef<GoogleEventListener\[\]>\(\[\]\);[\s\S]*?const installBoundaryFeatureListeners = \(\) => \{[\s\S]*?removeBoundaryFeatureListeners\(\);[\s\S]*?if \(areaSelectionModeRef\.current === "draw"\) return;/,
-  "Grenz-Listener muessen im Zeichenmodus vollstaendig entfernt werden.",
+  /const boundaryFeatureListenersRef = useRef<GoogleEventListener\[\]>\(\[\]\);[\s\S]*?const installBoundaryFeatureListeners = \(\) => \{[\s\S]*?const canSelectBoundary = areaSelectionModeRef\.current !== "draw";[\s\S]*?if \(!canSelectBoundary\) return;/,
+  "Grenz-Listener muessen zentral bestehen bleiben und im Zeichenmodus sicher pausieren.",
 );
 assert.match(
   wizard,
@@ -90,8 +90,8 @@ assert.match(
 );
 assert.match(
   wizard,
-  /boundaryLayerStyle\(selectedBoundaryPlaceIdsRef\.current, selectedBoundaryPlaceIdsRef\.current\.length > 0, hasActiveCommittedArea\)/,
-  "Ein bereits uebernommenes Gebiet darf nicht gleichzeitig als Grenz- und Bearbeitungs-Overlay sichtbar sein.",
+  /boundaryLayerStyle\(selectedBoundaryPlaceIdsRef\.current, false, hasActiveCommittedArea\)/,
+  "Eine angeklickte Google-FlÃ¤che muss sichtbar bleiben; nach der Ãœbernahme greift weiterhin hideAll.",
 );
 assert.match(
   intelligenceHook,
@@ -272,8 +272,8 @@ assert.match(
 );
 assert.match(
   wizard,
-  /const boundarySelectionEnabled = boundaryLayerStatus === "available" && Boolean\(boundaryAreaForLocation\);/,
-  "Ein technisch verfuegbarer Google-Layer darf ohne passende echte Gebietsflaeche keine Auswahl versprechen.",
+  /const boundarySelectionEnabled = boundaryLayerStatus === "available";/,
+  "Ein technisch verfuegbarer Google-Layer muss auch ohne lokale FLYERO-Flaeche anklickbar sein.",
 );
 assert.doesNotMatch(
   wizard,
@@ -283,23 +283,23 @@ assert.doesNotMatch(
 assert.match(
   areaStep,
   /boundarySelectionEnabled \? \([\s\S]*?data-testid="order-select-boundary"/,
-  "Ein verfuegbarer Google-Layer allein darf keinen nicht buchbaren Grenzmodus anzeigen.",
+  "Ein verfuegbarer Google-Layer muss einen sichtbaren Grenzmodus anzeigen.",
 );
 assert.match(
   wizard,
-  /if \(!area\) \{[\s\S]*?setAreaSelectionMode\("draw"\);[\s\S]*?Zeichne dein genaues Verteilgebiet direkt auf der Karte/,
-  "Wenn Google nur eine placeId, aber keine uebernehmbare Flaeche liefert, muss der Kunde direkt zeichnen koennen.",
+  /if \(!area\) \{[\s\S]*?setAreaSelectionMode\("boundary"\);[\s\S]*?Gebiet erkannt\./,
+  "Wenn Google nur eine placeId liefert, muss die Boundary trotzdem direkt auswählbar sein.",
 );
 assert.match(
   wizard,
-  /if \(!area\) \{[\s\S]*?setAreaSelectionMode\("draw"\);[\s\S]*?setMapNotice\("[^"]+Zeichne[^"\n]+Verteilgebiet direkt auf der Karte\./,
-  "Eine Boundary ohne gespeicherte FLYERO-Flaeche muss verstaendlich in den Zeichenmodus fuehren.",
+  /if \(!area\) \{[\s\S]*?setAreaSelectionMode\("boundary"\);[\s\S]*?setMapNotice\("Gebiet erkannt\./,
+  "Eine Boundary ohne gespeicherte FLYERO-Flaeche muss verstaendlich in den Auswahlmodus fuehren.",
 );
 const boundaryNoAreaBlock = wizard.slice(wizard.indexOf("if (!area)"), wizard.indexOf("const maps = window.google?.maps", wizard.indexOf("if (!area)")));
-assert.doesNotMatch(
+assert.match(
   boundaryNoAreaBlock,
-  /setSelectedBoundaryPlaceIds/,
-  "Eine reine Google-Ortsgrenze darf ohne FLYERO-Geometrie nicht als ausgewaehltes Bestellgebiet markiert werden.",
+  /setSelectedBoundaryPlaceIds\(\[placeId\]\)/,
+  "Eine angeklickte Google-Ortsgrenze muss als ausgewaehlte Flaeche markiert werden.",
 );
 assert.doesNotMatch(
   wizard,

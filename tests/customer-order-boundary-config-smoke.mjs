@@ -13,5 +13,10 @@ assert.match(compose, /NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED:\s*\$\{NEXT_PU
 assert.match(nextConfig, /NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED:/, "Next muss die Boundary-Aktivierung im Client-Build exponieren.");
 assert.match(envExample, /NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED="true"/, "Das Produktions-Template muss die erforderliche Boundary-Aktivierung dokumentieren.");
 assert.match(wizard, /NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED\s*===\s*"true"/, "Der Wizard darf Boundary-Layer nur bei expliziter Aktivierung verwenden.");
+assert.match(wizard, /const boundarySelectionEnabled = boundaryLayerStatus === "available";/, "Google-Boundaries dÃ¼rfen nicht von einer bereits gespeicherten FLYERO-FlÃ¤che abhÃ¤ngen.");
+assert.match(wizard, /setAreaSelectionMode\("boundary"\);\s*setMapNotice\("W.{0,16}eine markierte Gebietsfl.{0,16}che auf der Karte\./, "Der Boundary-Button muss auch ohne gespeicherte Geometrie den Auswahlmodus aktivieren.");
+assert.match(wizard, /setSelectedBoundaryPlaceIds\(\[placeId\]\);/, "Eine angeklickte Google-FlÃ¤che muss sichtbar als ausgewÃ¤hlt markiert werden.");
+assert.match(wizard, /boundaryLayerStyle\(selectedBoundaryPlaceIdsRef\.current, false, hasActiveCommittedArea\)/, "Nicht gespeicherte Google-FlÃ¤chen dÃ¼rfen nach dem Klick nicht unsichtbar werden.");
+assert.doesNotMatch(wizard, /if \(areaSelectionModeRef\.current === "draw"\) return;/, "Boundary-Klicklistener dÃ¼rfen nicht dauerhaft am Zeichenmodus scheitern.");
 
 console.log("Customer order boundary configuration checks passed.");
