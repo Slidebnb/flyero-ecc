@@ -19,6 +19,7 @@ services:
       args:
         NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY:-}
         NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID:-}
+        NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED: ${NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED:-false}
     restart: unless-stopped
     env_file:
       - .env.production

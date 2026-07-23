@@ -105,6 +105,7 @@
     "test:multi-area-order-runtime": "node --experimental-strip-types tests/multi-area-order-runtime-smoke.mjs",
     "test:customer-order-checkout": "node -r dotenv/config tests/customer-order-checkout-smoke.mjs",
     "test:customer-order-boundary-checkout": "node tests/customer-order-boundary-checkout-smoke.mjs",
+    "test:customer-order-boundary-config": "node tests/customer-order-boundary-config-smoke.mjs",
     "test:customer-order-checkout-idempotency": "node tests/customer-order-checkout-idempotency-smoke.mjs",
     "test:germany-wide-area-selection": "node tests/germany-wide-area-selection-smoke.mjs",
     "test:admin-order-workspace": "node tests/admin-order-workspace-smoke.mjs",
