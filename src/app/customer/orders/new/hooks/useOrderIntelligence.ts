@@ -2,7 +2,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect -- The hook intentionally clears stale server results when its calculation inputs become incomplete. */
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Intelligence } from "../orderWizardTypes";
 
 export type OrderIntelligenceStatus = "local" | "updating" | "live" | "error";
@@ -35,7 +35,7 @@ export function useOrderIntelligence({
   postalCode,
   coverageAreaSqm,
 }: UseOrderIntelligenceOptions): UseOrderIntelligenceResult {
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [intelligence, setIntelligence] = useState<Intelligence | null>(null);
   const [intelligenceStatus, setIntelligenceStatus] = useState<OrderIntelligenceStatus>("local");
   const lastRequestRef = useRef<string | null>(null);
@@ -51,6 +51,7 @@ export function useOrderIntelligence({
       abortRef.current?.abort();
       setIntelligence(null);
       setIntelligenceStatus("local");
+      setIsPending(false);
       return;
     }
 
@@ -68,26 +69,27 @@ export function useOrderIntelligence({
     }, 12000);
     setIntelligence(null);
     setIntelligenceStatus("updating");
+    setIsPending(true);
 
-    startTransition(() => {
-      fetch(`${endpoint}?${requestQuery}`, { signal: controller.signal })
-        .then((response) => response.ok ? response.json() : null)
-        .then((payload) => {
-          if (lastRequestRef.current !== requestQuery) return;
-          if (payload?.data) {
-            setIntelligence(payload.data as Intelligence);
-            confirmedRequestRef.current = requestQuery;
-            setIntelligenceStatus("live");
-          } else {
-            setIntelligenceStatus("error");
-          }
-        })
-        .catch((error: unknown) => {
-          if (lastRequestRef.current === requestQuery && (timedOut || (error as { name?: string })?.name !== "AbortError")) {
-            setIntelligenceStatus("error");
-          }
-        });
-    });
+    fetch(`${endpoint}?${requestQuery}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (lastRequestRef.current !== requestQuery) return;
+        setIsPending(false);
+        if (payload?.data) {
+          setIntelligence(payload.data as Intelligence);
+          confirmedRequestRef.current = requestQuery;
+          setIntelligenceStatus("live");
+        } else {
+          setIntelligenceStatus("error");
+        }
+      })
+      .catch((error: unknown) => {
+        if (lastRequestRef.current === requestQuery && (timedOut || (error as { name?: string })?.name !== "AbortError")) {
+          setIsPending(false);
+          setIntelligenceStatus("error");
+        }
+      });
 
     return () => {
       window.clearTimeout(timeoutId);

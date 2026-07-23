@@ -31,5 +31,20 @@ assert.doesNotMatch(
   /if \(!city \|\| !postalCode \|\| coverageAreaSqm <= 0\)/,
   "Die Berechnung darf nicht an einer fehlenden PLZ der Gemeindegrenze hängen.",
 );
+assert.match(
+  intelligenceHook,
+  /const \[isPending, setIsPending\] = useState\(false\)/,
+  "Der Berechnungsstatus muss an den echten Netzwerkrequest gebunden sein.",
+);
+assert.doesNotMatch(
+  intelligenceHook,
+  /useTransition|startTransition/,
+  "Die Live-Berechnung darf nicht über einen UI-Transitionstatus stecken bleiben.",
+);
+assert.match(
+  intelligenceHook,
+  /setIsPending\(false\);\s*if \(payload\?\.data\)/,
+  "Ein erfolgreicher Berechnungslauf muss den sichtbaren Ladezustand beenden.",
+);
 
 console.log("Customer boundary resolution regression smoke test passed.");
