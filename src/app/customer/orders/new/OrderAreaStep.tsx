@@ -15,9 +15,6 @@ type OrderAreaStepProps = {
   showSuggestions: boolean;
   pendingLocation: LocationResult | null;
   boundarySelectionEnabled: boolean;
-  areaSelectionMode: "boundary" | "draw";
-  boundaryLayerAvailable: boolean;
-  drawingPoints: Array<{ lat: number; lng: number }>;
   previewCoverageAreaSqm: number;
   areaSegmentsPayload: OrderAreaSegmentDraft[];
   areaSegments: OrderAreaSegmentDraft[];
@@ -31,8 +28,6 @@ type OrderAreaStepProps = {
   onApplyPendingLocation: () => void;
   onKeepCurrentArea: () => void;
   onApplyBoundary: () => void;
-  onStartDrawing: () => void;
-  onFinishDrawing: () => void;
   onSelectSegment: (segment: OrderAreaSegmentDraft) => void;
   onRemoveSegment: (segmentId: string) => void;
   onAddSegment: () => void;
@@ -50,9 +45,6 @@ export function OrderAreaStep({
   showSuggestions,
   pendingLocation,
   boundarySelectionEnabled,
-  areaSelectionMode,
-  boundaryLayerAvailable,
-  drawingPoints,
   previewCoverageAreaSqm,
   areaSegmentsPayload,
   areaSegments,
@@ -66,8 +58,6 @@ export function OrderAreaStep({
   onApplyPendingLocation,
   onKeepCurrentArea,
   onApplyBoundary,
-  onStartDrawing,
-  onFinishDrawing,
   onSelectSegment,
   onRemoveSegment,
   onAddSegment,
@@ -75,7 +65,7 @@ export function OrderAreaStep({
 }: OrderAreaStepProps) {
   return (
     <section className="orderPanelBlock primary inlineStepBlock">
-      <p className="orderStepHint">Gib eine Adresse oder PLZ ein. Danach kannst du das Gebiet direkt auf der Karte anpassen.</p>
+      <p className="orderStepHint">Gib eine Adresse oder PLZ ein. Danach wählst du eine grün markierte Fläche auf der Karte.</p>
       <label>
         PLZ, Ort oder Adresse
         <div className="searchInputShell">
@@ -110,7 +100,7 @@ export function OrderAreaStep({
       ) : null}
       <div className="selectedLocationBar">
         <strong>{city ? `${postalCode} ${city}` : query ? query : "Noch kein Gebiet gewählt"}</strong>
-        <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : query && !city ? "Ort wird gesucht ..." : "Du kannst die Fläche danach direkt auf der Karte anpassen."}</span>
+        <span>{street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}` : query && !city ? "Ort wird gesucht ..." : "Wähle danach eine grün markierte Fläche auf der Karte."}</span>
       </div>
       {pendingLocation ? (
         <div className="replaceAreaNotice" role="alert">
@@ -127,31 +117,18 @@ export function OrderAreaStep({
           <button
             data-testid="order-select-boundary"
             type="button"
-            className={areaSelectionMode === "boundary" ? "selected" : ""}
+            className="selected"
             onClick={onApplyBoundary}
           >
             Gebiet auf der Karte auswählen
           </button>
         ) : null}
-        <button data-testid="order-draw-area" type="button" className={areaSelectionMode === "draw" || !boundaryLayerAvailable ? "selected" : ""} onClick={onStartDrawing}>
-          Fläche auf der Karte zeichnen
-        </button>
       </div>
-      {areaSelectionMode === "draw" && drawingPoints.length >= 3 ? (
-        <button data-testid="order-finish-drawing" type="button" className="orderDrawingFinish" onClick={onFinishDrawing}>
-          Gebiet abschließen
-        </button>
-      ) : null}
       <small className="orderSegmentHint">
         {boundarySelectionEnabled
-          ? "Wähle eine markierte Orts- oder PLZ-Fläche direkt auf der Karte. Für eine eigene Fläche kannst du jederzeit zeichnen."
-          : "Zeichne dein Verteilgebiet direkt auf der Karte. Du kannst die Fläche jederzeit anpassen."}
+          ? "Wähle eine grün markierte Fläche direkt auf der Karte. FLYERO übernimmt sie und berechnet die Planung automatisch."
+          : "Für diesen Ort sind noch keine auswählbaren Gebiete hinterlegt. Bitte versuche eine andere PLZ oder einen anderen Ort."}
       </small>
-      {areaSelectionMode === "draw" ? (
-        <p className="orderDrawingGuide" role="note">
-          Klicke auf der Karte nacheinander auf die Eckpunkte deines Gebiets. Sobald die Fläche geschlossen ist, wählst du „Gebiet abschließen“.
-        </p>
-      ) : null}
       <div className="savedAreaMini">
         <div>
           <span>Dein Verteilgebiet</span>

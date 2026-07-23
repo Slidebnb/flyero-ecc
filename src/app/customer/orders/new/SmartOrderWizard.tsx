@@ -60,12 +60,6 @@ const publicPlannerNavItems = [
 ];
 
 type GoogleLatLng = { lat: () => number; lng: () => number };
-type GooglePath = {
-  getLength: () => number;
-  getAt: (index: number) => GoogleLatLng;
-  forEach: (callback: (point: GoogleLatLng) => void) => void;
-  addListener?: (eventName: string, callback: () => void) => GoogleEventListener | void;
-};
 type GoogleEventListener = { remove?: () => void };
 type GoogleMapMouseEvent = { latLng?: GoogleLatLng };
 type GoogleMap = {
@@ -100,18 +94,11 @@ type GoogleFeatureLayer = {
 type GooglePolygon = {
   setMap: (map: GoogleMap | null) => void;
   setPath: (path: LatLng[]) => void;
-  getPath: () => GooglePath;
-  addListener?: (eventName: string, callback: () => void) => GoogleEventListener | void;
-};
-type GooglePolyline = {
-  setMap: (map: GoogleMap | null) => void;
-  setPath: (path: LatLng[]) => void;
 };
 type GoogleNamespace = {
   maps: {
     Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMap;
     Polygon: new (options: Record<string, unknown>) => GooglePolygon;
-    Polyline: new (options: Record<string, unknown>) => GooglePolyline;
     Geocoder: new () => { geocode: (request: { placeId: string }) => Promise<{ results?: GoogleGeocodeResult[] }> };
     LatLngBounds: new () => { extend: (point: LatLng) => void };
     event: { addListener: (target: unknown, eventName: string, callback: (event?: GoogleMapMouseEvent) => void) => GoogleEventListener | void };
@@ -310,30 +297,20 @@ function googleBoundaryLabel(place?: GoogleBoundaryPlace | null, fallback = "Geb
 // FLYERO owns the selectable boundary data. Google Maps only renders the map.
 const USE_GOOGLE_BOUNDARY_LAYERS = false;
 
-function areaCenter(area: ReusableAreaOption, fallback: LatLng) {
-  return area.centerLat && area.centerLng ? { lat: area.centerLat, lng: area.centerLng } : fallback;
-}
-
-function confidenceLabel(confidence?: "high" | "medium" | "low", hasArea = true, hasLocation = false) {
-  if (!hasArea) return hasLocation ? "Fläche auf der Karte festlegen" : "Gebiet auf der Karte auswählen";
+function confidenceLabel(confidence?: "high" | "medium" | "low", hasArea = true) {
+  if (!hasArea) return "Gebiet auf der Karte auswählen";
   if (confidence === "high") return "Gebietsdaten geprüft";
   if (confidence === "medium") return "Gebiet aus verfügbaren Daten berechnet";
   return "Gebietsdaten werden geprüft";
 }
 
-function syncStateLabel(status: "local" | "updating" | "live" | "error", confidence?: "high" | "medium" | "low", pending?: boolean, hasArea = true, hasLocation = false) {
-  if (!hasArea) return hasLocation ? "Fläche festlegen" : "Gebiet auswählen";
+function syncStateLabel(status: "local" | "updating" | "live" | "error", confidence?: "high" | "medium" | "low", pending?: boolean, hasArea = true) {
+  if (!hasArea) return "Gebiet auswählen";
   if (status === "updating" || pending) return "Wird aktualisiert";
   if (status === "live" && confidence === "high") return "Gebiet geprüft";
   if (status === "live") return "Gebiet berechnet";
   if (status === "error") return "Prüfung erforderlich";
   return "Berechnung vorbereitet";
-}
-
-function pathToPoints(path: GooglePath) {
-  const points: LatLng[] = [];
-  path.forEach((point) => points.push({ lat: point.lat(), lng: point.lng() }));
-  return points;
 }
 
 function toRad(value: number) {
@@ -478,12 +455,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const mapInstanceRenderModeRef = useRef<"boundary" | "standard" | null>(null);
   const polygonRef = useRef<GooglePolygon | null>(null);
   const polygonStateRef = useRef<LatLng[]>([]);
-  const polygonListenerHandlesRef = useRef<GoogleEventListener[]>([]);
-  const drawingClickListenerRef = useRef<GoogleEventListener | null>(null);
-  const drawingPreviewRef = useRef<GooglePolyline | null>(null);
-  const drawingPointsRef = useRef<LatLng[]>([]);
-  const finishDrawingRef = useRef<() => void>(() => undefined);
-  const areaSelectionModeRef = useRef<"boundary" | "draw">("draw");
+
   const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
   const officialBoundaryOverlaysRef = useRef(new Map<string, GooglePolygon[]>());
   const officialBoundaryListenersRef = useRef<GoogleEventListener[]>([]);
@@ -514,12 +486,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [center, setCenter] = useState<LatLng>(PUBLIC_DEFAULT_CENTER);
   const [polygon, setPolygon] = useState<LatLng[]>([]);
   const [polygonSource, setPolygonSource] = useState<PolygonSource>("postal_code");
-  const [drawingPoints, setDrawingPoints] = useState<LatLng[]>([]);
   const [areaSegments, setAreaSegments] = useState<OrderAreaSegmentDraft[]>([]);
   const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
   const [, setHistory] = useState<LatLng[][]>([]);
-  const [historyIndex, setHistoryIndex] = useState(0);
   const [flyerQuantity, setFlyerQuantity] = useState(MINIMUM_FLYER_QUANTITY);
   const [serviceType, setServiceType] = useState<OnlineServiceType>("FLYER_STANDARD");
   const [productFormat, setProductFormat] = useState(() => serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
@@ -546,10 +516,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [contactPhone, setContactPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [mapMode, setMapMode] = useState<"map" | "satellite">("map");
-  // Drawing is the universal path. Boundary selection is an optional Google
-  // vector-map enhancement and must never block a customer without a Map ID.
-  const [areaSelectionMode, setAreaSelectionMode] = useState<"boundary" | "draw">("draw");
-  const [boundaryLayerStatus, setBoundaryLayerStatus] = useState<"unknown" | "available" | "unavailable">("unknown");
+  const [, setBoundaryLayerStatus] = useState<"unknown" | "available" | "unavailable">("unknown");
   const [officialBoundaries, setOfficialBoundaries] = useState<ReusableAreaOption[]>([]);
   const [selectedBoundaryPlaceIds, setSelectedBoundaryPlaceIds] = useState<string[]>([]);
   const [mapNotice, setMapNotice] = useState("");
@@ -565,7 +532,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [repeatPrintChoice, setRepeatPrintChoice] = useState<"pending" | "same" | "changed" | null>(null);
   const [overviewOffset, setOverviewOffset] = useState({ x: 0, y: 0 });
   const { isSubmitting, beginSubmission, endSubmission } = useOrderSubmission();
-  const mapsBrowserKeyConfigured = Boolean(process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY);
   const mapsBoundaryMapId = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? "";
   const mapsBoundaryConfigured = Boolean(
     mapsBoundaryMapId && process.env.NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED === "true",
@@ -581,10 +547,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   useEffect(() => {
     selectedBoundaryPlaceIdsRef.current = selectedBoundaryPlaceIds;
   }, [selectedBoundaryPlaceIds]);
-
-  useEffect(() => {
-    areaSelectionModeRef.current = areaSelectionMode;
-  }, [areaSelectionMode]);
 
   useEffect(() => {
     if (isPublicPlanner) {
@@ -644,19 +606,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     () => areaSegmentsPayload.reduce((sum, segment) => sum + geometryAreaSqm(segment.geometryGeoJson, segment.points), 0),
     [areaSegmentsPayload],
   );
-  // Show the local drawing preview immediately. Server-backed pricing and
-  // order data continue to use the committed polygon in areaSegmentsPayload.
-  const previewCoverageAreaSqm = drawingPoints.length >= 3
-    ? polygonAreaSqm(drawingPoints)
-    : coverageAreaSqm;
+  const previewCoverageAreaSqm = coverageAreaSqm;
   const planningAreaSqm = previewCoverageAreaSqm;
   const hasPlanningArea = planningAreaSqm > 0;
-
-  useEffect(() => {
-    if (boundaryLayerStatus === "available" && !hasPlanningArea && drawingPoints.length === 0) {
-      setAreaSelectionMode("boundary");
-    }
-  }, [boundaryLayerStatus, drawingPoints.length, hasPlanningArea]);
 
   const hasSelectedLocation = Boolean(selectedLocation?.placeId || postalCode || city);
   const perimeterMeters = useMemo(
@@ -765,7 +717,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         : "Gebiet auf der Karte auswählen";
   const priceReady = currentIntelligenceStatus === "live" && Number(netPrice) > 0;
   const pricePreviewText = coverageAreaSqm <= 0
-    ? hasSelectedLocation ? "Fläche festlegen" : "Gebiet auswählen"
+    ? "Gebiet auswählen"
     : currentIntelligenceStatus === "error"
       ? "Preis wird von FLYERO geprüft"
       : priceReady
@@ -953,27 +905,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     ? areaStats.warehouseSuggestion ?? (currentIntelligenceStatus === "live" || currentIntelligenceStatus === "error" ? "Wird von FLYERO geprüft" : "Wird zugeordnet")
     : hasSelectedLocation ? "Nach Flächenauswahl" : "Gebiet auswählen";
 
-  const findAreaForLocation = useCallback((result: LocationResult) => {
-    const resultCity = normalizeLocationPart(result.city);
-    const resultPostalCode = (result.postalCode ?? "").trim();
-    const scored = areas
-      .map((area) => {
-        const areaCity = normalizeLocationPart(area.city);
-        const areaPostalCode = (area.postalCode ?? "").trim();
-        const points = featurePoints(area.geoJson);
-        const score =
-          (resultPostalCode && areaPostalCode === resultPostalCode ? 60 : 0) +
-          (resultPostalCode && areaPostalCode.startsWith(resultPostalCode.slice(0, 3)) ? 18 : 0) +
-          (resultCity && areaCity === resultCity ? 30 : 0) +
-          (points.length >= 3 ? 10 : 0) +
-          (area.estimatedHouseholds ? 4 : 0);
-        return { area, points, score };
-      })
-      .filter((item) => item.score > 0)
-      .sort((a, b) => b.score - a.score);
-    return scored[0] ?? null;
-  }, [areas]);
-
   const findAreaForBoundaryContext = useCallback((placeId: string, boundaryPostalCode: string, boundaryCity: string) => {
     const normalizedPostalCode = boundaryPostalCode.trim();
     const normalizedCity = normalizeLocationPart(boundaryCity);
@@ -988,22 +919,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       );
     });
   }, [areas]);
-
-  const boundaryAreaForLocation = useMemo(() => {
-    const normalizedPostalCode = postalCode.trim();
-    const normalizedCity = normalizeLocationPart(city);
-    return areas.find((candidate) => {
-      if (featurePoints(candidate.geoJson).length < 3) return false;
-      const candidatePostalCode = (candidate.postalCode ?? "").trim();
-      const candidateCity = normalizeLocationPart(candidate.city);
-      if (normalizedPostalCode) return candidatePostalCode === normalizedPostalCode;
-      return Boolean(
-        normalizedCity &&
-        candidateCity === normalizedCity &&
-        ["CITY", "CUSTOM"].includes(String(candidate.type)),
-      );
-    }) ?? null;
-  }, [areas, city, postalCode]);
 
   // FLYERO's imported polygons are the selectable source. Google only renders
   // these polygons on top of the basemap.
@@ -1047,8 +962,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setQuery([area.postalCode, area.city].filter(Boolean).join(" "));
     if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
-    setAreaSelectionMode("boundary");
-    setMapNotice("Gebiet übernommen. Du kannst die Fläche auf der Karte anpassen.");
+    setMapNotice("Gebiet übernommen. FLYERO berechnet Fläche, Haushalte und Preis automatisch.");
     return true;
   }, []);
 
@@ -1069,9 +983,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
     const area = findAreaForBoundaryContext(placeId, postalCode, city);
     if (!area) {
-      setAreaSelectionMode("boundary");
       setSelectedBoundaryPlaceIds([placeId]);
-      setMapNotice("Für diesen Ort ist noch keine amtliche Fläche hinterlegt. Bitte zeichne die gewünschte Fläche direkt auf der Karte.");
+      setMapNotice("Für diesen Ort ist noch keine auswählbare Fläche hinterlegt. Bitte wähle eine andere markierte Fläche.");
       void (async () => {
         const maps = window.google?.maps;
         let boundaryPlace: GoogleBoundaryPlace | null = null;
@@ -1146,8 +1059,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setTargetAreaName(boundaryLabel);
         setQuery(nextQuery);
         setSelectedAreaId("");
-        setAreaSelectionMode("draw");
-        setMapNotice("Für diesen Ort ist noch keine amtliche Fläche hinterlegt. Bitte zeichne die gewünschte Fläche direkt auf der Karte.");
+        setMapNotice("Für diesen Ort ist noch keine auswählbare Fläche hinterlegt. Bitte wähle eine andere PLZ oder einen anderen Ort.");
       })().catch(() => {
         setMapNotice("Die Gebietsdetails konnten nicht geladen werden. Bitte wähle eine andere markierte Fläche.");
       });
@@ -1156,8 +1068,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (applySavedArea(area, placeId)) return;
     const points = featurePoints(area.geoJson);
     if (points.length < 3) {
-      setAreaSelectionMode("draw");
-      setMapNotice("Für dieses Gebiet liegt noch keine geprüfte Flächenkarte vor. FLYERO prüft es gerne manuell für dich.");
+      setMapNotice("Für dieses Gebiet ist noch keine auswählbare Fläche hinterlegt. Bitte wähle eine andere markierte Fläche.");
       return;
     }
 
@@ -1195,7 +1106,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setQuery([area.postalCode, area.city].filter(Boolean).join(" "));
     if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
-    setAreaSelectionMode("boundary");
     setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
   }, [applySavedArea, city, findAreaForBoundaryContext, officialBoundaries, postalCode, query, selectOfficialBoundary]);
 
@@ -1223,7 +1133,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       featureType: "LOCALITY",
     });
     setBoundaryLayerStatus("unknown");
-    setAreaSelectionMode("boundary");
     setMapNotice("Gebietsgrenzen werden geladen...");
     fetch(`/api/maps/official-boundaries?${request.toString()}`, { signal: controller.signal })
       .then((response) => response.ok ? response.json() : null)
@@ -1232,28 +1141,20 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         const nextBoundaries = Array.isArray(payload?.data) ? payload.data as ReusableAreaOption[] : [];
         setOfficialBoundaries(nextBoundaries);
         setBoundaryLayerStatus(nextBoundaries.length > 0 ? "available" : "unavailable");
-        setAreaSelectionMode(nextBoundaries.length > 0 ? "boundary" : "draw");
+
         setMapNotice(nextBoundaries.length > 0
           ? "Klicke eine markierte Fläche an. FLYERO berechnet deine Planung danach automatisch."
-          : "Für diesen Ort ist noch keine amtliche Fläche hinterlegt. Zeichne dein Gebiet direkt auf der Karte.");
+          : "Für diesen Ort sind noch keine auswählbaren Gebiete hinterlegt. Bitte versuche eine andere PLZ oder einen anderen Ort.");
       })
       .catch(() => {
         if (controller.signal.aborted) return;
         setOfficialBoundaries([]);
         setBoundaryLayerStatus("unavailable");
-        setAreaSelectionMode("draw");
-        setMapNotice("Die Gebietsgrenzen konnten gerade nicht geladen werden. Du kannst die Fläche direkt auf der Karte zeichnen.");
+        setMapNotice("Die auswählbaren Gebiete konnten gerade nicht geladen werden. Bitte versuche es erneut oder wähle einen anderen Ort.");
       });
 
     return () => controller.abort();
   }, [city, postalCode, selectedLocation?.lat, selectedLocation?.lng]);
-
-  const pushPolygon = useCallback((next: LatLng[], source: PolygonSource = "drawn") => {
-    setPolygon(next);
-    setPolygonSource(source);
-    setHistory((current) => [...current.slice(0, historyIndex + 1), next]);
-    setHistoryIndex((index) => index + 1);
-  }, [historyIndex]);
 
   const addSegment = useCallback(() => {
     const id = `segment-${Date.now()}`;
@@ -1282,12 +1183,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         district: "",
         country: "DE",
         points: [],
-        polygonSource: "drawn",
+        polygonSource: "postal_code",
       }];
     });
     setActiveSegmentId(id);
     setPolygon([]);
-    setPolygonSource("drawn");
+    setPolygonSource("postal_code");
     setSelectedAreaId("");
     setTargetAreaName("");
     setCity("");
@@ -1313,7 +1214,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }), { lat: 0, lng: 0 });
       setCenter(nextCenter);
     }
-    setMapNotice(`${segment.name} ausgewählt. Du kannst die Fläche auf der Karte anpassen.`);
+    setMapNotice(`${segment.name} ausgewählt. FLYERO berechnet die Planung automatisch.`);
   }, []);
 
   const removeSegment = useCallback((segmentId: string) => {
@@ -1331,10 +1232,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (removeActivePolygon) {
       polygonRef.current?.setMap(null);
       polygonRef.current = null;
-      drawingPreviewRef.current?.setMap(null);
-      drawingPreviewRef.current = null;
-      drawingPointsRef.current = [];
-      setDrawingPoints([]);
       setActiveSegmentId(replacement?.id ?? null);
       setPolygon(replacement?.points ?? []);
       setPolygonSource(replacement?.polygonSource ?? "postal_code");
@@ -1347,12 +1244,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setStreet("");
       setHouseNumber("");
       setHistory(replacement ? [replacement.points] : []);
-      setHistoryIndex(0);
       setSelectedBoundaryPlaceIds([]);
-      setAreaSelectionMode("draw");
       setMapNotice(replacement
         ? `${replacement.name} bleibt ausgewählt.`
-        : "Gebiet entfernt. Wähle eine andere markierte Fläche oder zeichne dein Gebiet.");
+        : "Gebiet entfernt. Wähle eine andere markierte Fläche.");
     }
   }, [activeSegmentId, resetIntelligence]);
 
@@ -1377,15 +1272,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setCenter(PUBLIC_DEFAULT_CENTER);
         setPolygon([]);
         setPolygonSource("postal_code");
-        setDrawingPoints([]);
         setAreaSegments([]);
         setActiveSegmentId(null);
         setSelectedWarehouseId("");
         setPendingLocation(null);
         setSelectedBoundaryPlaceIds([]);
-        setAreaSelectionMode("draw");
         setHistory([]);
-        setHistoryIndex(0);
         resetIntelligence();
         setFinishStatus("");
         setRepeatPrintChoice(null);
@@ -1602,11 +1494,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setTargetAreaName("");
       setSelectedLocation(null);
       setHistory([]);
-      setHistoryIndex(0);
-    }
-    if (polygonSource === "manual" && !options?.forceReplace) {
-      setPendingLocation(result);
-      return;
     }
     resetIntelligence();
     const displayQuery = result.street || result.houseNumber || result.label?.includes("Straße")
@@ -1619,7 +1506,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       city: result.city ?? undefined,
       lat: Number.isFinite(Number(result.lat)) ? Number(result.lat) : undefined,
       lng: Number.isFinite(Number(result.lng)) ? Number(result.lng) : undefined,
-      source: result.source ?? "manual",
+      source: result.source ?? "google",
     });
     setCity(result.city ?? "");
     setPostalCode(result.postalCode ?? "");
@@ -1630,54 +1517,18 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (Number.isFinite(nextCenter.lat) && Number.isFinite(nextCenter.lng)) {
       mapRef.current?.setCenter(nextCenter);
       mapRef.current?.setZoom(result.street ? 16 : 14);
-      const matchedArea = findAreaForLocation(result);
-      if (matchedArea?.points.length) {
-        const matchedCenter = areaCenter(matchedArea.area, nextCenter);
-        setCenter(matchedCenter);
-        setSelectedAreaId(matchedArea.area.id);
-        setTargetAreaName(matchedArea.area.name);
-        const currentSegments = options?.forceReplace ? [] : areaSegmentsRef.current;
-        const existingSegment = currentSegments.find((segment) => segment.distributionAreaId === matchedArea.area.id);
-        const segmentId = existingSegment?.id ?? activeSegmentId ?? `segment-${Date.now()}`;
-        const nextSegment: OrderAreaSegmentDraft = {
-          id: segmentId,
-          name: matchedArea.area.name,
-          city: matchedArea.area.city ?? "",
-          postalCode: matchedArea.area.postalCode ?? "",
-          district: matchedArea.area.district ?? "",
-          country: "DE",
-          points: matchedArea.points,
-          geometryGeoJson: matchedArea.area.geoJson,
-          polygonSource: "saved_area",
-          distributionAreaId: matchedArea.area.id,
-        };
-        const nextSegments = existingSegment
-          ? currentSegments.map((segment) => segment.id === existingSegment.id ? { ...segment, ...nextSegment } : segment)
-          : [...currentSegments, nextSegment];
-        areaSegmentsRef.current = nextSegments;
-        setAreaSegments(nextSegments);
-        setActiveSegmentId(segmentId);
-        setAreaSelectionMode("boundary");
-        if (result.placeId) {
-          setSelectedBoundaryPlaceIds((current) => current.includes(result.placeId!) ? current : [...current, result.placeId!]);
-        }
-        pushPolygon(matchedArea.points, "saved_area");
-      } else {
-        setCenter(nextCenter);
-        setSelectedAreaId("");
-        setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
-        setPolygon([]);
-        setPolygonSource("postal_code");
-        setHistory([]);
-        setHistoryIndex(0);
-        areaSegmentsRef.current = [];
-        setAreaSegments([]);
-        setAreaSelectionMode("boundary");
-        setMapNotice("Gebietsgrenzen werden geladen. Klicke danach eine markierte Fläche an.");
-      }
+      setCenter(nextCenter);
+      setSelectedAreaId("");
+      setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
+      setPolygon([]);
+      setPolygonSource("postal_code");
+      setHistory([]);
+      areaSegmentsRef.current = [];
+      setAreaSegments([]);
+      setMapNotice("Gebietsgrenzen werden geladen. Klicke danach eine markierte Flaeche an.");
     }
     setPendingLocation(null);
-  }, [activeSegmentId, findAreaForLocation, polygonSource, pushPolygon, resetIntelligence]);
+  }, [resetIntelligence]);
 
   useEffect(() => {
     applyLocationResultRef.current = applyLocationResult;
@@ -1809,73 +1660,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   useEffect(() => {
     if (!mapsReady || !mapElementRef.current || !window.google?.maps) return;
     const maps = window.google.maps;
-    let isActive = true;
-    const clearPolygonListeners = () => {
-      for (const handle of polygonListenerHandlesRef.current) {
-        try {
-          handle.remove?.();
-        } catch {
-          // Google may already have disposed the overlay during navigation.
-        }
-      }
-      polygonListenerHandlesRef.current = [];
-    };
-    const syncPath = () => {
-      if (!isActive) return;
-      let next: LatLng[] = [];
-      try {
-        next = pathToPoints(polygonRef.current?.getPath() ?? { getLength: () => 0, getAt: () => ({ lat: () => 0, lng: () => 0 }), forEach: () => undefined });
-      } catch {
-        return;
-      }
-      if (next.length >= 3) {
-        setPolygon(next);
-        setPolygonSource("manual");
-      }
-    };
-    const attachPolygonListeners = (target: GooglePolygon) => {
-      // The drawing API can finish an overlay on a later task. Registering
-      // immediately can target a disposed MVCObject and crash the wizard.
-      const register = () => {
-        if (!isActive || polygonRef.current !== target) return;
-        let path: GooglePath;
-        try {
-          path = target.getPath();
-        } catch {
-          return;
-        }
-        if (!path || typeof path.getLength !== "function") return;
-        clearPolygonListeners();
-        const addListener = (listenerTarget: GooglePath | GooglePolygon, eventName: string, callback: () => void) => {
-          try {
-            const handle = typeof listenerTarget.addListener === "function"
-              ? listenerTarget.addListener(eventName, callback)
-              : maps.event.addListener(listenerTarget, eventName, callback);
-            if (handle) polygonListenerHandlesRef.current.push(handle);
-          } catch {
-            // A route change can dispose a Google overlay between the checks
-            // above and registration. The next current overlay will retry.
-          }
-        };
-        addListener(path, "set_at", syncPath);
-        addListener(path, "insert_at", syncPath);
-        addListener(path, "remove_at", syncPath);
-        addListener(target, "drag", syncPath);
-        addListener(target, "dragend", syncPath);
-      };
-      if (typeof window.requestAnimationFrame === "function") {
-        window.requestAnimationFrame(register);
-      } else {
-        window.setTimeout(register, 0);
-      }
-    };
     if (mapRef.current && mapInstanceRenderModeRef.current !== mapRenderMode) {
-      try {
-        drawingClickListenerRef.current?.remove?.();
-      } catch {
-        // The previous Google map may already have been disposed.
-      }
-      drawingClickListenerRef.current = null;
       mapRef.current = null;
       mapInstanceRenderModeRef.current = null;
       if (mapElementRef.current) mapElementRef.current.replaceChildren();
@@ -1907,9 +1692,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         });
         mapInstanceRenderModeRef.current = mapRenderMode;
       } catch {
-        return () => {
-          isActive = false;
-        };
+        return;
       }
     }
     if (!polygonRef.current && polygonStateRef.current.length >= 3) {
@@ -1921,8 +1704,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           strokeWeight: 3,
           fillColor: "#1f7aff",
           fillOpacity: 0.26,
-          editable: true,
-          draggable: true,
+          editable: false,
+          draggable: false,
         });
         polygonRef.current.setMap(mapRef.current);
       } catch {
@@ -1931,81 +1714,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
     if (polygonRef.current) {
       polygonRef.current.setMap(mapRef.current);
-      attachPolygonListeners(polygonRef.current);
     }
     for (const overlay of segmentPolygonsRef.current.values()) overlay.setMap(mapRef.current);
-    const clearDrawingPreview = () => {
-      try {
-        drawingPreviewRef.current?.setMap(null);
-      } catch {
-        // Google may already have disposed the preview during navigation.
-      }
-      drawingPreviewRef.current = null;
-      drawingPointsRef.current = [];
-      setDrawingPoints([]);
-    };
-    const commitDrawnPolygon = () => {
-      const next = drawingPointsRef.current;
-      if (next.length < 3 || !mapRef.current) return;
-      let nextPolygon: GooglePolygon;
-      try {
-        polygonRef.current?.setMap(null);
-        nextPolygon = new maps.Polygon({
-          paths: next,
-          strokeColor: "#a7ff00",
-          strokeOpacity: 1,
-          strokeWeight: 3,
-          fillColor: "#1f7aff",
-          fillOpacity: 0.28,
-          editable: true,
-          draggable: true,
-        });
-        nextPolygon.setMap(mapRef.current);
-        polygonRef.current = nextPolygon;
-      } catch {
-        return;
-      }
-      pushPolygon(next, "drawn");
-      setAreaSelectionMode("draw");
-      setMapNotice("Gebiet übernommen. Du kannst die Punkte noch anpassen oder ein weiteres Teilgebiet hinzufügen.");
-      clearDrawingPreview();
-      attachPolygonListeners(nextPolygon);
-    };
-    finishDrawingRef.current = commitDrawnPolygon;
-    if (mapRef.current && !drawingClickListenerRef.current) {
-      try {
-        const handle = maps.event.addListener(mapRef.current, "click", (event) => {
-          const point = event?.latLng;
-          if (areaSelectionModeRef.current !== "draw" || !point) return;
-          const next = [...drawingPointsRef.current, { lat: point.lat(), lng: point.lng() }];
-          drawingPointsRef.current = next;
-          setDrawingPoints(next);
-          if (next.length >= 2 && !drawingPreviewRef.current) {
-            drawingPreviewRef.current = new maps.Polyline({
-              path: next,
-              strokeColor: "#a7ff00",
-              strokeOpacity: 0.9,
-              strokeWeight: 2,
-              clickable: false,
-            });
-            drawingPreviewRef.current.setMap(mapRef.current);
-          } else if (drawingPreviewRef.current) {
-            drawingPreviewRef.current.setPath(next);
-          }
-          setMapNotice(next.length < 3
-            ? `${next.length} Punkte gesetzt. Setze mindestens drei Punkte für dein Gebiet.`
-            : "Gebiet ist bereit. Klicke auf „Gebiet abschließen“, wenn die Fläche passt.");
-        });
-        if (handle) drawingClickListenerRef.current = handle;
-      } catch {
-        drawingClickListenerRef.current = null;
-      }
-    }
     return () => {
-      isActive = false;
-      clearPolygonListeners();
+      // Official polygons are read-only and are replaced by server-backed selections.
     };
-  }, [activeSegmentId, areaSelectionMode, center, city, mapMode, mapRenderMode, mapsBoundaryConfigured, mapsBoundaryMapId, mapsReady, postalCode, pushPolygon, targetAreaName]);
+  }, [activeSegmentId, center, mapMode, mapRenderMode, mapsBoundaryConfigured, mapsBoundaryMapId, mapsReady, polygon]);
 
   useEffect(() => {
     if (!mapsReady || !mapRef.current || !window.google?.maps) return;
@@ -2044,7 +1758,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         overlay.setMap(mapRef.current);
         overlays.push(overlay);
         const listener = maps.event.addListener(overlay, "click", () => {
-          if (areaSelectionModeRef.current === "draw") return;
           selectOfficialBoundary(area);
         });
         if (listener) officialBoundaryListenersRef.current.push(listener);
@@ -2090,8 +1803,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       removeBoundaryFeatureListeners();
       for (const [featureType, layer] of boundaryLayerRefs.current.entries()) {
         const listener = layer.addListener?.("click", (event) => {
-          const canSelectBoundary = areaSelectionModeRef.current !== "draw";
-          if (!canSelectBoundary) return;
           const feature = event.features?.[0];
           const placeId = feature?.placeId;
           if (placeId) selectBoundaryAreaRef.current(placeId, feature, featureType);
@@ -2136,12 +1847,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       if (mapCapabilities?.isDataDrivenStylingAvailable !== true) {
         removeBoundaryFeatureListeners();
         clearBoundaryLayerListeners();
-        try {
-          drawingClickListenerRef.current?.remove?.();
-        } catch {
-          // The Google map may already have disposed the click listener.
-        }
-        drawingClickListenerRef.current = null;
         polygonRef.current?.setMap(null);
         polygonRef.current = null;
         for (const overlay of segmentPolygonsRef.current.values()) overlay.setMap(null);
@@ -2149,8 +1854,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         mapRef.current = null;
         setMapRenderMode("standard");
         setBoundaryLayerStatus("unavailable");
-        setAreaSelectionMode("draw");
-        setMapNotice("Die markierten Kartenflächen stehen gerade nicht zur Verfügung. Zeichne dein genaues Verteilgebiet direkt auf der Karte.");
+        setMapNotice("Die markierten Kartenflächen stehen gerade nicht zur Verfügung. Bitte wähle eine andere PLZ oder einen anderen Ort.");
         return;
       }
       if (!mapRef.current?.getFeatureLayer) {
@@ -2182,8 +1886,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setBoundaryLayerStatus("available");
       } else {
         setBoundaryLayerStatus("unavailable");
-        setAreaSelectionMode("draw");
-        setMapNotice("Du kannst dein genaues Verteilgebiet direkt auf der Karte zeichnen.");
+        setMapNotice("Für diesen Ort sind keine auswählbaren Gebiete verfügbar. Bitte wähle eine andere PLZ oder einen anderen Ort.");
       }
     };
 
@@ -2201,7 +1904,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       removeBoundaryFeatureListeners();
       clearBoundaryLayerListeners();
     };
-  }, [areaSelectionMode, hasActiveCommittedArea, mapRenderMode, mapsBoundaryConfigured, mapsReady]);
+  }, [hasActiveCommittedArea, mapRenderMode, mapsBoundaryConfigured, mapsReady]);
 
   useEffect(() => {
     for (const layer of boundaryLayerRefs.current.values()) {
@@ -2221,28 +1924,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         }
       }
       boundaryFeatureListenersRef.current = [];
-      for (const handle of polygonListenerHandlesRef.current) {
-        try {
-          handle.remove?.();
-        } catch {
-          // Google may already have disposed the overlay during navigation.
-        }
-      }
-      polygonListenerHandlesRef.current = [];
-      try {
-        drawingClickListenerRef.current?.remove?.();
-      } catch {
-        // Google may already have disposed the map during navigation.
-      }
-      drawingClickListenerRef.current = null;
-      try {
-        drawingPreviewRef.current?.setMap(null);
-      } catch {
-        // Google may already have disposed the preview during navigation.
-      }
-      drawingPreviewRef.current = null;
-      drawingPointsRef.current = [];
-      finishDrawingRef.current = () => undefined;
       for (const handle of boundaryLayerListenersAtMount) {
         try {
           handle.remove?.();
@@ -2334,7 +2015,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setSelectedBoundaryPlaceIds([]);
     setPendingLocation(null);
     setHistory([]);
-    setHistoryIndex(0);
     setCenter(isPublicPlanner ? PUBLIC_DEFAULT_CENTER : center);
     setUsedAutocomplete(false);
     setMapNotice("");
@@ -2381,45 +2061,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }
 
   function polygonSourceLabel() {
-    if (polygonSource === "manual") return "Manuell angepasst";
     if (polygonSource === "saved_area") return "Gespeichertes Gebiet";
-    if (polygonSource === "drawn") return "Gezeichnetes Gebiet";
-    return "Vorschlag aus PLZ/Adresse";
+    return "Gebiet auswählen";
   }
 
   function keepCurrentArea() {
     setPendingLocation(null);
     setQuery(street ? `${street}${houseNumber ? ` ${houseNumber}` : ""}, ${postalCode} ${city}` : `${postalCode} ${city}`);
-  }
-
-  function startDrawingArea() {
-    setAreaSelectionMode("draw");
-    setMapRenderMode("standard");
-    try {
-      drawingPreviewRef.current?.setMap(null);
-    } catch {
-      // Google may already have disposed the previous preview.
-    }
-    drawingPreviewRef.current = null;
-    drawingPointsRef.current = [];
-    setDrawingPoints([]);
-    if (!mapsReady || !mapRef.current) {
-      setMapNotice(
-        mapsBrowserKeyConfigured
-          ? "Die Karte lädt noch. Bitte kurz warten und erneut versuchen."
-          : "Die Karte ist gerade nicht verfügbar. Du kannst die Anfrage trotzdem senden oder FLYERO bespricht das Gebiet mit dir.",
-      );
-      return;
-    }
-    setMapNotice("Klicke auf der Karte mindestens drei Eckpunkte. Danach kannst du das Gebiet abschließen.");
-  }
-
-  function finishDrawingArea() {
-    if (drawingPointsRef.current.length < 3) {
-      setMapNotice("Setze mindestens drei Eckpunkte, bevor du das Gebiet abschließt.");
-      return;
-    }
-    finishDrawingRef.current();
   }
 
   function trackSubmit(options?: { clearDraft?: boolean; handoffToCustomer?: boolean; eventType?: string; orderId?: string }) {
@@ -2652,7 +2300,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   ];
   void legacyStepState;
   const stepState = [
-    { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : hasSelectedLocation ? "Fläche festlegen" : "Noch offen" },
+    { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Gebiet auswählen" },
     { id: 2, title: `${selectedService.shortLabel} & Lager`, detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung", detail: "Ziel und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
@@ -2719,10 +2367,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         showSuggestions={showSuggestions}
         pendingLocation={pendingLocation}
         boundarySelectionEnabled={boundarySelectionEnabled}
-        areaSelectionMode={areaSelectionMode}
-        boundaryLayerAvailable={boundaryLayerStatus === "available"}
-        drawingPoints={drawingPoints}
-        previewCoverageAreaSqm={previewCoverageAreaSqm}
+         previewCoverageAreaSqm={previewCoverageAreaSqm}
         areaSegmentsPayload={areaSegmentsPayload}
         areaSegments={areaSegments}
         activeSegmentId={activeSegmentId}
@@ -2742,15 +2387,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         onApplyPendingLocation={() => applyLocationResult(pendingLocation!, { forceReplace: true })}
         onKeepCurrentArea={keepCurrentArea}
         onApplyBoundary={() => {
-          if (boundaryAreaForLocation) {
-            applySavedArea(boundaryAreaForLocation, selectedLocation?.placeId ?? boundaryAreaForLocation.googlePlaceId ?? "");
-            return;
-          }
-          setAreaSelectionMode("boundary");
-          setMapNotice("Wähle eine markierte Gebietsfläche auf der Karte.");
+          setMapNotice("Klicke eine grün markierte Fläche auf der Karte an.");
         }}
-        onStartDrawing={startDrawingArea}
-        onFinishDrawing={finishDrawingArea}
         onSelectSegment={selectSegment}
         onRemoveSegment={removeSegment}
         onAddSegment={addSegment}
@@ -3041,7 +2679,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               <p>Aktualisiert sich, sobald du das Gebiet änderst.</p>
             </div>
             <span className={`overviewSyncState ${currentIntelligenceStatus}`}>
-              {syncStateLabel(currentIntelligenceStatus, areaStats.confidence, isPending, hasPlanningArea, hasSelectedLocation)}
+              {syncStateLabel(currentIntelligenceStatus, areaStats.confidence, isPending, hasPlanningArea)}
             </span>
             <button
               type="button"
@@ -3056,7 +2694,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             </button>
           </div>
           <div className="overviewMetaRow">
-            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, hasPlanningArea, hasSelectedLocation)}</p>
+            <p className="overviewDataBasis">{confidenceLabel(areaStats.confidence, hasPlanningArea)}</p>
             {overviewOffset.x !== 0 || overviewOffset.y !== 0 ? (
               <button type="button" onClick={() => setOverviewOffset({ x: 0, y: 0 })}>Zurücksetzen</button>
             ) : null}

@@ -11,6 +11,7 @@ const segments = read("src/lib/orderSegments.ts");
 const smartMaps = read("src/lib/smartMaps.ts");
 const orderRoute = read("src/app/api/customer/orders/route.ts");
 const wizard = read("src/app/customer/orders/new/SmartOrderWizard.tsx");
+const areaStep = read("src/app/customer/orders/new/OrderAreaStep.tsx");
 const areaRoute = read("src/app/api/orders/[id]/area/route.ts");
 const repeatRoute = read("src/app/api/customer/orders/[id]/repeat/route.ts");
 
@@ -28,7 +29,7 @@ assert.match(smartMaps, /needsManualReview/);
 assert.match(orderRoute, /areaSegments/);
 assert.match(orderRoute, /prisma\.\$transaction/);
 assert.match(wizard, /areaSegments/);
-assert.match(wizard, /Teilgebiet hinzuf/);
+assert.match(areaStep, /Teilgebiet hinzuf/);
 assert.match(areaRoute, /segments/);
 assert.match(repeatRoute, /areaSegments/);
 

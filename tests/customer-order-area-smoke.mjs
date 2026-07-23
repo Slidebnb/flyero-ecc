@@ -153,7 +153,7 @@ try {
   await resetMapsRateLimitBucket();
   const customerCookie = await login("kunde.immobilien@example.com");
   const wizard = includes("src/app/customer/orders/new/SmartOrderWizard.tsx", [
-    "findAreaForLocation",
+    "officialBoundaries",
     "areaCalculationSnapshot",
     "mapNotice",
     "setMapTypeId",
@@ -197,8 +197,9 @@ try {
     "Dein Gebiet wurde auf der Karte angepasst.",
     "Neues Gebiet \u00fcbernehmen",
     "Aktuelles Gebiet behalten",
-    "Fläche auf der Karte zeichnen",
+    "Gebiet auf der Karte auswählen",
   ]);
+  assert(!readFileSync("src/app/customer/orders/new/OrderAreaStep.tsx", "utf8").includes("Fläche auf der Karte zeichnen"), "Der Kundenwizard darf keinen manuellen Zeichenmodus mehr anzeigen.");
   assert(!wizard.includes("Math.random"), "Wizard darf keine Zufallswerte fuer Gebietsuebersicht nutzen.");
   for (const forbidden of ["8.414", "8414", "1.249,50", "1249.50", "FeatureCollection</", "GeoJSON</"]) {
     assert(!wizard.includes(forbidden), `Wizard enthaelt verbotenen Dummy-/Techniktext: ${forbidden}`);
