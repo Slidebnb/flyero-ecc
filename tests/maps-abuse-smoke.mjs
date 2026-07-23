@@ -17,26 +17,31 @@ const authIpBucketId = createHash("sha256").update(`flyero-auth-rate-limit:login
 const authAccountBucketId = createHash("sha256").update("flyero-auth-rate-limit:login:account:kunde.immobilien@example.com").digest("hex");
 let server = null;
 
-const [protection, autocomplete, geocode, intelligence] = await Promise.all([
+const [protection, autocomplete, geocode, intelligence, boundary] = await Promise.all([
   readFile("src/lib/publicAbuseProtection.ts", "utf8"),
   readFile("src/app/api/maps/autocomplete/route.ts", "utf8"),
   readFile("src/app/api/maps/geocode/route.ts", "utf8"),
   readFile("src/app/api/maps/order-intelligence/route.ts", "utf8"),
+  readFile("src/app/api/maps/boundary-area/route.ts", "utf8"),
 ]);
 
-for (const scope of ["maps-autocomplete", "maps-geocode", "maps-intelligence"]) assert.match(protection, new RegExp(`"${scope}"`));
+for (const scope of ["maps-autocomplete", "maps-geocode", "maps-intelligence", "maps-boundary"]) assert.match(protection, new RegExp(`"${scope}"`));
 assert.match(protection, /PUBLIC_MAPS_AUTOCOMPLETE/);
 assert.match(protection, /PUBLIC_MAPS_GEOCODE/);
 assert.match(protection, /PUBLIC_MAPS_INTELLIGENCE/);
+assert.match(protection, /PUBLIC_MAPS_BOUNDARY/);
 for (const [route, publicScope, customerScope] of [
   [autocomplete, "maps-autocomplete", "customer-maps-autocomplete"],
   [geocode, "maps-geocode", "customer-maps-geocode"],
   [intelligence, "maps-intelligence", "customer-maps-intelligence"],
+  [boundary, "maps-boundary", ""],
 ]) {
   assert.match(route, new RegExp(`"${publicScope}"`));
-  assert.match(route, new RegExp(`"${customerScope}"`));
   assert.match(route, /publicRateLimitResponse/);
-  assert.match(route, /customerRateLimitResponse/);
+  if (customerScope) {
+    assert.match(route, new RegExp(`"${customerScope}"`));
+    assert.match(route, /customerRateLimitResponse/);
+  }
 }
 
 async function startServer() {

@@ -7,6 +7,7 @@ export type PublicRateLimitScope =
   | "maps-autocomplete"
   | "maps-geocode"
   | "maps-intelligence"
+  | "maps-boundary"
   | "customer-maps-autocomplete"
   | "customer-maps-geocode"
   | "customer-maps-intelligence"
@@ -26,6 +27,7 @@ const defaults: Record<PublicRateLimitScope, { maxAttempts: number; windowMs: nu
   "maps-autocomplete": { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
   "maps-geocode": { maxAttempts: 30, windowMs: 15 * 60 * 1000 },
   "maps-intelligence": { maxAttempts: 120, windowMs: 15 * 60 * 1000 },
+  "maps-boundary": { maxAttempts: 120, windowMs: 15 * 60 * 1000 },
   "customer-maps-autocomplete": { maxAttempts: 120, windowMs: 15 * 60 * 1000 },
   "customer-maps-geocode": { maxAttempts: 60, windowMs: 15 * 60 * 1000 },
   "customer-maps-intelligence": { maxAttempts: 240, windowMs: 15 * 60 * 1000 },
@@ -73,6 +75,8 @@ function settingsFor(scope: PublicRateLimitScope) {
               ? "PUBLIC_MAPS_GEOCODE"
               : scope === "maps-intelligence"
                 ? "PUBLIC_MAPS_INTELLIGENCE"
+              : scope === "maps-boundary"
+                ? "PUBLIC_MAPS_BOUNDARY"
               : scope === "customer-maps-autocomplete"
                 ? "CUSTOMER_MAPS_AUTOCOMPLETE"
                 : scope === "customer-maps-geocode"
