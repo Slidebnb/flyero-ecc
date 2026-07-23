@@ -90,7 +90,7 @@ assert.match(
 );
 assert.match(
   wizard,
-  /boundaryLayerStyle\(selectedBoundaryPlaceIdsRef\.current, selectedBoundaryPlaceIdsRef\.current\.length > 0\)/,
+  /boundaryLayerStyle\(selectedBoundaryPlaceIdsRef\.current, selectedBoundaryPlaceIdsRef\.current\.length > 0, hasActiveCommittedArea\)/,
   "Ein bereits uebernommenes Gebiet darf nicht gleichzeitig als Grenz- und Bearbeitungs-Overlay sichtbar sein.",
 );
 assert.match(

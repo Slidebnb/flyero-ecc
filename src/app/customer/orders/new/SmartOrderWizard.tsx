@@ -340,11 +340,11 @@ function deliverabilityLabel(score?: number | null, hasArea = true, hasLocation 
   return "Gebiet wird vorab geprüft";
 }
 
-function boundaryLayerStyle(selectedPlaceIds: string[], hideSelected = false) {
+function boundaryLayerStyle(selectedPlaceIds: string[], hideSelected = false, hideAll = false) {
   return (options: { feature?: GoogleFeature }) => {
     const placeId = options.feature?.placeId ?? "";
     const selected = selectedPlaceIds.includes(placeId);
-    if (selected && hideSelected) {
+    if (hideAll || (selected && hideSelected)) {
       return {
         strokeColor: "#a7ff00",
         strokeOpacity: 0,
@@ -584,6 +584,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     else currentSegments.push(currentSegment);
     return currentSegments.filter((segment) => segment.points.length >= 3);
   }, [activeSegmentId, areaSegments, city, polygon, polygonSource, postalCode, selectedAreaId, targetAreaName]);
+  // The first submitted segment is also the server's primary segment. Keep
+  // search, live pricing, and checkout on the same location identity.
+  const planningPrimarySegment = areaSegmentsPayload[0];
+  const planningCity = planningPrimarySegment?.city || city;
+  const planningPostalCode = planningPrimarySegment?.postalCode || postalCode;
+  const planningDistributionAreaId = planningPrimarySegment?.distributionAreaId || selectedAreaId;
+  const hasActiveCommittedArea = areaSegmentsPayload.some(
+    (segment) => segment.id === activeSegmentId && segment.points.length >= 3,
+  );
   const coverageAreaSqm = useMemo(
     () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonAreaSqm(segment.points), 0),
     [areaSegmentsPayload],
@@ -611,15 +620,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   );
   const intelligenceRequestQuery = useMemo(() => new URLSearchParams({
     serviceType,
-    city,
-    postalCode,
+    city: planningCity,
+    postalCode: planningPostalCode,
     street,
     houseNumber,
     placeId: selectedLocation?.placeId ?? "",
     locationSource: selectedLocation?.source ?? "",
     latitude: selectedLocation?.lat == null ? "" : String(selectedLocation.lat),
     longitude: selectedLocation?.lng == null ? "" : String(selectedLocation.lng),
-    distributionAreaId: selectedAreaId,
+    distributionAreaId: planningDistributionAreaId,
     flyerQuantity: String(flyerQuantity),
     flyerSource,
     productFormat,
@@ -645,7 +654,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }))),
   }).toString(), [
     areaSegmentsPayload,
-    city,
     coverageAreaSqm,
     flyerQuantity,
     flyerSource,
@@ -654,8 +662,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     selectedLocation,
     localRouteDistanceMeters,
     perimeterMeters,
-    postalCode,
-    selectedAreaId,
+    planningCity,
+    planningDistributionAreaId,
+    planningPostalCode,
     printDataStatus,
     productFormat,
     numericWeightInGrams,
@@ -1504,6 +1513,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         areaSegmentsRef.current = nextSegments;
         setAreaSegments(nextSegments);
         setActiveSegmentId(segmentId);
+        setAreaSelectionMode("boundary");
+        if (result.placeId) {
+          setSelectedBoundaryPlaceIds((current) => current.includes(result.placeId!) ? current : [...current, result.placeId!]);
+        }
         pushPolygon(matchedArea.points, "saved_area");
       } else {
         setCenter(nextCenter);
@@ -1951,7 +1964,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           continue;
         }
         availableLayerCount += 1;
-        layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current, selectedBoundaryPlaceIdsRef.current.length > 0);
+        layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current, selectedBoundaryPlaceIdsRef.current.length > 0, hasActiveCommittedArea);
         boundaryLayerRefs.current.set(featureType, layer);
       }
       installBoundaryFeatureListeners();
@@ -1977,13 +1990,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       removeBoundaryFeatureListeners();
       clearBoundaryLayerListeners();
     };
-  }, [areaSelectionMode, mapRenderMode, mapsBoundaryConfigured, mapsReady]);
+  }, [areaSelectionMode, hasActiveCommittedArea, mapRenderMode, mapsBoundaryConfigured, mapsReady]);
 
   useEffect(() => {
     for (const layer of boundaryLayerRefs.current.values()) {
-      layer.style = boundaryLayerStyle(selectedBoundaryPlaceIds, selectedBoundaryPlaceIds.length > 0);
+      layer.style = boundaryLayerStyle(selectedBoundaryPlaceIds, selectedBoundaryPlaceIds.length > 0, hasActiveCommittedArea);
     }
-  }, [selectedBoundaryPlaceIds]);
+  }, [hasActiveCommittedArea, selectedBoundaryPlaceIds]);
 
   useEffect(() => {
     const boundaryLayerRefsAtMount = boundaryLayerRefs.current;
@@ -2265,8 +2278,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   function buildOrderPayload(completionPath: "direct_payment" | "inquiry") {
     return {
       serviceType,
-      city,
-      postalCode,
+      city: planningCity,
+      postalCode: planningPostalCode,
       street,
       houseNumber,
       placeId: selectedLocation?.placeId,
@@ -2275,7 +2288,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       longitude: selectedLocation?.lng,
       targetAreaName,
       areaType: "POLYGON",
-      distributionAreaId: selectedAreaId,
+      distributionAreaId: planningDistributionAreaId,
       targetAreaGeoJson: JSON.stringify(geoJson),
       areaSegments: JSON.stringify(areaSegmentsPayload.map((segment) => ({
         name: segment.name,
