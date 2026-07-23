@@ -1071,7 +1071,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (!area) {
       setAreaSelectionMode("boundary");
       setSelectedBoundaryPlaceIds([placeId]);
-      setMapNotice("Gebiet erkannt. FLYERO bereitet die Fläche und Preisvorschau vor.");
+      setMapNotice("Für diesen Ort ist noch keine amtliche Fläche hinterlegt. Bitte zeichne die gewünschte Fläche direkt auf der Karte.");
       void (async () => {
         const maps = window.google?.maps;
         let boundaryPlace: GoogleBoundaryPlace | null = null;
