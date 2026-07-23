@@ -53,8 +53,15 @@ export async function readBody(request: NextRequest) {
   return body;
 }
 
+function sanitizeErrorMessage(message: string) {
+  if (/Too small|Invalid input|expected string|Expected/.test(message)) {
+    return "Bitte pruefe deine Angaben und versuche es erneut.";
+  }
+  return message;
+}
+
 export function errorResponse(message: string, status = 400) {
-  return Response.json({ ok: false, error: message }, { status });
+  return Response.json({ ok: false, error: sanitizeErrorMessage(message) }, { status });
 }
 
 export function successResponse<T>(data: T, status = 200) {
@@ -97,6 +104,10 @@ export function routeErrorResponse(error: unknown) {
 
   if (error instanceof Error && (error as Error & { code?: string }).code === "PRINT_SERVICE_CONTACT_ONLY") {
     return Response.json({ ok: false, code: "PRINT_SERVICE_CONTACT_ONLY", error: "FLYERO bietet im Online-Auftrag keinen Druckservice an. Bitte besprich den Druck separat über den Kontakt zu uns." }, { status: 422 });
+  }
+
+  if (error instanceof Error && sanitizeErrorMessage(error.message) !== error.message) {
+    return errorResponse("Bitte pruefe deine Angaben und versuche es erneut.", 422);
   }
 
   throw error;
