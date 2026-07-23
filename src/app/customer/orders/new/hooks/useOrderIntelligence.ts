@@ -59,6 +59,11 @@ export function useOrderIntelligence({
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    let timedOut = false;
+    const timeoutId = window.setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 12000);
     setIntelligence(null);
     setIntelligenceStatus("updating");
 
@@ -76,13 +81,16 @@ export function useOrderIntelligence({
           }
         })
         .catch((error: unknown) => {
-          if (lastRequestRef.current === requestQuery && (error as { name?: string })?.name !== "AbortError") {
+          if (lastRequestRef.current === requestQuery && (timedOut || (error as { name?: string })?.name !== "AbortError")) {
             setIntelligenceStatus("error");
           }
         });
     });
 
-    return () => controller.abort();
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [city, coverageAreaSqm, endpoint, postalCode, requestQuery]);
 
   const isConfirmed = useCallback(

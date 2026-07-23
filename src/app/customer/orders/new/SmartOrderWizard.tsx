@@ -340,10 +340,19 @@ function deliverabilityLabel(score?: number | null, hasArea = true, hasLocation 
   return "Gebiet wird vorab geprüft";
 }
 
-function boundaryLayerStyle(selectedPlaceIds: string[]) {
+function boundaryLayerStyle(selectedPlaceIds: string[], hideSelected = false) {
   return (options: { feature?: GoogleFeature }) => {
     const placeId = options.feature?.placeId ?? "";
     const selected = selectedPlaceIds.includes(placeId);
+    if (selected && hideSelected) {
+      return {
+        strokeColor: "#a7ff00",
+        strokeOpacity: 0,
+        strokeWeight: 0,
+        fillColor: "#a7ff00",
+        fillOpacity: 0,
+      };
+    }
     return {
       strokeColor: selected ? "#a7ff00" : "#87a4c2",
       strokeOpacity: selected ? 1 : 0.85,
@@ -674,7 +683,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   // current planning input. This prevents a previous area's price or
   // warehouse from flashing while the next calculation is in flight.
   const currentIntelligence = isIntelligenceConfirmed(intelligenceRequestQuery) ? intelligence : null;
-  const currentIntelligenceStatus = currentIntelligence ? intelligenceStatus : hasPlanningArea ? "updating" : "local";
+  const currentIntelligenceStatus = hasPlanningArea
+    ? intelligenceStatus === "local" ? "updating" : intelligenceStatus
+    : "local";
   const households = currentIntelligence?.metrics.households ?? localHouseholds;
   const selectedWarehouse = warehouseOptions.find((warehouse) => warehouse.id === selectedWarehouseId) ?? null;
   const routeDistanceMeters = currentIntelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
@@ -870,7 +881,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   });
 
   const warehouseSuggestionLabel = hasPlanningArea
-    ? areaStats.warehouseSuggestion ?? (currentIntelligenceStatus === "live" ? "Wird von FLYERO geprüft" : "Wird zugeordnet")
+    ? areaStats.warehouseSuggestion ?? (currentIntelligenceStatus === "live" || currentIntelligenceStatus === "error" ? "Wird von FLYERO geprüft" : "Wird zugeordnet")
     : hasSelectedLocation ? "Nach Flächenauswahl" : "Gebiet auswählen";
 
   const findAreaForLocation = useCallback((result: LocationResult) => {
@@ -1940,7 +1951,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           continue;
         }
         availableLayerCount += 1;
-        layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current);
+        layer.style = boundaryLayerStyle(selectedBoundaryPlaceIdsRef.current, selectedBoundaryPlaceIdsRef.current.length > 0);
         boundaryLayerRefs.current.set(featureType, layer);
       }
       installBoundaryFeatureListeners();
@@ -1970,7 +1981,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   useEffect(() => {
     for (const layer of boundaryLayerRefs.current.values()) {
-      layer.style = boundaryLayerStyle(selectedBoundaryPlaceIds);
+      layer.style = boundaryLayerStyle(selectedBoundaryPlaceIds, selectedBoundaryPlaceIds.length > 0);
     }
   }, [selectedBoundaryPlaceIds]);
 

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import assert from "node:assert/strict";
 
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
+const intelligenceHook = readFileSync("src/app/customer/orders/new/hooks/useOrderIntelligence.ts", "utf8");
 const areaStep = readFileSync("src/app/customer/orders/new/OrderAreaStep.tsx", "utf8");
 const pricingPage = readFileSync("src/app/preise/page.tsx", "utf8");
 const pricing = readFileSync("src/lib/pricing.ts", "utf8");
@@ -76,6 +77,26 @@ assert.match(
   wizard,
   /const mapsBoundaryConfigured = Boolean\(\s*mapsBoundaryMapId\s*&&\s*process\.env\.NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED === "true"\s*,?\s*\);/,
   "Eine konfigurierte Map-ID darf Boundary-Styles erst nach ausdruecklicher Produktionsfreigabe aktivieren.",
+);
+assert.match(
+  wizard,
+  /const currentIntelligenceStatus = hasPlanningArea\s*\?\s*intelligenceStatus === "local" \? "updating" : intelligenceStatus\s*:\s*"local";/,
+  "Ein fehlgeschlagener Live-Request darf nicht als dauerhaft laufende Berechnung erscheinen.",
+);
+assert.match(
+  wizard,
+  /currentIntelligenceStatus === "live" \|\| currentIntelligenceStatus === "error" \? "Wird von FLYERO/,
+  "Bei einer fehlgeschlagenen Gebietsberechnung darf das Lager nicht als laufend zugeordnet erscheinen.",
+);
+assert.match(
+  wizard,
+  /boundaryLayerStyle\(selectedBoundaryPlaceIdsRef\.current, selectedBoundaryPlaceIdsRef\.current\.length > 0\)/,
+  "Ein bereits uebernommenes Gebiet darf nicht gleichzeitig als Grenz- und Bearbeitungs-Overlay sichtbar sein.",
+);
+assert.match(
+  intelligenceHook,
+  /const timeoutId = window\.setTimeout\(\(\) => \{[\s\S]*?timedOut = true;[\s\S]*?controller\.abort\(\);[\s\S]*?\}, 12000\);/,
+  "Eine haengende Gebietsberechnung muss in einen sichtbaren Fehlerzustand wechseln.",
 );
 assert.match(
   wizard,

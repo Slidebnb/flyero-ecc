@@ -17,12 +17,12 @@ assert.match(
 );
 assert.match(
   wizard,
-  /const priceReady = intelligenceStatus === "live"[\s\S]*?Number\(netPrice\) > 0;/,
+  /const priceReady = currentIntelligenceStatus === "live"[\s\S]*?Number\(netPrice\) > 0;/,
   "Ein serverseitig berechneter Preis darf nicht allein wegen einer manuellen Lagerprüfung verborgen werden.",
 );
 assert.match(
   wizard,
-  /const recommendedFlyerQuantity = intelligenceStatus === "live"[\s\S]*?Math\.ceil\(\(\(intelligence\?\.metrics\.households \?\? localHouseholds\) \* 1\.1\) \/ 100\) \* 100/,
+  /const recommendedFlyerQuantity = currentIntelligenceStatus === "live"[\s\S]*?currentIntelligence\?\.metrics\.householdRecommendationAllowed === true[\s\S]*?currentIntelligence\.metrics\.recommendedFlyerQuantity \?\? MINIMUM_FLYER_QUANTITY/,
   "Die Flyerempfehlung muss bei einer berechneten Fläche aus der aktuellen Haushaltsbasis entstehen.",
 );
 assert.match(
