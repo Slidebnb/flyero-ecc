@@ -168,6 +168,14 @@ function formatShortDate(value: string) {
     : "offen";
 }
 
+function customerFacingSubmissionError(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  if (/Too small|Invalid input|expected string|Expected/.test(message)) {
+    return "Bitte pruefe deine Angaben und versuche es erneut.";
+  }
+  return message || "Die Anfrage konnte nicht abgeschlossen werden.";
+}
+
 function trackPublicPlannerEvent(endpoint: string, eventType: string, data: Record<string, unknown> = {}) {
   void fetch(endpoint, {
     method: "POST",
@@ -2294,7 +2302,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setFinishStatus("Deine Anfrage wurde übermittelt. Wir prüfen Gebiet, Druck und Preis und melden uns schnell.");
       window.location.href = `/customer/orders/${orderResult.data.id}?inquiry=success`;
     } catch (error) {
-      setFinishStatus(error instanceof Error ? error.message : "Die Anfrage konnte nicht abgeschlossen werden.");
+      setFinishStatus(customerFacingSubmissionError(error));
     } finally {
       endSubmission();
     }
