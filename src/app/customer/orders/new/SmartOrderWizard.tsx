@@ -928,7 +928,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     const points = featurePoints(area.geoJson);
     if (points.length < 3) return false;
 
-    const currentSegments = areaSegmentsRef.current;
+    const currentSegments = areaSegmentsRef.current.filter(
+      (segment) => segment.points.length >= 3 || segment.id !== activeSegmentId,
+    );
     const existingSegment = currentSegments.find((segment) => segment.distributionAreaId === area.id);
     const replaceDefault = !existingSegment && currentSegments.length === 1 && currentSegments[0]?.id === "segment-default";
     const segmentId = existingSegment?.id ?? (replaceDefault ? "segment-default" : `segment-boundary-${Date.now()}`);
@@ -964,7 +966,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setMapNotice("Gebiet übernommen. FLYERO berechnet Fläche, Haushalte und Preis automatisch.");
     return true;
-  }, []);
+  }, [activeSegmentId]);
 
   const selectOfficialBoundary = useCallback((area: ReusableAreaOption) => {
     const placeId = area.googlePlaceId ?? `flyero-area:${area.id}`;
@@ -1158,34 +1160,35 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   const addSegment = useCallback(() => {
     const id = `segment-${Date.now()}`;
-    setAreaSegments((current) => {
-      if (polygon.length < 3) return current;
-      const existingIndex = current.findIndex((segment) => segment.id === activeSegmentId);
-      const currentSegment: OrderAreaSegmentDraft = {
-        id: activeSegmentId ?? `segment-${Date.now()}-current`,
-        name: targetAreaName || [postalCode, city].filter(Boolean).join(" ") || "Verteilgebiet",
-        city,
-        postalCode,
-        district: existingIndex >= 0 ? current[existingIndex].district : "",
-        country: "DE",
-        points: [...polygon],
-        polygonSource,
-        distributionAreaId: selectedAreaId || undefined,
-      };
-      const next = existingIndex >= 0
-        ? current.map((segment, index) => index === existingIndex ? currentSegment : segment)
-        : [...current, currentSegment];
-      return [...next, {
-        id,
-        name: `Teilgebiet ${next.length + 1}`,
-        city: "",
-        postalCode: "",
-        district: "",
-        country: "DE",
-        points: [],
-        polygonSource: "postal_code",
-      }];
-    });
+    const current = areaSegmentsRef.current;
+    if (polygon.length < 3) return;
+    const existingIndex = current.findIndex((segment) => segment.id === activeSegmentId);
+    const currentSegment: OrderAreaSegmentDraft = {
+      id: activeSegmentId ?? `segment-${Date.now()}-current`,
+      name: targetAreaName || [postalCode, city].filter(Boolean).join(" ") || "Verteilgebiet",
+      city,
+      postalCode,
+      district: existingIndex >= 0 ? current[existingIndex].district : "",
+      country: "DE",
+      points: [...polygon],
+      polygonSource,
+      distributionAreaId: selectedAreaId || undefined,
+    };
+    const committedSegments = existingIndex >= 0
+      ? current.map((segment, index) => index === existingIndex ? currentSegment : segment)
+      : [...current, currentSegment];
+    const nextSegments = [...committedSegments, {
+      id,
+      name: `Teilgebiet ${committedSegments.length + 1}`,
+      city: "",
+      postalCode: "",
+      district: "",
+      country: "DE",
+      points: [],
+      polygonSource: "postal_code" as const,
+    }];
+    areaSegmentsRef.current = nextSegments;
+    setAreaSegments(nextSegments);
     setActiveSegmentId(id);
     setPolygon([]);
     setPolygonSource("postal_code");
@@ -1518,17 +1521,19 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       mapRef.current?.setCenter(nextCenter);
       mapRef.current?.setZoom(result.street ? 16 : 14);
       setCenter(nextCenter);
-      setSelectedAreaId("");
       setTargetAreaName(result.city ? `${result.postalCode ? `${result.postalCode} ` : ""}${result.city}` : "Verteilgebiet");
       setPolygon([]);
       setPolygonSource("postal_code");
       setHistory([]);
-      areaSegmentsRef.current = [];
-      setAreaSegments([]);
+      const retainedSegments = options?.forceReplace ? [] : areaSegmentsRef.current.filter((segment) => segment.id !== activeSegmentId && segment.points.length >= 3);
+      areaSegmentsRef.current = retainedSegments;
+      setAreaSegments(retainedSegments);
+      setActiveSegmentId(null);
+      setSelectedAreaId("");
       setMapNotice("Gebietsgrenzen werden geladen. Klicke danach eine markierte Flaeche an.");
     }
     setPendingLocation(null);
-  }, [resetIntelligence]);
+  }, [activeSegmentId, resetIntelligence]);
 
   useEffect(() => {
     applyLocationResultRef.current = applyLocationResult;
@@ -2199,6 +2204,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   async function finishOrder(completionPath: "direct_payment" | "inquiry") {
     if (completionPath === "direct_payment" && serviceType === "PRODUCT_SAMPLING") {
       setFinishStatus("Produktproben prüfen wir vorab. Bitte sende ein individuelles Sampling-Angebot.");
+      return;
+    }
+    if (completionPath === "direct_payment" && (!isGermanPostalCode(planningPostalCode) || planningCity.trim().length < 2)) {
+      setActiveStep(1);
+      setFinishStatus("Bitte wähle zuerst ein gültiges Verteilgebiet aus.");
       return;
     }
     if (flyerQuantity < MINIMUM_FLYER_QUANTITY) {

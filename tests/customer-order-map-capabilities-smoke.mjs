@@ -38,8 +38,8 @@ assert.match(
 );
 assert.match(
   wizard,
-  /setBoundaryLayerStatus\("unavailable"\)[\s\S]*setAreaSelectionMode\("draw"\)/,
-  "Bei nicht verfügbarer Boundary-Konfiguration muss der Zeichenweg aktiviert bleiben.",
+  /setMapRenderMode\("standard"\)[\s\S]*setBoundaryLayerStatus\("unavailable"\)/,
+  "Bei nicht verfügbarer Boundary-Konfiguration muss die Karte sauber in den Standardmodus wechseln.",
 );
 
 console.log("Customer order map capability contract passed.");

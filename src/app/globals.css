@@ -8157,6 +8157,26 @@ body {
   line-height: 1.45;
 }
 
+.flyerQuantityIntro {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid rgba(167, 255, 0, 0.24);
+  border-radius: 14px;
+  background: rgba(167, 255, 0, 0.06);
+}
+
+.flyerQuantityIntro > strong {
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.flyerQuantityIntro > small {
+  color: rgba(237, 246, 255, 0.74);
+  line-height: 1.4;
+}
+
 .serviceChoiceList {
   display: grid;
   gap: 8px;

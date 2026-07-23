@@ -10,7 +10,7 @@ assert.match(
 );
 assert.match(
   wizard,
-  /setActiveSegmentId\(segmentId\);[\s\S]*?setAreaSelectionMode\("boundary"\);[\s\S]*?pushPolygon\(matchedArea\.points, "saved_area"\);/,
+  /const applySavedArea = useCallback\([\s\S]*?setAreaSegments\(nextSegments\);[\s\S]*?setActiveSegmentId\(segmentId\);[\s\S]*?setSelectedAreaId\(area\.id\);[\s\S]*?setPolygon\(points\);[\s\S]*?setPolygonSource\("saved_area"\);/,
   "Eine gespeicherte Google-Flaeche muss nach der Suche direkt als waehltbares Gebiet aktiv sein.",
 );
 assert.match(

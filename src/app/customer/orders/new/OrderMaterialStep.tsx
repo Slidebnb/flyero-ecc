@@ -68,6 +68,21 @@ export function OrderMaterialStep({
   return (
     <section className="orderPanelBlock inlineStepBlock" data-testid="customer-own-flyer-step">
       <p className="orderStepHint">Wähle zuerst, welches Werbemittel du verteilen lassen möchtest. Online buchbar sind bereits gedruckte Materialien, die an ein FLYERO-Lager gesendet werden.</p>
+      <div className="flyerQuantityIntro">
+        <strong>Wie viele Stück möchtest du verteilen?</strong>
+        <small>Die Menge kannst du jederzeit anpassen. FLYERO zeigt dir direkt die passende Preisvorschau.</small>
+        <div className="flyerRecommendation">
+          <span>{recommendationLabel}</span>
+          <strong>{new Intl.NumberFormat("de-DE").format(Math.round(recommendedFlyerQuantity || 0))} Stück</strong>
+          <small>Empfehlung auf Basis deines ausgewählten Gebiets.</small>
+        </div>
+        <div className="quantityControl">
+          <button type="button" onClick={() => onMoveQuantity(-1000)}>−</button>
+          <input data-testid="order-flyer-quantity" value={flyerQuantity} onChange={(event) => onQuantityChange(Number(event.target.value) || 100)} onBlur={onQuantityBlur} inputMode="numeric" aria-label="Flyermenge" />
+          <button type="button" onClick={() => onMoveQuantity(1000)}>+</button>
+          <span>Stück</span>
+        </div>
+      </div>
       <div className="serviceChoiceList" aria-label="Werbemittel auswählen" data-testid="order-service-type">
         {distributionServiceCatalog.map((service) => (
           <button
@@ -136,17 +151,6 @@ export function OrderMaterialStep({
       ) : (
         <p className="orderReviewNotice">Nach deiner Registrierung wählst du das Empfangslager für deine bereits gedruckten Flyer aus.</p>
       )}
-      <div className="flyerRecommendation">
-        <span>{recommendationLabel}</span>
-        <strong>{new Intl.NumberFormat("de-DE").format(Math.round(recommendedFlyerQuantity || 0))} Stück</strong>
-        <small>Du kannst die Menge jederzeit ändern.</small>
-      </div>
-      <div className="quantityControl">
-        <button type="button" onClick={() => onMoveQuantity(-1000)}>−</button>
-        <input data-testid="order-flyer-quantity" value={flyerQuantity} onChange={(event) => onQuantityChange(Number(event.target.value) || 100)} onBlur={onQuantityBlur} inputMode="numeric" />
-        <button type="button" onClick={() => onMoveQuantity(1000)}>+</button>
-        <span>Stück</span>
-      </div>
     </section>
   );
 }
