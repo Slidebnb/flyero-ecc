@@ -3,6 +3,7 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import { isProductionRuntime, productionAreaWhere } from "@/lib/productionData";
+import { syncDistributionAreaSpatialGeometry } from "@/lib/spatialAreas";
 
 type Position = [number, number];
 type PolygonFeature = {
@@ -309,6 +310,7 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
   });
 
   await persistPolygons(area.id, geoJson);
+  await syncDistributionAreaSpatialGeometry(area.id);
   await logAreaHistory({ areaId: area.id, userId: input.userId, action: "area.created", newValue: area });
   await createAuditLog({
     userId: input.userId,
@@ -397,6 +399,7 @@ export async function updateDistributionArea(input: AreaInput & { id: string; us
   }
 
   await persistPolygons(area.id, geoJson);
+  await syncDistributionAreaSpatialGeometry(area.id);
   await logAreaHistory({ areaId: area.id, userId: input.userId, action: "area.updated", oldValue: existing, newValue: area });
   await createAuditLog({
     userId: input.userId,

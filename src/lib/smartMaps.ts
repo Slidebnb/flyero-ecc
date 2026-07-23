@@ -281,6 +281,7 @@ function areaReferenceForSegment(segment: NormalizedOrderAreaSegment, areas: Arr
     sourceUrl: string | null;
     sourceYear: number | null;
     confidence: Prisma.Decimal | null;
+    residentialBuildings: number | null;
   }>;
   }>
 ) {
@@ -451,6 +452,17 @@ export async function getOrderIntelligence(input: {
   const households = segmentCalculations
     ? segmentCalculations.reduce((sum, item) => sum + item.households, 0)
     : estimateHouseholds({ coverageAreaSqm: effectiveCoverageAreaSqm, cityDensityFactor: densityFactor });
+  const buildingEstimateValues = segmentCalculations
+    ? segmentCalculations.map((item) => item.segmentEstimate?.residentialBuildings ?? null)
+    : [referenceEstimate?.residentialBuildings ?? null];
+  const residentialBuildings = buildingEstimateValues.length > 0 && buildingEstimateValues.every((value) => value !== null)
+    ? buildingEstimateValues.reduce((sum, value) => sum + (value ?? 0), 0)
+    : null;
+  const buildingCountSource = residentialBuildings === null
+    ? "not-available"
+    : segmentCalculations
+      ? segmentCalculations.map((item) => estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source)).join(", ")
+      : estimateSourceLabel(referenceEstimate?.method, referenceEstimate?.source);
   // A polygon-area formula is useful for route planning, but it is not a
   // sufficiently reliable household basis for an automatic quantity advice.
   // Only official/licensed estimates with high confidence may drive it.
@@ -663,6 +675,8 @@ export async function getOrderIntelligence(input: {
       pricingRuleSignature: authoritativeQuote.pricingRuleSignature,
       quote: authoritativeQuote,
       householdCountSource,
+      residentialBuildings,
+      buildingCountSource,
       pricingVersion: price.snapshot.pricingVersion,
       serviceLabel: price.snapshot.serviceLabel,
       weightClass: price.snapshot.weightClass,
@@ -692,6 +706,7 @@ export async function getOrderIntelligence(input: {
             estimateSourceUrl: referenceEstimate?.sourceUrl ?? null,
             estimateSourceYear: referenceEstimate?.sourceYear ?? null,
             estimateConfidence: referenceEstimate?.confidence ? Number(referenceEstimate.confidence) : null,
+            residentialBuildings: referenceEstimate?.residentialBuildings ?? null,
           }
         : {
             distributionAreaId: input.distributionAreaId ?? null,
@@ -702,6 +717,7 @@ export async function getOrderIntelligence(input: {
             estimateMethod: null,
             estimateSource: null,
             estimateConfidence: null,
+            residentialBuildings: null,
           },
       segments: segmentCalculations?.map((item) => ({
         name: item.segment.name,
@@ -710,6 +726,7 @@ export async function getOrderIntelligence(input: {
         areaSqm: item.segment.areaSqm,
         households: item.households,
         householdCountSource: estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source),
+        residentialBuildings: item.segmentEstimate?.residentialBuildings ?? null,
         confidence: item.confidence,
         distributionAreaId: item.segmentArea?.id ?? item.segment.distributionAreaId,
       })) ?? [],

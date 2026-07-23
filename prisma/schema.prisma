@@ -961,6 +961,7 @@ model DistributionArea {
   radiusMeters            Int?
   geoJson                 Json?
   geometryGeoJson         Json?
+  spatialGeometry         Unsupported("geometry(Geometry, 4326)")?
   coverageAreaSqm         Decimal?               @db.Decimal(14, 2)
   areaKm2                 Decimal?               @db.Decimal(12, 6)
   estimatedHouseholds     Int?
@@ -994,6 +995,7 @@ model DistributionArea {
   @@index([city, postalCode])
   @@index([dataSourceType, dataUpdatedAt])
   @@index([googlePlaceId])
+  @@index([spatialGeometry], type: Gist, name: "DistributionArea_spatialGeometry_gist_idx")
   @@index([customerId, status])
   @@index([tenantId, status])
   @@index([createdById])

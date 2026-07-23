@@ -217,7 +217,8 @@ try {
   const unexpectedFailedRequests = failedRequests.filter(({ url, error }) => {
     const isGoogleMaps = url.includes("maps.googleapis.com") || url.includes("maps.gstatic.com");
     const isLocalDevAbort = baseUrl.startsWith("http://localhost") && url.includes("/_next/") && error === "net::ERR_ABORTED";
-    const isCancelledExperience = url.endsWith("/api/public/planner/experience") && error === "net::ERR_ABORTED";
+    const isCancelledExperience = (url.endsWith("/api/public/planner/experience")
+      || url.includes("/api/maps/official-boundaries?")) && error === "net::ERR_ABORTED";
     return !isGoogleMaps && !isLocalDevAbort && !isCancelledExperience;
   });
   assert.deepEqual(browserErrors, [], `Kunden-Wizard meldet Browserfehler:\n${browserErrors.join("\n")}`);

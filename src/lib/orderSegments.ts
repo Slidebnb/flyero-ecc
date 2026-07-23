@@ -86,22 +86,30 @@ function normalizeGeometry(value: unknown): FeatureCollection | null {
     if (!candidate || typeof candidate !== "object") return [];
     const feature = candidate as Record<string, unknown>;
     const geometry = (feature.geometry && typeof feature.geometry === "object" ? feature.geometry : feature) as Record<string, unknown>;
-    if (geometry.type !== "Polygon" || !Array.isArray(geometry.coordinates)) return [];
-    const rings = geometry.coordinates
-      .filter((ring): ring is unknown[] => Array.isArray(ring))
-      .map((ring) => ring
-        .filter((point): point is unknown[] => Array.isArray(point) && point.length >= 2)
-        .map((point) => [finiteNumber(point[0]), finiteNumber(point[1])] as const)
-        .filter((point): point is readonly [number, number] => point[0] !== null && point[1] !== null)
-        .map(([lng, lat]) => [lng, lat]))
-      .filter((ring) => ring.length >= 3)
-      .map(closeRing);
-    if (!rings.length || rings.some((ring) => ring.length > MAX_ORDER_AREA_POINTS + 1)) return [];
-    return [{
-      type: "Feature" as const,
-      properties: (feature.properties && typeof feature.properties === "object" ? feature.properties : {}) as Record<string, unknown>,
-      geometry: { type: "Polygon" as const, coordinates: rings },
-    }];
+    const polygonGeometries = geometry.type === "MultiPolygon" && Array.isArray(geometry.coordinates)
+      ? geometry.coordinates.flatMap((coordinates) => Array.isArray(coordinates)
+        ? [{ type: "Polygon", coordinates }]
+        : [])
+      : geometry.type === "Polygon" && Array.isArray(geometry.coordinates)
+        ? [{ type: "Polygon", coordinates: geometry.coordinates }]
+        : [];
+    return polygonGeometries.flatMap((polygon) => {
+      const rings = polygon.coordinates
+        .filter((ring): ring is unknown[] => Array.isArray(ring))
+        .map((ring) => ring
+          .filter((point): point is unknown[] => Array.isArray(point) && point.length >= 2)
+          .map((point) => [finiteNumber(point[0]), finiteNumber(point[1])] as const)
+          .filter((point): point is readonly [number, number] => point[0] !== null && point[1] !== null)
+          .map(([lng, lat]) => [lng, lat]))
+        .filter((ring) => ring.length >= 3)
+        .map(closeRing);
+      if (!rings.length || rings.some((ring) => ring.length > MAX_ORDER_AREA_POINTS + 1)) return [];
+      return [{
+        type: "Feature" as const,
+        properties: (feature.properties && typeof feature.properties === "object" ? feature.properties : {}) as Record<string, unknown>,
+        geometry: { type: "Polygon" as const, coordinates: rings },
+      }];
+    });
   });
 
   return features.length ? { type: "FeatureCollection", features } : null;

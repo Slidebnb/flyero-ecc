@@ -21,6 +21,10 @@ export type ReusableAreaOption = {
   centerLat?: number | null;
   centerLng?: number | null;
   radiusMeters?: number | null;
+  areaKm2?: number | null;
+  confidence?: number | null;
+  dataSourceName?: string | null;
+  dataSourceType?: string | null;
 };
 
 type Props = {

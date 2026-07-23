@@ -14,6 +14,7 @@ export type OrderAreaSegmentDraft = {
   district: string;
   country: string;
   points: LatLng[];
+  geometryGeoJson?: unknown;
   polygonSource: PolygonSource;
   distributionAreaId?: string;
   flyerQuantity?: number;
@@ -81,6 +82,8 @@ export type Intelligence = {
     calculatedAt?: string;
     calculationVersion?: string;
     householdCountSource?: string;
+    residentialBuildings?: number | null;
+    buildingCountSource?: string;
     pricingVersion?: string;
     fingerprint?: string;
     polygonHash?: string;
@@ -100,6 +103,7 @@ export type Intelligence = {
       estimateMethod: string | null;
       estimateSource: string | null;
       estimateConfidence: number | null;
+      residentialBuildings?: number | null;
     };
     segments?: Array<{
       name: string;
@@ -107,6 +111,7 @@ export type Intelligence = {
       postalCode: string | null;
       coverageAreaSqm: number;
       households: number;
+      residentialBuildings?: number | null;
       householdCountSource: string;
       confidence: "high" | "medium" | "low";
       distributionAreaId: string | null;

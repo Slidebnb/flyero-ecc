@@ -192,3 +192,28 @@ Für launch-taugliche offizielle Haushaltszahlen wird benötigt:
 - Quellen-/Stand-Datum je Datensatz
 - Confidence- und Aktualitätslogik
 - klare Kennzeichnung im Kundenbericht
+
+## FLYERO Geo Engine und amtliche Grenzen
+
+Die auswÃ¤hlbaren FlÃ¤chen kommen nicht aus Google Boundaries. Google Maps dient
+nur als KartenoberflÃ¤che. FLYERO speichert importierte Verwaltungsgrenzen in
+`DistributionArea.spatialGeometry` als PostGIS-Geometrie in EPSG:4326 und
+ermittelt passende FlÃ¤chen serverseitig mit `ST_Intersects`.
+
+FÃ¼r deutschlandweite Gemeindegrenzen ist `scripts/import-vg250-boundaries.mjs`
+vorbereitet. Die VG250-Daten werden vor dem Import von EPSG:25832 nach EPSG:4326
+transformiert und als amtliche Quelle gespeichert. Voraussetzung ist ein
+installiertes `ogr2ogr`/GDAL. Der Import ist standardmÃ¤ÃŸig ein Dry-Run und
+schreibt erst mit `--apply` in die Datenbank.
+
+```bash
+node scripts/import-vg250-boundaries.mjs /pfad/zu/DE_VG250.gpkg
+node scripts/import-vg250-boundaries.mjs /pfad/zu/DE_VG250.gpkg --apply
+```
+
+VG250 liefert Verwaltungsgrenzen, aber keine Haushaltszahlen. GebÃ¤ude- und
+Haushaltswerte dÃ¼rfen daher nicht aus der PolygonflÃ¤che erfunden werden. Die
+GebietsflÃ¤che, Entfernung und der Preis werden nach einer Auswahl neu aus dem
+aktuellen Gebietssnapshot berechnet; Haushalte bleiben je nach importierter
+Quelle geschÃ¤tzt, bis offizielle oder lizenzierte Geomarketingdaten importiert
+sind.

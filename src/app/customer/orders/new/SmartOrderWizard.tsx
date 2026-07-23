@@ -199,13 +199,59 @@ function polygonToGeoJson(points: LatLng[]) {
   };
 }
 
-function segmentsToGeoJson(segments: Array<{ points: LatLng[]; name: string; city: string; postalCode: string }>) {
+function featureRings(geoJson: unknown): LatLng[][] {
+  const value = geoJson as {
+    type?: string;
+    features?: Array<{ type?: string; geometry?: { type?: string; coordinates?: unknown } }>;
+    geometry?: { type?: string; coordinates?: unknown };
+    coordinates?: unknown;
+  } | null;
+  const geometries = value?.type === "FeatureCollection"
+    ? (value.features ?? []).map((feature) => feature.geometry).filter(Boolean)
+    : value?.type === "Feature"
+      ? [value.geometry]
+      : [value];
+  const rings: LatLng[][] = [];
+  for (const geometry of geometries) {
+    if (!geometry?.coordinates) continue;
+    const coordinates = geometry.coordinates as unknown;
+    const polygons = geometry.type === "MultiPolygon"
+      ? coordinates as unknown[]
+      : geometry.type === "Polygon"
+        ? [coordinates]
+        : [];
+    for (const polygon of polygons) {
+      const outerRing = Array.isArray(polygon) && Array.isArray(polygon[0]) ? polygon[0] : [];
+      const ring = Array.isArray(outerRing)
+        ? outerRing
+          .map((point) => Array.isArray(point) ? ({ lng: Number(point[0]), lat: Number(point[1]) }) : null)
+          .filter((point): point is LatLng => point !== null && Number.isFinite(point.lat) && Number.isFinite(point.lng))
+        : [];
+      if (ring.length >= 3) rings.push(ring.slice(0, ring.length > 1 && ring[0].lat === ring[ring.length - 1].lat && ring[0].lng === ring[ring.length - 1].lng ? -1 : undefined));
+    }
+  }
+  return rings;
+}
+
+function segmentGeometry(segment: { points: LatLng[]; geometryGeoJson?: unknown }) {
+  const stored = featureRings(segment.geometryGeoJson);
+  if (stored.length > 0) return segment.geometryGeoJson;
+  return polygonToGeoJson(segment.points);
+}
+
+function segmentsToGeoJson(segments: Array<{ points: LatLng[]; geometryGeoJson?: unknown; name: string; city: string; postalCode: string }>) {
   return {
     type: "FeatureCollection",
     features: segments
-      .filter((segment) => segment.points.length >= 3)
+      .filter((segment) => featureRings(segment.geometryGeoJson).length > 0 || segment.points.length >= 3)
       .map((segment) => {
-        const geometry = polygonToGeoJson(segment.points).features[0].geometry;
+        const source = segmentGeometry(segment) as {
+          type?: string;
+          features?: Array<{ geometry?: unknown }>;
+          geometry?: unknown;
+        };
+        const sourceFeatures = source.type === "FeatureCollection" ? source.features ?? [] : [{ geometry: source.type === "Feature" ? source.geometry : source }];
+        const geometry = sourceFeatures[0]?.geometry ?? polygonToGeoJson(segment.points).features[0].geometry;
         return {
           type: "Feature",
           properties: { name: segment.name, city: segment.city, postalCode: segment.postalCode },
@@ -230,13 +276,13 @@ function polygonAreaSqm(points: LatLng[]) {
   return Math.round(Math.abs(area / 2));
 }
 
+function geometryAreaSqm(geoJson: unknown, fallback: LatLng[]) {
+  const rings = featureRings(geoJson);
+  return rings.length > 0 ? rings.reduce((sum, ring) => sum + polygonAreaSqm(ring), 0) : polygonAreaSqm(fallback);
+}
+
 function featurePoints(geoJson: unknown) {
-  const collection = geoJson as { features?: Array<{ geometry?: { coordinates?: number[][][] } }> } | null;
-  const ring = collection?.features?.[0]?.geometry?.coordinates?.[0] ?? [];
-  return ring
-    .slice(0, -1)
-    .map((point) => ({ lng: Number(point[0]), lat: Number(point[1]) }))
-    .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+  return featureRings(geoJson)[0] ?? [];
 }
 
 function normalizeLocationPart(value?: string | null) {
@@ -260,6 +306,9 @@ function googleBoundaryLabel(place?: GoogleBoundaryPlace | null, fallback = "Geb
     || place?.formattedAddress?.split(",")[0]?.trim()
     || fallback;
 }
+
+// FLYERO owns the selectable boundary data. Google Maps only renders the map.
+const USE_GOOGLE_BOUNDARY_LAYERS = false;
 
 function areaCenter(area: ReusableAreaOption, fallback: LatLng) {
   return area.centerLat && area.centerLng ? { lat: area.centerLat, lng: area.centerLng } : fallback;
@@ -436,13 +485,16 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const finishDrawingRef = useRef<() => void>(() => undefined);
   const areaSelectionModeRef = useRef<"boundary" | "draw">("draw");
   const segmentPolygonsRef = useRef(new Map<string, GooglePolygon>());
+  const officialBoundaryOverlaysRef = useRef(new Map<string, GooglePolygon[]>());
+  const officialBoundaryListenersRef = useRef<GoogleEventListener[]>([]);
+  const officialBoundaryAbortRef = useRef<AbortController | null>(null);
   const boundaryLayerRefs = useRef(new Map<string, GoogleFeatureLayer>());
   const boundaryFeatureListenersRef = useRef<GoogleEventListener[]>([]);
   const boundaryLayerListenersRef = useRef<GoogleEventListener[]>([]);
   const boundaryIdleListenerRef = useRef<GoogleEventListener | null>(null);
   const selectedBoundaryPlaceIdsRef = useRef<string[]>([]);
   const areaSegmentsRef = useRef<OrderAreaSegmentDraft[]>([]);
-  const selectBoundaryAreaRef = useRef<(placeId: string, feature?: GoogleFeature) => void>(() => undefined);
+  const selectBoundaryAreaRef = useRef<(placeId: string, feature?: GoogleFeature, featureType?: string) => void>(() => undefined);
   const applyLocationResultRef = useRef<(result: LocationResult, options?: { forceReplace?: boolean }) => void>(() => undefined);
   const overviewDragRef = useRef<OverviewDragState | null>(null);
   const initialSearchRef = useRef<PublicLocationContext | null>(null);
@@ -498,6 +550,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   // vector-map enhancement and must never block a customer without a Map ID.
   const [areaSelectionMode, setAreaSelectionMode] = useState<"boundary" | "draw">("draw");
   const [boundaryLayerStatus, setBoundaryLayerStatus] = useState<"unknown" | "available" | "unavailable">("unknown");
+  const [officialBoundaries, setOfficialBoundaries] = useState<ReusableAreaOption[]>([]);
   const [selectedBoundaryPlaceIds, setSelectedBoundaryPlaceIds] = useState<string[]>([]);
   const [mapNotice, setMapNotice] = useState("");
   const [usedAutocomplete, setUsedAutocomplete] = useState(false);
@@ -520,13 +573,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [mapRenderMode, setMapRenderMode] = useState<"boundary" | "standard">(
     mapsBoundaryConfigured ? "boundary" : "standard",
   );
-
-  useEffect(() => {
-    if (!mapsBoundaryConfigured) {
-      setBoundaryLayerStatus("unavailable");
-      setAreaSelectionMode("draw");
-    }
-  }, [mapsBoundaryConfigured]);
 
   useEffect(() => {
     areaSegmentsRef.current = areaSegments;
@@ -576,6 +622,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       district: currentSegments.find((segment) => segment.id === activeSegmentId)?.district ?? "",
       country: "DE",
       points: [...polygon],
+      geometryGeoJson: currentSegments.find((segment) => segment.id === (activeSegmentId ?? "segment-current"))?.geometryGeoJson,
       polygonSource,
       distributionAreaId: selectedAreaId || undefined,
     } satisfies OrderAreaSegmentDraft;
@@ -594,7 +641,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     (segment) => segment.id === activeSegmentId && segment.points.length >= 3,
   );
   const coverageAreaSqm = useMemo(
-    () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonAreaSqm(segment.points), 0),
+    () => areaSegmentsPayload.reduce((sum, segment) => sum + geometryAreaSqm(segment.geometryGeoJson, segment.points), 0),
     [areaSegmentsPayload],
   );
   // Show the local drawing preview immediately. Server-backed pricing and
@@ -654,7 +701,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       postalCode: segment.postalCode,
       district: segment.district,
       country: segment.country,
-      geometryGeoJson: polygonToGeoJson(segment.points),
+      geometryGeoJson: segment.geometryGeoJson ?? polygonToGeoJson(segment.points),
       distributionAreaId: segment.distributionAreaId,
       flyerQuantity: segment.flyerQuantity,
       notes: segment.notes,
@@ -752,6 +799,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     polygonSource,
     areaKm2: coverageAreaSqm / 1_000_000,
     householdCount: households,
+    residentialBuildings: currentIntelligence?.metrics.residentialBuildings ?? null,
+    buildingCountSource: currentIntelligence?.metrics.buildingCountSource ?? "not-available",
     recommendedFlyerQuantity,
     pricePreview: netPrice,
     walkingDistanceKm: routeDistanceMeters / 1000,
@@ -786,6 +835,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       estimateMethod: currentIntelligence?.metrics.areaReference?.estimateMethod ?? null,
       estimateSource: currentIntelligence?.metrics.areaReference?.estimateSource ?? null,
       estimateConfidence: currentIntelligence?.metrics.areaReference?.estimateConfidence ?? null,
+      residentialBuildings: currentIntelligence?.metrics.areaReference?.residentialBuildings ?? null,
     },
   }), [
     calculationConfidence,
@@ -797,11 +847,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     netPrice,
     households,
     householdCountSource,
+    currentIntelligence?.metrics.buildingCountSource,
+    currentIntelligence?.metrics.residentialBuildings,
     currentIntelligence?.metrics.areaReference?.coverageAreaSqm,
     currentIntelligence?.metrics.areaReference?.distributionAreaId,
     currentIntelligence?.metrics.areaReference?.estimateConfidence,
     currentIntelligence?.metrics.areaReference?.estimateMethod,
     currentIntelligence?.metrics.areaReference?.estimateSource,
+    currentIntelligence?.metrics.areaReference?.residentialBuildings,
     currentIntelligence?.metrics.calculatedAt,
     currentIntelligence?.metrics.calculationVersion,
     currentIntelligence?.warehouse?.city,
@@ -952,10 +1005,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }) ?? null;
   }, [areas, city, postalCode]);
 
-  // Google DDS boundaries are selectable even when FLYERO does not yet have a
-  // persisted polygon for the location. The click identifies the place; only
-  // a persisted or manually drawn polygon can be used for final area pricing.
-  const boundarySelectionEnabled = boundaryLayerStatus === "available";
+  // FLYERO's imported polygons are the selectable source. Google only renders
+  // these polygons on top of the basemap.
+  const boundarySelectionEnabled = officialBoundaries.length > 0;
 
   const applySavedArea = useCallback((area: (typeof areas)[number], placeId: string) => {
     const points = featurePoints(area.geoJson);
@@ -973,6 +1025,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       district: area.district ?? "",
       country: "DE",
       points,
+      geometryGeoJson: area.geoJson,
       polygonSource: "saved_area",
       distributionAreaId: area.id,
     };
@@ -999,7 +1052,21 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     return true;
   }, []);
 
-  const selectBoundaryArea = useCallback((placeId: string, feature?: GoogleFeature) => {
+  const selectOfficialBoundary = useCallback((area: ReusableAreaOption) => {
+    const placeId = area.googlePlaceId ?? `flyero-area:${area.id}`;
+    if (!applySavedArea(area, placeId)) {
+      setMapNotice("FÃ¼r dieses Gebiet ist keine verwertbare FlÃ¤che hinterlegt.");
+      return;
+    }
+    setMapNotice(`${area.name} ausgewÃ¤hlt. Weitere Gebiete kannst du ebenfalls anklicken.`);
+  }, [applySavedArea]);
+
+  const selectBoundaryArea = useCallback((placeId: string, feature?: GoogleFeature, featureType?: string) => {
+    const officialArea = officialBoundaries.find((candidate) => candidate.googlePlaceId === placeId);
+    if (officialArea) {
+      selectOfficialBoundary(officialArea);
+      return;
+    }
     const area = findAreaForBoundaryContext(placeId, postalCode, city);
     if (!area) {
       setAreaSelectionMode("boundary");
@@ -1029,6 +1096,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         const components = placeComponents ?? geocodeResult?.address_components;
         const boundaryCity = googleComponent(components, ["locality", "postal_town", "administrative_area_level_3"]);
         const boundaryPostalCode = googleComponent(components, ["postal_code"]);
+        const boundaryDistrict = googleComponent(components, ["administrative_area_level_2", "administrative_area_level_3"]);
         const boundaryCenter = googleCoordinate(boundaryPlace?.geometry?.location ?? geocodeResult?.geometry?.location);
         const boundaryViewport = boundaryPlace?.geometry?.viewport ?? geocodeResult?.geometry?.viewport;
         const boundaryLabel = googleBoundaryLabel(boundaryPlace, boundaryCity || city || query || "Gebiet");
@@ -1038,6 +1106,25 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
         const resolvedArea = findAreaForBoundaryContext(placeId, boundaryPostalCode || postalCode, boundaryCity || city);
         if (resolvedArea && applySavedArea(resolvedArea, placeId)) return;
+
+        // Google DDS returns the boundary identity, not its polygon geometry.
+        // Resolve that identity against FLYERO's imported/official area store
+        // before allowing the selection to enter pricing or checkout.
+        const boundaryParams = new URLSearchParams({
+          placeId,
+          city: boundaryCity || city,
+          postalCode: boundaryPostalCode || postalCode,
+          district: boundaryDistrict,
+          featureType: featureType || "",
+        });
+        try {
+          const response = await fetch(`/api/maps/boundary-area?${boundaryParams.toString()}`);
+          const payload = await response.json().catch(() => null) as { data?: ReusableAreaOption | null } | null;
+          const resolvedBoundaryArea = payload?.data ?? null;
+          if (resolvedBoundaryArea && applySavedArea(resolvedBoundaryArea, placeId)) return;
+        } catch {
+          // Keep the selection out of checkout when no authoritative geometry is available.
+        }
 
         if (boundaryCenter) setCenter(boundaryCenter);
         if (boundaryViewport) mapRef.current?.fitBounds(boundaryViewport);
@@ -1059,7 +1146,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setTargetAreaName(boundaryLabel);
         setQuery(nextQuery);
         setSelectedAreaId("");
-        setMapNotice("Gebiet erkannt. FLYERO bereitet die Fläche und Preisvorschau vor.");
+        setAreaSelectionMode("draw");
+        setMapNotice("Für diesen Ort ist noch keine amtliche Fläche hinterlegt. Bitte zeichne die gewünschte Fläche direkt auf der Karte.");
       })().catch(() => {
         setMapNotice("Die Gebietsdetails konnten nicht geladen werden. Bitte wähle eine andere markierte Fläche.");
       });
@@ -1085,6 +1173,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       district: area.district ?? "",
       country: "DE",
       points,
+      geometryGeoJson: area.geoJson,
       polygonSource: "saved_area",
       distributionAreaId: area.id,
     };
@@ -1108,11 +1197,56 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setAreaSelectionMode("boundary");
     setMapNotice(`${area.name} ausgewählt. Du kannst weitere Gebiete direkt anklicken.`);
-  }, [applySavedArea, city, findAreaForBoundaryContext, postalCode, query]);
+  }, [applySavedArea, city, findAreaForBoundaryContext, officialBoundaries, postalCode, query, selectOfficialBoundary]);
 
   useEffect(() => {
     selectBoundaryAreaRef.current = selectBoundaryArea;
   }, [selectBoundaryArea]);
+
+  useEffect(() => {
+    officialBoundaryAbortRef.current?.abort();
+    const latitude = selectedLocation?.lat;
+    const longitude = selectedLocation?.lng;
+    if (latitude == null || longitude == null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      setOfficialBoundaries([]);
+      setBoundaryLayerStatus("unavailable");
+      return;
+    }
+
+    const controller = new AbortController();
+    officialBoundaryAbortRef.current = controller;
+    const request = new URLSearchParams({
+      lat: String(latitude),
+      lng: String(longitude),
+      city,
+      postalCode,
+      featureType: "LOCALITY",
+    });
+    setBoundaryLayerStatus("unknown");
+    setAreaSelectionMode("boundary");
+    setMapNotice("Gebietsgrenzen werden geladen...");
+    fetch(`/api/maps/official-boundaries?${request.toString()}`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (controller.signal.aborted) return;
+        const nextBoundaries = Array.isArray(payload?.data) ? payload.data as ReusableAreaOption[] : [];
+        setOfficialBoundaries(nextBoundaries);
+        setBoundaryLayerStatus(nextBoundaries.length > 0 ? "available" : "unavailable");
+        setAreaSelectionMode(nextBoundaries.length > 0 ? "boundary" : "draw");
+        setMapNotice(nextBoundaries.length > 0
+          ? "Klicke eine markierte Fläche an. FLYERO berechnet deine Planung danach automatisch."
+          : "Für diesen Ort ist noch keine amtliche Fläche hinterlegt. Zeichne dein Gebiet direkt auf der Karte.");
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setOfficialBoundaries([]);
+        setBoundaryLayerStatus("unavailable");
+        setAreaSelectionMode("draw");
+        setMapNotice("Die Gebietsgrenzen konnten gerade nicht geladen werden. Du kannst die Fläche direkt auf der Karte zeichnen.");
+      });
+
+    return () => controller.abort();
+  }, [city, postalCode, selectedLocation?.lat, selectedLocation?.lng]);
 
   const pushPolygon = useCallback((next: LatLng[], source: PolygonSource = "drawn") => {
     setPolygon(next);
@@ -1452,6 +1586,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       polygonRef.current = null;
       for (const overlay of segmentPolygonsRef.current.values()) overlay.setMap(null);
       segmentPolygonsRef.current.clear();
+      officialBoundaryAbortRef.current?.abort();
+      setOfficialBoundaries([]);
       areaSegmentsRef.current = [];
       setAreaSegments([]);
       setActiveSegmentId(null);
@@ -1511,6 +1647,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           district: matchedArea.area.district ?? "",
           country: "DE",
           points: matchedArea.points,
+          geometryGeoJson: matchedArea.area.geoJson,
           polygonSource: "saved_area",
           distributionAreaId: matchedArea.area.id,
         };
@@ -1535,8 +1672,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setHistoryIndex(0);
         areaSegmentsRef.current = [];
         setAreaSegments([]);
-        setAreaSelectionMode("draw");
-        setMapNotice("PLZ gefunden. Zeichne jetzt dein gewünschtes Verteilgebiet direkt auf der Karte.");
+        setAreaSelectionMode("boundary");
+        setMapNotice("Gebietsgrenzen werden geladen. Klicke danach eine markierte Fläche an.");
       }
     }
     setPendingLocation(null);
@@ -1871,11 +2008,68 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }, [activeSegmentId, areaSelectionMode, center, city, mapMode, mapRenderMode, mapsBoundaryConfigured, mapsBoundaryMapId, mapsReady, postalCode, pushPolygon, targetAreaName]);
 
   useEffect(() => {
-    if (!mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps) {
-      if (!mapsReady || !mapsBoundaryConfigured) {
-        setBoundaryLayerStatus("unavailable");
-        setAreaSelectionMode("draw");
+    if (!mapsReady || !mapRef.current || !window.google?.maps) return;
+    const maps = window.google.maps;
+    const officialOverlays = officialBoundaryOverlaysRef.current;
+    for (const listener of officialBoundaryListenersRef.current) {
+      try {
+        listener.remove?.();
+      } catch {
+        // The map may already be disposed during route changes.
       }
+    }
+    officialBoundaryListenersRef.current = [];
+    for (const overlays of officialOverlays.values()) {
+      for (const overlay of overlays) overlay.setMap(null);
+    }
+    officialOverlays.clear();
+
+    for (const area of officialBoundaries) {
+      const rings = featureRings(area.geoJson);
+      if (rings.length === 0) continue;
+      const overlays: GooglePolygon[] = [];
+      for (const ring of rings) {
+        const overlay = new maps.Polygon({
+          paths: ring,
+          strokeColor: area.id === selectedAreaId ? "#a7ff00" : "#8bd400",
+          strokeOpacity: area.id === selectedAreaId ? 1 : 0.9,
+          strokeWeight: area.id === selectedAreaId ? 3 : 2,
+          fillColor: area.id === selectedAreaId ? "#a7ff00" : "#8bd400",
+          fillOpacity: area.id === selectedAreaId ? 0.26 : 0.12,
+          clickable: true,
+          editable: false,
+          draggable: false,
+          zIndex: area.id === selectedAreaId ? 2 : 1,
+        });
+        overlay.setMap(mapRef.current);
+        overlays.push(overlay);
+        const listener = maps.event.addListener(overlay, "click", () => {
+          if (areaSelectionModeRef.current === "draw") return;
+          selectOfficialBoundary(area);
+        });
+        if (listener) officialBoundaryListenersRef.current.push(listener);
+      }
+      officialOverlays.set(area.id, overlays);
+    }
+
+    return () => {
+      for (const listener of officialBoundaryListenersRef.current) {
+        try {
+          listener.remove?.();
+        } catch {
+          // Google may already have disposed the listener.
+        }
+      }
+      officialBoundaryListenersRef.current = [];
+      for (const overlays of officialOverlays.values()) {
+        for (const overlay of overlays) overlay.setMap(null);
+      }
+      officialOverlays.clear();
+    };
+  }, [officialBoundaries, mapsReady, selectedAreaId, selectOfficialBoundary]);
+
+  useEffect(() => {
+    if (USE_GOOGLE_BOUNDARY_LAYERS === false || !mapsReady || !mapsBoundaryConfigured || !mapRef.current || !window.google?.maps) {
       return;
     }
     const maps = window.google.maps;
@@ -1894,13 +2088,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     };
     const installBoundaryFeatureListeners = () => {
       removeBoundaryFeatureListeners();
-      for (const layer of boundaryLayerRefs.current.values()) {
+      for (const [featureType, layer] of boundaryLayerRefs.current.entries()) {
         const listener = layer.addListener?.("click", (event) => {
           const canSelectBoundary = areaSelectionModeRef.current !== "draw";
           if (!canSelectBoundary) return;
           const feature = event.features?.[0];
           const placeId = feature?.placeId;
-          if (placeId) selectBoundaryAreaRef.current(placeId, feature);
+          if (placeId) selectBoundaryAreaRef.current(placeId, feature, featureType);
         });
         if (listener) boundaryFeatureListenersRef.current.push(listener);
       }
@@ -2110,11 +2304,19 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   function clearLocationSelection() {
     locationRequestSequenceRef.current += 1;
     locationAbortRef.current?.abort();
+    officialBoundaryAbortRef.current?.abort();
     resetIntelligence();
     polygonRef.current?.setMap(null);
     polygonRef.current = null;
     for (const overlay of segmentPolygonsRef.current.values()) overlay.setMap(null);
     segmentPolygonsRef.current.clear();
+    for (const listener of officialBoundaryListenersRef.current) listener.remove?.();
+    officialBoundaryListenersRef.current = [];
+    for (const overlays of officialBoundaryOverlaysRef.current.values()) {
+      for (const overlay of overlays) overlay.setMap(null);
+    }
+    officialBoundaryOverlaysRef.current.clear();
+    setOfficialBoundaries([]);
     areaSegmentsRef.current = [];
     selectedBoundaryPlaceIdsRef.current = [];
     setSelectedAreaId("");
@@ -2313,7 +2515,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         postalCode: segment.postalCode,
         district: segment.district,
         country: segment.country,
-        geometryGeoJson: polygonToGeoJson(segment.points),
+        geometryGeoJson: segment.geometryGeoJson ?? polygonToGeoJson(segment.points),
         distributionAreaId: segment.distributionAreaId,
         flyerQuantity: segment.flyerQuantity,
         notes: segment.notes,
@@ -2710,7 +2912,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         postalCode: segment.postalCode,
         district: segment.district,
         country: segment.country,
-        geometryGeoJson: polygonToGeoJson(segment.points),
+        geometryGeoJson: segment.geometryGeoJson ?? polygonToGeoJson(segment.points),
         distributionAreaId: segment.distributionAreaId,
         flyerQuantity: segment.flyerQuantity,
         notes: segment.notes,
