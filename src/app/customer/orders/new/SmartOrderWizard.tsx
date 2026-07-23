@@ -1935,6 +1935,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         return;
       }
       const mapCapabilities = activeMap.getMapCapabilities?.();
+      if (!mapCapabilities) {
+        scheduleInstallRetry();
+        return;
+      }
       if (mapCapabilities?.isDataDrivenStylingAvailable !== true) {
         removeBoundaryFeatureListeners();
         clearBoundaryLayerListeners();

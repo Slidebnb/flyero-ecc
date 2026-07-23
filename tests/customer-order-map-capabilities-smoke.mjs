@@ -28,6 +28,11 @@ assert.match(
 );
 assert.match(
   wizard,
+  /const mapCapabilities = activeMap\.getMapCapabilities\?\.\(\);[\s\S]{0,180}if \(!mapCapabilities\) \{\s*scheduleInstallRetry\(\);\s*return;\s*\}/,
+  "Die Boundary-Faehigkeit darf waehrend des Google-Kartenstarts nicht als endgueltig unavailable behandelt werden.",
+);
+assert.match(
+  wizard,
   /setBoundaryLayerStatus\("unavailable"\)[\s\S]*setAreaSelectionMode\("draw"\)/,
   "Bei nicht verfügbarer Boundary-Konfiguration muss der Zeichenweg aktiviert bleiben.",
 );
