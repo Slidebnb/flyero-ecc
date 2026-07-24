@@ -76,12 +76,12 @@ export function resolveAreaSubmissionContext(input: AreaSubmissionInput): AreaSu
   const selectedSegment = input.segments.find(hasAreaGeometry);
   const segmentCity = text(selectedSegment?.city);
   const selectedCity = text(input.selectedLocation?.city);
-  const city = segmentCity || selectedCity || text(input.city);
+  const city = selectedCity || text(input.city) || segmentCity;
 
   const segmentPostalCode = text(selectedSegment?.postalCode);
   const selectedPostalCode = text(input.selectedLocation?.postalCode);
   const inputPostalCode = text(input.postalCode);
-  const postalCode = [segmentPostalCode, selectedPostalCode, inputPostalCode].find(isGermanPostalCode) ?? "";
+  const postalCode = [selectedPostalCode, inputPostalCode, segmentPostalCode].find(isGermanPostalCode) ?? "";
 
   const targetAreaName = text(input.targetAreaName)
     || text(selectedSegment?.name)
