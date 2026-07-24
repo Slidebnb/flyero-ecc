@@ -92,6 +92,11 @@ assert.match(
 );
 assert.match(
   wizard,
+  /const visibleFinishStatus = finishStatus === invalidAreaFinishStatus\s*&&\s*hasValidSelectedArea\s*\?\s*""\s*:\s*finishStatus;/,
+  "Ein alter Gebietsfehler darf bei einem inzwischen gÃƒÂ¼ltigen Gebiet nicht sichtbar bleiben.",
+);
+assert.match(
+  wizard,
   /return currentSegments\.filter\(hasAreaGeometry\);/,
   "Ein ausgewÃ¤hltes GeoJSON-Gebiet darf nicht aus dem Checkout-Payload fallen, nur weil keine Zeichenpunkte vorliegen.",
 );
