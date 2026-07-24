@@ -41,7 +41,7 @@ function hasPolygonGeometry(value: unknown): boolean {
   return (candidate.type === "Polygon" || candidate.type === "MultiPolygon") && Array.isArray(candidate.coordinates);
 }
 
-function hasAreaGeometry(segment: AreaSegmentLike) {
+export function hasAreaGeometry(segment: AreaSegmentLike) {
   return (Array.isArray(segment.points) && segment.points.length >= 3) || hasPolygonGeometry(segment.geometryGeoJson);
 }
 

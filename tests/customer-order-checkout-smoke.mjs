@@ -297,6 +297,15 @@ try {
   assert(inquiryOrder?.payments.length === 0, "Anfrage darf keine Zahlung erzwingen.");
   assert(inquiryOrder?.priceRuleSnapshot?.completionPath === "inquiry", "Abschlussweg inquiry fehlt.");
 
+  const segmentWithoutLocation = { ...smokeSegment, city: "", postalCode: "" };
+  const segmentIdentityFallbackPayload = orderPayload("Segment identity fallback", "inquiry");
+  segmentIdentityFallbackPayload.areaSegments = JSON.stringify([segmentWithoutLocation]);
+  const segmentIdentityFallback = await postJson("/api/customer/orders", segmentIdentityFallbackPayload, customerCookie);
+  assert(segmentIdentityFallback.data.id, "Eine Anfrage mit einem Polygon ohne Segment-Ortsfelder muss gespeichert werden.");
+  const segmentIdentityFallbackOrder = await prisma.order.findUnique({ where: { id: segmentIdentityFallback.data.id } });
+  assert(segmentIdentityFallbackOrder?.city === "Koblenz", "Das leere Segment-Stadtfeld darf die Auftragsstadt nicht überschreiben.");
+  assert(segmentIdentityFallbackOrder?.postalCode === "56068", "Das leere Segment-PLZ-Feld darf die Auftrags-PLZ nicht überschreiben.");
+
   const inquiryWithoutPolygonPayload = orderPayload("Inquiry Without Polygon", "inquiry", undefined, false);
   delete inquiryWithoutPolygonPayload.targetAreaGeoJson;
   delete inquiryWithoutPolygonPayload.coverageAreaSqm;

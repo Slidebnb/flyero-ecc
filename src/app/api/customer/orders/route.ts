@@ -98,8 +98,11 @@ export async function POST(request: NextRequest) {
     }
     const primarySegment = areaSelection?.primarySegment ?? null;
     const targetAreaGeoJson = areaSelection?.targetAreaGeoJson ?? data.targetAreaGeoJson;
-    const orderCity = primarySegment?.city ?? data.city;
-    const orderPostalCode = primarySegment?.postalCode ?? data.postalCode;
+    // Official municipality polygons do not necessarily carry a postal code
+    // of their own. Never let an empty segment value erase the validated
+    // location identity that came from the customer submission.
+    const orderCity = primarySegment?.city?.trim() || data.city;
+    const orderPostalCode = primarySegment?.postalCode?.trim() || data.postalCode;
     const intelligence = await getOrderIntelligence({
       serviceType: data.serviceType,
       tenantId: session.tenantId,

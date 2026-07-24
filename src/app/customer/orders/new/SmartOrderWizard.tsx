@@ -41,7 +41,7 @@ import { useOrderLocationSearch } from "./hooks/useOrderLocationSearch";
 import { useOrderDraft } from "./hooks/useOrderDraft";
 import { useOrderSubmission } from "./hooks/useOrderSubmission";
 import { useOrderMap } from "./hooks/useOrderMap";
-import { resolveAreaSubmissionContext } from "./areaSubmission";
+import { hasAreaGeometry, resolveAreaSubmissionContext } from "./areaSubmission";
 
 const orderNavItems = [
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
@@ -240,7 +240,7 @@ function segmentsToGeoJson(segments: Array<{ points: LatLng[]; geometryGeoJson?:
   return {
     type: "FeatureCollection",
     features: segments
-      .filter((segment) => featureRings(segment.geometryGeoJson).length > 0 || segment.points.length >= 3)
+      .filter(hasAreaGeometry)
       .map((segment) => {
         const source = segmentGeometry(segment) as {
           type?: string;
@@ -280,6 +280,10 @@ function geometryAreaSqm(geoJson: unknown, fallback: LatLng[]) {
 
 function featurePoints(geoJson: unknown) {
   return featureRings(geoJson)[0] ?? [];
+}
+
+function segmentPathPoints(segment: { points: LatLng[]; geometryGeoJson?: unknown }) {
+  return segment.points.length >= 3 ? segment.points : featurePoints(segment.geometryGeoJson);
 }
 
 function normalizeLocationPart(value?: string | null) {
@@ -607,7 +611,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   const areaSegmentsPayload = useMemo(() => {
     const currentSegments = areaSegments.map((segment) => ({ ...segment, points: [...segment.points] }));
-    if (polygon.length < 3) return currentSegments.filter((segment) => segment.points.length >= 3);
+    if (polygon.length < 3) return currentSegments.filter(hasAreaGeometry);
     const currentSegment = {
       id: activeSegmentId ?? "segment-current",
       name: targetAreaName || [postalCode, city].filter(Boolean).join(" ") || "Verteilgebiet",
@@ -623,7 +627,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     const existingIndex = currentSegments.findIndex((segment) => segment.id === currentSegment.id);
     if (existingIndex >= 0) currentSegments[existingIndex] = { ...currentSegments[existingIndex], ...currentSegment };
     else currentSegments.push(currentSegment);
-    return currentSegments.filter((segment) => segment.points.length >= 3);
+    return currentSegments.filter(hasAreaGeometry);
   }, [activeSegmentId, areaSegments, city, polygon, polygonSource, postalCode, selectedAreaId, targetAreaName]);
   // The first valid submitted segment is the server's primary segment. Keep
   // search, live pricing, and checkout on the same location identity even if
@@ -635,12 +639,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     selectedLocation,
     targetAreaName,
   }), [areaSegmentsPayload, city, postalCode, selectedLocation, targetAreaName]);
-  const planningPrimarySegment = areaSegmentsPayload.find((segment) => segment.points.length >= 3);
+  const planningPrimarySegment = areaSegmentsPayload.find(hasAreaGeometry);
   const planningCity = areaSubmission.city;
   const planningPostalCode = areaSubmission.postalCode;
   const planningDistributionAreaId = planningPrimarySegment?.distributionAreaId || selectedAreaId;
   const hasActiveCommittedArea = areaSegmentsPayload.some(
-    (segment) => segment.id === activeSegmentId && segment.points.length >= 3,
+    (segment) => segment.id === activeSegmentId && hasAreaGeometry(segment),
   );
   const coverageAreaSqm = useMemo(
     () => areaSegmentsPayload.reduce((sum, segment) => sum + geometryAreaSqm(segment.geometryGeoJson, segment.points), 0),
@@ -653,7 +657,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   const hasSelectedLocation = Boolean(selectedLocation?.placeId || postalCode || city);
   const perimeterMeters = useMemo(
-    () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segment.points), 0),
+    () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segmentPathPoints(segment)), 0),
     [areaSegmentsPayload],
   );
   const localHouseholds = useMemo(() => planningAreaSqm > 0 ? estimateHouseholdsFromArea(planningAreaSqm) : 0, [planningAreaSqm]);
@@ -729,8 +733,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   } = useOrderIntelligence({
     endpoint: intelligenceEndpoint,
     requestQuery: intelligenceRequestQuery,
-    city,
-    postalCode,
+    city: planningCity,
+    postalCode: planningPostalCode,
     coverageAreaSqm,
   });
 
@@ -814,7 +818,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       name: segment.name,
       city: segment.city,
       postalCode: segment.postalCode,
-      areaSqm: polygonAreaSqm(segment.points),
+      areaSqm: geometryAreaSqm(segment.geometryGeoJson, segment.points),
       flyerQuantity: segment.flyerQuantity,
     })),
     areaReference: {
@@ -969,8 +973,14 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     const points = featurePoints(area.geoJson);
     if (points.length < 3) return false;
 
+    // Imported administrative polygons often do not carry a postal code.
+    // Keep the verified search identity instead of replacing it with an empty
+    // segment value, otherwise the final checkout gate rejects a valid area.
+    const resolvedCity = area.city?.trim() || selectedLocation?.city?.trim() || city.trim();
+    const resolvedPostalCode = area.postalCode?.trim() || selectedLocation?.postalCode?.trim() || postalCode.trim();
+
     const currentSegments = areaSegmentsRef.current.filter(
-      (segment) => segment.points.length >= 3 || segment.id !== activeSegmentId,
+      (segment) => hasAreaGeometry(segment) || segment.id !== activeSegmentId,
     );
     const existingSegment = currentSegments.find((segment) => segment.distributionAreaId === area.id);
     const replaceDefault = !existingSegment && currentSegments.length === 1 && currentSegments[0]?.id === "segment-default";
@@ -978,8 +988,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     const nextSegment: OrderAreaSegmentDraft = {
       id: segmentId,
       name: area.name,
-      city: area.city ?? "",
-      postalCode: area.postalCode ?? "",
+      city: resolvedCity,
+      postalCode: resolvedPostalCode,
       district: area.district ?? "",
       country: "DE",
       points,
@@ -999,15 +1009,15 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setSelectedAreaId(area.id);
     setPolygon(points);
     setPolygonSource("saved_area");
-    setCity(area.city ?? "");
-    setPostalCode(area.postalCode ?? "");
+    setCity(resolvedCity);
+    setPostalCode(resolvedPostalCode);
     setTargetAreaName(area.name);
-    setQuery([area.postalCode, area.city].filter(Boolean).join(" "));
+    setQuery([resolvedPostalCode, resolvedCity].filter(Boolean).join(" "));
     if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setMapNotice("Gebiet übernommen. FLYERO berechnet Fläche, Haushalte und Preis automatisch.");
     return true;
-  }, [activeSegmentId]);
+  }, [activeSegmentId, city, postalCode, selectedLocation]);
 
   const selectOfficialBoundary = useCallback((area: ReusableAreaOption) => {
     const placeId = area.googlePlaceId ?? `flyero-area:${area.id}`;
@@ -1251,10 +1261,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setSelectedAreaId(segment.distributionAreaId ?? "");
     setPolygon(segment.points);
     setPolygonSource(segment.polygonSource);
-    if (segment.points.length) {
-      const nextCenter = segment.points.reduce((centerValue, point) => ({
-        lat: centerValue.lat + point.lat / segment.points.length,
-        lng: centerValue.lng + point.lng / segment.points.length,
+    const segmentPoints = segmentPathPoints(segment);
+    if (segmentPoints.length) {
+      const nextCenter = segmentPoints.reduce((centerValue, point) => ({
+        lat: centerValue.lat + point.lat / segmentPoints.length,
+        lng: centerValue.lng + point.lng / segmentPoints.length,
       }), { lat: 0, lng: 0 });
       setCenter(nextCenter);
     }
@@ -1566,7 +1577,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setPolygon([]);
       setPolygonSource("postal_code");
       setHistory([]);
-      const retainedSegments = options?.forceReplace ? [] : areaSegmentsRef.current.filter((segment) => segment.id !== activeSegmentId && segment.points.length >= 3);
+      const retainedSegments = options?.forceReplace ? [] : areaSegmentsRef.current.filter((segment) => segment.id !== activeSegmentId && hasAreaGeometry(segment));
       areaSegmentsRef.current = retainedSegments;
       setAreaSegments(retainedSegments);
       setActiveSegmentId(null);
@@ -1994,11 +2005,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }
     }
     areaSegmentsPayload.forEach((segment) => {
-      if (segment.id === activeSegmentId || segment.points.length < 3) return;
+      if (segment.id === activeSegmentId || !hasAreaGeometry(segment)) return;
+      const segmentPoints = segmentPathPoints(segment);
       let overlay = segmentPolygonsRef.current.get(segment.id);
       if (!overlay) {
         overlay = new maps.Polygon({
-          paths: segment.points,
+          paths: segmentPoints,
           strokeColor: "#a7ff00",
           strokeOpacity: 0.9,
           strokeWeight: 2,
@@ -2010,7 +2022,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         overlay.setMap(mapRef.current);
         segmentPolygonsRef.current.set(segment.id, overlay);
       } else {
-        overlay.setPath(segment.points);
+        overlay.setPath(segmentPoints);
       }
     });
     return () => undefined;
@@ -2024,7 +2036,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     polygonRef.current?.setPath(polygon);
     if (polygon.length < 3 || areaSegmentsPayload.length === 0) return;
     const bounds = new window.google.maps.LatLngBounds();
-    areaSegmentsPayload.forEach((segment) => segment.points.forEach((point) => bounds.extend(point)));
+    areaSegmentsPayload.forEach((segment) => segmentPathPoints(segment).forEach((point) => bounds.extend(point)));
     mapRef.current.fitBounds(bounds);
   }, [areaSegmentsPayload, center, mapMode, mapsReady, polygon, street]);
 

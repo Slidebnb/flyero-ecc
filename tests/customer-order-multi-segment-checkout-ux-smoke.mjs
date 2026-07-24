@@ -13,7 +13,7 @@ const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 
 assert.match(
   wizard,
-  /const retainedSegments = options\?\.forceReplace \? \[\] : areaSegmentsRef\.current\.filter\(\(segment\) => segment\.id !== activeSegmentId && segment\.points\.length >= 3\);/,
+  /const retainedSegments = options\?\.forceReplace \? \[\] : areaSegmentsRef\.current\.filter\(\(segment\) => segment\.id !== activeSegmentId && hasAreaGeometry\(segment\)\);/,
   "Eine neue PLZ darf bereits bestaetigte Teilgebiete nicht loeschen.",
 );
 assert.match(
