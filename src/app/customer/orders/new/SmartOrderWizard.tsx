@@ -41,7 +41,11 @@ import { useOrderLocationSearch } from "./hooks/useOrderLocationSearch";
 import { useOrderDraft } from "./hooks/useOrderDraft";
 import { useOrderSubmission } from "./hooks/useOrderSubmission";
 import { useOrderMap } from "./hooks/useOrderMap";
-import { canCompleteAreaSelection, hasAreaGeometry, resolveAreaSubmissionContext } from "./areaSubmission";
+import {
+  hasAreaGeometry,
+  resolveAreaCompletionContext,
+  resolveAreaSubmissionContext,
+} from "./areaSubmission";
 
 const orderNavItems = [
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
@@ -667,10 +671,23 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const previewCoverageAreaSqm = coverageAreaSqm;
   const planningAreaSqm = previewCoverageAreaSqm;
   const hasPlanningArea = planningAreaSqm > 0;
-  const hasValidSelectedArea = areaSubmission.hasValidArea && hasPlanningArea;
+  const areaCompletion = useMemo(() => resolveAreaCompletionContext({
+    segments: areaSegmentsPayload,
+    city,
+    postalCode,
+    selectedLocation,
+    targetAreaName,
+    coverageAreaSqm: planningAreaSqm,
+  }), [areaSegmentsPayload, city, planningAreaSqm, postalCode, selectedLocation, targetAreaName]);
+  const hasValidSelectedArea = areaCompletion.isComplete;
   const visibleFinishStatus = finishStatus === invalidAreaFinishStatus && hasValidSelectedArea
     ? ""
     : finishStatus;
+  useEffect(() => {
+    if (finishStatus === invalidAreaFinishStatus && hasValidSelectedArea) {
+      setFinishStatus("");
+    }
+  }, [finishStatus, hasValidSelectedArea]);
 
   const hasSelectedLocation = Boolean(selectedLocation?.placeId || postalCode || city);
   const perimeterMeters = useMemo(
@@ -2289,12 +2306,21 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setFinishStatus("Produktproben prüfen wir vorab. Bitte sende ein individuelles Sampling-Angebot.");
       return;
     }
-    if (!canCompleteAreaSelection({
-      hasValidArea: hasValidSelectedArea,
-      coverageAreaSqm,
-      city: planningCity,
-      postalCode: planningPostalCode,
-    })) {
+    const committedSegments = areaSegmentsRef.current.filter(hasAreaGeometry);
+    const completionSegments = committedSegments.length > 0 ? committedSegments : areaSegmentsPayload;
+    const completionCoverageAreaSqm = completionSegments.reduce(
+      (sum, segment) => sum + geometryAreaSqm(segment.geometryGeoJson, segment.points),
+      0,
+    );
+    const completionContext = resolveAreaCompletionContext({
+      segments: completionSegments,
+      city,
+      postalCode,
+      selectedLocation,
+      targetAreaName,
+      coverageAreaSqm: completionCoverageAreaSqm,
+    });
+    if (!completionContext.isComplete) {
       setActiveStep(1);
       setFinishStatus("Bitte wähle zuerst ein gültiges Verteilgebiet aus.");
       return;

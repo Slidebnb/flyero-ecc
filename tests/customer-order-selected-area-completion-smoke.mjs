@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { canCompleteAreaSelection, resolveAreaSubmissionContext } from "../src/app/customer/orders/new/areaSubmission.ts";
+import {
+  canCompleteAreaSelection,
+  resolveAreaCompletionContext,
+  resolveAreaSubmissionContext,
+} from "../src/app/customer/orders/new/areaSubmission.ts";
 
 const polygon = [
   { lat: 50.35, lng: 7.58 },
@@ -84,6 +88,26 @@ assert.equal(
   "Eine vorhandene, aber ungültige PLZ darf den Abschluss weiterhin blockieren.",
 );
 
+const clickTimeCompletion = resolveAreaCompletionContext({
+  segments: [{
+    name: "Neuwied",
+    city: "Neuwied",
+    postalCode: "",
+    points: [],
+    geometryGeoJson: geometryOnlySegment.geometryGeoJson,
+  }],
+  city: "",
+  postalCode: "",
+  selectedLocation: null,
+  targetAreaName: "Neuwied",
+  coverageAreaSqm: 86_070_000,
+});
+assert.equal(
+  clickTimeCompletion.isComplete,
+  true,
+  "Der Abschluss muss eine bereits gespeicherte amtliche Fläche auch im direkten Klick-Zeitpunkt akzeptieren.",
+);
+
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
 assert.match(
   wizard,
@@ -101,6 +125,11 @@ assert.match(
   "Ein ausgewÃ¤hltes GeoJSON-Gebiet darf nicht aus dem Checkout-Payload fallen, nur weil keine Zeichenpunkte vorliegen.",
 );
 
+assert.match(
+  wizard,
+  /resolveAreaCompletionContext\(\{[\s\S]{0,500}segments: completionSegments/,
+  "Der Abschluss muss beim Klick den aktuell committeden Segmentstand erneut prÃ¼fen.",
+);
 assert.match(
   wizard,
   /city: planningCity,\s*\n\s*postalCode: planningPostalCode,/,

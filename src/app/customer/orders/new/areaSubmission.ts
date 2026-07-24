@@ -56,6 +56,22 @@ export function canCompleteAreaSelection(input: {
   return input.postalCode.trim() === "" || isGermanPostalCode(input.postalCode.trim());
 }
 
+export function resolveAreaCompletionContext(input: AreaSubmissionInput & { coverageAreaSqm: number }) {
+  const submission = resolveAreaSubmissionContext(input);
+  const isComplete = canCompleteAreaSelection({
+    hasValidArea: submission.hasValidArea,
+    coverageAreaSqm: input.coverageAreaSqm,
+    city: submission.city,
+    postalCode: submission.postalCode,
+  });
+
+  return {
+    ...submission,
+    coverageAreaSqm: input.coverageAreaSqm,
+    isComplete,
+  };
+}
+
 export function resolveAreaSubmissionContext(input: AreaSubmissionInput): AreaSubmissionContext {
   const selectedSegment = input.segments.find(hasAreaGeometry);
   const segmentCity = text(selectedSegment?.city);
