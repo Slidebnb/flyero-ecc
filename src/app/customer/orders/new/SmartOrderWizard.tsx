@@ -41,6 +41,7 @@ import { useOrderLocationSearch } from "./hooks/useOrderLocationSearch";
 import { useOrderDraft } from "./hooks/useOrderDraft";
 import { useOrderSubmission } from "./hooks/useOrderSubmission";
 import { useOrderMap } from "./hooks/useOrderMap";
+import { resolveAreaSubmissionContext } from "./areaSubmission";
 
 const orderNavItems = [
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
@@ -601,11 +602,19 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     else currentSegments.push(currentSegment);
     return currentSegments.filter((segment) => segment.points.length >= 3);
   }, [activeSegmentId, areaSegments, city, polygon, polygonSource, postalCode, selectedAreaId, targetAreaName]);
-  // The first submitted segment is also the server's primary segment. Keep
-  // search, live pricing, and checkout on the same location identity.
-  const planningPrimarySegment = areaSegmentsPayload[0];
-  const planningCity = planningPrimarySegment?.city || city;
-  const planningPostalCode = planningPrimarySegment?.postalCode || postalCode;
+  // The first valid submitted segment is the server's primary segment. Keep
+  // search, live pricing, and checkout on the same location identity even if
+  // an imported boundary does not carry its own postal/city fields.
+  const areaSubmission = useMemo(() => resolveAreaSubmissionContext({
+    segments: areaSegmentsPayload,
+    city,
+    postalCode,
+    selectedLocation,
+    targetAreaName,
+  }), [areaSegmentsPayload, city, postalCode, selectedLocation, targetAreaName]);
+  const planningPrimarySegment = areaSegmentsPayload.find((segment) => segment.points.length >= 3);
+  const planningCity = areaSubmission.city;
+  const planningPostalCode = areaSubmission.postalCode;
   const planningDistributionAreaId = planningPrimarySegment?.distributionAreaId || selectedAreaId;
   const hasActiveCommittedArea = areaSegmentsPayload.some(
     (segment) => segment.id === activeSegmentId && segment.points.length >= 3,
@@ -617,6 +626,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const previewCoverageAreaSqm = coverageAreaSqm;
   const planningAreaSqm = previewCoverageAreaSqm;
   const hasPlanningArea = planningAreaSqm > 0;
+  const hasValidSelectedArea = areaSubmission.hasValidArea && hasPlanningArea;
 
   const hasSelectedLocation = Boolean(selectedLocation?.placeId || postalCode || city);
   const perimeterMeters = useMemo(
@@ -786,7 +796,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     })),
     areaReference: {
       distributionAreaId: currentIntelligence?.metrics.areaReference?.distributionAreaId ?? selectedAreaId ?? null,
-      targetAreaName,
+      targetAreaName: areaSubmission.targetAreaName,
       city,
       postalCode,
       polygonSource,
@@ -828,7 +838,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     routeDistanceMeters,
     routeDurationMinutes,
     selectedWarehouse,
-    targetAreaName,
+    areaSubmission.targetAreaName,
   ]);
 
   const orderDraft = useMemo<OrderDraft>(() => ({
@@ -840,7 +850,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     postalCode,
     street,
     houseNumber,
-    targetAreaName,
+    targetAreaName: areaSubmission.targetAreaName,
     center,
     polygon,
     polygonSource,
@@ -894,7 +904,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     serviceType,
     startDate,
     street,
-    targetAreaName,
+    areaSubmission.targetAreaName,
     targetGroup,
     flexibleScheduling,
   ]);
@@ -2095,7 +2105,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         postalCode,
         street,
         houseNumber,
-        targetAreaName,
+        targetAreaName: areaSubmission.targetAreaName,
         center,
         polygon,
         polygonSource,
@@ -2137,7 +2147,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         orderId: options?.orderId,
         city,
         postalCode,
-        areaName: targetAreaName,
+        areaName: areaSubmission.targetAreaName,
         areaType: "POLYGON",
         durationMs,
         clickCount,
@@ -2166,7 +2176,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       locationSource: selectedLocation?.source,
       latitude: selectedLocation?.lat,
       longitude: selectedLocation?.lng,
-      targetAreaName,
+      targetAreaName: areaSubmission.targetAreaName,
       areaType: "POLYGON",
       distributionAreaId: planningDistributionAreaId,
       targetAreaGeoJson: JSON.stringify(geoJson),
@@ -2214,7 +2224,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setFinishStatus("Produktproben prüfen wir vorab. Bitte sende ein individuelles Sampling-Angebot.");
       return;
     }
-    if (completionPath === "direct_payment" && (!isGermanPostalCode(planningPostalCode) || planningCity.trim().length < 2)) {
+    if (!hasValidSelectedArea || !isGermanPostalCode(planningPostalCode) || planningCity.trim().length < 2) {
       setActiveStep(1);
       setFinishStatus("Bitte wähle zuerst ein gültiges Verteilgebiet aus.");
       return;

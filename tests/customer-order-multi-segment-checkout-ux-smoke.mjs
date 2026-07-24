@@ -23,8 +23,8 @@ assert.match(
 );
 assert.match(
   wizard,
-  /!isGermanPostalCode\(planningPostalCode\) \|\| planningCity\.trim\(\)\.length < 2\)\) \{[\s\S]{0,240}setFinishStatus\("Bitte [^"]*Verteilgebiet aus\."\);/,
-  "Checkout muss fehlende Gebietsgrunddaten vor dem Absenden freundlich erklaeren.",
+  /!hasValidSelectedArea \|\| !isGermanPostalCode\(planningPostalCode\) \|\| planningCity\.trim\(\)\.length < 2\) \{[\s\S]{0,240}setFinishStatus\("Bitte [^"]*Verteilgebiet aus\."\);/,
+  "Checkout muss ein fehlendes oder noch nicht gueltig aufgeloestes Gebiet vor dem Absenden freundlich erklaeren.",
 );
 assert.match(validators, /postalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5\}\$\/, "Bitte gib eine gültige fünfstellige PLZ ein\."\)/);
 assert.doesNotMatch(validators, /billingPostalCode: z\.string\(\)\.min\(3\)/, "Rechnungs-PLZ darf beim Checkout keine rohe Zod-min-3-Meldung mehr erzeugen.");

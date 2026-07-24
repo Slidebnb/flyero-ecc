@@ -210,6 +210,7 @@
     "test:server-area-snapshot-integrity": "node --experimental-strip-types tests/server-area-snapshot-integrity-smoke.mjs",
     "test:order-manual-review-no-orphan-area": "node tests/order-manual-review-no-orphan-area-smoke.mjs",
     "test:customer-order-new-flow": "node tests/customer-order-new-flow-smoke.mjs",
+    "test:customer-order-selected-area-completion": "node --experimental-strip-types tests/customer-order-selected-area-completion-smoke.mjs",
     "test:customer-order-inquiry-contract": "node tests/customer-order-inquiry-contract-smoke.mjs",
     "test:customer-order-map-capabilities": "node tests/customer-order-map-capabilities-smoke.mjs",
     "test:customer-order-boundary-resolution": "node tests/customer-order-boundary-resolution-smoke.mjs",

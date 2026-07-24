@@ -5,8 +5,8 @@ const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", 
 
 assert.match(
   wizard,
-  /const planningPrimarySegment = areaSegmentsPayload\[0\];[\s\S]*?const planningCity = planningPrimarySegment\?\.city \|\| city;[\s\S]*?const planningPostalCode = planningPrimarySegment\?\.postalCode \|\| postalCode;/,
-  "Live-Quote und Auftrag brauchen dieselbe primaere Segment-Ortsidentitaet.",
+  /const areaSubmission = useMemo\(\(\) => resolveAreaSubmissionContext\([\s\S]*?const planningCity = areaSubmission\.city;[\s\S]*?const planningPostalCode = areaSubmission\.postalCode;/,
+  "Live-Quote und Auftrag brauchen dieselbe aufgeloeste Segment-Ortsidentitaet.",
 );
 assert.match(
   wizard,
