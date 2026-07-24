@@ -170,7 +170,7 @@ function formatShortDate(value: string) {
 
 function customerFacingSubmissionError(error: unknown) {
   const message = error instanceof Error ? error.message : "";
-  if (/Too small|Invalid input|expected string|Expected/.test(message)) {
+  if (/too small|invalid input|expected string|expected .*characters|at least \d+ character|must contain at least/i.test(message)) {
     return "Bitte pruefe deine Angaben und versuche es erneut.";
   }
   return message || "Die Anfrage konnte nicht abgeschlossen werden.";

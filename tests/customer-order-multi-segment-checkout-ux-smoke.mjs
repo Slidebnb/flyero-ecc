@@ -31,9 +31,10 @@ assert.doesNotMatch(validators, /billingPostalCode: z\.string\(\)\.min\(3\)/, "R
 assert.match(validators, /billingPostalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5\}\$\//, "Rechnungs-PLZ muss als fuenfstellige PLZ validiert werden.");
 assert.doesNotMatch(validators, /postalCode: z\.string\(\)\.min\(3\)/, "Adress- und Verteiler-PLZ duerfen keine rohe Zod-min-3-Meldung mehr erzeugen.");
 assert.match(request, /ZodError/, "Zod-Fehler muessen zentral in eine kundenfreundliche Meldung umgewandelt werden.");
-assert.match(request, /Too small|Invalid input|Expected/, "Technische Zod-Standardmeldungen duerfen nicht zum Kunden gelangen.");
+assert.match(request, /too small|invalid input|expected string|expected \.\*characters|at least \\d\+ character/i, "Technische Zod-Standardmeldungen duerfen nicht zum Kunden gelangen.");
 assert.match(request, /export function validationErrorResponse/, "Kundenrouten muessen dieselbe Validierungsantwort verwenden.");
 assert.match(request, /sanitizeErrorMessage/, "Technische Validierungsfehler muessen auch bei generischen Fehlerantworten verborgen werden.");
+assert.match(request, /expected \.\*characters\|at least \\d\+ character/i, "Aeltere und neuere Zod-Meldungsvarianten muessen gleichermassen verborgen werden.");
 assert.match(wizard, /function customerFacingSubmissionError/, "Der Wizard darf technische API-Fehler nicht direkt im Kundenstatus anzeigen.");
 assert.doesNotMatch(wizard, /setFinishStatus\(error instanceof Error \? error\.message/, "Der Wizard darf rohe Fehlertexte nicht direkt anzeigen.");
 for (const [name, source] of Object.entries({ customerOrdersRoute, customerOrderDetailRoute, customerProfileRoute, customerProfileCompletionRoute })) {

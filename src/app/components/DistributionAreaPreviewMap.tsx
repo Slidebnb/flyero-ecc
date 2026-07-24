@@ -62,7 +62,7 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
     }
     const script = document.createElement("script");
     script.dataset.googleMaps = "true";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=${GOOGLE_MAPS_VERSION}`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=${GOOGLE_MAPS_VERSION}&loading=async`;
     script.async = true;
     script.onload = () => setLoaded(true);
     document.head.appendChild(script);

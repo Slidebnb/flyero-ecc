@@ -54,7 +54,7 @@ export async function readBody(request: NextRequest) {
 }
 
 function sanitizeErrorMessage(message: string) {
-  if (/Too small|Invalid input|expected string|Expected/.test(message)) {
+  if (/too small|invalid input|expected string|expected .*characters|at least \d+ character|must contain at least/i.test(message)) {
     return "Bitte pruefe deine Angaben und versuche es erneut.";
   }
   return message;
@@ -73,7 +73,14 @@ function validationErrorMessage(error: ZodError) {
   const path = issue?.path.join(".") || "";
   if (path.includes("postalCode")) return "Bitte gib eine gueltige fuenfstellige PLZ ein.";
   if (path.includes("city")) return "Bitte gib einen Ort an.";
-  if (issue && !/Too small|Invalid input|expected string|Expected/.test(issue.message)) return issue.message;
+  if (path.includes("targetAreaName") || path.includes("areaSegments") || path.includes("GeoJson")) return "Bitte waehle ein Verteilgebiet aus.";
+  if (path.includes("flyerQuantity")) return "Bitte gib eine gueltige Flyerzahl ein.";
+  if (path.includes("warehouseId")) return "Bitte waehle ein Empfangslager aus.";
+  if (path.includes("preferredStartDate") || path.includes("preferredEndDate")) return "Bitte pruefe den gewuenschten Zeitraum.";
+  if (path.includes("quoteFingerprint")) return "Bitte aktualisiere zuerst die Preisvorschau.";
+  if (path.includes("productFormat")) return "Bitte waehle ein passendes Format aus.";
+  if (path.includes("productDetails")) return "Bitte ergaenze die Angaben zum Werbemittel.";
+  if (issue && !/too small|invalid input|expected string|expected .*characters|at least \d+ character|must contain at least/i.test(issue.message)) return issue.message;
   return "Bitte pruefe deine Angaben und versuche es erneut.";
 }
 

@@ -13,6 +13,8 @@ assert.match(caddy, /frame-ancestors 'none'/, "CSP muss Clickjacking ueber frame
 assert.match(caddy, /object-src 'none'/, "CSP muss eingebettete Objekte blockieren.");
 assert.match(caddy, /maps\.googleapis\.com/, "CSP muss Google Maps erlauben.");
 assert.match(caddy, /connect-src[^;]*mapsresources-pa\.googleapis\.com/, "CSP muss die Google-Maps-Vector-Konfiguration erlauben.");
+assert.match(caddy, /connect-src[^;]*fonts\.googleapis\.com/, "CSP muss Google-Fonts-Verbindungen fuer Google Maps erlauben.");
+assert.match(caddy, /connect-src[^;]*data:/, "CSP muss die von Google Maps verwendeten Daten-Worker-Ressourcen erlauben.");
 assert.match(caddy, /worker-src[^;]*blob:/, "CSP muss Google-Maps-Vector-Worker erlauben.");
 assert.match(caddy, /script-src[^;]*'unsafe-eval'/, "CSP muss die von Google Maps benoetigte WebAssembly-Ausfuehrung erlauben.");
 assert.match(caddy, /js\.stripe\.com/, "CSP muss Stripe Checkout erlauben.");
