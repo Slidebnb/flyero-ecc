@@ -70,6 +70,7 @@ export async function GET(request: Request) {
         : "UPLOAD_LATER",
       preferredStartDate: params.get("preferredStartDate"),
       preferredEndDate: params.get("preferredEndDate"),
+      includeOperationalData: true,
     });
     return Response.json({ ok: true, data });
   } catch (error) {

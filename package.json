@@ -68,6 +68,7 @@
     "test:profile-completion-checkout": "node tests/profile-completion-checkout-smoke.mjs",
     "test:planner-funnel-events": "node tests/planner-funnel-events-smoke.mjs",
     "test:order-quote-consistency": "node tests/order-quote-consistency-smoke.mjs",
+    "test:customer-order-quote-parity": "node tests/customer-order-quote-parity-smoke.mjs",
     "test:order-stale-quote-block": "node tests/order-stale-quote-block-smoke.mjs",
     "test:order-area-snapshot": "node tests/order-area-snapshot-integrity-smoke.mjs",
     "test:order-saved-area-edit": "node tests/order-saved-area-edit-smoke.mjs",
