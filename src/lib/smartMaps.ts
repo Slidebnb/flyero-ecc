@@ -365,8 +365,8 @@ export async function getOrderIntelligence(input: {
     preferredEndDate: input.preferredEndDate,
   });
   const primarySegment = areaSelection?.primarySegment ?? null;
-  const effectiveCity = primarySegment?.city ?? input.city;
-  const effectivePostalCode = primarySegment?.postalCode ?? input.postalCode;
+  const effectiveCity = input.city?.trim() || primarySegment?.city?.trim() || "";
+  const effectivePostalCode = input.postalCode?.trim() || primarySegment?.postalCode?.trim() || "";
   // A client-supplied area number is only a preview. The server accepts area
   // measurements when they can be derived from a submitted polygon/segment.
   const effectiveCoverageAreaSqm = planning.segments.length

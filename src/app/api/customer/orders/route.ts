@@ -101,8 +101,8 @@ export async function POST(request: NextRequest) {
     // Official municipality polygons do not necessarily carry a postal code
     // of their own. Never let an empty segment value erase the validated
     // location identity that came from the customer submission.
-    const orderCity = primarySegment?.city?.trim() || data.city;
-    const orderPostalCode = primarySegment?.postalCode?.trim() || data.postalCode;
+    const orderCity = data.city?.trim() || primarySegment?.city?.trim() || "";
+    const orderPostalCode = data.postalCode?.trim() || primarySegment?.postalCode?.trim() || "";
     const intelligence = await getOrderIntelligence({
       serviceType: data.serviceType,
       tenantId: session.tenantId,
