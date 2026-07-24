@@ -1029,6 +1029,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (area.centerLat && area.centerLng) setCenter({ lat: area.centerLat, lng: area.centerLng });
     setSelectedBoundaryPlaceIds((current) => current.includes(placeId) ? current : [...current, placeId]);
     setMapNotice("Gebiet übernommen. FLYERO berechnet Fläche, Haushalte und Preis automatisch.");
+    setFinishStatus("");
     return true;
   }, [activeSegmentId, city, postalCode, selectedLocation]);
 

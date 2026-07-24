@@ -87,6 +87,11 @@ assert.equal(
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
 assert.match(
   wizard,
+  /setMapNotice\("Gebiet[\s\S]{0,120}automatisch\."\);\s*setFinishStatus\(""\);/,
+  "Eine erfolgreich Ã¼bernommene FlÃ¤che muss eine alte Abschlussfehlermeldung lÃ¶schen.",
+);
+assert.match(
+  wizard,
   /return currentSegments\.filter\(hasAreaGeometry\);/,
   "Ein ausgewÃ¤hltes GeoJSON-Gebiet darf nicht aus dem Checkout-Payload fallen, nur weil keine Zeichenpunkte vorliegen.",
 );
