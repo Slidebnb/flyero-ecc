@@ -70,6 +70,7 @@
     "test:order-quote-consistency": "node tests/order-quote-consistency-smoke.mjs",
     "test:customer-order-quote-parity": "node tests/customer-order-quote-parity-smoke.mjs",
     "test:customer-order-quote-location-parity": "node tests/customer-order-quote-location-parity-smoke.mjs",
+    "test:customer-order-intelligence-service-parity": "node tests/customer-order-intelligence-service-parity-smoke.mjs",
     "test:order-stale-quote-block": "node tests/order-stale-quote-block-smoke.mjs",
     "test:order-area-snapshot": "node tests/order-area-snapshot-integrity-smoke.mjs",
     "test:order-saved-area-edit": "node tests/order-saved-area-edit-smoke.mjs",

@@ -1,4 +1,4 @@
-import { UserRole } from "@prisma/client";
+import { ServiceType, UserRole } from "@prisma/client";
 import { requireRole } from "@/lib/auth";
 import { requireTenantSession } from "@/lib/tenant";
 import { getOrderIntelligence } from "@/lib/smartMaps";
@@ -37,8 +37,14 @@ export async function GET(request: Request) {
     if (!abuseDecision.allowed) return customer ? customerRateLimitResponse(abuseDecision) : publicRateLimitResponse(abuseDecision);
     const session = baseSession.role === UserRole.CUSTOMER ? await requireTenantSession() : baseSession;
     const params = new URL(request.url).searchParams;
+    const requestedServiceType = params.get("serviceType");
+    const serviceType = (Object.values(ServiceType) as string[]).includes(requestedServiceType ?? "")
+      ? requestedServiceType as ServiceType
+      : undefined;
+    const requestedAreaDifficulty = params.get("areaDifficulty") ?? params.get("clientDifficultyHint");
     const data = await getOrderIntelligence({
       tenantId: session.role === UserRole.CUSTOMER ? session.tenantId : null,
+      serviceType: serviceType,
       city: params.get("city"),
       postalCode: params.get("postalCode"),
       street: params.get("street"),
@@ -62,8 +68,8 @@ export async function GET(request: Request) {
         ? params.get("weightClass") as "LIGHT" | "STANDARD" | "MEDIUM" | "HEAVY" | "CUSTOM"
         : "LIGHT",
       weightInGrams: numberParam(params.get("weightInGrams")),
-      areaDifficulty: ["NORMAL", "MIXED", "LOW_DENSITY", "RURAL", "HARD"].includes(params.get("areaDifficulty") ?? "")
-        ? params.get("areaDifficulty") as "NORMAL" | "MIXED" | "LOW_DENSITY" | "RURAL" | "HARD"
+      areaDifficulty: ["NORMAL", "MIXED", "LOW_DENSITY", "RURAL", "HARD"].includes(requestedAreaDifficulty ?? "")
+        ? requestedAreaDifficulty as "NORMAL" | "MIXED" | "LOW_DENSITY" | "RURAL" | "HARD"
         : "NORMAL",
       printDataStatus: ["UPLOADED", "UPLOAD_LATER", "PRINT_REQUESTED"].includes(params.get("printDataStatus") ?? "")
         ? params.get("printDataStatus") as "UPLOADED" | "UPLOAD_LATER" | "PRINT_REQUESTED"
