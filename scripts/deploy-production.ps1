@@ -66,7 +66,7 @@ echo
 echo "Production deployed: $deployed_sha"
 '@
 
-$remoteScript = $remoteScript.Replace("__EXPECTED_SHA__", $ExpectedSha)
+$remoteScript = $remoteScript.Replace("__EXPECTED_SHA__", $ExpectedSha).Replace("`r`n", "`n")
 
 $sshArgs = @(
     "-i", $IdentityFile,

@@ -17,6 +17,7 @@ assert.match(script, /build --build-arg \"DEPLOY_SHA=/, "Das Produktionsimage mu
 assert.match(script, /git rev-parse --verify .*\^\{commit\}/, "Kurze und vollstaendige ExpectedSha muessen auf denselben Commit aufgeloest werden.");
 assert.match(script, /npx prisma migrate deploy/, "Ausstehende Migrationen muessen kontrolliert angewendet werden.");
 assert.match(script, /up -d --force-recreate --no-deps app caddy/, "Der Deploy muss den Reverse-Proxy mit dem aktuellen Caddyfile recreaten.");
+assert.match(script, /\$remoteScript\s*=\s*\$remoteScript\.Replace\([\s\S]*`r`n[\s\S]*`n/, "Das an Bash uebergebene Remote-Skript muss auf Unix-Zeilenenden normalisiert werden.");
 assert.match(script, /production-preflight\.mjs/, "Der Produktions-Preflight muss vor der Freigabe laufen.");
 assert.match(script, /api\/health/, "Der Deploy muss den laufenden Healthcheck pruefen.");
 
