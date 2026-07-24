@@ -103,6 +103,7 @@ type GoogleNamespace = {
     Geocoder: new () => { geocode: (request: { placeId: string }) => Promise<{ results?: GoogleGeocodeResult[] }> };
     LatLngBounds: new () => { extend: (point: LatLng) => void };
     event: { addListener: (target: unknown, eventName: string, callback: (event?: GoogleMapMouseEvent) => void) => GoogleEventListener | void };
+    importLibrary?: (libraryName: string) => Promise<unknown>;
     FeatureType?: { POSTAL_CODE?: string; LOCALITY?: string };
   };
 };
@@ -402,30 +403,52 @@ function loadGoogleMaps() {
   const browserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   if (!browserKey || typeof window === "undefined") return Promise.resolve(false);
   const isReady = () => Boolean(
-    window.google?.maps?.Map
-      && window.google.maps.Polygon
-      && window.google.maps.LatLngBounds,
+    typeof window.google?.maps?.Map === "function"
+      && typeof window.google.maps.Polygon === "function"
+      && typeof window.google.maps.LatLngBounds === "function",
   );
-  if (isReady()) return Promise.resolve(true);
+  const importMapsLibrary = async () => {
+    const maps = window.google?.maps;
+    if (!maps) return false;
+    if (typeof maps.importLibrary === "function") await maps.importLibrary("maps");
+    return isReady();
+  };
+  if (isReady() && typeof window.google?.maps?.importLibrary !== "function") return Promise.resolve(true);
   if (!window.__flyeroMapsLoading) {
     window.__flyeroMapsLoading = new Promise<void>((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&loading=async&language=de&region=DE&libraries=places`;
-      script.async = true;
-      script.onload = () => {
+      const finishLoading = () => {
         const startedAt = Date.now();
-        const waitForLibraries = () => {
-          if (isReady()) {
-            resolve();
-            return;
+        const waitForLibraries = async () => {
+          try {
+            if (await importMapsLibrary()) {
+              resolve();
+              return;
+            }
+          } catch {
+            // The API can expose its namespace before the requested library is ready.
           }
           if (Date.now() - startedAt >= 10000) {
             reject(new Error("Google Maps Zusatzbibliotheken konnten nicht geladen werden."));
             return;
           }
-          window.setTimeout(waitForLibraries, 50);
+          window.setTimeout(() => void waitForLibraries(), 50);
         };
-        waitForLibraries();
+        void waitForLibraries();
+      };
+      const existingScript = document.querySelector<HTMLScriptElement>("script[data-google-maps]");
+      if (existingScript) {
+        if (isReady() || existingScript.dataset.loaded === "true") finishLoading();
+        else existingScript.addEventListener("load", finishLoading, { once: true });
+        existingScript.addEventListener("error", () => reject(new Error("Google Maps konnte nicht geladen werden.")), { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.dataset.googleMaps = "true";
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=3.64&loading=async&language=de&region=DE&libraries=places`;
+      script.async = true;
+      script.onload = () => {
+        script.dataset.loaded = "true";
+        finishLoading();
       };
       script.onerror = () => reject(new Error("Google Maps konnte nicht geladen werden."));
       document.head.appendChild(script);
