@@ -5,7 +5,7 @@ const route = readFileSync("src/app/api/maps/order-intelligence/route.ts", "utf8
 
 assert.match(
   route,
-  /serviceType:\s*serviceType,/, 
+  /serviceType:\s*serviceType,/,
   "Die Vorschau-API muss den vom Wizard gewaehlten Service-Typ an die serverseitige Berechnung weitergeben.",
 );
 assert.match(
