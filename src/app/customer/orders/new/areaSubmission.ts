@@ -45,6 +45,17 @@ export function hasAreaGeometry(segment: AreaSegmentLike) {
   return (Array.isArray(segment.points) && segment.points.length >= 3) || hasPolygonGeometry(segment.geometryGeoJson);
 }
 
+export function canCompleteAreaSelection(input: {
+  hasValidArea: boolean;
+  coverageAreaSqm: number;
+  city: string;
+  postalCode: string;
+}) {
+  if (!input.hasValidArea || !Number.isFinite(input.coverageAreaSqm) || input.coverageAreaSqm <= 0) return false;
+  if (input.city.trim().length < 2) return false;
+  return input.postalCode.trim() === "" || isGermanPostalCode(input.postalCode.trim());
+}
+
 export function resolveAreaSubmissionContext(input: AreaSubmissionInput): AreaSubmissionContext {
   const selectedSegment = input.segments.find(hasAreaGeometry);
   const segmentCity = text(selectedSegment?.city);

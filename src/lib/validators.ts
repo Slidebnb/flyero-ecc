@@ -51,6 +51,13 @@ const optionalText = z
     return trimmed ? trimmed : undefined;
   });
 
+const orderPostalCode = z
+  .string()
+  .trim()
+  .max(10)
+  .refine((value) => value === "" || /^\d{5}$/.test(value), "Bitte gib eine gültige fünfstellige PLZ ein.")
+  .default("");
+
 const optionalPositiveNumber = z.preprocess(
   (value) => (value === "" || value === null ? undefined : value),
   z.coerce.number().positive().optional(),
@@ -211,7 +218,7 @@ export const orderCreateSchema = z
       "PRODUCT_SAMPLING",
     ]),
     city: z.string().trim().min(2, "Bitte gib einen Ort an."),
-    postalCode: z.string().trim().regex(/^\d{5}$/, "Bitte gib eine gültige fünfstellige PLZ ein."),
+    postalCode: orderPostalCode,
     street: optionalText,
     houseNumber: optionalText,
     placeId: optionalText,

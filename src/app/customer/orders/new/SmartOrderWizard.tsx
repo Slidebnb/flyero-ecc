@@ -41,7 +41,7 @@ import { useOrderLocationSearch } from "./hooks/useOrderLocationSearch";
 import { useOrderDraft } from "./hooks/useOrderDraft";
 import { useOrderSubmission } from "./hooks/useOrderSubmission";
 import { useOrderMap } from "./hooks/useOrderMap";
-import { hasAreaGeometry, resolveAreaSubmissionContext } from "./areaSubmission";
+import { canCompleteAreaSelection, hasAreaGeometry, resolveAreaSubmissionContext } from "./areaSubmission";
 
 const orderNavItems = [
   { href: "/customer/dashboard", label: "Übersicht", icon: LayoutDashboard, group: "Start" },
@@ -108,6 +108,12 @@ type GoogleNamespace = {
   };
 };
 
+type GoogleMapsLibrary = {
+  Map?: GoogleNamespace["maps"]["Map"];
+  Polygon?: GoogleNamespace["maps"]["Polygon"];
+  LatLngBounds?: GoogleNamespace["maps"]["LatLngBounds"];
+};
+
 type GoogleGeocodeResult = {
   formatted_address?: string;
   address_components?: GoogleAddressComponent[];
@@ -118,6 +124,7 @@ declare global {
   interface Window {
     google?: GoogleNamespace;
     __flyeroMapsLoading?: Promise<void>;
+    __flyeroMapsLibrary?: GoogleMapsLibrary;
   }
 }
 
@@ -406,15 +413,21 @@ function boundaryLayerStyle(selectedPlaceIds: string[], hideSelected = false, hi
 function loadGoogleMaps() {
   const browserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   if (!browserKey || typeof window === "undefined") return Promise.resolve(false);
-  const isReady = () => Boolean(
-    typeof window.google?.maps?.Map === "function"
-      && typeof window.google.maps.Polygon === "function"
-      && typeof window.google.maps.LatLngBounds === "function",
-  );
+  const isReady = () => {
+    const library = window.__flyeroMapsLibrary;
+    const maps = window.google?.maps;
+    return Boolean(
+      typeof (library?.Map ?? maps?.Map) === "function"
+        && typeof (library?.Polygon ?? maps?.Polygon) === "function"
+        && typeof (library?.LatLngBounds ?? maps?.LatLngBounds) === "function",
+    );
+  };
   const importMapsLibrary = async () => {
     const maps = window.google?.maps;
     if (!maps) return false;
-    if (typeof maps.importLibrary === "function") await maps.importLibrary("maps");
+    if (typeof maps.importLibrary === "function") {
+      window.__flyeroMapsLibrary = await maps.importLibrary("maps") as GoogleMapsLibrary;
+    }
     return isReady();
   };
   if (isReady() && typeof window.google?.maps?.importLibrary !== "function") return Promise.resolve(true);
@@ -1717,6 +1730,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   useEffect(() => {
     if (!mapsReady || !mapElementRef.current || !window.google?.maps) return;
     const maps = window.google.maps;
+    const mapLibrary = window.__flyeroMapsLibrary;
+    const MapConstructor = mapLibrary?.Map ?? maps.Map;
+    const PolygonConstructor = mapLibrary?.Polygon ?? maps.Polygon;
+    const BoundsConstructor = mapLibrary?.LatLngBounds ?? maps.LatLngBounds;
+    if (typeof MapConstructor !== "function" || typeof PolygonConstructor !== "function" || typeof BoundsConstructor !== "function") return;
     if (mapRef.current && mapInstanceRenderModeRef.current !== mapRenderMode) {
       mapRef.current = null;
       mapInstanceRenderModeRef.current = null;
@@ -1744,7 +1762,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             { featureType: "water", elementType: "geometry", stylers: [{ color: "#0c213a" }] },
           ];
         }
-        mapRef.current = new maps.Map(mapElementRef.current, {
+        mapRef.current = new MapConstructor(mapElementRef.current, {
           ...mapOptions,
         });
         mapInstanceRenderModeRef.current = mapRenderMode;
@@ -1754,7 +1772,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
     if (!polygonRef.current && polygonStateRef.current.length >= 3) {
       try {
-        polygonRef.current = new maps.Polygon({
+        polygonRef.current = new PolygonConstructor({
           paths: polygonStateRef.current,
           strokeColor: "#4a90ff",
           strokeOpacity: 1,
@@ -1781,6 +1799,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   useEffect(() => {
     if (!mapsReady || !mapRef.current || !window.google?.maps) return;
     const maps = window.google.maps;
+    const PolygonConstructor = window.__flyeroMapsLibrary?.Polygon ?? maps.Polygon;
+    if (typeof PolygonConstructor !== "function") return;
     const officialOverlays = officialBoundaryOverlaysRef.current;
     for (const listener of officialBoundaryListenersRef.current) {
       try {
@@ -1800,7 +1820,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       if (rings.length === 0) continue;
       const overlays: GooglePolygon[] = [];
       for (const ring of rings) {
-        const overlay = new maps.Polygon({
+        const overlay = new PolygonConstructor({
           paths: ring,
           strokeColor: area.id === selectedAreaId ? "#a7ff00" : "#8bd400",
           strokeOpacity: area.id === selectedAreaId ? 1 : 0.9,
@@ -1843,6 +1863,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       return;
     }
     const maps = window.google.maps;
+    const PolygonConstructor = window.__flyeroMapsLibrary?.Polygon ?? maps.Polygon;
+    if (typeof PolygonConstructor !== "function") return;
     let retryTimer: number | null = null;
     let retryCount = 0;
     let installBoundaryLayers: () => void = () => undefined;
@@ -1996,7 +2018,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   useEffect(() => {
     if (!mapsReady || !mapRef.current || !window.google?.maps) return;
-    const maps = window.google.maps;
+    const PolygonConstructor = window.__flyeroMapsLibrary?.Polygon ?? window.google.maps.Polygon;
+    if (typeof PolygonConstructor !== "function") return;
     const visibleSegments = new Set(areaSegmentsPayload.map((segment) => segment.id));
     for (const [segmentId, overlay] of segmentPolygonsRef.current.entries()) {
       if (!visibleSegments.has(segmentId) || segmentId === activeSegmentId) {
@@ -2009,7 +2032,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       const segmentPoints = segmentPathPoints(segment);
       let overlay = segmentPolygonsRef.current.get(segment.id);
       if (!overlay) {
-        overlay = new maps.Polygon({
+        overlay = new PolygonConstructor({
           paths: segmentPoints,
           strokeColor: "#a7ff00",
           strokeOpacity: 0.9,
@@ -2035,7 +2058,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     mapRef.current.setZoom(street ? 16 : 14);
     polygonRef.current?.setPath(polygon);
     if (polygon.length < 3 || areaSegmentsPayload.length === 0) return;
-    const bounds = new window.google.maps.LatLngBounds();
+    const BoundsConstructor = window.__flyeroMapsLibrary?.LatLngBounds ?? window.google.maps.LatLngBounds;
+    if (typeof BoundsConstructor !== "function") return;
+    const bounds = new BoundsConstructor();
     areaSegmentsPayload.forEach((segment) => segmentPathPoints(segment).forEach((point) => bounds.extend(point)));
     mapRef.current.fitBounds(bounds);
   }, [areaSegmentsPayload, center, mapMode, mapsReady, polygon, street]);
@@ -2259,7 +2284,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setFinishStatus("Produktproben prüfen wir vorab. Bitte sende ein individuelles Sampling-Angebot.");
       return;
     }
-    if (!hasValidSelectedArea || !isGermanPostalCode(planningPostalCode) || planningCity.trim().length < 2) {
+    if (!canCompleteAreaSelection({
+      hasValidArea: hasValidSelectedArea,
+      coverageAreaSqm,
+      city: planningCity,
+      postalCode: planningPostalCode,
+    })) {
       setActiveStep(1);
       setFinishStatus("Bitte wähle zuerst ein gültiges Verteilgebiet aus.");
       return;

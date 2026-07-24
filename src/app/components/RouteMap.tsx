@@ -22,6 +22,7 @@ type Props = {
 };
 
 type GoogleMapsWindow = Window & {
+  __flyeroMapsLibrary?: GoogleMapsLibrary;
   google?: {
     maps: {
       Map: new (el: HTMLElement, options: Record<string, unknown>) => unknown;
@@ -29,8 +30,17 @@ type GoogleMapsWindow = Window & {
       Polyline: new (options: Record<string, unknown>) => { setMap: (map: unknown) => void };
       Marker: new (options: Record<string, unknown>) => void;
       Polygon: new (options: Record<string, unknown>) => { setMap: (map: unknown) => void };
+      importLibrary?: (libraryName: string) => Promise<unknown>;
     };
   };
+};
+
+type GoogleMapsLibrary = {
+  Map?: new (el: HTMLElement, options: Record<string, unknown>) => unknown;
+  LatLngBounds?: new () => { extend: (point: { lat: number; lng: number }) => void };
+  Polyline?: new (options: Record<string, unknown>) => { setMap: (map: unknown) => void };
+  Marker?: new (options: Record<string, unknown>) => void;
+  Polygon?: new (options: Record<string, unknown>) => { setMap: (map: unknown) => void };
 };
 
 const GOOGLE_MAPS_VERSION = "3.64";
@@ -66,40 +76,59 @@ export function RouteMap({ points, photos = [], targetArea = null, height = 360 
     if (!loaded || !containerRef.current || validPoints.length === 0) return;
     const maps = (window as GoogleMapsWindow).google?.maps;
     if (!maps) return;
-    const map = new maps.Map(containerRef.current, {
-      center: validPoints[0],
-      zoom: 14,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: true,
-    });
-    const bounds = new maps.LatLngBounds();
-    validPoints.forEach((point) => bounds.extend(point));
-    new maps.Polyline({
-      path: validPoints,
-      strokeColor: "#102033",
-      strokeWeight: 4,
-      strokeOpacity: 0.9,
-    }).setMap(map);
-    new maps.Marker({ position: validPoints[0], map, label: "S", title: "Start" });
-    new maps.Marker({ position: validPoints[validPoints.length - 1], map, label: "E", title: "Ende" });
-    validPhotos.forEach((photo, index) => {
-      const position = { lat: Number(photo.lat), lng: Number(photo.lng) };
-      bounds.extend(position);
-      new maps.Marker({ position, map, label: String(index + 1), title: photo.label ?? "Foto" });
-    });
-    if (targetArea?.length) {
-      targetArea.forEach((point) => bounds.extend(point));
-      new maps.Polygon({
-        paths: targetArea,
-        strokeColor: "#176b36",
-        strokeOpacity: 0.8,
-        strokeWeight: 2,
-        fillColor: "#176b36",
-        fillOpacity: 0.1,
+    const mapsApi = maps;
+    let cancelled = false;
+    async function renderMap() {
+      const imported = typeof mapsApi.importLibrary === "function"
+        ? await mapsApi.importLibrary("maps") as GoogleMapsLibrary
+        : undefined;
+      if (cancelled) return;
+      const library = imported;
+      const MapConstructor = library?.Map ?? mapsApi.Map;
+      const BoundsConstructor = library?.LatLngBounds ?? mapsApi.LatLngBounds;
+      const PolylineConstructor = library?.Polyline ?? mapsApi.Polyline;
+      const MarkerConstructor = library?.Marker ?? mapsApi.Marker;
+      const PolygonConstructor = library?.Polygon ?? mapsApi.Polygon;
+      if (typeof MapConstructor !== "function" || typeof BoundsConstructor !== "function" || typeof PolylineConstructor !== "function" || typeof MarkerConstructor !== "function") return;
+      const map = new MapConstructor(containerRef.current!, {
+        center: validPoints[0],
+        zoom: 14,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+      });
+      const bounds = new BoundsConstructor();
+      validPoints.forEach((point) => bounds.extend(point));
+      new PolylineConstructor({
+        path: validPoints,
+        strokeColor: "#102033",
+        strokeWeight: 4,
+        strokeOpacity: 0.9,
       }).setMap(map);
+      new MarkerConstructor({ position: validPoints[0], map, label: "S", title: "Start" });
+      new MarkerConstructor({ position: validPoints[validPoints.length - 1], map, label: "E", title: "Ende" });
+      validPhotos.forEach((photo, index) => {
+        const position = { lat: Number(photo.lat), lng: Number(photo.lng) };
+        bounds.extend(position);
+        new MarkerConstructor({ position, map, label: String(index + 1), title: photo.label ?? "Foto" });
+      });
+      if (targetArea?.length && typeof PolygonConstructor === "function") {
+        targetArea.forEach((point) => bounds.extend(point));
+        new PolygonConstructor({
+          paths: targetArea,
+          strokeColor: "#176b36",
+          strokeOpacity: 0.8,
+          strokeWeight: 2,
+          fillColor: "#176b36",
+          fillOpacity: 0.1,
+        }).setMap(map);
+      }
+      (map as { fitBounds?: (bounds: unknown) => void }).fitBounds?.(bounds);
     }
-    (map as { fitBounds?: (bounds: unknown) => void }).fitBounds?.(bounds);
+    void renderMap();
+    return () => {
+      cancelled = true;
+    };
   }, [loaded, targetArea, validPhotos, validPoints]);
 
   if (!browserKey || validPoints.length === 0) {

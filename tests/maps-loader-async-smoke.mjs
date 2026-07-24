@@ -16,8 +16,8 @@ assert.match(
 );
 assert.match(
   orderWizard,
-  /typeof window\.google\?\.maps\?\.Map\s*===\s*["']function["']/,
-  "Der Kundenwizard darf die Map nur verwenden, wenn der Konstruktor wirklich bereit ist.",
+  /__flyeroMapsLibrary/,
+  "Der Kundenwizard muss die von importLibrary gelieferten Kartenkonstruktoren wiederverwenden.",
 );
 
 for (const file of files) {
@@ -26,6 +26,11 @@ for (const file of files) {
     source,
     /maps\/api\/js\?[^`]*loading=async/,
     `${file} muss Google Maps mit loading=async laden.`,
+  );
+  assert.doesNotMatch(
+    source,
+    /new\s+(?:maps|window\.google\.maps)\.Map\s*\(/,
+    `${file} darf keinen nicht initialisierten Google-Maps-Konstruktor direkt verwenden.`,
   );
 }
 

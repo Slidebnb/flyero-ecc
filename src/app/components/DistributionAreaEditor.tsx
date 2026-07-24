@@ -37,6 +37,7 @@ type Props = {
 };
 
 type GoogleMapsWindow = Window & {
+  __flyeroMapsLibrary?: GoogleMapsLibrary;
   google?: {
     maps: {
       Map: new (el: HTMLElement, options: Record<string, unknown>) => GoogleMap;
@@ -55,8 +56,15 @@ type GoogleMapsWindow = Window & {
           computeArea: (path: unknown) => number;
         };
       };
+      importLibrary?: (libraryName: string) => Promise<unknown>;
     };
   };
+};
+
+type GoogleMapsLibrary = {
+  Map?: new (el: HTMLElement, options: Record<string, unknown>) => GoogleMap;
+  LatLngBounds?: new () => GoogleBounds;
+  Polygon?: new (options: Record<string, unknown>) => GooglePolygon;
 };
 
 type GoogleMap = {
@@ -191,7 +199,9 @@ export function DistributionAreaEditor({
   function fitPolygons() {
     const maps = (window as GoogleMapsWindow).google?.maps;
     if (!maps || !mapRef.current || polygonsRef.current.length === 0) return;
-    const bounds = new maps.LatLngBounds();
+    const BoundsConstructor = (window as GoogleMapsWindow).__flyeroMapsLibrary?.LatLngBounds ?? maps.LatLngBounds;
+    if (typeof BoundsConstructor !== "function") return;
+    const bounds = new BoundsConstructor();
     polygonsRef.current.forEach((polygon) => {
       polygon.getPath().getArray().forEach((point) => bounds.extend({ lat: point.lat(), lng: point.lng() }));
     });
@@ -277,59 +287,75 @@ export function DistributionAreaEditor({
     if (!loaded || !containerRef.current) return;
     const maps = (window as GoogleMapsWindow).google?.maps;
     if (!maps) return;
-    const map = new maps.Map(containerRef.current, {
-      center: { lat: 50.3569, lng: 7.589 },
-      zoom: 12,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: true,
-    });
-    mapRef.current = map;
-    const drawingManager = maps.drawing
-      ? new maps.drawing.DrawingManager({
-          drawingMode: null,
-          drawingControl: true,
-          drawingControlOptions: {
-            drawingModes: [maps.drawing.OverlayType.POLYGON],
-          },
-          polygonOptions: {
-            editable: true,
-            draggable: true,
-            fillColor: "#176b36",
-            fillOpacity: 0.16,
-            strokeColor: "#176b36",
-            strokeWeight: 2,
-          },
-        })
-      : null;
-    drawingManager?.setMap(map);
-    if (drawingManager) {
-      maps.event.addListener(drawingManager, "polygoncomplete", (polygon: unknown) => {
-        drawingManager.setDrawingMode(null);
-        attachPolygon(polygon as GooglePolygon);
+    const mapsApi = maps;
+    let cancelled = false;
+    async function renderMap() {
+      const imported = typeof mapsApi.importLibrary === "function"
+        ? await mapsApi.importLibrary("maps") as GoogleMapsLibrary
+        : undefined;
+      if (cancelled) return;
+      const library = imported;
+      const MapConstructor = library?.Map ?? mapsApi.Map;
+      const PolygonConstructor = library?.Polygon ?? mapsApi.Polygon;
+      if (typeof MapConstructor !== "function" || typeof PolygonConstructor !== "function") return;
+      const map = new MapConstructor(containerRef.current!, {
+        center: { lat: 50.3569, lng: 7.589 },
+        zoom: 12,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
       });
-    }
+      mapRef.current = map;
+      const drawingManager = mapsApi.drawing
+        ? new mapsApi.drawing.DrawingManager({
+            drawingMode: null,
+            drawingControl: true,
+            drawingControlOptions: {
+              drawingModes: [mapsApi.drawing.OverlayType.POLYGON],
+            },
+            polygonOptions: {
+              editable: true,
+              draggable: true,
+              fillColor: "#176b36",
+              fillOpacity: 0.16,
+              strokeColor: "#176b36",
+              strokeWeight: 2,
+            },
+          })
+        : null;
+      drawingManager?.setMap(map);
+      if (drawingManager) {
+        mapsApi.event.addListener(drawingManager, "polygoncomplete", (polygon: unknown) => {
+          drawingManager.setDrawingMode(null);
+          attachPolygon(polygon as GooglePolygon);
+        });
+      }
 
-    const features = safeFeatureCollection(geoJson).features;
-    features.forEach((feature) => {
-      const path = featureToPath(feature);
-      if (path.length < 3) return;
-      const polygon = new maps.Polygon({
-        paths: path,
-        map,
-        editable: true,
-        draggable: true,
-        fillColor: "#176b36",
-        fillOpacity: 0.16,
-        strokeColor: "#176b36",
-        strokeWeight: 2,
+      const features = safeFeatureCollection(geoJson).features;
+      features.forEach((feature) => {
+        const path = featureToPath(feature);
+        if (path.length < 3) return;
+        const polygon = new PolygonConstructor({
+          paths: path,
+          map,
+          editable: true,
+          draggable: true,
+          fillColor: "#176b36",
+          fillOpacity: 0.16,
+          strokeColor: "#176b36",
+          strokeWeight: 2,
+        });
+        attachPolygon(polygon as unknown as GooglePolygon);
       });
-      attachPolygon(polygon as unknown as GooglePolygon);
-    });
-    if (features.length === 0) {
-      map.setCenter?.({ lat: 50.3569, lng: 7.589 });
-      map.setZoom?.(12);
+      if (features.length === 0) {
+        map.setCenter?.({ lat: 50.3569, lng: 7.589 });
+        map.setZoom?.(12);
+      }
     }
+    void renderMap();
+    return () => {
+      cancelled = true;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded]);
 

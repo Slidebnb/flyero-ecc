@@ -8,13 +8,21 @@ type Props = {
 };
 
 type GoogleMapsWindow = Window & {
+  __flyeroMapsLibrary?: GoogleMapsLibrary;
   google?: {
     maps: {
       Map: new (el: HTMLElement, options: Record<string, unknown>) => GoogleMap;
       LatLngBounds: new () => GoogleBounds;
       Polygon: new (options: Record<string, unknown>) => { setMap: (map: GoogleMap) => void };
+      importLibrary?: (libraryName: string) => Promise<unknown>;
     };
   };
+};
+
+type GoogleMapsLibrary = {
+  Map?: new (el: HTMLElement, options: Record<string, unknown>) => GoogleMap;
+  LatLngBounds?: new () => GoogleBounds;
+  Polygon?: new (options: Record<string, unknown>) => { setMap: (map: GoogleMap) => void };
 };
 
 type GoogleMap = {
@@ -72,29 +80,46 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
     if (!loaded || !containerRef.current) return;
     const maps = (window as GoogleMapsWindow).google?.maps;
     if (!maps) return;
-    const map = new maps.Map(containerRef.current, {
-      center: { lat: 50.3569, lng: 7.589 },
-      zoom: 12,
-      mapTypeControl: false,
-      streetViewControl: false,
-      fullscreenControl: true,
-    });
-    const bounds = new maps.LatLngBounds();
-    areaFeatures.forEach((feature) => {
-      const path = pathFromFeature(feature);
-      path.forEach((point) => bounds.extend(point));
-      if (path.length >= 3) {
-        new maps.Polygon({
-          paths: path,
-          strokeColor: "#176b36",
-          strokeWeight: 2,
-          strokeOpacity: 0.9,
-          fillColor: "#176b36",
-          fillOpacity: 0.14,
-        }).setMap(map);
-      }
-    });
-    map.fitBounds?.(bounds);
+    const mapsApi = maps;
+    let cancelled = false;
+    async function renderMap() {
+      const imported = typeof mapsApi.importLibrary === "function"
+        ? await mapsApi.importLibrary("maps") as GoogleMapsLibrary
+        : undefined;
+      if (cancelled) return;
+      const library = imported;
+      const MapConstructor = library?.Map ?? mapsApi.Map;
+      const BoundsConstructor = library?.LatLngBounds ?? mapsApi.LatLngBounds;
+      const PolygonConstructor = library?.Polygon ?? mapsApi.Polygon;
+      if (typeof MapConstructor !== "function" || typeof BoundsConstructor !== "function" || typeof PolygonConstructor !== "function") return;
+      const map = new MapConstructor(containerRef.current!, {
+        center: { lat: 50.3569, lng: 7.589 },
+        zoom: 12,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true,
+      });
+      const bounds = new BoundsConstructor();
+      areaFeatures.forEach((feature) => {
+        const path = pathFromFeature(feature);
+        path.forEach((point) => bounds.extend(point));
+        if (path.length >= 3) {
+          new PolygonConstructor({
+            paths: path,
+            strokeColor: "#176b36",
+            strokeWeight: 2,
+            strokeOpacity: 0.9,
+            fillColor: "#176b36",
+            fillOpacity: 0.14,
+          }).setMap(map);
+        }
+      });
+      map.fitBounds?.(bounds);
+    }
+    void renderMap();
+    return () => {
+      cancelled = true;
+    };
   }, [areaFeatures, loaded]);
 
   if (!browserKey || areaFeatures.length === 0) {

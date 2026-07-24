@@ -103,8 +103,9 @@ async function createPublicQuote(input: unknown) {
   if (!parsed.success) return errorResponse("Die Planungsdaten konnten nicht verarbeitet werden.", 400);
   const value: QuoteInput = parsed.data;
   const coverageAreaSqm = boundedNumber(value.coverageAreaSqm, 100_000_000);
+  const hasSelectedArea = Boolean(value.targetAreaGeoJson) || (value.segments?.length ?? 0) > 0;
 
-  if (!value.city || !value.postalCode || !coverageAreaSqm || coverageAreaSqm <= 0) {
+  if (!value.city || (!value.postalCode && !hasSelectedArea) || !coverageAreaSqm || coverageAreaSqm <= 0) {
     return errorResponse("Bitte wähle zuerst ein Verteilgebiet aus.", 400);
   }
 
