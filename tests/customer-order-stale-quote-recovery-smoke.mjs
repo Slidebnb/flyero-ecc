@@ -33,6 +33,16 @@ assert.match(
 );
 assert.match(
   wizard,
+  /const completionSegments = areaSegmentsPayload\.filter\(hasAreaGeometry\)/,
+  "Der Submit muss denselben aktuellen Segmentzustand wie die Preisvorschau verwenden.",
+);
+assert.doesNotMatch(
+  wizard,
+  /const committedSegments = areaSegmentsRef\.current\.filter\(hasAreaGeometry\)/,
+  "Der Submit darf keinen zweiten, potenziell veralteten Gebiets-Referenzzustand verwenden.",
+);
+assert.match(
+  wizard,
   /buildOrderPayload\(completionPath, \{ \.\.\.submissionOptions, quoteFingerprint \}\)/,
   "Der Auftrag muss aus demselben Snapshot wie die Quote aufgebaut werden.",
 );

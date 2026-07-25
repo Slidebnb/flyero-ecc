@@ -2321,8 +2321,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setFinishStatus("Produktproben prüfen wir vorab. Bitte sende ein individuelles Sampling-Angebot.");
       return;
     }
-    const committedSegments = areaSegmentsRef.current.filter(hasAreaGeometry);
-    const completionSegments = committedSegments.length > 0 ? committedSegments : areaSegmentsPayload;
+    // Use the same current snapshot that drives the intelligence request and
+    // visible summary. The ref is intentionally reserved for map interaction;
+    // using it here can submit an older polygon than the one just priced.
+    const completionSegments = areaSegmentsPayload.filter(hasAreaGeometry);
     const completionCoverageAreaSqm = completionSegments.reduce(
       (sum, segment) => sum + geometryAreaSqm(segment.geometryGeoJson, segment.points),
       0,
