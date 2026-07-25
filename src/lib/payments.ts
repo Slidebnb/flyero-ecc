@@ -6,7 +6,7 @@ import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { classifyStripeDisputeEvent, isRefundBlockedByDispute } from "@/lib/paymentDisputeLogic";
-import { calculateOrderPrice, calculatePriceFromNet, withCurrentPricingSnapshot } from "@/lib/pricing";
+import { calculateOrderPrice, calculatePriceFromNet, deriveOrderPricingOptions, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getVatRate } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 import { getCustomerProfileCompleteness, type BillingProfileField } from "@/lib/customerProfileCompleteness";
@@ -246,6 +246,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     include: {
       customer: { include: { user: { select: { email: true } } } },
       payments: { orderBy: { createdAt: "desc" } },
+      distributionSegments: { select: { id: true } },
     },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
@@ -284,6 +285,10 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
         weightClass: order.weightClass,
         weightInGrams: order.weightInGrams,
         areaDifficulty: order.areaDifficulty,
+        ...deriveOrderPricingOptions({
+          preferredStartDate: order.preferredStartDate,
+          additionalAreaCount: order.distributionSegments.length,
+        }),
       })
     : null;
   const currentManualPrice = order.manualPriceOverride !== null

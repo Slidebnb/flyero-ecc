@@ -186,8 +186,8 @@ try {
     "Preis- und Gebietswerte muessen an die aktuell bestaetigte Berechnung gebunden sein.",
   );
   assert(
-    /if \(isPublicPlanner \|\| selectedWarehouseId \|\| !currentIntelligence\?\.warehouse\?\.id\)/.test(wizard),
-    "Die automatische Lagerauswahl darf keine veraltete Gebietsantwort verwenden.",
+    /const selectedWarehouse = currentIntelligence\?\.warehouse \?\? null/.test(wizard),
+    "Die automatische Lagerauswahl muss an die aktuell bestaetigte Gebietsantwort gebunden sein.",
   );
   assert(
     /currentIntelligenceStatus === "live"[\s\S]*currentIntelligence\?\.metrics\.householdRecommendationAllowed === true/.test(wizard),

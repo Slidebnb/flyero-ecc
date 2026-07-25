@@ -21,18 +21,18 @@ assert.match(
   /data\.completionPath === "direct_payment"[\s\S]{0,300}data\.quoteFingerprint !== intelligence\.metrics\.fingerprint/,
   "Die API muss den Quote-Fingerprint nur beim direkten Zahlungsweg zwingend vergleichen.",
 );
-assert.match(
+assert.doesNotMatch(
   wizard,
   /completionPath === "direct_payment" && !isPublicPlanner && !selectedWarehouseId/,
-  "Der Wizard darf fuer eine unverbindliche Anfrage kein Empfangslager erzwingen.",
+  "Der Wizard darf den Abschluss nicht an eine manuelle Empfangslagerauswahl binden.",
 );
 assert.match(
   wizard,
   /completionPath === "direct_payment" && !isPublicPlanner && \(/,
   "Der Wizard darf fuer eine unverbindliche Anfrage keine fertige Quote erzwingen.",
 );
-assert.match(materialStep, /Art der Probe/);
-assert.match(materialStep, /sampleType/);
+assert.match(materialStep, /sampling-manual-review/);
+assert.doesNotMatch(materialStep, /sampling-details|Art der Probe/);
 assert.match(wizard, /sampleType/);
 
 console.log("Customer order inquiry contract checks passed.");

@@ -4,7 +4,7 @@ import { requireTenantSession } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit";
 import { createDistributionArea, linkAreaReferenceToOrder } from "@/lib/areas";
 import { createOrderStatusEvent } from "@/lib/orders";
-import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
+import { calculateOrderPrice, deriveOrderPricingOptions, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getOrderIntelligence } from "@/lib/smartMaps";
 import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
@@ -158,6 +158,10 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       weightClass: weightClassFromGrams(data.weightInGrams),
       weightInGrams: data.weightInGrams,
       areaDifficulty: intelligence.metrics.areaDifficulty ?? "NORMAL",
+      ...deriveOrderPricingOptions({
+        preferredStartDate: data.preferredStartDate,
+        additionalAreaCount: areaSelection?.segments.length ?? 1,
+      }),
     });
     const nextStatus = isCustomerCorrection ? "UNDER_REVIEW" : data.status ?? "PAYMENT_PENDING";
 

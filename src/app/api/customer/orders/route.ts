@@ -6,7 +6,7 @@ import { createDistributionArea, linkAreaReferenceToOrder } from "@/lib/areas";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { assignWarehouseForOrder, warehouseAddressText } from "@/lib/logistics";
 import { generateOrderNumber, createOrderStatusEvent } from "@/lib/orders";
-import { calculateOrderPrice, withCurrentPricingSnapshot } from "@/lib/pricing";
+import { calculateOrderPrice, deriveOrderPricingOptions, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getOrderIntelligence } from "@/lib/smartMaps";
 import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
@@ -154,6 +154,10 @@ export async function POST(request: NextRequest) {
       weightClass: weightClassFromGrams(data.weightInGrams),
       weightInGrams: data.weightInGrams,
       areaDifficulty: serverAreaDifficulty,
+      ...deriveOrderPricingOptions({
+        preferredStartDate: data.preferredStartDate,
+        additionalAreaCount: areaSelection?.segments.length ?? 1,
+      }),
     });
     if (data.completionPath === "direct_payment" && (requiresManualReview || samplingRequiresManualReview || !price.snapshot.checkoutAllowed)) {
       return Response.json({
@@ -209,7 +213,7 @@ export async function POST(request: NextRequest) {
         ? "Druck über FLYERO angefragt"
         : "Druckdaten werden später bereitgestellt";
     const fulfillmentLabel = data.flyerSource === "CUSTOMER_OWN"
-      ? `Eigene, bereits gedruckte ${serviceCatalogLabel(data.serviceType)} werden an das ausgewählte Empfangslager gesendet.`
+      ? `Eigene, bereits gedruckte ${serviceCatalogLabel(data.serviceType)} werden an das automatisch zugewiesene FLYERO-Hauptlager gesendet.`
       : printDataLabel;
 
     let order: Awaited<ReturnType<typeof prisma.order.create>> | null = null;

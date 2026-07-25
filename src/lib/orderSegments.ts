@@ -1,3 +1,5 @@
+import polygonClipping from "polygon-clipping";
+
 export const MAX_ORDER_AREA_SEGMENTS = 50;
 export const MAX_ORDER_AREA_POINTS = 500;
 
@@ -131,7 +133,33 @@ function polygonAreaSqm(ring: number[][]) {
 }
 
 function geometryAreaSqm(geometry: FeatureCollection) {
-  return Math.round(geometry.features.reduce((sum, feature) => sum + polygonAreaSqm(feature.geometry.coordinates[0]), 0));
+  return Math.round(geometry.features.reduce((sum, feature) => {
+    const [outerRing, ...holes] = feature.geometry.coordinates;
+    return sum + polygonAreaSqm(outerRing) - holes.reduce((holeSum, hole) => holeSum + polygonAreaSqm(hole), 0);
+  }, 0));
+}
+
+function unionGeometry(geometries: FeatureCollection[]) {
+  const polygons: Array<Array<[number, number][]>> = geometries.flatMap((geometry) => geometry.features.map((feature) => (
+    feature.geometry.coordinates.map((ring) => ring.map(([lng, lat]) => [lng, lat] as [number, number]))
+  )));
+  if (!polygons.length) return null;
+
+  let merged;
+  try {
+    merged = polygonClipping.union(polygons[0], ...polygons.slice(1));
+  } catch {
+    throw new Error("Die Teilgebiete enthalten keine verarbeitbare Geometrie.");
+  }
+
+  return {
+    type: "FeatureCollection" as const,
+    features: merged.map((coordinates, index) => ({
+      type: "Feature" as const,
+      properties: { merged: true, sourceIndex: index },
+      geometry: { type: "Polygon" as const, coordinates },
+    })),
+  };
 }
 
 export function normalizeOrderAreaSegments(value: unknown): NormalizedOrderAreaSegment[] {
@@ -171,9 +199,10 @@ export function normalizeOrderAreaSegments(value: unknown): NormalizedOrderAreaS
 export function aggregateOrderAreaSegments(value: unknown): AggregatedOrderAreaSegments | null {
   const segments = normalizeOrderAreaSegments(value);
   if (!segments.length) return null;
+  const mergedGeometry = unionGeometry(segments.map((segment) => segment.geometryGeoJson));
   return {
     segments,
-    totalAreaSqm: segments.reduce((sum, segment) => sum + segment.areaSqm, 0),
+    totalAreaSqm: mergedGeometry ? geometryAreaSqm(mergedGeometry) : 0,
     targetAreaGeoJson: {
       type: "FeatureCollection",
       features: segments.flatMap((segment) => segment.geometryGeoJson.features),

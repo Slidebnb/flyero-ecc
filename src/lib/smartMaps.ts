@@ -3,7 +3,7 @@ import { estimateHouseholds, estimateRouteDistanceMeters, calculateDistributionT
 import { findBestWarehouseForArea } from "@/lib/logistics";
 import { prisma } from "@/lib/prisma";
 import { productionAreaWhere, productionOrderExperienceEventWhere, productionOrderWhere } from "@/lib/productionData";
-import { calculateOrderPrice } from "@/lib/pricing";
+import { calculateOrderPrice, deriveOrderPricingOptions } from "@/lib/pricing";
 import { aggregateOrderAreaSegments, type NormalizedOrderAreaSegment } from "@/lib/orderSegments";
 import { buildAuthoritativePlanningQuote, buildPlanningInputFingerprint, planningGeometry } from "@/lib/planningQuote";
 import { deriveAreaDifficulty } from "@/lib/areaDifficulty";
@@ -540,6 +540,10 @@ export async function getOrderIntelligence(input: {
     weightClass: input.weightClass,
     weightInGrams: input.weightInGrams,
     areaDifficulty: derivedAreaDifficulty.areaDifficulty,
+    ...deriveOrderPricingOptions({
+      preferredStartDate: input.preferredStartDate,
+      additionalAreaCount: areaSelection?.segments.length ?? 1,
+    }),
   });
   // Re-sign the authoritative quote after the server has derived difficulty.
   // The client hint must never be part of the final price truth.

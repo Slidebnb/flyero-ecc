@@ -1,66 +1,30 @@
 "use client";
 
 import { distributionServiceCatalog, type OnlineServiceType, type ServiceCatalogItem } from "@/lib/serviceCatalog";
-import type { CustomerWarehouse } from "./orderWizardTypes";
-
-type SamplingDetails = {
-  sampleType: string;
-  size: string;
-  packaging: string;
-  fragile: boolean;
-  personalHandover: boolean;
-  storage: string;
-};
 
 type OrderMaterialStepProps = {
-  isPublicPlanner: boolean;
   serviceType: OnlineServiceType;
   selectedService: ServiceCatalogItem;
-  productFormat: string;
-  weightInGrams: string;
-  numericWeightInGrams?: number;
-  effectiveWeightClass: string;
-  samplingDetails: SamplingDetails;
   repeatPrintChoice: "pending" | "same" | "changed" | null;
-  warehouseOptionsStatus: "loading" | "ready" | "error";
-  warehouseOptions: CustomerWarehouse[];
-  selectedWarehouseId: string;
   recommendedFlyerQuantity: number;
   recommendationLabel: string;
   flyerQuantity: number;
   onServiceTypeChange: (serviceType: OnlineServiceType) => void;
-  onProductFormatChange: (format: string) => void;
-  onWeightChange: (value: string) => void;
-  onSamplingDetailsChange: (details: SamplingDetails) => void;
   onRepeatPrintChoice: (choice: "same" | "changed") => void;
-  onWarehouseChange: (warehouseId: string) => void;
   onMoveQuantity: (delta: number) => void;
   onQuantityChange: (quantity: number) => void;
   onQuantityBlur: () => void;
 };
 
 export function OrderMaterialStep({
-  isPublicPlanner,
   serviceType,
   selectedService,
-  productFormat,
-  weightInGrams,
-  numericWeightInGrams,
-  effectiveWeightClass,
-  samplingDetails,
   repeatPrintChoice,
-  warehouseOptionsStatus,
-  warehouseOptions,
-  selectedWarehouseId,
   recommendedFlyerQuantity,
   recommendationLabel,
   flyerQuantity,
   onServiceTypeChange,
-  onProductFormatChange,
-  onWeightChange,
-  onSamplingDetailsChange,
   onRepeatPrintChoice,
-  onWarehouseChange,
   onMoveQuantity,
   onQuantityChange,
   onQuantityBlur,
@@ -100,34 +64,8 @@ export function OrderMaterialStep({
           </button>
         ))}
       </div>
-      <p className="orderReviewNotice">Du sendest deine fertigen Materialien nach der Buchung an das ausgewählte Lager. Den Druck selbst übernimmt FLYERO in diesem Online-Ablauf nicht.</p>
-      <label className="selectLine">
-        <span>Format</span>
-        <select data-testid="order-product-format" value={productFormat} onChange={(event) => onProductFormatChange(event.target.value)}>
-          {selectedService.formatOptions.map((format) => <option key={format} value={format}>{format}</option>)}
-        </select>
-        <small>Wähle das Format, das du bereits gedruckt an das Lager sendest.</small>
-      </label>
-      <label className="selectLine">
-        <span>Ungefähres Einzelgewicht</span>
-        <input type="number" min="1" max="10000" inputMode="numeric" value={weightInGrams} onChange={(event) => onWeightChange(event.target.value)} placeholder="z. B. 35" required={serviceType === "PRODUCT_SAMPLING"} />
-        <small>{numericWeightInGrams ? `Gewichtsklasse: ${effectiveWeightClass === "CUSTOM" ? "individuelles Angebot" : effectiveWeightClass}` : "Optional. Ohne Angabe kalkulieren wir mit LIGHT."}</small>
-      </label>
-      {effectiveWeightClass === "CUSTOM" ? (
-        <p className="orderReviewNotice" role="status">
-          Bei mehr als 250 g prüfen wir die sichere Zustellung persönlich. Eine direkte Zahlung ist für dieses Gewicht nicht verfügbar; sende uns bitte zuerst eine unverbindliche Anfrage.
-        </p>
-      ) : null}
       {serviceType === "PRODUCT_SAMPLING" ? (
-        <div className="samplingDetails" data-testid="sampling-details">
-          <strong>Angaben zur Produktprobe</strong>
-          <label>Art der Probe<input value={samplingDetails.sampleType} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, sampleType: event.target.value })} placeholder="z. B. Kaffeestick, Kosmetikprobe oder Snack" required /></label>
-          <label>Größe<input value={samplingDetails.size} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, size: event.target.value })} placeholder="z. B. 10 ml oder 8 x 5 cm" required /></label>
-          <label>Verpackung<input value={samplingDetails.packaging} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, packaging: event.target.value })} placeholder="z. B. Beutel, Karton oder Fläschchen" required /></label>
-          <label>Lagerbedingungen<input value={samplingDetails.storage} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, storage: event.target.value })} placeholder="z. B. trocken lagern" required /></label>
-          <label className="checkLine"><input type="checkbox" checked={samplingDetails.fragile} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, fragile: event.target.checked })} />Empfindlich oder zerbrechlich</label>
-          <label className="checkLine"><input type="checkbox" checked={samplingDetails.personalHandover} onChange={(event) => onSamplingDetailsChange({ ...samplingDetails, personalHandover: event.target.checked })} />Persönliche Übergabe erforderlich</label>
-        </div>
+        <p className="orderReviewNotice" data-testid="sampling-manual-review" role="status">{selectedService.label} prüfen wir vorab persönlich. Bitte sende dafür eine unverbindliche Anfrage; die Details klären wir direkt mit dir.</p>
       ) : null}
       {repeatPrintChoice === "pending" ? (
         <div className="repeatPrintNotice" role="alert">
@@ -139,18 +77,7 @@ export function OrderMaterialStep({
           </div>
         </div>
       ) : null}
-      {!isPublicPlanner ? (
-        <label className="selectLine">
-          <span>Empfangslager für deine Flyer</span>
-          <select data-testid="order-warehouse-select" value={selectedWarehouseId} onChange={(event) => onWarehouseChange(event.target.value)} disabled={warehouseOptionsStatus === "loading"}>
-            <option value="">{warehouseOptionsStatus === "loading" ? "Lager werden geladen ..." : "Lager auswählen"}</option>
-            {warehouseOptions.map((warehouse) => <option key={warehouse.id} value={warehouse.id}>{warehouse.name} · {warehouse.postalCode} {warehouse.city}</option>)}
-          </select>
-          <small>Du sendest die bereits gedruckten Flyer nach der Buchung an dieses Lager.{warehouseOptionsStatus === "error" ? " Die Lager konnten gerade nicht geladen werden." : ""}</small>
-        </label>
-      ) : (
-        <p className="orderReviewNotice">Nach deiner Registrierung wählst du das Empfangslager für deine bereits gedruckten Flyer aus.</p>
-      )}
+      <p className="orderReviewNotice">Deine bereits gedruckten Materialien sendest du nach der Buchung an das automatisch zugewiesene FLYERO-Hauptlager. Die genaue Lieferadresse erhältst du direkt nach der Auftragserstellung.</p>
     </section>
   );
 }

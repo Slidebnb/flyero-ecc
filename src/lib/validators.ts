@@ -285,7 +285,7 @@ export const orderCreateSchema = z
     path: ["quoteFingerprint"],
   })
   .refine((data) => {
-    if (data.serviceType !== "PRODUCT_SAMPLING") return true;
+    if (data.serviceType !== "PRODUCT_SAMPLING" || data.completionPath !== "direct_payment") return true;
     return Boolean(data.weightInGrams) && samplingProductDetails.safeParse(data.productDetails).success;
   }, {
     message: "Bitte ergänze Art, Größe, Verpackung, Gewicht und Lagerbedingungen der Produktprobe.",

@@ -98,6 +98,7 @@ async function jsonRequest(path, method, body, cookie) {
 function dates() {
   const start = new Date();
   start.setUTCDate(start.getUTCDate() + 8);
+  while ([0, 6].includes(start.getUTCDay())) start.setUTCDate(start.getUTCDate() + 1);
   const end = new Date(start);
   end.setUTCDate(end.getUTCDate() + 7);
   return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
@@ -204,7 +205,7 @@ async function runCoreFlow() {
   assert.equal(String(tier10000.netPrice), "3600", "10.000 Flyer muessen 3.600 EUR netto ergeben.");
   assert.equal(String(tier10001.netPrice), "3600.31", "10.001 Flyer muessen marginal 3.600,31 EUR netto ergeben.");
   const multiQuote = await quote(multi, 3000, "inquiry");
-  assert.equal(String(multiQuote.netPrice), "1311", "Mehrgebietspreis muss die zentrale Staffel mit dem abgeleiteten Gebietsfaktor berechnen.");
+  assert.equal(String(multiQuote.netPrice), "1360", "Mehrgebietspreis muss Gebietsfaktor und Zuschlag fuer das weitere Gebiet zentral berechnen.");
   assert.equal(multiQuote.areaDifficulty, "MIXED", "Getrennte Teilgebiete muessen serverseitig als gemischte Zustellung bewertet werden.");
   assert.equal(String(multiQuote.areaDifficultyFactor), "1.15", "Der Gebietsfaktor muss im Mehrgebiet-Angebot transparent feststehen.");
   const inquiry = await createOrder(customerCookie, orderPayload({
@@ -220,9 +221,9 @@ async function runCoreFlow() {
   let stored = await prisma.order.findUnique({ where: { id: inquiry.id }, include: { distributionSegments: true, payments: true } });
   assert.equal(stored.distributionSegments.length, 2, "Mehrere Teilgebiete wurden nicht einzeln gespeichert.");
   assert.equal(stored.payments.length, 0, "Eine Anfrage darf keine Zahlung anlegen.");
-  assert.equal(stored.calculatedNetPrice.toString(), "1311", "Mehrgebietspreis muss die zentrale Staffel plus Gebietsfaktor abbilden.");
-  assert.equal(stored.calculatedVat.toString(), "249.09", "MwSt. muss serverseitig aus dem Mehrgebietspreis kommen.");
-  assert.equal(stored.calculatedGrossPrice.toString(), "1560.09", "Brutto-Preis muss Netto plus MwSt. des Mehrgebiets sein.");
+  assert.equal(stored.calculatedNetPrice.toString(), "1360", "Mehrgebietspreis muss zentrale Staffel, Gebietsfaktor und weiteren Gebietsaufschlag abbilden.");
+  assert.equal(stored.calculatedVat.toString(), "258.4", "MwSt. muss serverseitig aus dem Mehrgebietspreis kommen.");
+  assert.equal(stored.calculatedGrossPrice.toString(), "1618.4", "Brutto-Preis muss Netto plus MwSt. des Mehrgebiets sein.");
   assert.equal(stored.priceRuleSnapshot?.areaDifficulty, "MIXED", "Order-Snapshot muss den serverseitig abgeleiteten Gebietstyp speichern.");
   assert.equal(stored.priceRuleSnapshot?.areaDifficultyFactor, "1.15", "Order-Snapshot muss den angewendeten Gebietsfaktor speichern.");
   assertOk(stored.targetAreaGeoJson && stored.priceRuleSnapshot?.areaCalculationSnapshot, "Order-Snapshot fehlt.");

@@ -21,7 +21,6 @@ import type { ReusableAreaOption } from "@/app/components/DistributionAreaEditor
 import { normalizeOnlineServiceType, normalizeServiceProductFormat, serviceCatalogItem, type OnlineServiceType } from "@/lib/serviceCatalog";
 import { MINIMUM_FLYER_QUANTITY } from "@/lib/constants";
 import type {
-  CustomerWarehouse,
   Intelligence,
   LatLng,
   LocationResult,
@@ -551,9 +550,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [productFormat, setProductFormat] = useState(() => serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
   const [weightInGrams, setWeightInGrams] = useState("");
   const [samplingDetails, setSamplingDetails] = useState({ sampleType: "", size: "", packaging: "", fragile: false, personalHandover: false, storage: "" });
-  const [warehouseOptions, setWarehouseOptions] = useState<CustomerWarehouse[]>([]);
-  const [warehouseOptionsStatus, setWarehouseOptionsStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState("");
   const [flyerQuantityTouched, setFlyerQuantityTouched] = useState(false);
   const selectedService = serviceCatalogItem(serviceType);
   const numericWeightInGrams = weightInGrams ? Number(weightInGrams) : undefined;
@@ -603,31 +599,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   useEffect(() => {
     selectedBoundaryPlaceIdsRef.current = selectedBoundaryPlaceIds;
   }, [selectedBoundaryPlaceIds]);
-
-  useEffect(() => {
-    if (isPublicPlanner) {
-      setWarehouseOptionsStatus("ready");
-      return;
-    }
-    let active = true;
-    setWarehouseOptionsStatus("loading");
-    fetch("/api/customer/warehouses")
-      .then((response) => response.ok ? response.json() : null)
-      .then((payload) => {
-        if (!active) return;
-        const warehouses = Array.isArray(payload?.data) ? payload.data as CustomerWarehouse[] : [];
-        setWarehouseOptions(warehouses);
-        setWarehouseOptionsStatus("ready");
-      })
-      .catch(() => {
-        if (!active) return;
-        setWarehouseOptions([]);
-        setWarehouseOptionsStatus("error");
-      });
-    return () => {
-      active = false;
-    };
-  }, [isPublicPlanner]);
 
   const areaSegmentsPayload = useMemo(() => {
     const currentSegments = areaSegments.map((segment) => ({ ...segment, points: [...segment.points] }));
@@ -784,7 +755,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     ? intelligenceStatus === "local" ? "updating" : intelligenceStatus
     : "local";
   const households = currentIntelligence?.metrics.households ?? localHouseholds;
-  const selectedWarehouse = warehouseOptions.find((warehouse) => warehouse.id === selectedWarehouseId) ?? null;
+  const selectedWarehouse = currentIntelligence?.warehouse ?? null;
   const routeDistanceMeters = currentIntelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
   const routeDurationMinutes = currentIntelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
   const netPrice = currentIntelligence?.metrics.netPrice ?? "0";
@@ -821,13 +792,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const calculationSource = currentIntelligence?.metrics.source ?? (currentIntelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
   const householdCountSource = currentIntelligence?.metrics.householdCountSource ?? (currentIntelligenceStatus === "live" ? "area-density-formula" : "client-area-estimate");
   const pricingVersion = currentIntelligence?.metrics.pricingVersion ?? "pricing-rule-pending";
-  useEffect(() => {
-    if (isPublicPlanner || selectedWarehouseId || !currentIntelligence?.warehouse?.id) return;
-    if (warehouseOptions.some((warehouse) => warehouse.id === currentIntelligence.warehouse?.id)) {
-      setSelectedWarehouseId(currentIntelligence.warehouse.id);
-    }
-  }, [currentIntelligence?.warehouse?.id, isPublicPlanner, selectedWarehouseId, warehouseOptions]);
-
   const geoJson = useMemo(() => segmentsToGeoJson(areaSegmentsPayload), [areaSegmentsPayload]);
   const areaStats = useMemo(() => ({
     polygonSource,
@@ -840,7 +804,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     walkingDistanceKm: routeDistanceMeters / 1000,
     deliveryDurationMinutes: routeDurationMinutes,
     warehouseSuggestion: selectedWarehouse
-      ? `${selectedWarehouse.name} · ${selectedWarehouse.postalCode} ${selectedWarehouse.city}`
+      ? `${selectedWarehouse.name} · ${selectedWarehouse.city}`
       : currentIntelligence?.metrics.needsManualReview ? null : currentIntelligence?.warehouse?.city ?? null,
     distributorDemand: distributorNeed,
     deliverabilityScore,
@@ -921,7 +885,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     areaSegments: areaSegmentsPayload,
     areaStats,
     flyerQuantity,
-    warehouseId: selectedWarehouseId,
     serviceType,
     weightInGrams: numericWeightInGrams,
     productDetails,
@@ -964,7 +927,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     samplingDetails,
     selectedAreaId,
     selectedLocation,
-    selectedWarehouseId,
     serviceType,
     startDate,
     street,
@@ -1318,7 +1280,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     const replacement = next[next.length - 1];
     areaSegmentsRef.current = next;
     setAreaSegments(next);
-    setSelectedWarehouseId("");
     resetIntelligence();
 
     const removeActivePolygon = segmentId === activeSegmentId;
@@ -1367,7 +1328,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setPolygonSource("postal_code");
         setAreaSegments([]);
         setActiveSegmentId(null);
-        setSelectedWarehouseId("");
         setPendingLocation(null);
         setSelectedBoundaryPlaceIds([]);
         setHistory([]);
@@ -1454,7 +1414,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       } else {
         setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
       }
-      if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
       setFlyerSource("CUSTOMER_OWN");
       const restoredServiceType = normalizeOnlineServiceType(draft.serviceType ?? "FLYER_STANDARD");
       setServiceType(restoredServiceType);
@@ -1539,7 +1498,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           if (draft.weightInGrams) setWeightInGrams(String(draft.weightInGrams));
           const repeatedSamplingDetails = draft.samplingDetails ?? draft.productDetails;
           if (repeatedSamplingDetails && typeof repeatedSamplingDetails === "object") setSamplingDetails((current) => ({ ...current, ...repeatedSamplingDetails }));
-          if (draft.warehouseId) setSelectedWarehouseId(draft.warehouseId);
           const repeatedPrintDataStatus = draft.printDataStatus ?? "UPLOAD_LATER";
           setRepeatPrintChoice("pending");
           setPrintDataStatus(repeatedPrintDataStatus);
@@ -1576,7 +1534,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       areaSegmentsRef.current = [];
       setAreaSegments([]);
       setActiveSegmentId(null);
-      setSelectedWarehouseId("");
       setSelectedBoundaryPlaceIds([]);
       setSelectedAreaId("");
       setPolygon([]);
@@ -2116,7 +2073,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     selectedBoundaryPlaceIdsRef.current = preservedBoundaryPlaceIds;
     setSelectedAreaId("");
     setSelectedLocation(null);
-    setSelectedWarehouseId("");
     setCity("");
     setPostalCode("");
     setStreet("");
@@ -2217,7 +2173,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         startDate,
         endDate,
         flexibleScheduling,
-        warehouseId: selectedWarehouseId || undefined,
+        warehouseId: undefined,
         contactPerson,
         contactPhone,
         notes,
@@ -2304,7 +2260,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       centerLng: center.lng,
       flyerQuantity,
       flyerSource,
-      warehouseId: isPublicPlanner ? undefined : selectedWarehouseId || undefined,
+      warehouseId: undefined,
       productFormat,
       weightClass: effectiveWeightClass,
       weightInGrams: numericWeightInGrams,
@@ -2358,11 +2314,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (repeatPrintChoice === "pending") {
       setActiveStep(2);
       setFinishStatus("Bitte bestätige zuerst, ob deine Druckdaten unverändert sind.");
-      return;
-    }
-    if (completionPath === "direct_payment" && !isPublicPlanner && !selectedWarehouseId) {
-      setActiveStep(2);
-      setFinishStatus("Bitte wähle zuerst das Empfangslager für deine bereits gedruckten Flyer.");
       return;
     }
     if (completionPath === "direct_payment" && !isPublicPlanner && (
@@ -2465,7 +2416,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   const stepState = [
     { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Gebiet auswählen" },
-    { id: 2, title: `${selectedService.shortLabel} & Lager`, detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
+    { id: 2, title: selectedService.shortLabel, detail: "Werbemittel und Menge", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Verteilung", detail: "Ziel und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
     { id: 5, title: "Zusammenfassung", detail: "Preis und Leistungen prüfen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : hasSelectedLocation ? "Nach Flächenauswahl" : "Noch offen" },
@@ -2562,18 +2513,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
     if (stepId === 2) {
       return <OrderMaterialStep
-        isPublicPlanner={isPublicPlanner}
         serviceType={serviceType}
         selectedService={selectedService}
-        productFormat={productFormat}
-        weightInGrams={weightInGrams}
-        numericWeightInGrams={numericWeightInGrams}
-        effectiveWeightClass={effectiveWeightClass}
-        samplingDetails={samplingDetails}
         repeatPrintChoice={repeatPrintChoice}
-        warehouseOptionsStatus={warehouseOptionsStatus}
-        warehouseOptions={warehouseOptions}
-        selectedWarehouseId={selectedWarehouseId}
         recommendedFlyerQuantity={recommendedFlyerQuantity}
         recommendationLabel={recommendationLabel}
         flyerQuantity={flyerQuantity}
@@ -2581,14 +2523,10 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           setServiceType(next);
           setProductFormat(normalizeServiceProductFormat(next));
         }}
-        onProductFormatChange={(format) => setProductFormat(normalizeServiceProductFormat(serviceType, format))}
-        onWeightChange={setWeightInGrams}
-        onSamplingDetailsChange={(details) => setSamplingDetails(details)}
         onRepeatPrintChoice={(choice) => {
           setRepeatPrintChoice(choice);
           setPrintDataStatus("UPLOAD_LATER");
         }}
-        onWarehouseChange={setSelectedWarehouseId}
         onMoveQuantity={moveQuantity}
         onQuantityChange={(quantity) => {
           setFlyerQuantityTouched(true);
@@ -2601,32 +2539,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     if (stepId === 3) {
       return (
         <section className="orderPanelBlock inlineStepBlock">
-          <p className="orderStepHint">Wähle, wen du erreichen möchtest. Besondere Wünsche kannst du direkt an FLYERO senden.</p>
-          <label className="selectLine">
-            <span>Verteilung für</span>
-            <select value={distributionType} onChange={(event) => setDistributionType(event.target.value)}>
-              <option value="Haushaltsverteilung">Private Haushalte</option>
-              <option value="Gewerbegebiet">Gewerbe</option>
-              <option value="Eventgebiet">Event- oder Aktionsgebiet</option>
-            </select>
-          </label>
-          <label className="selectLine">
-            <span>Zielgruppe</span>
-            <select value={targetGroup} onChange={(event) => setTargetGroup(event.target.value)}>
-              <option>Alle privaten Haushalte</option>
-              <option value="Familienhaushalte">Familien und Haushalte</option>
-              <option>Innenstadt und Laufkundschaft</option>
-              <option value="Lokale Gewerbe">Lokale Gewerbebetriebe</option>
-            </select>
-          </label>
-          <label>
-            Besondere Wünsche
-            <textarea
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="z. B. bestimmte Straßen auslassen, Gewerbe bevorzugen oder wichtige Zugangshinweise"
-            />
-          </label>
+          <p className="orderStepHint">Dein Gebiet, die gewünschte Menge und der Zeitraum reichen für die Buchung aus. Besondere Hinweise kannst du FLYERO weiterhin im Auftrag mitteilen.</p>
+          <div className="orderReviewNotice" role="status">
+            <strong>Verteilung im gewählten Gebiet</strong>
+            <span>{distributionType === "Haushaltsverteilung" ? "Private Haushalte" : distributionType}</span>
+          </div>
         </section>
       );
     }
@@ -2660,11 +2577,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         vatAmount={vatAmount}
         grossPrice={grossPrice}
         pricePreviewText={pricePreviewText}
-        selectedWarehouse={ownFlyers ? selectedWarehouse ?? undefined : undefined}
-        warehouseLabel={ownFlyers ? "Bitte auswählen" : warehouseSuggestionLabel}
+        selectedWarehouse={undefined}
+        warehouseLabel={ownFlyers ? "Automatische Zuordnung" : warehouseSuggestionLabel}
         dataBasisLabel={confidenceLabel(areaStats.confidence, hasPlanningArea)}
         notice={ownFlyers
-          ? "Deine Flyer sind bereits gedruckt und werden nach der Buchung an das ausgewählte Empfangslager gesendet. FLYERO prüft Gebiet und Zustellbarkeit vor der Durchführung."
+          ? "Deine Flyer sind bereits gedruckt und werden nach der Buchung an das automatisch zugewiesene FLYERO-Hauptlager gesendet. Die genaue Lieferadresse erhältst du direkt nach der Auftragserstellung."
           : "Nach der Zahlung prüfen wir Gebiet, Druckdatei und ob die Verteilung wie geplant möglich ist. Falls sich etwas ändert, melden wir uns."}
         contactPerson={contactPerson}
         contactPhone={contactPhone}
@@ -2729,7 +2646,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       <input type="hidden" name="centerLng" value={center.lng} />
       <input type="hidden" name="flyerQuantity" value={flyerQuantity} />
       <input type="hidden" name="flyerSource" value={flyerSource} />
-      <input type="hidden" name="warehouseId" value={selectedWarehouseId} />
+      <input type="hidden" name="warehouseId" value="" />
       <input type="hidden" name="productFormat" value={productFormat} />
       <input type="hidden" name="weightClass" value={effectiveWeightClass} />
       <input type="hidden" name="weightInGrams" value={numericWeightInGrams ?? ""} />

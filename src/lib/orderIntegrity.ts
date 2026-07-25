@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { buildPlanningInputFingerprint } from "@/lib/planningQuote";
-import { calculateOrderPrice } from "@/lib/pricing";
+import { calculateOrderPrice, deriveOrderPricingOptions } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
 
 type JsonRecord = Record<string, unknown>;
@@ -55,6 +55,10 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     weightClass: order.weightClass,
     weightInGrams: order.weightInGrams,
     areaDifficulty: order.areaDifficulty,
+    ...deriveOrderPricingOptions({
+      preferredStartDate: order.preferredStartDate,
+      additionalAreaCount: order.distributionSegments.length,
+    }),
   });
   const quoteInput = record(snapshot.quote.input);
   const quoteFingerprint = typeof snapshot.quote.fingerprint === "string" ? snapshot.quote.fingerprint : "";

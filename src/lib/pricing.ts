@@ -361,12 +361,14 @@ export async function syncOpenOrderPrices() {
       weightInGrams: true,
       areaDifficulty: true,
       flyerQuantity: true,
+      preferredStartDate: true,
       manualPriceOverride: true,
       calculatedNetPrice: true,
       calculatedVat: true,
       calculatedGrossPrice: true,
       priceRuleSnapshot: true,
       targetAreaGeoJson: true,
+      distributionSegments: { select: { id: true } },
       customer: { select: { userId: true } },
       payments: {
         where: { status: { in: OPEN_CHECKOUT_PAYMENT_STATUSES } },
@@ -384,6 +386,10 @@ export async function syncOpenOrderPrices() {
       weightClass: order.weightClass,
       weightInGrams: order.weightInGrams,
       areaDifficulty: order.areaDifficulty,
+      ...deriveOrderPricingOptions({
+        preferredStartDate: order.preferredStartDate,
+        additionalAreaCount: order.distributionSegments.length,
+      }),
     });
     const existingSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
       ? order.priceRuleSnapshot as Record<string, unknown>
@@ -629,6 +635,27 @@ function resolveWeightClass(input: { weightClass?: WeightClass; weightInGrams?: 
   // class from the submitted weight so a forged enum cannot change the price.
   void input.weightClass;
   return weightClassFromGrams(input.weightInGrams) as WeightClass;
+}
+
+export function deriveOrderPricingOptions(input: {
+  preferredStartDate?: Date | string | null;
+  additionalAreaCount?: number | null;
+  now?: Date;
+}) {
+  const startDate = input.preferredStartDate ? new Date(input.preferredStartDate) : null;
+  const now = input.now ?? new Date();
+  const hoursUntilStart = startDate && Number.isFinite(startDate.getTime())
+    ? (startDate.getTime() - now.getTime()) / (60 * 60 * 1000)
+    : null;
+  const additionalAreaCount = Math.max(1, Math.floor(input.additionalAreaCount ?? 1));
+  const weekendOrHoliday = startDate ? [0, 6].includes(startDate.getUTCDay()) : false;
+
+  return {
+    express: hoursUntilStart !== null && hoursUntilStart >= 0 && hoursUntilStart < 7 * 24,
+    expressWithin72Hours: hoursUntilStart !== null && hoursUntilStart >= 0 && hoursUntilStart < 72,
+    weekendOrHoliday,
+    additionalAreaCount,
+  };
 }
 
 export async function calculateOrderPrice(input: {

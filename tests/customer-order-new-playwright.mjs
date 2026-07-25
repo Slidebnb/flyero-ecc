@@ -174,7 +174,7 @@ try {
   await page.screenshot({ path: join(desktopDir, "summary.png"), fullPage: true });
   await page.locator('[data-testid="order-step-2"]').click();
   await page.getByRole("button", { name: /Sampling/ }).click();
-  await page.locator('[data-testid="sampling-details"]').waitFor();
+  await page.locator('[data-testid="sampling-manual-review"]').waitFor();
   await page.screenshot({ path: join(desktopDir, "sampling.png"), fullPage: true });
   await page.locator('[data-testid="order-step-6"]').click();
   await page.locator('[data-testid="order-finish-inquiry"]').waitFor();
