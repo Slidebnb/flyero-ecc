@@ -22,6 +22,7 @@ import { normalizeOnlineServiceType, normalizeServiceProductFormat, serviceCatal
 import { MINIMUM_FLYER_QUANTITY } from "@/lib/constants";
 import type {
   CustomerWarehouse,
+  Intelligence,
   LatLng,
   LocationResult,
   OrderAreaSegmentDraft,
@@ -41,6 +42,7 @@ import { useOrderLocationSearch } from "./hooks/useOrderLocationSearch";
 import { useOrderDraft } from "./hooks/useOrderDraft";
 import { useOrderSubmission } from "./hooks/useOrderSubmission";
 import { useOrderMap } from "./hooks/useOrderMap";
+import { sameCustomerPrice } from "./quoteRecovery";
 import {
   hasAreaGeometry,
   resolveAreaCompletionContext,
@@ -763,6 +765,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     intelligenceStatus,
     isPending,
     isConfirmed: isIntelligenceConfirmed,
+    acceptIntelligence,
     reset: resetIntelligence,
   } = useOrderIntelligence({
     endpoint: intelligenceEndpoint,
@@ -2247,22 +2250,34 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     });
   }
 
-  function buildOrderPayload(completionPath: "direct_payment" | "inquiry") {
+  function buildOrderPayload(
+    completionPath: "direct_payment" | "inquiry",
+    options?: {
+      segments?: OrderAreaSegmentDraft[];
+      coverageAreaSqm?: number;
+      quoteFingerprint?: string;
+      targetAreaName?: string;
+      city?: string;
+      postalCode?: string;
+    },
+  ) {
+    const submissionSegments = options?.segments ?? areaSegmentsPayload;
+    const submissionCoverageAreaSqm = options?.coverageAreaSqm ?? coverageAreaSqm;
     return {
       serviceType,
-      city: planningCity,
-      postalCode: planningPostalCode,
+      city: options?.city ?? planningCity,
+      postalCode: options?.postalCode ?? planningPostalCode,
       street,
       houseNumber,
       placeId: selectedLocation?.placeId,
       locationSource: selectedLocation?.source,
       latitude: selectedLocation?.lat,
       longitude: selectedLocation?.lng,
-      targetAreaName: areaSubmission.targetAreaName,
+      targetAreaName: options?.targetAreaName ?? areaSubmission.targetAreaName,
       areaType: "POLYGON",
       distributionAreaId: planningDistributionAreaId,
-      targetAreaGeoJson: JSON.stringify(geoJson),
-      areaSegments: JSON.stringify(areaSegmentsPayload.map((segment) => ({
+      targetAreaGeoJson: JSON.stringify(segmentsToGeoJson(submissionSegments)),
+      areaSegments: JSON.stringify(submissionSegments.map((segment) => ({
         name: segment.name,
         city: segment.city,
         postalCode: segment.postalCode,
@@ -2274,7 +2289,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         notes: segment.notes,
       }))),
       polygonSource,
-      coverageAreaSqm,
+      coverageAreaSqm: submissionCoverageAreaSqm,
       estimatedHouseholds: households,
       estimatedFlyers: flyerQuantity,
       estimatedDistanceMeters: routeDistanceMeters,
@@ -2297,7 +2312,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       contactPerson,
       contactPhone,
       notes: `${notes}${notes ? "\n" : ""}Zielgruppe: ${targetGroup}. Verteilung: ${distributionType}.`,
-      quoteFingerprint: currentIntelligence?.metrics.fingerprint ?? "",
+      quoteFingerprint: options?.quoteFingerprint ?? currentIntelligence?.metrics.fingerprint ?? "",
     };
   }
 
@@ -2367,12 +2382,38 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setFinishStatus(completionPath === "direct_payment" ? "Buchung wird vorbereitet ..." : "Anfrage wird übermittelt ...");
     try {
       trackSubmit();
-      const orderResponse = await fetch("/api/customer/orders", {
+      const submissionSegments = completionSegments.map((segment) => ({ ...segment, points: [...segment.points] }));
+      const submissionOptions = {
+        segments: submissionSegments,
+        coverageAreaSqm: completionCoverageAreaSqm,
+        targetAreaName: completionContext.targetAreaName,
+        city: completionContext.city,
+        postalCode: completionContext.postalCode,
+      };
+      const submitOrder = (quoteFingerprint?: string) => fetch("/api/customer/orders", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(buildOrderPayload(completionPath)),
+        body: JSON.stringify(buildOrderPayload(completionPath, { ...submissionOptions, quoteFingerprint })),
       });
-      const orderResult = await orderResponse.json();
+      let orderResponse = await submitOrder();
+      let orderResult = await orderResponse.json();
+      if (completionPath === "direct_payment" && orderResponse.status === 409 && orderResult?.code === "PLANNING_QUOTE_CHANGED") {
+        const refreshedIntelligence = orderResult?.data?.intelligence as Intelligence | undefined;
+        const refreshedMetrics = refreshedIntelligence?.metrics;
+        const currentMetrics = currentIntelligence?.metrics;
+        if (refreshedIntelligence && refreshedMetrics?.fingerprint && currentMetrics && sameCustomerPrice(
+          { netPrice: currentMetrics.netPrice, vatAmount: currentMetrics.vatAmount, grossPrice: currentMetrics.grossPrice },
+          { netPrice: refreshedMetrics.netPrice, vatAmount: refreshedMetrics.vatAmount, grossPrice: refreshedMetrics.grossPrice },
+        )) {
+          acceptIntelligence(refreshedIntelligence);
+          orderResponse = await submitOrder(refreshedMetrics.fingerprint);
+          orderResult = await orderResponse.json();
+        } else if (refreshedIntelligence) {
+          acceptIntelligence(refreshedIntelligence);
+          setFinishStatus("Der Preis wurde aktualisiert. Bitte prüfe die neue Zusammenfassung und bestätige erneut.");
+          return;
+        }
+      }
       if (!orderResponse.ok || !orderResult?.data?.id) {
         throw new Error(orderResult?.error || "Deine Planung konnte nicht gespeichert werden.");
       }

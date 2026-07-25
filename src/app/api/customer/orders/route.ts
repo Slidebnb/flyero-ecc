@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         ok: false,
         code: "PLANNING_QUOTE_CHANGED",
         error: "Die Preis- und Gebietsberechnung hat sich geändert. Bitte aktualisiere die Planung und bestätige sie erneut.",
-        data: { quote: intelligence.metrics.quote },
+        data: { quote: intelligence.metrics.quote, intelligence },
       }, { status: 409 });
     }
     const serverCoverageAreaSqm = intelligence.metrics.coverageAreaSqm ?? areaSelection?.totalAreaSqm ?? null;

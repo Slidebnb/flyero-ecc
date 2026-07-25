@@ -20,6 +20,7 @@ type UseOrderIntelligenceResult = {
   intelligenceStatus: OrderIntelligenceStatus;
   isPending: boolean;
   isConfirmed: (requestQuery: string) => boolean;
+  acceptIntelligence: (next: Intelligence) => void;
   reset: () => void;
 };
 
@@ -101,6 +102,12 @@ export function useOrderIntelligence({
     (currentRequestQuery: string) => confirmedRequestRef.current === currentRequestQuery,
     [],
   );
+  const acceptIntelligence = useCallback((next: Intelligence) => {
+    setIntelligence(next);
+    confirmedRequestRef.current = requestQuery;
+    setIntelligenceStatus("live");
+    setIsPending(false);
+  }, [requestQuery]);
   const reset = useCallback(() => {
     abortRef.current?.abort();
     lastRequestRef.current = null;
@@ -114,6 +121,7 @@ export function useOrderIntelligence({
     intelligenceStatus,
     isPending,
     isConfirmed,
+    acceptIntelligence,
     reset,
   };
 }
