@@ -29,6 +29,7 @@
     "test:service-worker-cache": "node tests/service-worker-cache-smoke.mjs",
     "test:performance-paths": "node tests/performance-paths-smoke.mjs",
     "test:default-warehouse-all-areas": "node tests/default-warehouse-all-areas-smoke.mjs",
+    "test:order-area-spatial-sync": "node tests/order-area-spatial-sync-smoke.mjs",
     "test:module6": "node -r dotenv/config tests/module6-smoke.mjs",
     "test:module7": "node -r dotenv/config tests/module7-smoke.mjs",
     "test:module8": "node -r dotenv/config tests/module8-smoke.mjs",

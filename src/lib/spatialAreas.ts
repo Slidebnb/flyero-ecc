@@ -149,7 +149,7 @@ export async function syncDistributionAreaSpatialGeometry(areaId: string) {
   await prisma.$executeRaw(Prisma.sql`
     UPDATE "DistributionArea" AS area
     SET "spatialGeometry" = source.geometry
-    FROM (
+    FROM LATERAL (
       SELECT
         ST_Multi(
           ST_CollectionExtract(
