@@ -147,9 +147,7 @@ export async function syncDistributionAreaSpatialGeometry(areaId: string) {
     return;
   }
   await prisma.$executeRaw(Prisma.sql`
-    UPDATE "DistributionArea" AS area
-    SET "spatialGeometry" = source.geometry
-    FROM LATERAL (
+    WITH source AS (
       SELECT
         ST_Multi(
           ST_CollectionExtract(
@@ -167,16 +165,19 @@ export async function syncDistributionAreaSpatialGeometry(areaId: string) {
             3
           )
         ) AS geometry
-      FROM jsonb_array_elements(
+      FROM "DistributionArea" AS area_source
+      CROSS JOIN LATERAL jsonb_array_elements(
         CASE
-          WHEN jsonb_typeof(COALESCE(area."geometryGeoJson", area."geoJson") -> 'features') = 'array'
-            THEN COALESCE(area."geometryGeoJson", area."geoJson") -> 'features'
-          ELSE jsonb_build_array(COALESCE(area."geometryGeoJson", area."geoJson"))
+          WHEN jsonb_typeof(COALESCE(area_source."geometryGeoJson", area_source."geoJson") -> 'features') = 'array'
+            THEN COALESCE(area_source."geometryGeoJson", area_source."geoJson") -> 'features'
+          ELSE jsonb_build_array(COALESCE(area_source."geometryGeoJson", area_source."geoJson"))
         END
       ) AS feature(value)
-      WHERE area.id = ${areaId}
-        AND COALESCE(area."geometryGeoJson", area."geoJson") IS NOT NULL
-    ) AS source
+      WHERE area_source.id = ${areaId}
+        AND COALESCE(area_source."geometryGeoJson", area_source."geoJson") IS NOT NULL
+    )
+    UPDATE "DistributionArea" AS area
+    SET "spatialGeometry" = source.geometry
     WHERE area.id = ${areaId}
       AND source.geometry IS NOT NULL;
   `);

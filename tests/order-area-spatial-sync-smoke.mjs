@@ -5,8 +5,13 @@ const spatialAreas = readFileSync("src/lib/spatialAreas.ts", "utf8");
 
 assert.match(
   spatialAreas,
-  /UPDATE [\s\S]*?FROM LATERAL \(/,
-  "Die Gebiets-Geometrie muss den äusseren DistributionArea-Alias per LATERAL sicher korrelieren.",
+  /WITH source AS \(/,
+  "Die Gebiets-Geometrie muss die Quelldaten vor dem UPDATE in einer CTE berechnen.",
+);
+assert.doesNotMatch(
+  spatialAreas,
+  /FROM LATERAL \(/,
+  "Die Update-Abfrage darf die Zieltabellen-Korrelation nicht erneut als LATERAL-Unterabfrage formulieren.",
 );
 
 console.log("Order area spatial sync regression check passed.");
