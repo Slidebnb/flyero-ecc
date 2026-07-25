@@ -1698,7 +1698,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             postalCode: result.postalCode,
           });
         }
-        applyLocationResult(result, { forceReplace: !options?.initial });
+        applyLocationResult(result);
       })
       .catch((error) => {
         if (requestId === locationRequestSequenceRef.current && error?.name !== "AbortError") {
@@ -2090,7 +2090,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     mapRef.current.fitBounds(bounds);
   }, [areaSegmentsPayload, center, mapMode, mapsReady, polygon, street]);
 
-  function clearLocationSelection() {
+  function clearLocationSelection(options?: { preserveCommittedSegments?: boolean }) {
+    const preservedSegments = options?.preserveCommittedSegments
+      ? areaSegmentsRef.current.filter((segment) => segment.id !== activeSegmentId && hasAreaGeometry(segment))
+      : [];
+    const preservedBoundaryPlaceIds = options?.preserveCommittedSegments
+      ? selectedBoundaryPlaceIdsRef.current
+      : [];
     locationRequestSequenceRef.current += 1;
     locationAbortRef.current?.abort();
     officialBoundaryAbortRef.current?.abort();
@@ -2106,8 +2112,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
     officialBoundaryOverlaysRef.current.clear();
     setOfficialBoundaries([]);
-    areaSegmentsRef.current = [];
-    selectedBoundaryPlaceIdsRef.current = [];
+    areaSegmentsRef.current = preservedSegments;
+    selectedBoundaryPlaceIdsRef.current = preservedBoundaryPlaceIds;
     setSelectedAreaId("");
     setSelectedLocation(null);
     setSelectedWarehouseId("");
@@ -2118,9 +2124,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     setTargetAreaName("");
     setPolygon([]);
     setPolygonSource("postal_code");
-    setAreaSegments([]);
+    setAreaSegments(preservedSegments);
     setActiveSegmentId(null);
-    setSelectedBoundaryPlaceIds([]);
+    setSelectedBoundaryPlaceIds(preservedBoundaryPlaceIds);
     setPendingLocation(null);
     setHistory([]);
     setCenter(isPublicPlanner ? PUBLIC_DEFAULT_CENTER : center);
@@ -2129,7 +2135,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   }
 
   function applySuggestion(suggestion: Suggestion) {
-    clearLocationSelection();
+    clearLocationSelection({ preserveCommittedSegments: true });
     const displayQuery = suggestion.street || suggestion.label.includes("Straße")
       ? suggestion.label
       : [suggestion.postalCode, suggestion.city].filter(Boolean).join(" ") || suggestion.label;
@@ -2530,7 +2536,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         areaSegments={areaSegments}
         activeSegmentId={activeSegmentId}
         onQueryChange={(value) => {
-          clearLocationSelection();
+          clearLocationSelection({ preserveCommittedSegments: true });
           setQuery(value);
           setShowSuggestions(true);
         }}
@@ -2542,7 +2548,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         onFocus={openSuggestions}
         onBlur={closeSuggestionsSoon}
         onApplySuggestion={applySuggestion}
-        onApplyPendingLocation={() => applyLocationResult(pendingLocation!, { forceReplace: true })}
+        onApplyPendingLocation={() => applyLocationResult(pendingLocation!)}
         onKeepCurrentArea={keepCurrentArea}
         onApplyBoundary={() => {
           setMapNotice("Klicke eine grün markierte Fläche auf der Karte an.");

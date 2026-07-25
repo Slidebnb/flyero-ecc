@@ -18,15 +18,34 @@ assert.match(
 );
 assert.match(
   wizard,
+  /function clearLocationSelection\(options\?: \{ preserveCommittedSegments\?: boolean \}\)/,
+  "Die Standortbereinigung muss zwischen einem neuen Auftrag und einem weiteren Teilgebiet unterscheiden.",
+);
+assert.match(
+  wizard,
+  /clearLocationSelection\(\{ preserveCommittedSegments: true \}\);\s*setQuery\(value\);/,
+  "Die Eingabe einer neuen PLZ darf bestaetigte Teilgebiete nicht aus dem Wizard-State entfernen.",
+);
+assert.doesNotMatch(
+  wizard,
+  /applyLocationResult\(result, \{ forceReplace: !options\?\.initial \}\)/,
+  "Eine normale Standortsuche darf keine bereits bestaetigten Teilgebiete ersetzen.",
+);
+assert.match(
+  wizard,
   /areaSegmentsRef\.current = nextSegments;\s*setAreaSegments\(nextSegments\);/,
   "Die Ref fuer Teilgebiete muss beim Hinzufuegen synchron aktualisiert werden.",
 );
 assert.match(
   wizard,
-  /!hasValidSelectedArea \|\| !isGermanPostalCode\(planningPostalCode\) \|\| planningCity\.trim\(\)\.length < 2\) \{[\s\S]{0,240}setFinishStatus\("Bitte [^"]*Verteilgebiet aus\."\);/,
+  /if \(!completionContext\.isComplete\) \{[\s\S]{0,160}setFinishStatus\("Bitte [^"]*Verteilgebiet aus\."\);/,
   "Checkout muss ein fehlendes oder noch nicht gueltig aufgeloestes Gebiet vor dem Absenden freundlich erklaeren.",
 );
-assert.match(validators, /postalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5\}\$\/, "Bitte gib eine gültige fünfstellige PLZ ein\."\)/);
+assert.match(
+  validators,
+  /postalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5\}\$\//,
+  "Auftrags-PLZ muss als fuenfstellige PLZ validiert werden.",
+);
 assert.doesNotMatch(validators, /billingPostalCode: z\.string\(\)\.min\(3\)/, "Rechnungs-PLZ darf beim Checkout keine rohe Zod-min-3-Meldung mehr erzeugen.");
 assert.match(validators, /billingPostalCode: z\.string\(\)\.trim\(\)\.regex\(\/\^\\d\{5\}\$\//, "Rechnungs-PLZ muss als fuenfstellige PLZ validiert werden.");
 assert.doesNotMatch(validators, /postalCode: z\.string\(\)\.min\(3\)/, "Adress- und Verteiler-PLZ duerfen keine rohe Zod-min-3-Meldung mehr erzeugen.");
