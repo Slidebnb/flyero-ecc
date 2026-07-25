@@ -2540,34 +2540,6 @@ th {
 }
 
 
-.oldFlyerStack {
-  position: absolute;
-  left: 28%;
-  bottom: 17%;
-  width: 330px;
-  height: 190px;
-  transform: rotate(-7deg);
-}
-
-.oldFlyerStack span {
-  position: absolute;
-  inset: 0;
-  display: block;
-  border: 1px solid rgba(255,255,255,0.16);
-  background:
-    linear-gradient(90deg, rgba(255,255,255,0.3), transparent 22%),
-    linear-gradient(180deg, #aeb5ae, #5e655f);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.28);
-}
-
-.oldFlyerStack span:nth-child(2) {
-  transform: translate(22px, -18px) rotate(5deg);
-}
-
-.oldFlyerStack span:nth-child(3) {
-  transform: translate(-18px, 20px) rotate(-4deg);
-}
-
 .crossLine {
   position: absolute;
   left: 14%;
@@ -3463,12 +3435,6 @@ th {
   
 
   
-
-  .oldFlyerStack {
-    left: 18%;
-    width: 240px;
-    height: 140px;
-  }
 
   .proofRail span {
     min-height: 78px;

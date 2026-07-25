@@ -2457,15 +2457,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
   }
 
-  const legacyStepState = [
-    { id: 1, title: "Gebiet", detail: "Wo soll verteilt werden?", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Noch offen" },
-    { id: 2, title: selectedService.shortLabel, detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
-    { id: 3, title: "Verteilung", detail: "Art und wichtige Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
-    { id: 4, title: "Zeitraum", detail: `Frühester Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
-    { id: 5, title: "Preis prüfen", detail: "Gebiet, Preis und Leistungen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : "Noch offen" },
-    { id: 6, title: "Abschluss", detail: "Buchen, anfragen oder Formular senden", value: "3 Wege" },
-  ];
-  void legacyStepState;
   const stepState = [
     { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Gebiet auswählen" },
     { id: 2, title: `${selectedService.shortLabel} & Lager`, detail: "Menge und Empfangslager", value: `${formatNumber(flyerQuantity)} Stück` },
@@ -2870,7 +2861,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
             <div><dt>Fläche</dt><dd>{(previewCoverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
             <div><dt>Empfohlene Flyerzahl</dt><dd>{formatNumber(recommendedFlyerQuantity)} Flyer</dd></div>
             <div><dt>Preis netto zzgl. MwSt.</dt><dd>{pricePreviewText}</dd></div>
-            <div><dt>Nächstes Lager</dt><dd>{warehouseSuggestionLabel}</dd></div>
+            <div><dt>Empfangslager</dt><dd>{warehouseSuggestionLabel}</dd></div>
           </dl>
           <p className="availabilityGood">{deliverabilityLabel(deliverabilityScore, hasPlanningArea, hasSelectedLocation)}</p>
         </aside>

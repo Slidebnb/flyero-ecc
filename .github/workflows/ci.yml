@@ -357,6 +357,9 @@ jobs:
       - name: Customer portal browser smoke
         run: npm run test:customer-portal-playwright
 
+      - name: Role portal browser smoke
+        run: npm run test:role-portals-playwright
+
       - name: Distribution report smoke
         run: npm run test:distribution-reports
 

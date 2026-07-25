@@ -15,7 +15,7 @@ assert.match(
 );
 assert.match(
   serviceWorker,
-  /FLYERO_DISTRIBUTOR_CACHE = "flyero-distributor-shell-v3"/,
+  /FLYERO_DISTRIBUTOR_CACHE = "flyero-distributor-shell-v4"/,
   "Der Cache muss nach der Korrektur versioniert werden.",
 );
 assert.match(
@@ -26,13 +26,18 @@ assert.match(
 const registration = readFileSync("src/app/ServiceWorkerRegister.tsx", "utf8");
 assert.match(
   registration,
-  /getRegistrations\(\)[\s\S]*unregister/,
-  "Auf Kunden- und Adminseiten muessen alte Distributor-Service-Worker entfernt werden.",
+  /flyero-distributor-sw-cleaned-v4[\s\S]*localStorage[\s\S]*getRegistrations\(\)[\s\S]*unregister/,
+  "Alte globale Service-Worker muessen einmalig bereinigt werden, nicht bei jedem Seitenwechsel.",
 );
 assert.match(
   registration,
-  /pathname[\s\S]*(distributor|offline)/,
-  "Der Distributor-Service-Worker darf nur auf seinen eigenen Seiten registriert werden.",
+  /register\("\/sw\.js",\s*\{\s*scope:\s*"\/distributor\/"\s*\}\)/,
+  "Der Distributor-Service-Worker darf nur den Verteilerbereich kontrollieren.",
+);
+assert.match(
+  serviceWorker,
+  /url\.pathname\.startsWith\("\/distributor\/"\)/,
+  "Verteilerseiten duerfen nicht als persoenliche HTML-Daten gecacht werden.",
 );
 
 console.log("Service-Worker-Cache-Regeln: OK");

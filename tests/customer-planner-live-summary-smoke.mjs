@@ -38,14 +38,14 @@ assert.match(
 assert.match(materialStep, /recommendationLabel/, "Der Materials-Schritt muss die fachliche Empfehlungskennzeichnung darstellen.");
 assert.match(
   smartMaps,
-  /findBestWarehouseForArea\(\{ city: effectiveCity, postalCode: effectivePostalCode, allowDefault: false \}\)/,
-  "Die Live-Planung darf bei fehlendem Regionsmatch nicht still auf das Default-Lager zurückfallen.",
+  /findBestWarehouseForArea\(\{ city: effectiveCity, postalCode: effectivePostalCode, allowDefault: true \}\)/,
+  "Die Live-Planung muss das festgelegte Standardlager für jedes Gebiet berücksichtigen.",
 );
 
 assert.match(
   smartMaps,
-  /findBestWarehouseForArea\(\{ city: segment\.city, postalCode: segment\.postalCode, allowDefault: false \}\)/,
-  "Auch Mehrgebiets-Segmente duerfen nicht still auf das Default-Lager zurueckfallen.",
+  /findBestWarehouseForArea\(\{ city: segment\.city, postalCode: segment\.postalCode, allowDefault: true \}\)/,
+  "Auch Mehrgebiets-Segmente müssen das festgelegte Standardlager berücksichtigen.",
 );
 
 console.log("Customer planner live summary smoke checks passed.");

@@ -1,5 +1,5 @@
-const FLYERO_DISTRIBUTOR_CACHE = "flyero-distributor-shell-v3";
-const SHELL_URLS = ["/", "/login", "/distributor/dashboard", "/offline", "/manifest.webmanifest"];
+const FLYERO_DISTRIBUTOR_CACHE = "flyero-distributor-shell-v4";
+const SHELL_URLS = ["/offline"];
 
 function isPrivateOrApiRequest(request) {
   const url = new URL(request.url);
@@ -7,7 +7,8 @@ function isPrivateOrApiRequest(request) {
     url.pathname.startsWith("/api/") ||
     url.pathname.startsWith("/admin/") ||
     url.pathname.startsWith("/customer/") ||
-    url.pathname.startsWith("/warehouse/")
+    url.pathname.startsWith("/warehouse/") ||
+    url.pathname.startsWith("/distributor/")
   );
 }
 

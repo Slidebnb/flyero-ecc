@@ -70,8 +70,12 @@ export default async function PricingPage() {
   let examplePrices: Awaited<ReturnType<typeof calculateOrderPrice>>[];
   const exampleQuantities = [500, 3000, 10000] as const;
   try {
-    pricing = await getPricingSettings();
-    examplePrices = await Promise.all(exampleQuantities.map((flyerQuantity) => calculateOrderPrice({ serviceType: ServiceType.FLYER_STANDARD, flyerQuantity })));
+    const [pricingResult, calculatedExamples] = await Promise.all([
+      getPricingSettings(),
+      Promise.all(exampleQuantities.map((flyerQuantity) => calculateOrderPrice({ serviceType: ServiceType.FLYER_STANDARD, flyerQuantity }))),
+    ]);
+    pricing = pricingResult;
+    examplePrices = calculatedExamples;
   } catch {
     return <PricingUnavailablePage />;
   }

@@ -22,6 +22,7 @@ assert(wizard.includes('addListener(target, "drag", syncPath)'), "Polygon-Draggi
 assert(wizard.includes("clearPolygonListeners();"), "Alte Polygon-Listener muessen vor einer Neuregistrierung entfernt werden.");
 assert(!wizard.includes("mapMode, mapsBoundaryMapId, mapsReady, polygon, postalCode"), "Der Map-Effect darf durch jede Polygon-State-Aenderung seine Listener veralten lassen.");
 assert(wizard.includes("warehouseSuggestionLabel"), "Das ausgewaehlte Empfangslager muss in der Gebietsuebersicht sichtbar sein.");
+assert(wizard.includes("<dt>Empfangslager</dt>"), "Das festgelegte Empfangslager muss kundenfreundlich benannt sein.");
 assert(wizard.includes("Deine Flyer sind bereits gedruckt"), "Der Abschluss muss den Kundenflyer-Prozess verstaendlich erklaeren.");
 assert(finishStep.includes("Wir prüfen Gebiet, Zustellbarkeit und deine Flyer"), "Der Abschluss muss den Online-Prozess ohne Druckservice erklaeren.");
 

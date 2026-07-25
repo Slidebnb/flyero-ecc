@@ -96,6 +96,16 @@ export async function findBestWarehouseForArea(area: {
   });
   if (!warehouses.length) throw new Error("Kein aktives Lager vorhanden.");
 
+  const defaultWarehouse = warehouses.find((warehouse) => warehouse.isDefault);
+  if (area.allowDefault !== false && defaultWarehouse) {
+    return {
+      warehouse: defaultWarehouse,
+      reason: "Das aktive Standardlager ist fÃ¼r alle Verteilgebiete festgelegt.",
+      matchedRegion: null,
+      isGlobalDefault: true,
+    };
+  }
+
   const regionMatchesByWarehouse = warehouses
     .map((warehouse) => ({ warehouse, region: regionMatches(warehouse, area) }))
     .filter((item) => item.region)
@@ -106,6 +116,7 @@ export async function findBestWarehouseForArea(area: {
       warehouse: regionMatchesByWarehouse[0].warehouse,
       reason: `WarehouseRegion ${regionMatchesByWarehouse[0].region?.name} passt zu ${area.postalCode || area.city}.`,
       matchedRegion: regionMatchesByWarehouse[0].region,
+      isGlobalDefault: false,
     };
   }
 
@@ -114,14 +125,23 @@ export async function findBestWarehouseForArea(area: {
       warehouse: null,
       reason: "Kein aktives Lager ist dieser Region zugeordnet.",
       matchedRegion: null,
+      isGlobalDefault: false,
     };
   }
 
-  const defaultWarehouse = warehouses.find((warehouse) => warehouse.isDefault) ?? warehouses[0];
+  if (!defaultWarehouse) {
+    return {
+      warehouse: null,
+      reason: "Kein aktives Standardlager ist festgelegt.",
+      matchedRegion: null,
+      isGlobalDefault: false,
+    };
+  }
   return {
     warehouse: defaultWarehouse,
-    reason: "Kein aktiver Regionstreffer, Default-Lager verwendet.",
+    reason: "Das aktive Standardlager ist für alle Verteilgebiete festgelegt.",
     matchedRegion: null,
+    isGlobalDefault: true,
   };
 }
 

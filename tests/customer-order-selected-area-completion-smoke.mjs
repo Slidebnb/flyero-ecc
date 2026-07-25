@@ -139,12 +139,12 @@ assert.match(
 const orderRoute = readFileSync("src/app/api/customer/orders/route.ts", "utf8");
 assert.match(
   orderRoute,
-  /const orderCity = primarySegment\?\.city\?\.trim\(\) \|\| data\.city;/,
+  /const orderCity = data\.city\?\.trim\(\) \|\| primarySegment\?\.city\?\.trim\(\) \|\| "";/,
   "Ein leeres Segment-Stadtfeld darf die validierte Auftragsstadt nicht überschreiben.",
 );
 assert.match(
   orderRoute,
-  /const orderPostalCode = primarySegment\?\.postalCode\?\.trim\(\) \|\| data\.postalCode;/,
+  /const orderPostalCode = data\.postalCode\?\.trim\(\) \|\| primarySegment\?\.postalCode\?\.trim\(\) \|\| "";/,
   "Ein leeres Segment-PLZ-Feld darf die validierte Auftrags-PLZ nicht überschreiben.",
 );
 

@@ -340,30 +340,6 @@ export async function getOrderIntelligence(input: {
     preferredStartDate: input.preferredStartDate,
     preferredEndDate: input.preferredEndDate,
   });
-  let quoteFingerprint = buildPlanningInputFingerprint({
-    serviceType: input.serviceType,
-    flyerQuantity: input.flyerQuantity ?? 0,
-    city: input.city,
-    postalCode: input.postalCode,
-    street: input.street,
-    houseNumber: input.houseNumber,
-    placeId: input.placeId,
-    locationSource: input.locationSource,
-    latitude: input.latitude,
-    longitude: input.longitude,
-    targetAreaGeoJson: input.targetAreaGeoJson,
-    areaSegments: input.segments,
-    coverageAreaSqm: planning.coverageAreaSqm ?? input.coverageAreaSqm,
-    perimeterMeters: planning.perimeterMeters,
-    flyerSource: input.flyerSource,
-    productFormat: input.productFormat,
-    weightClass: input.weightClass,
-    weightInGrams: input.weightInGrams,
-    areaDifficulty: input.areaDifficulty,
-    printDataStatus: input.printDataStatus,
-    preferredStartDate: input.preferredStartDate,
-    preferredEndDate: input.preferredEndDate,
-  });
   const primarySegment = areaSelection?.primarySegment ?? null;
   const effectiveCity = input.city?.trim() || primarySegment?.city?.trim() || "";
   const effectivePostalCode = input.postalCode?.trim() || primarySegment?.postalCode?.trim() || "";
@@ -404,13 +380,13 @@ export async function getOrderIntelligence(input: {
       take: areaSelection ? 40 : 8,
     }),
     includeOperationalData
-      ? findBestWarehouseForArea({ city: effectiveCity, postalCode: effectivePostalCode, allowDefault: false }).catch(() => null)
+      ? findBestWarehouseForArea({ city: effectiveCity, postalCode: effectivePostalCode, allowDefault: true }).catch(() => null)
       : Promise.resolve(null),
     includeOperationalData
       ? combineOrders({ city: effectiveCity, postalCode: effectivePostalCode }).catch(() => [])
       : Promise.resolve([]),
     includeOperationalData && areaSelection
-      ? Promise.all(areaSelection.segments.map((segment) => findBestWarehouseForArea({ city: segment.city, postalCode: segment.postalCode, allowDefault: false }).catch(() => null)))
+      ? Promise.all(areaSelection.segments.map((segment) => findBestWarehouseForArea({ city: segment.city, postalCode: segment.postalCode, allowDefault: true }).catch(() => null)))
       : Promise.resolve([]),
   ]);
   const densitySamples = matchingAreas
@@ -499,38 +475,6 @@ export async function getOrderIntelligence(input: {
     households,
     distributorCount: distributorNeed,
   });
-  const initialPrice = await calculateOrderPrice({
-    serviceType: input.serviceType ?? ServiceType.FLYER_DISTRIBUTION,
-    flyerQuantity,
-    weightClass: input.weightClass,
-    weightInGrams: input.weightInGrams,
-    areaDifficulty: input.areaDifficulty,
-  });
-  quoteFingerprint = buildPlanningInputFingerprint({
-    serviceType: input.serviceType,
-    flyerQuantity,
-    city: input.city,
-    postalCode: input.postalCode,
-    street: input.street,
-    houseNumber: input.houseNumber,
-    targetAreaGeoJson: input.targetAreaGeoJson,
-    areaSegments: input.segments,
-    coverageAreaSqm: planning.coverageAreaSqm ?? input.coverageAreaSqm,
-    perimeterMeters: planning.perimeterMeters,
-    flyerSource: input.flyerSource,
-    productFormat: input.productFormat,
-    weightClass: input.weightClass,
-    weightInGrams: input.weightInGrams,
-    areaDifficulty: input.areaDifficulty,
-    printDataStatus: input.printDataStatus,
-    preferredStartDate: input.preferredStartDate,
-    preferredEndDate: input.preferredEndDate,
-    placeId: input.placeId,
-    locationSource: input.locationSource,
-    latitude: input.latitude,
-    longitude: input.longitude,
-    pricingRuleSignature: initialPrice.snapshot.pricingRuleSignature,
-  });
   const householdCountSource = segmentCalculations
     ? segmentCalculations.map((item) => estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source)).join(", ")
     : estimateSourceLabel(referenceEstimate?.method, referenceEstimate?.source);
@@ -555,14 +499,15 @@ export async function getOrderIntelligence(input: {
         code: match.warehouse.code,
         city: match.warehouse.city,
       } : null,
-      matchedRegion: Boolean(match?.matchedRegion),
+      matchedRegion: Boolean(match?.matchedRegion || match?.isGlobalDefault),
+      isGlobalDefault: Boolean(match?.isGlobalDefault),
       reason: match?.reason ?? "Kein aktives Lager für dieses Teilgebiet hinterlegt.",
     };
   }) ?? [];
   const segmentNeedsManualReview = Boolean(areaSelection && (
     !segmentWarehouseData.length || segmentWarehouseData.some((item) => !item.matchedRegion)
   ));
-  const singleAreaNeedsManualReview = Boolean(!areaSelection && !warehouseMatch?.matchedRegion);
+  const singleAreaNeedsManualReview = Boolean(!areaSelection && !warehouseMatch?.matchedRegion && !warehouseMatch?.isGlobalDefault);
   const areaNeedsManualReview = !effectiveCoverageAreaSqm || effectiveCoverageAreaSqm <= 0;
   const needsManualReview = Boolean(includeOperationalData && (areaNeedsManualReview || segmentNeedsManualReview || singleAreaNeedsManualReview));
   const areaConfidence = referenceArea?.dataSourceType === "OFFICIAL" || referenceArea?.dataSourceType === "LICENSED"
@@ -598,7 +543,7 @@ export async function getOrderIntelligence(input: {
   });
   // Re-sign the authoritative quote after the server has derived difficulty.
   // The client hint must never be part of the final price truth.
-  quoteFingerprint = buildPlanningInputFingerprint({
+  const quoteFingerprint = buildPlanningInputFingerprint({
     serviceType: input.serviceType,
     flyerQuantity,
     city: input.city,
