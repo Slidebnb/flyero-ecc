@@ -13,5 +13,10 @@ assert.doesNotMatch(
   /FROM LATERAL \(/,
   "Die Update-Abfrage darf die Zieltabellen-Korrelation nicht erneut als LATERAL-Unterabfrage formulieren.",
 );
+assert.match(
+  spatialAreas,
+  /UPDATE "DistributionArea" AS area[\s\S]*?SET "spatialGeometry" = source\.geometry[\s\S]*?FROM source[\s\S]*?WHERE area\.id/,
+  "Die Update-Abfrage muss die CTE als FROM-Quelle verbinden.",
+);
 
 console.log("Order area spatial sync regression check passed.");

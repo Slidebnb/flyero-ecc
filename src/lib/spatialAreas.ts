@@ -178,6 +178,7 @@ export async function syncDistributionAreaSpatialGeometry(areaId: string) {
     )
     UPDATE "DistributionArea" AS area
     SET "spatialGeometry" = source.geometry
+    FROM source
     WHERE area.id = ${areaId}
       AND source.geometry IS NOT NULL;
   `);
