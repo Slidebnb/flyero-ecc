@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { buildPlanningInputFingerprint } from "@/lib/planningQuote";
 import { calculateOrderPrice, deriveOrderPricingOptions } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { readAppliedStripePromotion } from "@/lib/stripePromotion";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -100,7 +101,23 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     : decimalEqual(snapshot.quote.netPrice, order.calculatedNetPrice)
       && decimalEqual(snapshot.quote.vatAmount, order.calculatedVat)
       && decimalEqual(snapshot.quote.grossPrice, order.calculatedGrossPrice);
-  const pricingMatchesSnapshot = priceMatches;
+  const paidPayment = order.payments[0] ?? null;
+  const appliedPromotion = readAppliedStripePromotion(paidPayment?.metadata);
+  const promotionBaseMatchesSnapshot = appliedPromotion
+    ? manualOverride
+      ? decimalEqual(manualSnapshot.manualCalculatedGross, appliedPromotion.baseGross)
+      : decimalEqual(snapshot.quote.netPrice, appliedPromotion.baseNet)
+        && decimalEqual(snapshot.quote.vatAmount, appliedPromotion.baseVat)
+        && decimalEqual(snapshot.quote.grossPrice, appliedPromotion.baseGross)
+    : false;
+  const promotionFinalMatchesOrder = appliedPromotion
+    ? decimalEqual(appliedPromotion.finalNet, order.calculatedNetPrice)
+      && decimalEqual(appliedPromotion.finalVat, order.calculatedVat)
+      && decimalEqual(appliedPromotion.finalGross, order.calculatedGrossPrice)
+    : false;
+  const pricingMatchesSnapshot = appliedPromotion
+    ? promotionBaseMatchesSnapshot && promotionFinalMatchesOrder
+    : priceMatches;
   const segmentFlyerTotal = order.distributionSegments.reduce((sum, segment) => sum + (segment.flyerQuantity ?? 0), 0);
   const flyerQuantityConsistent = Boolean(quoteInput.flyerQuantity)
     && Number(quoteInput.flyerQuantity) === order.flyerQuantity
@@ -111,7 +128,6 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     && pricingMatchesSnapshot
     && flyerQuantityConsistent
     && Number(snapshot.quote.coverageAreaSqm ?? order.coverageAreaSqm ?? 0) === Number(order.coverageAreaSqm ?? 0);
-  const paidPayment = order.payments[0] ?? null;
   const paymentMatchesOrder = paidPayment ? decimalEqual(paidPayment.amount, order.calculatedGrossPrice) : order.status !== "PAID_WAITING_FOR_ADMIN_REVIEW";
   const invoiceMatchesPayment = !paidPayment || Boolean(order.invoice && decimalEqual(order.invoice.totalGross, paidPayment.amount));
   const shipmentRequired = order.customerOwnFlyers;

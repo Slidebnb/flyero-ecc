@@ -14,6 +14,7 @@ import { getCustomerProfileCompleteness, type BillingProfileField } from "@/lib/
 import { approvePaidOrder } from "@/lib/orderApproval";
 import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
 import { buildPaymentConfirmationEmail } from "@/lib/paymentConfirmation";
+import { buildAppliedStripePromotion } from "@/lib/stripePromotion";
 
 const PROVIDER_CODE = "stripe";
 
@@ -437,6 +438,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
           cancel_url: cancelUrl,
           customer_email: order.customer.user.email,
           client_reference_id: order.id,
+          allow_promotion_codes: true,
           line_items: [
             {
               quantity: 1,
@@ -556,6 +558,23 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
   });
   if (!order) throw new Error("Auftrag für Zahlung wurde nicht gefunden.");
 
+  const stripeAmount = session.amount_total === null || session.amount_total === undefined
+    ? null
+    : fromCents(session.amount_total);
+  const promotion = (session.total_details?.amount_discount ?? 0) > 0 && stripeAmount !== null
+    ? buildAppliedStripePromotion({
+        session,
+        baseNet: order.calculatedNetPrice,
+        baseVat: order.calculatedVat,
+        baseGross: order.calculatedGrossPrice,
+        vatRate: order.calculatedNetPrice.gt(0) ? order.calculatedVat.div(order.calculatedNetPrice) : await getVatRate(),
+      })
+    : null;
+  const paymentMetadata = toJson({
+    ...(session.metadata ?? {}),
+    ...(promotion ? { promotion } : {}),
+  });
+
   const currentPayment = payment ?? await prisma.payment.create({
     data: {
       orderId: order.id,
@@ -563,13 +582,13 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
       tenantId: order.tenantId,
       providerId: provider.id,
       status: "CREATED",
-      amount: fromCents(session.amount_total),
+      amount: stripeAmount ?? order.calculatedGrossPrice,
       currency: (session.currency ?? "eur").toUpperCase(),
       description: `Flyero Auftrag ${order.orderNumber}`,
       stripeCheckoutSessionId: session.id,
       stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id ?? null,
       stripeCustomerId: typeof session.customer === "string" ? session.customer : session.customer?.id ?? null,
-      metadata: toJson(session.metadata ?? {}),
+      metadata: paymentMetadata,
     },
   });
   const wasAlreadyPaid = currentPayment.status === "PAID";
@@ -578,17 +597,38 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     where: { id: currentPayment.id },
     data: {
       status: "PAID",
-      amount: fromCents(session.amount_total).greaterThan(0) ? fromCents(session.amount_total) : currentPayment.amount,
+      amount: stripeAmount ?? currentPayment.amount,
       currency: (session.currency ?? currentPayment.currency).toUpperCase(),
       stripeCheckoutSessionId: session.id,
       stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : currentPayment.stripePaymentIntentId,
       stripeCustomerId: typeof session.customer === "string" ? session.customer : currentPayment.stripeCustomerId,
       paidAt: currentPayment.paidAt ?? new Date(),
-      metadata: toJson(session.metadata ?? {}),
+      metadata: paymentMetadata,
     },
   });
   if (!wasAlreadyPaid) {
     await addPaymentHistory({ paymentId: paidPayment.id, fromStatus: currentPayment.status, toStatus: "PAID", reason: "checkout.session.completed" });
+  }
+
+  if (promotion) {
+    await prisma.order.update({
+      where: { id: order.id },
+      data: {
+        calculatedNetPrice: new Prisma.Decimal(promotion.finalNet),
+        calculatedVat: new Prisma.Decimal(promotion.finalVat),
+        calculatedGrossPrice: new Prisma.Decimal(promotion.finalGross),
+      },
+    });
+    await createAuditLog({
+      action: "payment.promotion_code_applied",
+      entityType: "Order",
+      entityId: order.id,
+      newValues: {
+        checkoutSessionId: session.id,
+        discountGross: promotion.discountGross,
+        finalGross: promotion.finalGross,
+      },
+    });
   }
 
   const acceptedAwaitingPayment = order.status === "ACCEPTED_AWAITING_PAYMENT";
@@ -613,7 +653,14 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
   if (!wasAlreadyPaid) {
     const confirmation = buildPaymentConfirmationEmail({
       customerName: order.customer.contactName || order.customer.companyName,
-      order,
+      order: promotion
+        ? {
+            ...order,
+            calculatedNetPrice: new Prisma.Decimal(promotion.finalNet),
+            calculatedVat: new Prisma.Decimal(promotion.finalVat),
+            calculatedGrossPrice: new Prisma.Decimal(promotion.finalGross),
+          }
+        : order,
       appUrl: appUrl(),
     });
     const customerNotification = await createNotification({
