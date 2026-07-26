@@ -42,6 +42,8 @@ type NotificationInput = {
   data?: PlaceholderData;
   templateKey?: string;
   channel?: NotificationChannel;
+  skipTemplate?: boolean;
+  forceEmail?: boolean;
 };
 
 type OperationsNotificationInput = Omit<NotificationInput, "userId">;
@@ -164,8 +166,10 @@ export async function createNotification(input: NotificationInput) {
   const user = await prisma.user.findUnique({ where: { id: input.userId }, select: { role: true, tenantId: true } });
   const channel = input.channel ?? NotificationChannel.EMAIL;
   const inAppAllowed = await preferenceAllows(input.userId, input.type, NotificationChannel.IN_APP);
-  const queueAllowed = await preferenceAllows(input.userId, input.type, channel);
-  const template = input.templateKey
+  const queueAllowed = input.forceEmail || await preferenceAllows(input.userId, input.type, channel);
+  const template = input.skipTemplate
+    ? null
+    : input.templateKey
     ? await prisma.notificationTemplate.findUnique({ where: { key: input.templateKey } })
     : await prisma.notificationTemplate.findFirst({
         where: { key: input.type, isActive: true },

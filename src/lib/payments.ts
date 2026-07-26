@@ -4,6 +4,7 @@ import Stripe from "stripe";
 import { createAuditLog, type AuditRequestContext } from "@/lib/audit";
 import { createErrorLogFromUnknown } from "@/lib/monitoring";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { classifyStripeDisputeEvent, isRefundBlockedByDispute } from "@/lib/paymentDisputeLogic";
 import { calculateOrderPrice, calculatePriceFromNet, deriveOrderPricingOptions, withCurrentPricingSnapshot } from "@/lib/pricing";
@@ -12,6 +13,7 @@ import { prisma } from "@/lib/prisma";
 import { getCustomerProfileCompleteness, type BillingProfileField } from "@/lib/customerProfileCompleteness";
 import { approvePaidOrder } from "@/lib/orderApproval";
 import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
+import { buildPaymentConfirmationEmail } from "@/lib/paymentConfirmation";
 
 const PROVIDER_CODE = "stripe";
 
@@ -531,7 +533,26 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
   }
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: { customer: { include: { user: { select: { email: true } } } } },
+    include: {
+      customer: { include: { user: { select: { email: true } } } },
+      assignedWarehouse: {
+        select: {
+          name: true,
+          address: true,
+          city: true,
+          postalCode: true,
+          country: true,
+          openingHours: true,
+          contactPerson: true,
+          contactPhone: true,
+          contactEmail: true,
+        },
+      },
+      distributionSegments: {
+        orderBy: { sortOrder: "asc" },
+        select: { name: true, city: true, postalCode: true, areaSqm: true, flyerQuantity: true },
+      },
+    },
   });
   if (!order) throw new Error("Auftrag für Zahlung wurde nicht gefunden.");
 
@@ -590,12 +611,21 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     newValues: { orderId: order.id, sessionId: session.id, amount: paidPayment.amount.toString() },
   });
   if (!wasAlreadyPaid) {
-    await createNotification({
-    userId: order.customer.userId,
-    type: "PAYMENT_SUCCESS",
-    title: "Zahlung erfolgreich",
-    message: `Deine Zahlung für ${order.orderNumber} ist eingegangen.`,
-  });
+    const confirmation = buildPaymentConfirmationEmail({
+      customerName: order.customer.contactName || order.customer.companyName,
+      order,
+      appUrl: appUrl(),
+    });
+    const customerNotification = await createNotification({
+      userId: order.customer.userId,
+      type: "PAYMENT_SUCCESS",
+      title: confirmation.subject,
+      message: confirmation.body,
+      data: confirmation.data,
+      skipTemplate: true,
+      forceEmail: true,
+    });
+    await dispatchNotificationImmediately(customerNotification.queue?.id);
     await notifyAdmins({
     type: "PAYMENT_COMPLETED",
     title: acceptedAwaitingPayment ? "Angenommene Kampagne bezahlt" : "Neue bezahlte Bestellung",
