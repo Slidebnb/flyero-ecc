@@ -14,7 +14,7 @@ assert.match(nextConfig, /NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED:/, "Next mu
 assert.match(envExample, /NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED="true"/, "The production template must document the boundary configuration.");
 assert.match(wizard, /NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED\s*===\s*"true"/, "The optional Google boundary layer must remain explicitly gated.");
 assert.match(wizard, /const boundarySelectionEnabled = officialBoundaries\.length > 0;/, "Selection must be enabled by loaded official FLYERO boundaries.");
-assert.match(wizard, /new maps\.Polygon\(\{[\s\S]{0,1200}clickable: true,/, "Loaded official boundaries must be rendered as clickable map polygons.");
+assert.match(wizard, /new PolygonConstructor\(\{[\s\S]{0,1200}clickable: true,/, "Loaded official boundaries must be rendered as clickable map polygons.");
 assert.match(wizard, /maps\.event\.addListener\(overlay, "click", \(\) => \{\s*selectOfficialBoundary\(area\);/, "Each rendered boundary must register a click listener.");
 assert.match(wizard, /selectOfficialBoundary\(area\);/, "A click on an official boundary must apply that area to the plan.");
 assert.match(wizard, /setSelectedBoundaryPlaceIds\(\(current\) => current\.includes\(placeId\)/, "A selected boundary must be tracked for visual selection state.");

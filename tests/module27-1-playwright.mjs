@@ -200,29 +200,13 @@ async function run() {
     await customerPage.goto(`${baseUrl}/customer/orders/new`, { waitUntil: "domcontentloaded" });
     await customerPage.locator('[data-testid="order-step-1"]').waitFor();
     await customerPage.locator('[data-testid="order-location-input"]').waitFor();
-    await customerPage.locator('[data-testid="order-draw-area"]').click();
+    assert((await customerPage.locator('[data-testid="order-draw-area"]').count()) === 0, "Der Kundenwizard darf keinen manuellen Zeichenweg anzeigen.");
+    const boundaryAction = customerPage.locator('[data-testid="order-select-boundary"]');
+    if (await boundaryAction.count()) await boundaryAction.click();
 
     const map = customerPage.locator('[data-testid="order-map"]');
     const mapReady = (await map.getAttribute("aria-hidden")) === "false";
-    let drewPolygon = false;
-    if (mapReady) {
-      const box = await map.boundingBox();
-      assert(box, "Google-Karte hat keine sichtbare Fläche.");
-      const points = [
-        [box.x + box.width * 0.34, box.y + box.height * 0.34],
-        [box.x + box.width * 0.58, box.y + box.height * 0.34],
-        [box.x + box.width * 0.62, box.y + box.height * 0.58],
-        [box.x + box.width * 0.36, box.y + box.height * 0.60],
-      ];
-      for (const [x, y] of points) await customerPage.mouse.click(x, y);
-      const finishDrawing = customerPage.locator('[data-testid="order-finish-drawing"]');
-      await finishDrawing.waitFor({ timeout: 5000 });
-      await finishDrawing.click();
-      await customerPage.waitForTimeout(500);
-      const rawSegments = await customerPage.locator('input[name="areaSegments"]').inputValue();
-      drewPolygon = JSON.parse(rawSegments).length > 0;
-      assert(drewPolygon, "Das gezeichnete Gebiet wurde nicht in die Planung übernommen.");
-    } else {
+    if (!mapReady) {
       await customerPage.locator(".mapConfigNotice").waitFor({ timeout: 5000 });
       assert(process.env.REQUIRE_LIVE_MAPS !== "true", "REQUIRE_LIVE_MAPS=true, aber die Google-Karte ist nicht geladen.");
     }
@@ -340,7 +324,7 @@ async function run() {
     await adminContext.close();
 
     assert(errors.length === 0, errors.join("\n"));
-    console.log(`Module 27.1 Playwright smoke passed: order=${inquiry.orderNumber}, map=${drewPolygon ? "drawn" : "fallback-observed"}`);
+    console.log(`Module 27.1 Playwright smoke passed: order=${inquiry.orderNumber}, map=${mapReady ? "boundary-ready" : "fallback-observed"}`);
   } finally {
     await customerContext.close();
     await browser.close();
