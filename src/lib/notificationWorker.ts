@@ -270,8 +270,10 @@ export async function processPendingNotifications(input: { limit?: number; trigg
     const regularQueues = remaining > 0
       ? await prisma.notificationQueue.findMany({
           where: {
-            ...queueFilter,
-            OR: [{ userId: { not: null } }, { recipientEmail: null }],
+            AND: [
+              queueFilter,
+              { OR: [{ userId: { not: null } }, { recipientEmail: null }] },
+            ],
           },
           orderBy,
           take: remaining,
