@@ -107,6 +107,7 @@ const context = await browser.newContext({
 const page = await context.newPage();
 const errors = [];
 const failedRequests = [];
+let activeRoute = "login";
 const isExpectedLocalMapsConfigurationMessage = (text) => baseUrl.startsWith("http://localhost") && [
   "maps.googleapis.com/maps/api/mapsjs/mapConfigs:batchGet",
   "Unable to fetch configuration for mapId",
@@ -119,15 +120,16 @@ page.on("console", (message) => {
     && !message.text().includes("maps.googleapis.com/maps/api/mapsjs/gen_204")
     && !isExpectedLocalMapsConfigurationMessage(message.text())
     && !message.text().includes("Failed to load resource: net::ERR_FAILED")) {
-    errors.push(message.text());
+    errors.push(`${activeRoute}: ${message.text()}`);
   }
 });
-page.on("pageerror", (error) => errors.push(error.message));
-page.on("requestfailed", (request) => failedRequests.push({ url: request.url(), error: request.failure()?.errorText ?? "unknown" }));
+page.on("pageerror", (error) => errors.push(`${activeRoute}: ${error.message}`));
+page.on("requestfailed", (request) => failedRequests.push({ route: activeRoute, url: request.url(), error: request.failure()?.errorText ?? "unknown" }));
 
 try {
   await login(page);
   for (const [name, path] of routes) {
+    activeRoute = path;
     await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(250);
     assert.equal(new URL(page.url()).pathname, path, `${path} leitet unerwartet weiter.`);
@@ -154,6 +156,7 @@ try {
   }
 
   for (const [name, path, expectedPath] of legacyRoutes) {
+    activeRoute = path;
     await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(250);
     assert.equal(new URL(page.url()).pathname, expectedPath, `${path} muss auf ${expectedPath} weiterleiten.`);
@@ -164,6 +167,7 @@ try {
 
   await page.setViewportSize({ width: 390, height: 844 });
   for (const [name, path] of routes.slice(0, 6)) {
+    activeRoute = `${path} (mobile)`;
     await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(250);
     const metrics = await page.evaluate(() => ({
