@@ -44,8 +44,8 @@ fi
 compose=(docker compose --env-file /opt/flyero/.env.production -f /opt/flyero/docker-compose.production.yml)
 "${compose[@]}" build --build-arg "DEPLOY_SHA=$deployed_sha" app
 built_image="$(docker image inspect flyero-app --format '{{.Id}}')"
-"${compose[@]}" run --rm --no-deps app node scripts/production-preflight.mjs
-"${compose[@]}" run --rm --no-deps app npx prisma migrate deploy
+"${compose[@]}" run --rm --no-deps app node scripts/production-preflight.mjs < /dev/null
+"${compose[@]}" run --rm --no-deps app npx prisma migrate deploy < /dev/null
 # App und Reverse-Proxy gemeinsam recreaten: Das Caddyfile liegt als Bind-Mount
 # vor und wird sonst trotz neuer Version im Repository nicht live geladen.
 "${compose[@]}" up -d --force-recreate --no-deps app caddy

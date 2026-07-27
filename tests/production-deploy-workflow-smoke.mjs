@@ -16,6 +16,8 @@ assert.match(script, /docker compose --env-file \/opt\/flyero\/\.env\.production
 assert.match(script, /build --build-arg \"DEPLOY_SHA=/, "Das Produktionsimage muss mit einem Release-SHA gebaut werden.");
 assert.match(script, /git rev-parse --verify .*\^\{commit\}/, "Kurze und vollstaendige ExpectedSha muessen auf denselben Commit aufgeloest werden.");
 assert.match(script, /npx prisma migrate deploy/, "Ausstehende Migrationen muessen kontrolliert angewendet werden.");
+assert.match(script, /run --rm --no-deps app node scripts\/production-preflight\.mjs < \/dev\/null/, "Der Preflight darf den ueber SSH uebergebenen Bash-Input nicht konsumieren.");
+assert.match(script, /run --rm --no-deps app npx prisma migrate deploy < \/dev\/null/, "Die Migration darf den ueber SSH uebergebenen Bash-Input nicht konsumieren.");
 assert.match(script, /up -d --force-recreate --no-deps app caddy/, "Der Deploy muss den Reverse-Proxy mit dem aktuellen Caddyfile recreaten.");
 assert.match(script, /built_image=.*docker image inspect flyero-app/, "Der Deploy muss den Digest des gebauten Images festhalten.");
 assert.match(script, /app_container=.*compose\[@\].*ps -q app/, "Der Deploy muss den laufenden App-Container aus Compose ermitteln.");
