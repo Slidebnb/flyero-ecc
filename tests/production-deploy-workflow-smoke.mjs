@@ -4,10 +4,19 @@ import { existsSync, readFileSync } from "node:fs";
 const workflowPath = ".github/workflows/deploy-production.yml";
 const scriptPath = "scripts/deploy-production.ps1";
 
-assert.equal(existsSync(workflowPath), false, "Der Produktions-Deploy darf nicht mehr automatisch durch GitHub Actions laufen.");
+assert.equal(existsSync(workflowPath), true, "Der Produktions-Deploy muss als kontrollierter GitHub-Workflow versioniert sein.");
 assert.ok(existsSync(scriptPath), "Der manuelle PowerShell-Deploy muss versioniert sein.");
 
+const workflow = readFileSync(workflowPath, "utf8");
 const script = readFileSync(scriptPath, "utf8");
+
+assert.match(workflow, /workflow_run:/, "Der Deploy muss auf den erfolgreichen CI-Lauf warten.");
+assert.match(workflow, /conclusion\s*==\s*'success'/, "Der Deploy darf nur nach erfolgreichem CI-Lauf starten.");
+assert.match(workflow, /FLYERO_DEPLOY_HOST/, "Der Host muss aus einem geschuetzten Repository-Secret kommen.");
+assert.match(workflow, /FLYERO_DEPLOY_USER/, "Der Deploy-Benutzer muss aus einem geschuetzten Repository-Secret kommen.");
+assert.match(workflow, /FLYERO_DEPLOY_SSH_KEY/, "Der SSH-Schluessel muss aus einem geschuetzten Repository-Secret kommen.");
+assert.match(workflow, /FLYERO_DEPLOY_KNOWN_HOSTS/, "Die bekannten Hostschluessel muessen aus einem geschuetzten Repository-Secret kommen.");
+assert.match(workflow, /-ExpectedSha/, "Der Workflow muss den getesteten Commit an den Deploy uebergeben.");
 
 assert.match(script, /StrictHostKeyChecking=yes/, "SSH muss die Serveridentitaet fest pruefen.");
 assert.doesNotMatch(script, /StrictHostKeyChecking=no/, "SSH darf die Hostpruefung nicht abschalten.");

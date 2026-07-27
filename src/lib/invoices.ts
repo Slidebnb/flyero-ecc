@@ -4,6 +4,7 @@ import { createAuditLog } from "@/lib/audit";
 import { formatAddress, formatDate, formatDateTime } from "@/lib/format";
 import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { buildInvoiceAvailableEmail } from "@/lib/emailTemplates";
 import { prisma } from "@/lib/prisma";
 import { productionInvoiceWhere } from "@/lib/productionData";
 import { getVatRate } from "@/lib/pricing";
@@ -26,26 +27,52 @@ export async function generateCreditNoteNumber() {
 }
 
 function escapePdfText(value: unknown) {
-  return String(value ?? "-").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  const winAnsi: Record<string, string> = {
+    "€": "\\200",
+    "ä": "\\344",
+    "ö": "\\366",
+    "ü": "\\374",
+    "Ä": "\\304",
+    "Ö": "\\326",
+    "Ü": "\\334",
+    "ß": "\\337",
+  };
+  return Array.from(String(value ?? "-"), (character) => {
+    if (character === "\\") return "\\\\";
+    if (character === "(") return "\\(";
+    if (character === ")") return "\\)";
+    return winAnsi[character] ?? character;
+  }).join("");
 }
 
-function buildSimplePdf(lines: string[]) {
-  const content = [
-    "BT",
-    "/F1 17 Tf",
-    "50 790 Td",
-    ...lines.flatMap((line, index) => [
-      index === 0 ? "" : "0 -23 Td",
-      `(${escapePdfText(line).slice(0, 115)}) Tj`,
-    ]),
-    "ET",
-  ].filter(Boolean).join("\n");
+type PdfLine = { text: string; kind?: "brand" | "title" | "section" | "body" | "total" | "paid" | "footer" };
+
+function buildSimplePdf(lines: PdfLine[]) {
+  let y = 768;
+  const commands = [
+    "q",
+    "0.718 1 0.129 rg",
+    "0 808 595 34 re f",
+    "Q",
+  ];
+  for (const line of lines) {
+    const kind = line.kind ?? "body";
+    const font = kind === "brand" || kind === "title" || kind === "section" || kind === "total" || kind === "paid" ? "/F2" : "/F1";
+    const size = kind === "brand" ? 12 : kind === "title" ? 22 : kind === "section" ? 11 : kind === "total" || kind === "paid" ? 13 : kind === "footer" ? 8 : 10;
+    const color = kind === "brand" || kind === "title" || kind === "section" || kind === "total" || kind === "paid" ? "0.063 0.090 0.075" : "0.290 0.353 0.302";
+    const step = kind === "title" ? 30 : kind === "section" ? 19 : kind === "footer" ? 12 : 17;
+    commands.push(`${color} rg`, "BT", `${font} ${size} Tf`, `1 0 0 1 50 ${y} Tm`, `(${escapePdfText(line.text).slice(0, 115)}) Tj`, "ET");
+    y -= step;
+    if (kind === "title" || kind === "section") y -= 7;
+  }
+  const content = commands.join("\n");
   const objects = [
     "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj",
     "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj",
-    "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >> endobj",
+    "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 6 0 R >> >> /Contents 5 0 R >> endobj",
     "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj",
     `5 0 obj << /Length ${Buffer.byteLength(content)} >> stream\n${content}\nendstream endobj`,
+    "6 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj",
   ];
   let offset = "%PDF-1.4\n".length;
   const xref = ["0000000000 65535 f "];
@@ -72,22 +99,26 @@ export async function generateInvoicePdf(invoiceId: string, options?: { regenera
   if (!invoice) throw new Error("Rechnung wurde nicht gefunden.");
   const [company, branding] = await Promise.all([getCompanySettings(), getBrandingSettings()]);
   const billingAddress = formatAddress(invoice.customer.billingAddress);
-  const lines = [
-    `${company.companyName} Rechnung`,
-    `Rechnungsnummer: ${invoice.invoiceNumber}`,
-    `Rechnungsdatum: ${formatDate(invoice.invoiceDate ?? invoice.createdAt)}`,
-    `Kunde: ${invoice.customer.companyName}`,
-    `Rechnungsadresse: ${billingAddress.replace(/\n/g, ", ")}`,
-    `Auftragsnummer: ${invoice.order.orderNumber}`,
-    `Zahlungsreferenz: ${invoice.payment?.stripePaymentIntentId ?? invoice.payment?.stripeCheckoutSessionId ?? "-"}`,
-    `Leistungsdatum: ${formatDate(invoice.serviceDate ?? invoice.invoiceDate ?? invoice.createdAt)}`,
-    ...invoice.items.map((item) => `${item.title}: ${item.quantity.toString()} ${item.unit} x ${item.unitPriceNet.toString()} EUR netto`),
-    `Netto: ${invoice.subtotalNet.toString()} ${invoice.currency}`,
-    `MwSt. ${invoice.vatRate.mul(100).toDecimalPlaces(0).toString()}%: ${invoice.vatAmount.toString()} ${invoice.currency}`,
-    `Brutto: ${invoice.totalGross.toString()} ${invoice.currency}`,
-    "Hinweis: bereits bezahlt",
-    `Zahlungsdatum: ${formatDateTime(invoice.paidAt)}`,
-    `Footer: ${branding.invoiceFooterText || `${company.legalName} / ${company.street} / ${company.postalCode} ${company.city} / ${company.vatId ?? "-"}`}`,
+  const lines: PdfLine[] = [
+    { text: company.companyName, kind: "brand" },
+    { text: "Rechnung", kind: "title" },
+    { text: `Rechnungsnummer: ${invoice.invoiceNumber}`, kind: "body" },
+    { text: `Rechnungsdatum: ${formatDate(invoice.invoiceDate ?? invoice.createdAt)}`, kind: "body" },
+    { text: "Rechnungsempfänger", kind: "section" },
+    { text: invoice.customer.companyName, kind: "body" },
+    { text: billingAddress.replace(/\n/g, ", "), kind: "body" },
+    { text: "Ihre Leistung", kind: "section" },
+    { text: `Flyerverteilung für ${invoice.order.targetAreaName}, ${invoice.order.city}`, kind: "body" },
+    { text: `Menge: ${invoice.order.flyerQuantity.toLocaleString("de-DE")} Flyer`, kind: "body" },
+    { text: `Leistungsdatum: ${formatDate(invoice.serviceDate ?? invoice.invoiceDate ?? invoice.createdAt)}`, kind: "body" },
+    ...invoice.items.map((item) => ({ text: `${item.title}: ${item.quantity.toString()} ${item.unit} - ${item.lineTotalNet.toString()} EUR netto`, kind: "body" as const })),
+    { text: "Zusammenfassung", kind: "section" },
+    { text: `Netto: ${invoice.subtotalNet.toString()} ${invoice.currency}`, kind: "body" },
+    { text: `MwSt. ${invoice.vatRate.mul(100).toDecimalPlaces(0).toString()}%: ${invoice.vatAmount.toString()} ${invoice.currency}`, kind: "body" },
+    { text: `Gesamtbetrag: ${invoice.totalGross.toString()} ${invoice.currency}`, kind: "total" },
+    { text: "Bereits bezahlt", kind: "paid" },
+    { text: `Bezahlt am: ${formatDateTime(invoice.paidAt)}`, kind: "body" },
+    { text: branding.invoiceFooterText || `${company.legalName} / ${company.street} / ${company.postalCode} ${company.city} / ${company.vatId ?? "-"}`, kind: "footer" },
   ];
   const pdf = buildSimplePdf(lines);
   const fileName = `${invoice.invoiceNumber.toLowerCase()}.pdf`;
@@ -207,6 +238,17 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
     entityId: updated.id,
     newValues: { invoiceNumber: updated.invoiceNumber, orderId: order.id, paymentId: payment.id },
   });
+  const invoiceUrl = `${process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? ""}/customer/invoices`;
+  const invoiceEmail = buildInvoiceAvailableEmail({
+    customerName: order.customer.contactName || order.customer.companyName,
+    companyName: order.customer.companyName,
+    invoiceNumber: updated.invoiceNumber,
+    orderNumber: order.orderNumber,
+    netAmount: updated.amountNet.toString(),
+    vatAmount: updated.vatAmount.toString(),
+    grossAmount: updated.amountGross.toString(),
+    invoiceUrl,
+  });
   await createNotification({
     userId: order.customer.userId,
     type: "INVOICE_AVAILABLE",
@@ -216,11 +258,13 @@ export async function createInvoiceForOrder(input: { orderId: string; adminUserI
       netAmount: updated.amountNet.toString(),
       vatAmount: updated.vatAmount.toString(),
       grossAmount: updated.amountGross.toString(),
-      invoiceUrl: `${process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? ""}/customer/invoices`,
+      invoiceUrl,
       nextStep: "Oeffne dein Kundenportal.",
     },
-    title: "Rechnung verfügbar",
-    message: `Rechnung ${updated.invoiceNumber} für Auftrag ${order.orderNumber} ist verfügbar.`,
+    title: invoiceEmail.subject,
+    message: invoiceEmail.text,
+    emailHtml: invoiceEmail.html,
+    forceEmail: true,
   });
   await notifyAdmins({
     type: "INVOICE_CREATED",

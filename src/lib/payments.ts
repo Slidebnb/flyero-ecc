@@ -669,6 +669,7 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
       title: confirmation.subject,
       message: confirmation.body,
       data: confirmation.data,
+      emailHtml: confirmation.html,
       skipTemplate: true,
       forceEmail: true,
     });

@@ -20,6 +20,7 @@ assert(notifications.includes("emailHtml"), "Benachrichtigungen müssen ein sepa
 assert(worker.includes("html: payload.html"), "Notification-Worker muss das gebrandete HTML an den Provider weitergeben.");
 assert(emailTemplate.includes("Bericht im Kundenportal"), "Die Kunden-Mail muss den Portalzugang verstÃ¤ndlich anbieten.");
 assert(!/Queue|Fingerprint|localhost|REPORT_PUBLISHED/.test(emailTemplate), "Das Kunden-Mail-Layout darf keine technischen Begriffe enthalten.");
+assert(!/technisch geprueft|technisch geprüft/.test(emailTemplate), "Kundenmails dürfen keine interne technische Prüfformulierung enthalten.");
 assert(packageJson.scripts?.["test:customer-report-publication"], "Regressionstest muss als npm-Script registriert sein.");
 
 console.log("Customer report publication checks passed.");

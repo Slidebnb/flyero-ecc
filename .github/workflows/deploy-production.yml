@@ -1,0 +1,78 @@
+name: Deploy production
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: "Optionaler main-Commit, der deployt werden soll"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy production
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.head_branch == 'main') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_sha || github.sha }}
+      DEPLOY_HOST: ${{ secrets.FLYERO_DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.FLYERO_DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.FLYERO_DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.FLYERO_DEPLOY_KNOWN_HOSTS }}
+    steps:
+      - name: Checkout tested commit
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_sha || github.sha }}
+
+      - name: Validate deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_HOST"
+          test -n "$DEPLOY_USER"
+          test -n "$DEPLOY_SSH_KEY"
+          test -n "$DEPLOY_KNOWN_HOSTS"
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{7,40}$ ]]
+
+      - name: Install temporary SSH credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$HOME/.ssh/flyero-github-deploy"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/flyero-github-deploy" "$HOME/.ssh/known_hosts"
+          test -s "$HOME/.ssh/flyero-github-deploy"
+          test -s "$HOME/.ssh/known_hosts"
+
+      - name: Deploy and verify production
+        shell: pwsh
+        run: >-
+          pwsh -NoLogo -NoProfile -File ./scripts/deploy-production.ps1
+          -DeployHost $env:DEPLOY_HOST
+          -DeployUser $env:DEPLOY_USER
+          -IdentityFile "$HOME/.ssh/flyero-github-deploy"
+          -KnownHostsFile "$HOME/.ssh/known_hosts"
+          -ExpectedSha $env:DEPLOY_SHA
+
+      - name: Remove temporary SSH credentials
+        if: always()
+        shell: bash
+        run: rm -f "$HOME/.ssh/flyero-github-deploy" "$HOME/.ssh/known_hosts"
