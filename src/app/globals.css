@@ -4020,6 +4020,69 @@ body {
   color: #ffffff;
 }
 
+.orderExperienceLoading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+}
+
+.orderLoadingPanel {
+  width: min(100%, 520px);
+  display: grid;
+  gap: 14px;
+  padding: 32px;
+  border: 1px solid rgba(183, 232, 0, 0.24);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(18, 29, 35, 0.98), rgba(7, 12, 16, 0.98));
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+}
+
+.orderLoadingKicker {
+  color: #b7e800;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+}
+
+.orderLoadingPanel h1,
+.orderLoadingPanel p,
+.orderLoadingPanel small {
+  margin: 0;
+}
+
+.orderLoadingPanel h1 {
+  color: #fff;
+  font-size: clamp(1.55rem, 4vw, 2.2rem);
+}
+
+.orderLoadingPanel p,
+.orderLoadingPanel small {
+  color: #b7c1cc;
+}
+
+.orderLoadingProgress {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.orderLoadingProgress span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 38%;
+  border-radius: inherit;
+  background: #b7e800;
+  animation: flyeroLoadingProgress 1.4s ease-in-out infinite;
+}
+
+@keyframes flyeroLoadingProgress {
+  0% { transform: translateX(-110%); }
+  50%, 100% { transform: translateX(290%); }
+}
+
 .orderExperienceTopbar {
   height: 76px;
   display: grid;

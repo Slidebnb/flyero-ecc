@@ -425,7 +425,7 @@ export async function getOrderIntelligence(input: {
     );
     return { segment, segmentArea, segmentEstimate, households, confidence };
   }) ?? null;
-  const households = segmentCalculations
+  const calculatedHouseholds = segmentCalculations
     ? segmentCalculations.reduce((sum, item) => sum + item.households, 0)
     : estimateHouseholds({ coverageAreaSqm: effectiveCoverageAreaSqm, cityDensityFactor: densityFactor });
   const buildingEstimateValues = segmentCalculations
@@ -452,29 +452,23 @@ export async function getOrderIntelligence(input: {
         Boolean(referenceArea?.estimatedHouseholds),
       ) === "high";
   const recommendedFlyerQuantity = householdRecommendationAllowed
-    ? Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((households * 1.1) / 100) * 100)
-    : MINIMUM_FLYER_QUANTITY;
-  const flyerQuantity = input.flyerQuantity ?? recommendedFlyerQuantity;
+    ? Math.max(MINIMUM_FLYER_QUANTITY, Math.ceil((calculatedHouseholds * 1.1) / 100) * 100)
+    : null;
+  const flyerQuantity = input.flyerQuantity ?? MINIMUM_FLYER_QUANTITY;
   const routeDistanceMeters = effectiveCoverageAreaSqm
     ? estimateRouteDistanceMeters({
         coverageAreaSqm: effectiveCoverageAreaSqm,
         perimeterMeters: planning.perimeterMeters,
-        households,
+        households: calculatedHouseholds,
       })
     : null;
   const singleDistributorMinutes = calculateDistributionTime({
     distanceMeters: routeDistanceMeters,
     flyerQuantity,
-    households,
+    households: calculatedHouseholds,
     distributorCount: 1,
   });
   const distributorNeed = Math.max(1, Math.ceil(singleDistributorMinutes / 240), Math.ceil(flyerQuantity / 3500));
-  const routeDurationMinutes = calculateDistributionTime({
-    distanceMeters: routeDistanceMeters,
-    flyerQuantity,
-    households,
-    distributorCount: distributorNeed,
-  });
   const householdCountSource = segmentCalculations
     ? segmentCalculations.map((item) => estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source)).join(", ")
     : estimateSourceLabel(referenceEstimate?.method, referenceEstimate?.source);
@@ -513,20 +507,20 @@ export async function getOrderIntelligence(input: {
   const areaConfidence = referenceArea?.dataSourceType === "OFFICIAL" || referenceArea?.dataSourceType === "LICENSED"
     ? "verified" as const
     : effectiveCoverageAreaSqm ? "estimated" as const : "unavailable" as const;
-  const householdConfidence = confidence === "high" ? "verified" as const : households ? "estimated" as const : "unavailable" as const;
+  const householdConfidence = householdRecommendationAllowed ? "verified" as const : "unavailable" as const;
   const deliverabilityScore = scoreArea({
     city: effectiveCity,
     postalCode: effectivePostalCode,
-    households,
+    households: householdRecommendationAllowed ? calculatedHouseholds : null,
     flyerQuantity,
     coverageAreaSqm: effectiveCoverageAreaSqm,
     distanceMeters: routeDistanceMeters,
   });
   const derivedAreaDifficulty = deriveAreaDifficulty({
     coverageAreaSqm: effectiveCoverageAreaSqm ?? 0,
-    households,
+    households: calculatedHouseholds,
     routeDistanceMeters,
-    routeDurationMinutes,
+    routeDurationMinutes: null,
     segmentCount: areaSelection?.segments.length ?? 1,
     confidence,
     source: householdCountSource,
@@ -578,10 +572,10 @@ export async function getOrderIntelligence(input: {
     netPrice: price.net.toString(),
     vatAmount: price.vat.toString(),
     grossPrice: price.gross.toString(),
-    households: households || null,
+    households: householdRecommendationAllowed ? calculatedHouseholds : null,
     coverageAreaSqm: effectiveCoverageAreaSqm ?? 0,
-    routeDistanceMeters,
-    routeDurationMinutes,
+    routeDistanceMeters: null,
+    routeDurationMinutes: null,
     pricingVersion: price.snapshot.pricingVersion,
     pricingRuleSignature: price.snapshot.pricingRuleSignature,
     calculationVersion: areaSelection ? "order-area-v2-multi-segment" : "order-area-v1",
@@ -589,25 +583,25 @@ export async function getOrderIntelligence(input: {
     sources: {
       area: referenceArea?.dataSourceName ?? (effectiveCoverageAreaSqm ? "polygon-estimate" : "unavailable"),
       households: householdCountSource,
-      route: routeDistanceMeters === null ? "unavailable" : "polygon-estimate",
+      route: "unavailable",
       pricing: `pricing:${price.snapshot.pricingVersion}`,
     },
     confidence: {
       area: areaConfidence,
       households: householdConfidence,
-      route: routeDistanceMeters === null ? "unavailable" : "estimated",
+      route: "unavailable",
     },
   });
 
   return {
     suggestions: matchingAreas.map(compactArea),
     metrics: {
-      households,
+      households: householdRecommendationAllowed ? calculatedHouseholds : null,
       recommendedFlyerQuantity,
       householdRecommendationAllowed,
       flyerQuantity,
-      routeDistanceMeters,
-      routeDurationMinutes,
+      routeDistanceMeters: null,
+      routeDurationMinutes: null,
       coverageAreaSqm: effectiveCoverageAreaSqm ?? 0,
       grossPrice: price.gross.toString(),
       netPrice: price.net.toString(),
@@ -615,7 +609,7 @@ export async function getOrderIntelligence(input: {
       vatRate: price.snapshot.vatRate,
       distributorNeed,
       score: deliverabilityScore,
-      source: referenceArea?.estimatedHouseholds ? "area-household-estimate" : "area-formula",
+      source: householdRecommendationAllowed ? "area-household-estimate" : "area-geometry-only",
       confidence,
       calculatedAt: new Date().toISOString(),
       calculationVersion: areaSelection ? "order-area-v2-multi-segment" : "order-area-v1",
@@ -623,7 +617,7 @@ export async function getOrderIntelligence(input: {
       polygonHash: authoritativeQuote.polygonHash,
       pricingRuleSignature: authoritativeQuote.pricingRuleSignature,
       quote: authoritativeQuote,
-      householdCountSource,
+      householdCountSource: householdRecommendationAllowed ? householdCountSource : "not-available",
       residentialBuildings,
       buildingCountSource,
       pricingVersion: price.snapshot.pricingVersion,
@@ -673,8 +667,8 @@ export async function getOrderIntelligence(input: {
         city: item.segment.city,
         postalCode: item.segment.postalCode,
         areaSqm: item.segment.areaSqm,
-        households: item.households,
-        householdCountSource: estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source),
+        households: item.confidence === "high" ? item.households : null,
+        householdCountSource: item.confidence === "high" ? estimateSourceLabel(item.segmentEstimate?.method, item.segmentEstimate?.source) : "not-available",
         residentialBuildings: item.segmentEstimate?.residentialBuildings ?? null,
         confidence: item.confidence,
         distributionAreaId: item.segmentArea?.id ?? item.segment.distributionAreaId,

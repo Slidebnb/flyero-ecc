@@ -39,10 +39,19 @@ type MapPoint = { lat: number; lng: number };
 const GOOGLE_MAPS_VERSION = "3.64";
 
 function features(value: unknown) {
-  const candidate = value as { type?: string; features?: unknown[] };
-  return candidate?.type === "FeatureCollection" && Array.isArray(candidate.features)
-    ? candidate.features
-    : [];
+  let candidate = value;
+  if (typeof candidate === "string") {
+    try {
+      candidate = JSON.parse(candidate) as unknown;
+    } catch {
+      return [];
+    }
+  }
+  const parsed = candidate as { type?: string; features?: unknown[]; geometry?: unknown };
+  if (parsed?.type === "FeatureCollection" && Array.isArray(parsed.features)) return parsed.features;
+  if (parsed?.type === "Feature") return [parsed];
+  if (parsed?.type === "Polygon" || parsed?.type === "MultiPolygon") return [{ type: "Feature", geometry: parsed }];
+  return [];
 }
 
 function pathFromCoordinates(coordinates: unknown) {
@@ -143,15 +152,18 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
           : undefined;
         if (cancelled) return;
         const library = imported;
-        const MapConstructor = typeof mapsApi.Map === "function" ? mapsApi.Map : library?.Map;
-        const BoundsConstructor = typeof mapsApi.LatLngBounds === "function" ? mapsApi.LatLngBounds : library?.LatLngBounds;
-        const PolygonConstructor = typeof mapsApi.Polygon === "function" ? mapsApi.Polygon : library?.Polygon;
+        const MapConstructor = typeof library?.Map === "function" ? library.Map : mapsApi.Map;
+        const BoundsConstructor = typeof library?.LatLngBounds === "function" ? library.LatLngBounds : mapsApi.LatLngBounds;
+        const PolygonConstructor = typeof library?.Polygon === "function" ? library.Polygon : mapsApi.Polygon;
         if (typeof MapConstructor !== "function" || typeof BoundsConstructor !== "function" || typeof PolygonConstructor !== "function") {
           if (renderRetry < 3) setRenderRetry((value) => value + 1);
           else setMapError(true);
           return;
         }
-        const map = new MapConstructor(containerRef.current!, {
+        const container = containerRef.current;
+        if (!container) return;
+        container.replaceChildren();
+        const map = new MapConstructor(container, {
           center: { lat: 50.3569, lng: 7.589 },
           zoom: 12,
           mapTypeControl: false,

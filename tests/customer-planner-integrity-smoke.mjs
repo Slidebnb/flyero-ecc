@@ -9,11 +9,11 @@ const spatialAreas = readFileSync("src/lib/spatialAreas.ts", "utf8");
 const publicQuote = readFileSync("src/app/api/public/planner/quote/route.ts", "utf8");
 const intelligenceRoute = readFileSync("src/app/api/maps/order-intelligence/route.ts", "utf8");
 
-assert.match(wizard, /function clearLocationSelection\(\)[\s\S]*?polygonRef\.current\?\.setMap\(null\)/, "Eine neue Suche muss das alte Karten-Overlay entfernen.");
+assert.match(wizard, /function clearLocationSelection\([\s\S]*?polygonRef\.current\?\.setMap\(null\)/, "Eine neue Suche muss das alte Karten-Overlay entfernen.");
 assert.match(wizard, /mapRef\.current\?\.setCenter\(nextCenter\)/, "Ein neues Geocode-Ergebnis muss die Karte zentrieren.");
 assert.match(wizard, /const hasFreshLocationInput = Boolean\(placeId\s*\|\|\s*currentQuery\.trim\(\) !== query\.trim\(\)\)/, "Eine neue PLZ darf keinen alten Ortskontext verwenden.");
 assert.doesNotMatch(wizard, /const matchedArea = findAreaForLocation\(result\)/, "Eine PLZ-Auswahl darf kein altes gespeichertes Gebiet automatisch übernehmen.");
-assert.match(wizard, /const localHouseholds = useMemo\(\(\) => planningAreaSqm > 0 \? estimateHouseholdsFromArea\(planningAreaSqm\) : 0/, "Ohne Fläche darf der Wizard keine Haushalte anzeigen.");
+assert.doesNotMatch(wizard, /const localHouseholds|estimateHouseholdsFromArea|estimateWalkingDistanceMeters|estimateTeamDurationMinutes/, "Der Wizard darf keine Haushalte oder Routen lokal erfinden.");
 assert.doesNotMatch(wizard, /Preisvorschau folgt/, "Der veraltete Dauerstatus darf nicht im Kundenwizard stehen.");
 assert.doesNotMatch(wizard, /Gebiet erkannt\. FLYERO bereitet die Fläche und Preisvorschau vor\./, "Der alte unbestätigte Gebietsstatus darf nicht sichtbar sein.");
 assert.match(wizard, /currentIntelligenceStatus === "live"[\s\S]*?householdRecommendationAllowed === true[\s\S]*?recommendedFlyerQuantity/, "Die Flyerempfehlung muss vom Serverergebnis kommen.");

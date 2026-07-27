@@ -10,10 +10,10 @@ assert.match(
   /const planningAreaSqm = previewCoverageAreaSqm;[\s\S]*?const hasPlanningArea = planningAreaSqm > 0;/,
   "Die Gebietsübersicht muss dieselbe aktuelle Fläche wie die lokale Karten-Vorschau verwenden.",
 );
-assert.match(
+assert.doesNotMatch(
   wizard,
-  /const localHouseholds = useMemo\(\(\) => planningAreaSqm > 0 \? estimateHouseholdsFromArea\(planningAreaSqm\) : 0,/,
-  "Haushalte und lokale Routenwerte müssen sich während der aktuellen Flächenänderung aktualisieren.",
+  /const localHouseholds|estimateHouseholdsFromArea|estimateWalkingDistanceMeters|estimateTeamDurationMinutes/,
+  "Haushalte und lokale Routenwerte dürfen sich nicht aus einer Frontend-Formel ergeben.",
 );
 assert.match(
   wizard,
@@ -22,8 +22,8 @@ assert.match(
 );
 assert.match(
   wizard,
-  /const recommendedFlyerQuantity = currentIntelligenceStatus === "live"[\s\S]*?currentIntelligence\?\.metrics\.householdRecommendationAllowed === true[\s\S]*?currentIntelligence\.metrics\.recommendedFlyerQuantity \?\? MINIMUM_FLYER_QUANTITY/,
-  "Die Flyerempfehlung muss bei einer berechneten Fläche aus der aktuellen Haushaltsbasis entstehen.",
+  /const recommendedFlyerQuantity = currentIntelligenceStatus === "live"[\s\S]*?currentIntelligence\?\.metrics\.householdRecommendationAllowed === true[\s\S]*?recommendedFlyerQuantity \?\? null/,
+  "Die Flyerempfehlung muss aus belastbaren Serverdaten kommen oder leer bleiben.",
 );
 assert.match(
   wizard,
@@ -32,8 +32,8 @@ assert.match(
 );
 assert.match(
   wizard,
-  /const recommendationLabel = !hasPlanningArea[\s\S]*?"Gebietsdaten geschätzt"/,
-  "Eine nicht amtlich/lizenziert bestätigte Flyerempfehlung muss im Kundenportal verständlich gekennzeichnet werden.",
+  /const recommendationLabel = !hasPlanningArea[\s\S]*?Noch keine belastbare Mengenempfehlung/,
+  "Eine nicht belastbar bestätigte Flyerempfehlung muss im Kundenportal verständlich gekennzeichnet werden.",
 );
 assert.match(materialStep, /recommendationLabel/, "Der Materials-Schritt muss die fachliche Empfehlungskennzeichnung darstellen.");
 assert.match(
@@ -41,7 +41,6 @@ assert.match(
   /findBestWarehouseForArea\(\{ city: effectiveCity, postalCode: effectivePostalCode, allowDefault: true \}\)/,
   "Die Live-Planung muss das festgelegte Standardlager für jedes Gebiet berücksichtigen.",
 );
-
 assert.match(
   smartMaps,
   /findBestWarehouseForArea\(\{ city: segment\.city, postalCode: segment\.postalCode, allowDefault: true \}\)/,

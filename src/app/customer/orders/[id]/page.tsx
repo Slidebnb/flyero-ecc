@@ -36,6 +36,25 @@ function paymentLabel(status?: string | null) {
   return "Offen";
 }
 
+function trustedHouseholdEstimate(area: {
+  estimates?: Array<{
+    households: number;
+    estimatedHouseholds: number | null;
+    method: string;
+    source: string | null;
+    sourceYear: number | null;
+    confidence: unknown;
+  }>;
+} | null) {
+  const estimate = area?.estimates?.[0];
+  if (!estimate || !estimate.source || estimate.sourceYear == null) return null;
+  const trustedMethod = ["OFFICIAL_IMPORT", "LICENSED_IMPORT"].includes(estimate.method);
+  const confidence = Number(estimate.confidence ?? 0);
+  return trustedMethod && Number.isFinite(confidence) && confidence >= 0.8
+    ? estimate.estimatedHouseholds ?? estimate.households
+    : null;
+}
+
 export default async function CustomerOrderDetailPage({ params, searchParams }: PageProps) {
   const session = await requireTenantSession();
   const { id } = await params;
@@ -44,7 +63,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
     where: { id, tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
     include: {
       statusEvents: { orderBy: { createdAt: "desc" }, take: 4 },
-      distributionArea: true,
+      distributionArea: { include: { estimates: { orderBy: { createdAt: "desc" }, take: 1 } } },
       assignedWarehouse: true,
       distributionSegments: { orderBy: { sortOrder: "asc" }, include: { assignedWarehouse: true } },
       logisticsShipments: {
@@ -62,6 +81,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
   const latestPayment = order.payments[0] ?? null;
   const price = getOrderPriceBreakdown(order);
   const customerShipment = order.logisticsShipments[0] ?? null;
+  const householdEstimate = trustedHouseholdEstimate(order.distributionArea);
   const action = customerOrderAction(order.status, order.id);
   const warehouseLabel = order.assignedWarehouse
     ? `${order.assignedWarehouse.name}, ${warehouseAddressText(order.assignedWarehouse)}`
@@ -198,31 +218,27 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
       <DataSection title="Verteilgebiet" description="Gebietsdaten werden vor der Verteilung durch FLYERO geprüft.">
         <DistributionAreaPreviewMap geoJson={order.targetAreaGeoJson ?? order.distributionArea?.geoJson ?? order.distributionArea?.geometryGeoJson} />
         <div className="customerFactList compact">
-          <p><span>Haushalte</span><strong>{order.estimatedHouseholds ?? order.distributionArea?.estimatedHouseholds ?? "Wird geprüft"}</strong></p>
+          <p><span>Haushalte</span><strong>{householdEstimate ?? "Wird vor der Verteilung geprüft"}</strong></p>
           <p><span>Fläche</span><strong>{order.coverageAreaSqm ? `${Number(order.coverageAreaSqm).toLocaleString("de-DE")} m²` : "Wird geprüft"}</strong></p>
-          <p><span>Strecke</span><strong>{order.estimatedDistanceMeters ? `${(order.estimatedDistanceMeters / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })} km` : "Wird geprüft"}</strong></p>
         </div>
       </DataSection>
 
       {order.customerOwnFlyers ? (
-        <details className="customerSoftDetails">
-          <summary>{order.assignedWarehouse ? "Lieferung an FLYERO ansehen" : "Versandhinweis für deine Flyer"}</summary>
-          <DataSection title="Flyer an Lager senden" description="Nur wichtig, wenn Sie eigene Flyer anliefern.">
-            {order.assignedWarehouse ? (
-              <div className="customerFactList">
-                <p><span>Kampagnennummer</span><strong>{customerOrderName(order.orderNumber)}</strong></p>
-                <p><span>Lieferadresse</span><strong>{warehouseAddressText(order.assignedWarehouse)}</strong></p>
-                <p><span>Sendung</span><strong>{customerShipment?.trackingNumber ?? "Noch nicht hinterlegt"}</strong></p>
-                <p><span>Status</span><strong>{customerShipment?.status ?? "Wird erwartet"}</strong></p>
-              </div>
-            ) : (
-              <div className="customerWarningBanner">
-                <strong>Bitte noch nicht versenden.</strong>
-                <span>Das zuständige Lager wird nach der Gebietsprüfung bestätigt. Sobald die Adresse feststeht, erscheint sie hier im Kundenkonto.</span>
-              </div>
-            )}
-          </DataSection>
-        </details>
+        <DataSection title="Flyer an Lager senden" description="Die Lieferadresse und der aktuelle Versandstatus stehen hier gut sichtbar.">
+          {order.assignedWarehouse ? (
+            <div className="customerFactList">
+              <p><span>Kampagnennummer</span><strong>{customerOrderName(order.orderNumber)}</strong></p>
+              <p><span>Lieferadresse</span><strong>{warehouseAddressText(order.assignedWarehouse)}</strong></p>
+              <p><span>Sendung</span><strong>{customerShipment?.trackingNumber ?? "Noch nicht hinterlegt"}</strong></p>
+              <p><span>Status</span><strong>{customerShipment?.status ?? "Wird erwartet"}</strong></p>
+            </div>
+          ) : (
+            <div className="customerWarningBanner">
+              <strong>Bitte noch nicht versenden.</strong>
+              <span>Das zuständige Lager wird nach der Gebietsprüfung bestätigt. Sobald die Adresse feststeht, erscheint sie hier im Kundenkonto.</span>
+            </div>
+          )}
+        </DataSection>
       ) : null}
 
       {order.warehouseInventory ? (

@@ -6,7 +6,7 @@ type OrderMaterialStepProps = {
   serviceType: OnlineServiceType;
   selectedService: ServiceCatalogItem;
   repeatPrintChoice: "pending" | "same" | "changed" | null;
-  recommendedFlyerQuantity: number;
+  recommendedFlyerQuantity: number | null;
   recommendationLabel: string;
   flyerQuantity: number;
   onServiceTypeChange: (serviceType: OnlineServiceType) => void;
@@ -37,8 +37,8 @@ export function OrderMaterialStep({
         <small>Die Menge kannst du jederzeit anpassen. FLYERO zeigt dir direkt die passende Preisvorschau.</small>
         <div className="flyerRecommendation">
           <span>{recommendationLabel}</span>
-          <strong>{new Intl.NumberFormat("de-DE").format(Math.round(recommendedFlyerQuantity || 0))} Stück</strong>
-          <small>Empfehlung auf Basis deines ausgewählten Gebiets.</small>
+          <strong>{recommendedFlyerQuantity == null ? "Noch nicht verfügbar" : `${new Intl.NumberFormat("de-DE").format(Math.round(recommendedFlyerQuantity))} Stück`}</strong>
+          <small>{recommendedFlyerQuantity == null ? "Bitte lege die gewünschte Menge selbst fest." : "Empfehlung aus geprüften Gebietsdaten."}</small>
         </div>
         <div className="quantityControl">
           <button type="button" onClick={() => onMoveQuantity(-1000)}>−</button>

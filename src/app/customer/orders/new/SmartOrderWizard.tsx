@@ -358,23 +358,6 @@ function polygonPerimeterMeters(points: LatLng[]) {
   return ring.slice(1).reduce((sum, point, index) => sum + distanceMetersBetween(ring[index], point), 0);
 }
 
-function estimateHouseholdsFromArea(coverageAreaSqm: number) {
-  return Math.max(1, Math.round(Math.max(coverageAreaSqm, 0) / 125));
-}
-
-function estimateWalkingDistanceMeters(coverageAreaSqm: number, perimeterMeters: number, households: number) {
-  const deliveryPassMeters = Math.sqrt(Math.max(coverageAreaSqm, 0)) * 0.52;
-  const stopBufferMeters = households * 1.35;
-  return Math.max(350, Math.round(perimeterMeters * 1.14 + deliveryPassMeters + stopBufferMeters));
-}
-
-function estimateTeamDurationMinutes(distanceMeters: number, households: number, flyerQuantity: number) {
-  const walkMinutes = Math.round(distanceMeters / 74);
-  const deliveryMinutes = Math.round(households * 0.16);
-  const teamSize = Math.max(1, Math.ceil(flyerQuantity / 3500));
-  return Math.max(30, Math.round((walkMinutes + deliveryMinutes) / teamSize));
-}
-
 function clampOverviewOffset(x: number, y: number) {
   return {
     x: Math.max(-560, Math.min(80, x)),
@@ -665,15 +648,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     () => areaSegmentsPayload.reduce((sum, segment) => sum + polygonPerimeterMeters(segmentPathPoints(segment)), 0),
     [areaSegmentsPayload],
   );
-  const localHouseholds = useMemo(() => planningAreaSqm > 0 ? estimateHouseholdsFromArea(planningAreaSqm) : 0, [planningAreaSqm]);
-  const localRouteDistanceMeters = useMemo(
-    () => estimateWalkingDistanceMeters(planningAreaSqm, perimeterMeters, localHouseholds),
-    [localHouseholds, perimeterMeters, planningAreaSqm],
-  );
-  const localRouteDurationMinutes = useMemo(
-    () => estimateTeamDurationMinutes(localRouteDistanceMeters, localHouseholds, flyerQuantity),
-    [flyerQuantity, localHouseholds, localRouteDistanceMeters],
-  );
   const intelligenceRequestQuery = useMemo(() => new URLSearchParams({
     serviceType,
     city: planningCity,
@@ -695,7 +669,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     preferredStartDate: startDate,
     preferredEndDate: endDate,
     coverageAreaSqm: String(coverageAreaSqm),
-    distanceMeters: String(localRouteDistanceMeters),
     perimeterMeters: String(perimeterMeters),
     segments: JSON.stringify(areaSegmentsPayload.map((segment) => ({
       name: segment.name,
@@ -716,7 +689,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     effectiveWeightClass,
     houseNumber,
     selectedLocation,
-    localRouteDistanceMeters,
     perimeterMeters,
     planningCity,
     planningDistributionAreaId,
@@ -752,10 +724,12 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const currentIntelligenceStatus = hasPlanningArea
     ? intelligenceStatus === "local" ? "updating" : intelligenceStatus
     : "local";
-  const households = currentIntelligence?.metrics.households ?? localHouseholds;
+  const households = currentIntelligence?.metrics.householdRecommendationAllowed === true
+    ? currentIntelligence.metrics.households
+    : null;
   const selectedWarehouse = currentIntelligence?.warehouse ?? null;
-  const routeDistanceMeters = currentIntelligence?.metrics.routeDistanceMeters ?? localRouteDistanceMeters;
-  const routeDurationMinutes = currentIntelligence?.metrics.routeDurationMinutes ?? localRouteDurationMinutes;
+  const routeDistanceMeters = currentIntelligence?.metrics.routeDistanceMeters ?? null;
+  const routeDurationMinutes = currentIntelligence?.metrics.routeDurationMinutes ?? null;
   const netPrice = currentIntelligence?.metrics.netPrice ?? "0";
   const vatAmount = currentIntelligence?.metrics.vatAmount ?? "0";
   const grossPrice = currentIntelligence?.metrics.grossPrice ?? "0";
@@ -774,21 +748,21 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       : priceReady
         ? formatCurrency(netPrice)
         : pricePreviewTextLegacy;
-  const distributorNeed = currentIntelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(localRouteDurationMinutes / 240), Math.ceil(flyerQuantity / 3500));
+  const distributorNeed = currentIntelligence?.metrics.distributorNeed ?? Math.max(1, Math.ceil(flyerQuantity / 3500));
   const recommendedFlyerQuantity = currentIntelligenceStatus === "live"
     && currentIntelligence?.metrics.householdRecommendationAllowed === true
-    ? currentIntelligence.metrics.recommendedFlyerQuantity ?? MINIMUM_FLYER_QUANTITY
-    : MINIMUM_FLYER_QUANTITY;
+    ? currentIntelligence.metrics.recommendedFlyerQuantity ?? null
+    : null;
   const recommendationLabel = !hasPlanningArea
     ? "Mindestmenge für die Buchung"
     : currentIntelligenceStatus === "live"
       && currentIntelligence?.metrics.householdRecommendationAllowed === true
-      ? "Empfehlung aus Gebietsdaten"
-      : "Gebietsdaten geschätzt";
+      ? "Empfehlung aus geprüften Gebietsdaten"
+      : "Noch keine belastbare Mengenempfehlung";
   const deliverabilityScore = currentIntelligence?.metrics.score ?? null;
   const calculationConfidence = currentIntelligence?.metrics.confidence ?? (currentIntelligenceStatus === "live" ? "medium" : "low");
-  const calculationSource = currentIntelligence?.metrics.source ?? (currentIntelligenceStatus === "live" ? "Gebietsdaten" : "lokale Gebietsschätzung");
-  const householdCountSource = currentIntelligence?.metrics.householdCountSource ?? (currentIntelligenceStatus === "live" ? "area-density-formula" : "client-area-estimate");
+  const calculationSource = currentIntelligence?.metrics.source ?? "Gebietsfläche";
+  const householdCountSource = currentIntelligence?.metrics.householdCountSource ?? "not-available";
   const pricingVersion = currentIntelligence?.metrics.pricingVersion ?? "pricing-rule-pending";
   const geoJson = useMemo(() => segmentsToGeoJson(areaSegmentsPayload), [areaSegmentsPayload]);
   const areaStats = useMemo(() => ({
@@ -799,7 +773,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     buildingCountSource: currentIntelligence?.metrics.buildingCountSource ?? "not-available",
     recommendedFlyerQuantity,
     pricePreview: netPrice,
-    walkingDistanceKm: routeDistanceMeters / 1000,
+    walkingDistanceKm: routeDistanceMeters == null ? null : routeDistanceMeters / 1000,
     deliveryDurationMinutes: routeDurationMinutes,
     warehouseSuggestion: selectedWarehouse
       ? `${selectedWarehouse.name} · ${selectedWarehouse.city}`
@@ -809,7 +783,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     source: calculationSource,
     confidence: calculationConfidence,
     calculatedAt: currentIntelligence?.metrics.calculatedAt ?? new Date().toISOString(),
-    calculationVersion: currentIntelligence?.metrics.calculationVersion ?? "client-area-estimate-v1",
+    calculationVersion: currentIntelligence?.metrics.calculationVersion ?? "area-geometry-only-v1",
     householdCountSource,
     pricingVersion,
     needsManualReview: currentIntelligence?.metrics.needsManualReview ?? false,
@@ -2200,11 +2174,11 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         usedAutocomplete,
         usedSavedArea: Boolean(selectedAreaId),
         polygonPoints: polygon.length,
-        households,
+        households: households ?? undefined,
         flyerQuantity,
         coverageAreaSqm,
-        routeDistanceMeters,
-        routeDurationMinutes,
+        routeDistanceMeters: routeDistanceMeters ?? undefined,
+        routeDurationMinutes: routeDurationMinutes ?? undefined,
         metadata: { mapMode, serviceType, productFormat, targetGroup, distributionType, plannerMode: mode, segmentCount: areaSegmentsPayload.length },
       }),
     });
@@ -2250,9 +2224,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       }))),
       polygonSource,
       coverageAreaSqm: submissionCoverageAreaSqm,
-      estimatedHouseholds: households,
+      estimatedHouseholds: households ?? undefined,
       estimatedFlyers: flyerQuantity,
-      estimatedDistanceMeters: routeDistanceMeters,
+      estimatedDistanceMeters: routeDistanceMeters ?? undefined,
       areaCalculationSnapshot: JSON.stringify(areaStats),
       centerLat: center.lat,
       centerLng: center.lng,
@@ -2415,7 +2389,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const stepState = [
     { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Gebiet auswählen" },
     { id: 2, title: selectedService.shortLabel, detail: "Werbemittel und Menge", value: `${formatNumber(flyerQuantity)} Stück` },
-    { id: 3, title: "Verteilung", detail: "Ziel und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Haushalte" : distributionType },
+    { id: 3, title: "Zustellung", detail: "Empfänger und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Private Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
     { id: 5, title: "Zusammenfassung", detail: "Preis und Leistungen prüfen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : hasSelectedLocation ? "Nach Flächenauswahl" : "Noch offen" },
     { id: 6, title: "Abschluss", detail: "Buchen oder unverbindlich anfragen", value: "Bereit" },
@@ -2539,8 +2513,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         <section className="orderPanelBlock inlineStepBlock">
           <p className="orderStepHint">Dein Gebiet, die gewünschte Menge und der Zeitraum reichen für die Buchung aus. Besondere Hinweise kannst du FLYERO weiterhin im Auftrag mitteilen.</p>
           <div className="orderReviewNotice" role="status">
-            <strong>Verteilung im gewählten Gebiet</strong>
-            <span>{distributionType === "Haushaltsverteilung" ? "Private Haushalte" : distributionType}</span>
+            <strong>Wo soll verteilt werden?</strong>
+            <span>{distributionType === "Haushaltsverteilung" ? "Private Haushalte im ausgewählten Gebiet" : distributionType}</span>
           </div>
         </section>
       );
@@ -2636,9 +2610,9 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       })))} />
       <input type="hidden" name="polygonSource" value={polygonSource} />
       <input type="hidden" name="coverageAreaSqm" value={coverageAreaSqm} />
-      <input type="hidden" name="estimatedHouseholds" value={households} />
+      <input type="hidden" name="estimatedHouseholds" value={households ?? ""} />
       <input type="hidden" name="estimatedFlyers" value={flyerQuantity} />
-      <input type="hidden" name="estimatedDistanceMeters" value={routeDistanceMeters} />
+      <input type="hidden" name="estimatedDistanceMeters" value={routeDistanceMeters ?? ""} />
       <input type="hidden" name="areaCalculationSnapshot" value={JSON.stringify(areaStats)} />
       <input type="hidden" name="centerLat" value={center.lat} />
       <input type="hidden" name="centerLng" value={center.lng} />
@@ -2780,7 +2754,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           </div>
           <dl>
             <div><dt>Fläche</dt><dd>{(previewCoverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²</dd></div>
-            <div><dt>Empfohlene Flyerzahl</dt><dd>{formatNumber(recommendedFlyerQuantity)} Flyer</dd></div>
+            <div><dt>Empfohlene Flyerzahl</dt><dd>{recommendedFlyerQuantity == null ? "Noch nicht verfügbar" : `${formatNumber(recommendedFlyerQuantity)} Flyer`}</dd></div>
             <div><dt>Preis netto zzgl. MwSt.</dt><dd>{pricePreviewText}</dd></div>
             <div><dt>Empfangslager</dt><dd>{warehouseSuggestionLabel}</dd></div>
           </dl>

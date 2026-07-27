@@ -293,7 +293,7 @@ try {
   }
   const households = intelligence.map((item) => item.data.metrics.households);
   const prices = intelligence.map((item) => item.data.metrics.grossPrice);
-  assert(new Set(households).size >= 2, "PLZ-Wechsel aendert Haushalte nicht.");
+  assert(households.every((value) => value === null), "Unbelegte Haushalte duerfen nicht aus der Flaeche erfunden werden.");
   assert(new Set(prices).size >= 2, "PLZ-Wechsel aendert Preisvorschau nicht.");
   for (const item of intelligence) {
     if (item.data.metrics.needsManualReview) {
@@ -321,8 +321,8 @@ try {
   const largePolygon = encodeURIComponent(JSON.stringify(squareGeoJson(0.018)));
   const small = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&targetAreaGeoJson=${smallPolygon}&coverageAreaSqm=${smallArea}&flyerQuantity=${recommendedFlyers(Math.round(smallArea / 125))}`, { cookie: customerCookie });
   const large = await json(`/api/maps/order-intelligence?city=Koblenz&postalCode=${koblenz.postalCode}&targetAreaGeoJson=${largePolygon}&coverageAreaSqm=${largeArea}&flyerQuantity=${recommendedFlyers(Math.round(largeArea / 125))}`, { cookie: customerCookie });
-  assert(large.data.metrics.households > small.data.metrics.households, "Manuelle Gebietsgroesse aendert Haushalte nicht.");
-  assert(large.data.metrics.routeDistanceMeters > small.data.metrics.routeDistanceMeters, "Manuelle Gebietsgroesse aendert Laufstrecke nicht.");
+  assert(large.data.metrics.households === null && small.data.metrics.households === null, "Unbelegte Haushalte duerfen nicht aus der Flaeche erfunden werden.");
+  assert(large.data.metrics.routeDistanceMeters === null && small.data.metrics.routeDistanceMeters === null, "Unbelegte Strecken duerfen nicht aus der Flaeche erfunden werden.");
   assert(Number(large.data.metrics.grossPrice) > Number(small.data.metrics.grossPrice), "Manuelle Gebietsgroesse aendert Preis nicht.");
 
   const pricingQuotes = new Map();

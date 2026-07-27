@@ -64,12 +64,12 @@ export type CustomerWarehouse = {
 export type Intelligence = {
   suggestions: ReusableAreaOption[];
   metrics: {
-    households: number;
-    recommendedFlyerQuantity?: number;
+    households: number | null;
+    recommendedFlyerQuantity?: number | null;
     householdRecommendationAllowed?: boolean;
     flyerQuantity: number;
-    routeDistanceMeters: number;
-    routeDurationMinutes: number;
+    routeDistanceMeters: number | null;
+    routeDurationMinutes: number | null;
     coverageAreaSqm: number;
     grossPrice: string;
     netPrice: string;
@@ -110,7 +110,7 @@ export type Intelligence = {
       city: string | null;
       postalCode: string | null;
       coverageAreaSqm: number;
-      households: number;
+      households: number | null;
       residentialBuildings?: number | null;
       householdCountSource: string;
       confidence: "high" | "medium" | "low";
@@ -141,11 +141,11 @@ export type OrderDraft = {
   areaStats?: {
     polygonSource: PolygonSource;
     areaKm2: number;
-    householdCount: number;
-    recommendedFlyerQuantity: number;
+    householdCount: number | null;
+    recommendedFlyerQuantity: number | null;
     pricePreview: string;
-    walkingDistanceKm: number;
-    deliveryDurationMinutes: number;
+    walkingDistanceKm: number | null;
+    deliveryDurationMinutes: number | null;
     warehouseSuggestion: string | null;
     distributorDemand: number;
     deliverabilityScore: number | null;

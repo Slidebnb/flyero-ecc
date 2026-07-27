@@ -243,6 +243,7 @@
     "test:customer-report-publication": "node tests/customer-report-publication-smoke.mjs",
     "test:customer-evidence-auto-release": "node tests/customer-evidence-auto-release-smoke.mjs",
     "test:customer-dashboard-area-first-load": "node tests/customer-dashboard-area-first-load-smoke.mjs",
+    "test:customer-planning-truthfulness": "node tests/customer-planning-truthfulness-smoke.mjs",
     "test:external-distribution-report": "node -r dotenv/config tests/external-distribution-report-smoke.mjs",
     "test:external-report-pdf": "node tests/external-report-pdf-smoke.mjs",
     "test:beta": "node -r dotenv/config tests/beta-e2e-smoke.mjs",
