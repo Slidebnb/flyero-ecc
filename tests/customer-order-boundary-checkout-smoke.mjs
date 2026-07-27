@@ -20,8 +20,13 @@ assert.match(
 );
 assert.match(
   wizard,
-  /function buildOrderPayload\([\s\S]*?city:\s*planningCity,[\s\S]*?postalCode:\s*planningPostalCode,/,
-  "Der Checkout muss exakt dieselbe Ortsidentitaet wie die Live-Berechnung senden.",
+  /function buildOrderPayload\([\s\S]*?city:\s*options\?\.city \?\? planningCity,[\s\S]*?postalCode:\s*options\?\.postalCode \?\? planningPostalCode,/,
+  "Der Checkout muss die bestaetigte Ortsidentitaet verwenden und nur auf den Live-Quote-Kontext zurueckfallen.",
+);
+assert.match(
+  wizard,
+  /const submissionOptions = \{[\s\S]*?city:\s*completionContext\.city,[\s\S]*?postalCode:\s*completionContext\.postalCode,/,
+  "Der Abschluss muss die Ortsidentitaet aus demselben bestaetigten Kontext wie die Auftragserstellung senden.",
 );
 assert.match(
   wizard,

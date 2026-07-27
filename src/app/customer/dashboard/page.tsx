@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Camera, FileText, MapPinned, Navigation, ReceiptText, ShieldCheck, UploadCloud } from "lucide-react";
+import { ArrowRight, Camera, FileText, Navigation, ShieldCheck } from "lucide-react";
 import { OrderStatus, type ReportStatus } from "@prisma/client";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
-import { CUSTOMER_ORDER_STATUS_LABELS, customerAreaName, customerOrderName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
+import { CUSTOMER_ORDER_STATUS_LABELS, customerAreaName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
 import { EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { getOrderGrossPrice } from "@/lib/pricing";
 import { requireTenantSession } from "@/lib/tenant";
@@ -73,25 +73,30 @@ function evidenceState(order: DashboardOrder | null, report: DashboardReport | n
   return "planned";
 }
 
+function reportBelongsToOrder(order: DashboardOrder | null, report: DashboardReport | null) {
+  return Boolean(report && (!order || report.order.orderNumber === order.orderNumber));
+}
+
 function evidenceGeoJson(order: DashboardOrder | null, report: DashboardReport | null) {
-  return report?.order.targetAreaGeoJson
-    ?? order?.targetAreaGeoJson
-    ?? report?.order.distributionArea?.geoJson
-    ?? report?.order.distributionArea?.geometryGeoJson
+  return order?.targetAreaGeoJson
     ?? order?.distributionArea?.geoJson
     ?? order?.distributionArea?.geometryGeoJson
+    ?? report?.order.targetAreaGeoJson
+    ?? report?.order.distributionArea?.geoJson
+    ?? report?.order.distributionArea?.geometryGeoJson
     ?? null;
 }
 
 function CampaignEvidencePreview({ order, report, compact = false }: { order: DashboardOrder | null; report: DashboardReport | null; compact?: boolean }) {
-  const state = evidenceState(order, report);
-  const geoJson = evidenceGeoJson(order, report);
-  const gpsPoints = report?.tour._count.gpsPoints ?? 0;
-  const photoCount = report?.tour.photoProofs.length ?? 0;
-  const hasExternalGpsDocument = Boolean(report?.order.documents.some((document) => document.documentType === "REPORT"));
-  const hasGpsEvidence = Boolean(report && (gpsPoints > 0 || hasExternalGpsDocument || report.pdfUrl));
-  const hasPdf = Boolean(report?.pdfUrl);
-  const hasPublishedReport = report?.status === "PUBLISHED";
+  const currentReport = reportBelongsToOrder(order, report) ? report : null;
+  const state = evidenceState(order, currentReport);
+  const geoJson = evidenceGeoJson(order, currentReport);
+  const gpsPoints = currentReport?.tour._count.gpsPoints ?? 0;
+  const photoCount = currentReport?.tour.photoProofs.length ?? 0;
+  const hasExternalGpsDocument = Boolean(currentReport?.order.documents.some((document) => document.documentType === "REPORT"));
+  const hasGpsEvidence = Boolean(currentReport && (gpsPoints > 0 || hasExternalGpsDocument || currentReport.pdfUrl));
+  const hasPdf = Boolean(currentReport?.pdfUrl);
+  const hasPublishedReport = currentReport?.status === "PUBLISHED";
   const title =
     state === "empty"
       ? "Noch kein Nachweis verfügbar."
@@ -168,24 +173,10 @@ export default async function CustomerDashboardPage() {
   }
 
   const [
-    completedOrders,
-    invoices,
-    openSupportTickets,
     lastOrder,
     latestReport,
     latestInvoice,
   ] = await Promise.all([
-    prisma.order.count({
-      where: { customerId: profile.id, tenantId: session.tenantId, status: { in: ["REPORT_READY_PREVIEW", "DISTRIBUTION_APPROVED"] } },
-    }),
-    prisma.invoice.findMany({
-      where: { customerId: profile.id, tenantId: session.tenantId },
-      select: { id: true, totalGross: true, status: true, invoiceDate: true, invoiceNumber: true, pdfUrl: true },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.supportTicket.count({
-      where: { customerId: profile.id, tenantId: session.tenantId, status: { notIn: ["RESOLVED", "CLOSED"] } },
-    }),
     prisma.order.findFirst({
       where: { customerId: profile.id, tenantId: session.tenantId },
       orderBy: { createdAt: "desc" },
@@ -243,8 +234,8 @@ export default async function CustomerDashboardPage() {
     }),
   ]);
 
-  const distributedFlyers = lastOrder?.flyerQuantity ? completedOrders * lastOrder.flyerQuantity : 0;
-  const primaryReportHref = latestReport ? `/customer/reports/${latestReport.id}` : latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/reports";
+  const currentReport = reportBelongsToOrder(lastOrder, latestReport) ? latestReport : null;
+  const primaryReportHref = currentReport ? `/customer/reports/${currentReport.id}` : latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/reports";
   const currentActionHref = lastOrder ? `/customer/orders/${lastOrder.id}` : "/customer/orders";
 
   return (
@@ -253,24 +244,24 @@ export default async function CustomerDashboardPage() {
       title={`Hallo${profile.contactName ? `, ${profile.contactName}` : ""}`}
       description={profile.companyName ? `${profile.companyName} - Kampagnen starten, Nachweise prüfen und Rechnungen finden.` : "Kampagnen starten, Nachweise prüfen und Rechnungen finden."}
     >
-      <section className="customerCommandHero" aria-label="Schnellstart">
+      <section className="customerCommandHero" aria-label="Letzte Buchung">
         <div className="customerCommandCopy">
-          <span>FLYERO Kundenportal</span>
-          <h2>Was möchten Sie jetzt erledigen?</h2>
-          <p>Die drei wichtigsten Wege stehen direkt bereit: neue Verteilung starten, aktuelle Kampagne öffnen oder Nachweis/Rechnung ansehen.</p>
+          <span>Ihre letzte Buchung</span>
+          <h2>{lastOrder ? customerAreaName(lastOrder.targetAreaName) : "Ihre nächste Verteilung"}</h2>
+          <p>{lastOrder ? `${lastOrder.postalCode} ${lastOrder.city} · ${formatNumber(lastOrder.flyerQuantity)} Flyer` : "Starten Sie Ihre erste Verteilung direkt über die Gebietsauswahl."}</p>
           <div className="customerCommandActions">
             <Link className="primaryCommand" href="/customer/orders/new?fresh=1">Neue Verteilung starten<ArrowRight aria-hidden="true" /></Link>
-            <Link href={currentActionHref}>Aktuelle Kampagne</Link>
-            <Link href={primaryReportHref}>Nachweis oder Rechnung</Link>
+            <Link href={currentActionHref}>{lastOrder ? "Kampagne öffnen" : "Meine Kampagnen"}</Link>
+            <Link href={primaryReportHref}>{currentReport ? "Nachweis ansehen" : "Rechnung ansehen"}</Link>
           </div>
         </div>
-        <CampaignEvidencePreview order={lastOrder} report={latestReport} />
+        <CampaignEvidencePreview order={lastOrder} report={currentReport} />
       </section>
 
       <div className="customerMissionGrid">
         <section className="customerMissionPanel currentCampaignPanel">
           <div className="missionPanelHeader">
-            <span>Was läuft gerade?</span>
+            <span>Letzte Buchung</span>
             <h2>{lastOrder ? customerAreaName(lastOrder.targetAreaName) : "Noch keine Kampagne gestartet"}</h2>
           </div>
           {lastOrder ? (
@@ -284,7 +275,7 @@ export default async function CustomerDashboardPage() {
                 <span>{customerOrderPlainNextStep(lastOrder.status)}</span>
               </div>
               <dl className="customerFactList">
-                <div><dt>Kampagne</dt><dd>{customerOrderName(lastOrder.orderNumber)}</dd></div>
+                <div><dt>Buchung</dt><dd>Ihre aktuelle Verteilung</dd></div>
                 <div><dt>Start</dt><dd>{formatDate(lastOrder.preferredStartDate)}</dd></div>
                 <div><dt>Flyer</dt><dd>{formatNumber(lastOrder.flyerQuantity)}</dd></div>
                 <div><dt>Gesamt brutto</dt><dd>{formatCurrency(getOrderGrossPrice(lastOrder))}</dd></div>
@@ -303,38 +294,20 @@ export default async function CustomerDashboardPage() {
         <section className="customerMissionPanel proofPanel">
           <div className="missionPanelHeader">
             <span>Welche Nachweise liegen vor?</span>
-            <h2>{latestReport ? latestReport.reportNumber : "Nachweise erscheinen erst nach der Verteilung"}</h2>
+            <h2>{currentReport ? currentReport.reportNumber : "Nachweise erscheinen erst nach der Verteilung"}</h2>
           </div>
-          <CampaignEvidencePreview order={lastOrder} report={latestReport} compact />
-          {latestReport ? (
+          <CampaignEvidencePreview order={lastOrder} report={currentReport} compact />
+          {currentReport ? (
             <div className="proofPanelFooter">
-              <p>{customerAreaName(latestReport.order.targetAreaName)} / {latestReport.order.city}</p>
-              <Link className="customerPanelLink" href={`/customer/reports/${latestReport.id}`}>Bericht ansehen<ArrowRight aria-hidden="true" /></Link>
+              <p>{customerAreaName(currentReport.order.targetAreaName)} / {currentReport.order.city}</p>
+              <Link className="customerPanelLink" href={`/customer/reports/${currentReport.id}`}>Bericht ansehen<ArrowRight aria-hidden="true" /></Link>
             </div>
           ) : (
             <p className="proofExampleNote">Noch kein Nachweis verfügbar. Sobald die Verteilung abgeschlossen ist, sehen Sie hier GPS-Spur, Fotos und PDF-Bericht.</p>
           )}
         </section>
 
-        <section className="customerMissionPanel nextActionPanel">
-          <div className="missionPanelHeader">
-            <span>Direkt erledigen</span>
-            <h2>Alles Wichtige in maximal 3 Klicks.</h2>
-          </div>
-          <div className="customerActionStack">
-            <Link href="/customer/orders/new?fresh=1"><MapPinned aria-hidden="true" /><span>Gebiet planen</span><strong>1 Klick</strong></Link>
-            <Link href="/customer/documents"><UploadCloud aria-hidden="true" /><span>Druckdaten senden</span><strong>2 Klicks</strong></Link>
-            <Link href={latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/invoices"}><ReceiptText aria-hidden="true" /><span>Rechnung öffnen</span><strong>{latestInvoice ? formatCurrency(latestInvoice.totalGross) : "sobald vorhanden"}</strong></Link>
-            <Link href="/customer/support"><ShieldCheck aria-hidden="true" /><span>Hilfe bekommen</span><strong>{openSupportTickets} offen</strong></Link>
-          </div>
-        </section>
       </div>
-
-      <section className="customerResultRail" aria-label="Ergebnisse">
-        <article><strong>{formatNumber(distributedFlyers)}</strong><span>verteilte Flyer</span></article>
-        <article><strong>{completedOrders}</strong><span>abgeschlossene Kampagnen</span></article>
-        <article><strong>{invoices.length}</strong><span>Rechnungen</span></article>
-      </section>
     </CustomerPortalShell>
   );
 }

@@ -111,7 +111,7 @@ try {
   const [order, invoice, report, ticket] = await Promise.all([
     prisma.order.findFirst({
       where: customerWhere,
-      select: { id: true },
+      select: { id: true, orderNumber: true, city: true },
       orderBy: { updatedAt: "desc" },
     }),
     prisma.invoice.findFirst({
@@ -150,6 +150,14 @@ try {
   if (ticket) routes.push(`/customer/support/tickets/${ticket.id}`);
   for (const route of routes) {
     assertCustomerLanguage(await customerPage(route, cookie), route);
+  }
+  const dashboardHtml = await customerPage("/customer/dashboard", cookie);
+  assert(dashboardHtml.includes("Letzte Buchung"), "Das Dashboard muss die letzte Buchung klar benennen.");
+  assert(!dashboardHtml.includes("Direkt erledigen"), "Der technische Direkt-erledigen-Block darf im Dashboard nicht erscheinen.");
+  assert(!dashboardHtml.includes("1 Klick") && !dashboardHtml.includes("2 Klicks"), "KlickzÃ¤hler dÃ¼rfen im Kundenportal nicht erscheinen.");
+  if (order) {
+    assert(dashboardHtml.includes(order.city), "Der Ort der letzten Buchung muss im Dashboard sichtbar sein.");
+    assert(!dashboardHtml.includes(`Kampagne #${order.orderNumber.replace(/^ORD-/i, "")}`), "Interne Auftragsnummern dÃ¼rfen im Dashboard nicht sichtbar sein.");
   }
   console.log("Customer portal UX smoke checks passed.");
 } finally {
