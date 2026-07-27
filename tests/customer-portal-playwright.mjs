@@ -87,12 +87,15 @@ const routes = [
   ["orders", "/customer/orders"],
   ["orders-new", "/customer/orders/new"],
   ["reports", "/customer/reports"],
-  ["documents", "/customer/documents"],
   ["invoices", "/customer/invoices"],
   ["payments", "/customer/payments"],
   ["notifications", "/customer/notifications"],
   ["support", "/customer/support"],
   ["profile", "/customer/profile"],
+];
+
+const legacyRoutes = [
+  ["documents", "/customer/documents", "/customer/reports"],
 ];
 
 const browser = await chromium.launch();
@@ -148,6 +151,15 @@ try {
     assert(!metrics.dashboardOverlap, `${path} zeigt überlappende Dashboard-Bereiche.`);
     assertNoVisibleTechnicalText(metrics.bodyText, path);
     await page.screenshot({ path: join(outDir, `${name}-desktop.png`), fullPage: true });
+  }
+
+  for (const [name, path, expectedPath] of legacyRoutes) {
+    await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(250);
+    assert.equal(new URL(page.url()).pathname, expectedPath, `${path} muss auf ${expectedPath} weiterleiten.`);
+    const bodyText = await page.locator("body").innerText();
+    assertNoVisibleTechnicalText(bodyText, path);
+    await page.screenshot({ path: join(outDir, `${name}-redirect-desktop.png`), fullPage: true });
   }
 
   await page.setViewportSize({ width: 390, height: 844 });
