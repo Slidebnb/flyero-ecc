@@ -178,6 +178,37 @@ async function run() {
   const errors = [];
   const customerContext = await browser.newContext({ serviceWorkers: "block", viewport: { width: 1440, height: 900 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.41" } });
   const customerPage = await customerContext.newPage();
+  const restoredSegment = smokeSegment();
+  await customerPage.addInitScript(({ draftKey, draft }) => {
+    window.localStorage.setItem(draftKey, JSON.stringify(draft));
+  }, {
+    draftKey: "flyero:order-planner:draft:v2",
+    draft: {
+      activeStep: 1,
+      query: "56068 Koblenz",
+      selectedLocation: {
+        query: "56068 Koblenz",
+        placeId: "test-place-koblenz",
+        postalCode: "56068",
+        city: "Koblenz",
+        lat: 50.355,
+        lng: 7.585,
+        source: "local",
+      },
+      city: "Koblenz",
+      postalCode: "56068",
+      targetAreaName: restoredSegment.name,
+      center: { lat: 50.355, lng: 7.585 },
+      polygon: restoredSegment.points,
+      polygonSource: "saved_area",
+      areaSegments: [{ ...restoredSegment, polygonSource: "saved_area" }],
+      flyerQuantity: 100,
+      flyerQuantityTouched: false,
+      serviceType: "FLYER_STANDARD",
+      flyerSource: "CUSTOMER_OWN",
+      printDataStatus: "UPLOAD_LATER",
+    },
+  });
   customerPage.on("console", (message) => {
     if (message.type() !== "error") return;
     if (
