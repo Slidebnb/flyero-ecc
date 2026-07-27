@@ -16,6 +16,16 @@ import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProt
 import { CURRENT_TERMS_VERSION } from "@/lib/legal";
 import { encryptSensitiveBankAccount, encryptSensitiveString } from "@/lib/secureFields";
 
+function distributorRegistrationError(request: NextRequest, message: string, status = 400) {
+  if (request.headers.get("accept")?.includes("text/html")) {
+    const formUrl = publicUrl("/register/distributor", request.url);
+    formUrl.searchParams.set("error", "1");
+    return NextResponse.redirect(formUrl, { status: 303 });
+  }
+
+  return errorResponse(message, status);
+}
+
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
   const abuseDecision = await enforceAuthRateLimit(request, "register");
@@ -23,7 +33,7 @@ export async function POST(request: NextRequest) {
   const parsed = distributorRegisterSchema.safeParse(body);
 
   if (!parsed.success) {
-    return errorResponse(parsed.error.issues[0]?.message || "Ungültige Eingabe.");
+    return distributorRegistrationError(request, "Bitte prüfe deine Angaben und versuche es erneut.");
   }
 
   const data = parsed.data;
@@ -128,7 +138,7 @@ export async function POST(request: NextRequest) {
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === "P2002"
     ) {
-      return errorResponse("Diese E-Mail-Adresse ist bereits registriert.", 409);
+      return distributorRegistrationError(request, "Diese E-Mail-Adresse ist bereits registriert.", 409);
     }
 
     throw error;

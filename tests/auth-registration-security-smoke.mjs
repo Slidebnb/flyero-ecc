@@ -8,6 +8,7 @@ const customerRoute = read("src/app/api/auth/register-customer/route.ts");
 const distributorRoute = read("src/app/api/auth/register-distributor/route.ts");
 const verifyRoute = read("src/app/api/auth/verify-email/route.ts");
 const availableOrdersRoute = read("src/app/api/distributor/available-orders/route.ts");
+const distributorPage = read("src/app/register/distributor/page.tsx");
 
 assert.match(schema, /termsAcceptedAt\s+DateTime\?/,
   "Einwilligungszeitpunkt muss dauerhaft am Benutzer gespeichert werden.");
@@ -29,6 +30,10 @@ assert.match(verifyRoute, /Promise\.allSettled/,
   "Nebenwirkungen nach der E-Mail-Verifizierung dÃ¼rfen eine bereits erfolgreiche Aktivierung nicht als Fehler melden.");
 assert.match(availableOrdersRoute, /requireApprovedDistributor/,
   "Nicht freigegebene Verteiler dürfen keine verfügbaren Aufträge sehen.");
+assert.match(distributorRoute, /headers\.get\("accept"\)[\s\S]*register\/distributor/,
+  "HTML-Fehler der Verteilerregistrierung dürfen nicht als rohe JSON-Seite erscheinen.");
+assert.match(distributorPage, /searchParams[\s\S]*error/,
+  "Die Verteilerregistrierung muss verständliche Fehler auf der Formularseite anzeigen.");
 assert.ok(fs.existsSync("src/lib/secureFields.ts"),
   "Die Verschlüsselung sensibler Verteilerfelder muss zentral implementiert sein.");
 

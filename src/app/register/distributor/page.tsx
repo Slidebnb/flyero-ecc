@@ -14,12 +14,25 @@ export const metadata: Metadata = {
   ...noIndexMetadata,
 };
 
-export default function DistributorRegisterPage() {
+type DistributorRegisterPageProps = {
+  searchParams?: Promise<{ error?: string }>;
+};
+
+export default async function DistributorRegisterPage({ searchParams }: DistributorRegisterPageProps) {
+  const params = await searchParams;
+  const hasError = params?.error === "1";
+
   return (
     <main className="authShell">
       <section className="authPanel">
         <Link href="/" className="authBack">Zur Startseite</Link>
         <h1>Verteilerregistrierung</h1>
+        {hasError ? (
+          <div className="authNotice danger" role="alert">
+            <strong>Registrierung nicht möglich</strong>
+            <span>Bitte prüfe deine Angaben und versuche es erneut.</span>
+          </div>
+        ) : null}
         <p className="muted">Registrieren Sie sich für die Prüfung als Verteiler im FLYERO Netzwerk.</p>
         <form
           action="/api/auth/register-distributor"
