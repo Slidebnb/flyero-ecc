@@ -26,7 +26,7 @@ assert.match(ci, /npm run prisma:generate/, "CI muss den Prisma Client erzeugen.
 assert.match(ci, /npm run lint/, "CI muss ESLint ausfuehren.");
 assert.match(ci, /npm run build/, "CI muss den Produktions-Build ausfuehren.");
 assert.match(ci, /npm audit --omit=dev --audit-level=high/, "CI muss hohe produktive Advisories blockieren.");
-assert.match(ci, /postgres:\s*\n\s*image:\s*postgres:16-alpine/, "Kritische Smokes brauchen isoliertes PostgreSQL 16.");
+assert.match(ci, /postgres:\s*\n\s*image:\s*postgis\/postgis:16-3\.5/, "Kritische Smokes brauchen dieselbe PostGIS-Engine wie die Produktion.");
 assert.match(ci, /npx prisma migrate deploy/, "CI muss Migrationen gegen eine frische Datenbank pruefen.");
 assert.match(ci, /npm run prisma:seed/, "CI-Smokes muessen eine reproduzierbare Datenbasis erhalten.");
 assert.match(ci, /CUSTOMER_ORDER_AREA_BASE_URL:\s*http:\/\/127\.0\.0\.1:3000/, "Gebietstest muss den gemeinsamen CI-Server verwenden.");
