@@ -109,6 +109,8 @@ function orderPayload(completionPath = "inquiry") {
   };
 }
 
+const normalizeMoney = (value) => Number(value).toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
+
 async function orderPayloadWithCurrentQuote(completionPath = "inquiry") {
   const payload = orderPayload(completionPath);
   const quote = await requestJson("/api/public/planner/quote", {
@@ -126,7 +128,7 @@ async function orderPayloadWithCurrentQuote(completionPath = "inquiry") {
     }),
   });
   assert.equal(typeof quote.data.metrics.fingerprint, "string", "Der öffentliche Planer liefert keinen Angebots-Fingerabdruck.");
-  return { ...payload, quoteFingerprint: quote.data.metrics.fingerprint };
+  return { ...payload, quoteFingerprint: quote.data.metrics.fingerprint, quoteNetPrice: quote.data.metrics.netPrice };
 }
 
 await prisma.authRateLimitBucket.deleteMany();
@@ -159,12 +161,13 @@ try {
   });
   assert.equal(incompletePricingResponse.status, 422, "Die letzte Flyer-Staffel darf nicht deaktiviert werden.");
 
+  const initialQuotePayload = await orderPayloadWithCurrentQuote();
   const existingOrder = await requestJson("/api/customer/orders", {
     method: "POST",
     headers: { cookie: customerCookie },
-    body: JSON.stringify(await orderPayloadWithCurrentQuote()),
+    body: JSON.stringify(initialQuotePayload),
   });
-  assert.equal(existingOrder.data.calculatedNetPrice, "760", "Ausgangspreis der bestehenden offenen Order ist unerwartet.");
+  assert.equal(existingOrder.data.calculatedNetPrice, initialQuotePayload.quoteNetPrice, "Ausgangspreis der bestehenden offenen Order weicht vom aktuellen serverseitigen Angebot ab.");
 
   const modifiedRules = originalRules.map((rule) => rule.minQuantity === 1
     ? { ...rule, pricePerUnit: "1.00", basePrice: "0", minimumNetPrice: "0", isActive: true }
@@ -179,6 +182,9 @@ try {
     body: JSON.stringify({ rules: modifiedRules, settings: { vat_rate: "0.07" } }),
   });
 
+  const modifiedQuotePayload = await orderPayloadWithCurrentQuote();
+  const modifiedNetPrice = modifiedQuotePayload.quoteNetPrice;
+
   const publicPricingPage = await fetch(`${baseUrl}/preise`);
   const publicPricingHtml = await publicPricingPage.text();
   assert.equal(publicPricingPage.status, 200, "Öffentliche Preisseite ist nach einer Preisänderung nicht erreichbar.");
@@ -186,17 +192,19 @@ try {
   assert(publicPricingHtml.includes("5.000 Flyer"), "Öffentliche Preisseite zeigt die aktuelle Staffel nicht an.");
 
   const propagated = await requestJson(`/api/customer/orders/${existingOrder.data.id}`, { headers: { cookie: customerCookie } });
-  assert.equal(propagated.data.calculatedNetPrice, "2000", "Preisregel-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
-  assert.equal(propagated.data.calculatedVat, "140", "MwSt.-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
-  assert.equal(propagated.data.calculatedGrossPrice, "2140", "Bruttopreis wurde nach der MwSt.-Aenderung nicht aktualisiert.");
+  const modifiedVat = normalizeMoney(Number(modifiedNetPrice) * 0.07);
+  const modifiedGross = normalizeMoney(Number(modifiedNetPrice) + Number(modifiedVat));
+  assert.equal(propagated.data.calculatedNetPrice, modifiedNetPrice, "Preisregel-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
+  assert.equal(propagated.data.calculatedVat, modifiedVat, "MwSt.-Aenderung wurde nicht in eine offene Kunden-Order propagiert.");
+  assert.equal(propagated.data.calculatedGrossPrice, modifiedGross, "Bruttopreis wurde nach der MwSt.-Aenderung nicht aktualisiert.");
   assert.equal(typeof propagated.data.priceRuleSnapshot?.pricingRuleSignature, "string", "Preis-Konfigurationssignatur wurde nicht in den Kunden-Snapshot propagiert.");
   assert.equal(propagated.data.priceRuleSnapshot?.areaCalculationSnapshot?.pricingRuleSignature, propagated.data.priceRuleSnapshot?.pricingRuleSignature, "Gebiets-Snapshot und Preis-Snapshot laufen nach der Admin-Aenderung auseinander.");
-  assert.equal(propagated.data.priceRuleSnapshot?.areaCalculationSnapshot?.pricingGrossPrice, "2140", "Gebiets-Snapshot enthaelt nicht den aktuellen Bruttopreis.");
+  assert.equal(propagated.data.priceRuleSnapshot?.areaCalculationSnapshot?.pricingGrossPrice, modifiedGross, "Gebiets-Snapshot enthaelt nicht den aktuellen Bruttopreis.");
   assert.equal(propagated.data.priceRuleSnapshot?.completionPath, "inquiry", "Die Preispropagierung darf den Abschlussweg der Kunden-Order nicht entfernen.");
 
   const customerOrders = await requestJson("/api/customer/orders", { headers: { cookie: customerCookie } });
   const propagatedListOrder = customerOrders.data.find((item) => item.id === existingOrder.data.id);
-  assert.equal(propagatedListOrder?.calculatedGrossPrice, "2140", "Die Kunden-Auftragsliste zeigt nicht den aktualisierten Bruttopreis.");
+  assert.equal(propagatedListOrder?.calculatedGrossPrice, modifiedGross, "Die Kunden-Auftragsliste zeigt nicht den aktualisierten Bruttopreis.");
 
   const customerNotifications = await requestJson("/api/customer/notifications", { headers: { cookie: customerCookie } });
   const priceNotification = customerNotifications.data?.messages?.find((item) => item.type === "ORDER_PRICE_UPDATED");
@@ -206,18 +214,18 @@ try {
     headers: { cookie: customerCookie },
   });
   const derivedAreaFactor = Number(intelligence.data.metrics.areaDifficultyFactor);
-  const normalizeMoney = (value) => Number(value).toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1");
   const expectedIntelligenceNet = normalizeMoney(2000 * derivedAreaFactor);
   const expectedIntelligenceGross = normalizeMoney(Number(expectedIntelligenceNet) * 1.07);
   assert.equal(intelligence.data.metrics.netPrice, expectedIntelligenceNet, "Kunden-Wizard verwendet die geaenderte Admin-Preisregel oder den serverseitigen Gebietsfaktor nicht.");
   assert.equal(intelligence.data.metrics.grossPrice, expectedIntelligenceGross, "Kunden-Wizard verwendet den geaenderten Bruttopreis oder Gebietsfaktor nicht.");
 
+  const createdQuotePayload = await orderPayloadWithCurrentQuote("direct_payment");
   const created = await requestJson("/api/customer/orders", {
     method: "POST",
     headers: { cookie: customerCookie },
-    body: JSON.stringify(await orderPayloadWithCurrentQuote("direct_payment")),
+    body: JSON.stringify(createdQuotePayload),
   });
-  assert.equal(created.data.calculatedNetPrice, "2000", "Neue Order uebernimmt die Admin-Preisregel nicht.");
+  assert.equal(created.data.calculatedNetPrice, createdQuotePayload.quoteNetPrice, "Neue Order uebernimmt die Admin-Preisregel nicht.");
 
   const pendingCheckoutOrder = await requestJson("/api/customer/orders", {
     method: "POST",
@@ -251,8 +259,9 @@ try {
     body: JSON.stringify({ rules: originalRules, settings: { vat_rate: originalVatRate } }),
   });
 
+  const restoredQuotePayload = await orderPayloadWithCurrentQuote();
   const refreshedPendingCheckout = await requestJson(`/api/customer/orders/${pendingCheckoutOrder.data.id}`, { headers: { cookie: customerCookie } });
-  assert.equal(refreshedPendingCheckout.data.calculatedNetPrice, "760", "Preisänderung erreicht einen Auftrag mit offenem Checkout nicht.");
+  assert.equal(refreshedPendingCheckout.data.calculatedNetPrice, restoredQuotePayload.quoteNetPrice, "Preisänderung erreicht einen Auftrag mit offenem Checkout nicht.");
 
   const refreshedManualPrice = await requestJson(`/api/customer/orders/${manualPriceOrder.data.id}`, { headers: { cookie: customerCookie } });
   assert.equal(refreshedManualPrice.data.calculatedNetPrice, "1000", "Individueller Nettopreis wurde bei der MwSt.-Synchronisierung verändert.");
@@ -272,7 +281,7 @@ try {
     body: JSON.stringify({ orderId: created.data.id }),
   });
   const refreshed = await requestJson(`/api/customer/orders/${created.data.id}`, { headers: { cookie: customerCookie } });
-  assert.equal(refreshed.data.calculatedNetPrice, "760", "Checkout aktualisiert den offenen Preis-Snapshot nicht.");
+  assert.equal(refreshed.data.calculatedNetPrice, restoredQuotePayload.quoteNetPrice, "Checkout aktualisiert den offenen Preis-Snapshot nicht.");
   console.log("Pricing admin propagation smoke checks passed.");
 } finally {
   if (adminCookie && originalRules.length) {
