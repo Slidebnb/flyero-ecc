@@ -80,6 +80,12 @@ function smokeSegment() {
     postalCode: "56068",
     district: "Testgebiet",
     country: "DE",
+    points: [
+      { lat: 50.35, lng: 7.58 },
+      { lat: 50.35, lng: 7.59 },
+      { lat: 50.36, lng: 7.59 },
+      { lat: 50.36, lng: 7.58 },
+    ],
     geometryGeoJson: {
       type: "FeatureCollection",
       features: [{
