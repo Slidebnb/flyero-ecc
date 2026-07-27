@@ -5,6 +5,8 @@ import { formatDateTime } from "@/lib/format";
 import { writeGeneratedAsset } from "@/lib/generatedAssets";
 import { createMapSnapshotPlaceholder } from "@/lib/mapSnapshot";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { buildReportPublishedEmail } from "@/lib/emailTemplates";
+import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
 import { prisma } from "@/lib/prisma";
 import { analyzeRoute, normalizeRoutePoint, type RouteAnalysis } from "@/lib/routeAnalysis";
 import { productionReportWhere, productionTourWhere } from "@/lib/productionData";
@@ -669,12 +671,37 @@ export async function publishReport(input: { reportId: string; adminUserId: stri
     });
   }
   await createAuditLog({ userId: input.adminUserId, action: "report.published", entityType: "Report", entityId: report.id });
-  await createNotification({
+  const siteUrl = (process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://flyero.org").replace(/\/$/, "");
+  const campaignUrl = `${siteUrl}${generateOnlineReportUrl(report.id)}`;
+  const areaLabel = [report.order.targetAreaName, report.order.city].filter(Boolean).join(", ");
+  const customerEmail = buildReportPublishedEmail({
+    customerName: report.customer.contactName,
+    companyName: report.customer.companyName,
+    reportNumber: report.reportNumber,
+    orderNumber: report.order.orderNumber,
+    areaLabel,
+    reportUrl: campaignUrl,
+  });
+  const customerNotification = await createNotification({
     userId: report.customer.userId,
     type: "REPORT_PUBLISHED",
+    skipTemplate: true,
+    forceEmail: true,
+    emailHtml: customerEmail.html,
+    data: {
+      customerName: report.customer.contactName,
+      companyName: report.customer.companyName,
+      reportNumber: report.reportNumber,
+      orderNumber: report.order.orderNumber,
+      areaName: report.order.targetAreaName,
+      city: report.order.city,
+      campaignUrl,
+      dashboardUrl: `${siteUrl}/customer/dashboard`,
+    },
     title: "Bericht veröffentlicht",
     message: `Der Verteilbericht ${report.reportNumber} ist verfügbar.`,
   });
+  await dispatchNotificationImmediately(customerNotification.queue?.id);
   await notifyAdmins({
     type: "REPORT_PUBLISHED",
     title: "Bericht veröffentlicht",

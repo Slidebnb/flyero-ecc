@@ -35,6 +35,7 @@ function queuePayload(queue: NonNullable<QueueWithRelations>) {
   return {
     subject: typeof payload.subject === "string" ? payload.subject : queue.message.subject,
     body: typeof payload.body === "string" ? payload.body : queue.message.body,
+    html: typeof payload.html === "string" ? payload.html : undefined,
     data: payload.data && typeof payload.data === "object" ? payload.data as Record<string, unknown> : {},
   };
 }
@@ -175,7 +176,7 @@ export async function sendNotificationMessage(queueId: string) {
       to: queue.recipientEmail ?? queue.user?.email ?? "",
       subject: payload.subject,
       text: payload.body,
-      html: payload.body.includes("<") ? payload.body : undefined,
+      html: payload.html ?? (payload.body.includes("<") ? payload.body : undefined),
       metadata: {
         queueId: queue.id,
         messageId: queue.messageId,

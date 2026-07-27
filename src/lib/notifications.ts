@@ -44,6 +44,7 @@ type NotificationInput = {
   channel?: NotificationChannel;
   skipTemplate?: boolean;
   forceEmail?: boolean;
+  emailHtml?: string;
 };
 
 type OperationsNotificationInput = Omit<NotificationInput, "userId">;
@@ -214,7 +215,7 @@ export async function createNotification(input: NotificationInput) {
         userId: input.userId,
         channel,
         status: NotificationQueueStatus.PENDING,
-        payload: { subject, body, data },
+        payload: { subject, body, data, ...(input.emailHtml ? { html: input.emailHtml } : {}) },
       },
     });
   }

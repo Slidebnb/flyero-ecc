@@ -3,6 +3,7 @@ import { ArrowRight, Camera, FileText, Navigation, ShieldCheck } from "lucide-re
 import { OrderStatus, type ReportStatus } from "@prisma/client";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { CustomerLiveRefresh } from "@/app/customer/CustomerLiveRefresh";
 import { CUSTOMER_ORDER_STATUS_LABELS, customerAreaName, customerOrderPlainNextStep, customerOrderTone } from "@/app/customer/customerUx";
 import { EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { getOrderGrossPrice } from "@/lib/pricing";
@@ -123,6 +124,9 @@ function CampaignEvidencePreview({ order, report, compact = false }: { order: Da
     { icon: ShieldCheck, label: "Prüfung", value: hasPublishedReport ? "abgeschlossen" : state === "empty" ? "noch nicht gestartet" : "nach Abschluss" },
     { icon: FileText, label: "PDF-Bericht", value: hasPdf ? "bereit" : state === "empty" ? "noch nicht vorhanden" : "wird nach Abschluss erstellt" },
   ];
+  const visibleProofItems = proofItems.map((item, index) => (
+    index === 2 && hasPublishedReport ? { ...item, value: "freigegeben" } : item
+  ));
 
   return (
     <div className={`customerEvidencePreview${compact ? " compact" : ""}`} aria-label="FLYERO Nachweisstatus">
@@ -142,7 +146,7 @@ function CampaignEvidencePreview({ order, report, compact = false }: { order: Da
         </div>
       )}
       <div className="evidenceStatusGrid">
-        {proofItems.map((item) => {
+        {visibleProofItems.map((item) => {
           const Icon = item.icon;
           return (
             <div key={item.label}>
@@ -235,6 +239,7 @@ export default async function CustomerDashboardPage() {
   ]);
 
   const currentReport = reportBelongsToOrder(lastOrder, latestReport) ? latestReport : null;
+  const dashboardOrderStatus = currentReport ? OrderStatus.REPORT_READY_PREVIEW : lastOrder?.status ?? OrderStatus.DRAFT;
   const primaryReportHref = currentReport ? `/customer/reports/${currentReport.id}` : latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/reports";
   const currentActionHref = lastOrder ? `/customer/orders/${lastOrder.id}` : "/customer/orders";
 
@@ -244,6 +249,7 @@ export default async function CustomerDashboardPage() {
       title={`Hallo${profile.contactName ? `, ${profile.contactName}` : ""}`}
       description={profile.companyName ? `${profile.companyName} - Kampagnen starten, Nachweise prüfen und Rechnungen finden.` : "Kampagnen starten, Nachweise prüfen und Rechnungen finden."}
     >
+      <CustomerLiveRefresh />
       <section className="customerCommandHero" aria-label="Letzte Buchung">
         <div className="customerCommandCopy">
           <span>Ihre letzte Buchung</span>
@@ -267,12 +273,12 @@ export default async function CustomerDashboardPage() {
           {lastOrder ? (
             <>
               <div className="currentCampaignStatus">
-                <StatusBadge tone={customerOrderTone(lastOrder.status)}>{CUSTOMER_ORDER_STATUS_LABELS[lastOrder.status]}</StatusBadge>
+                <StatusBadge tone={customerOrderTone(dashboardOrderStatus)}>{currentReport ? "Freigegeben" : CUSTOMER_ORDER_STATUS_LABELS[dashboardOrderStatus]}</StatusBadge>
                 <strong>{lastOrder.postalCode} {lastOrder.city}</strong>
               </div>
               <div className="customerPlainNextStep">
                 <strong>Nächster Schritt</strong>
-                <span>{customerOrderPlainNextStep(lastOrder.status)}</span>
+                <span>{currentReport ? "Der geprüfte Verteilbericht ist im Kundenportal verfügbar." : customerOrderPlainNextStep(dashboardOrderStatus)}</span>
               </div>
               <dl className="customerFactList">
                 <div><dt>Buchung</dt><dd>Ihre aktuelle Verteilung</dd></div>
