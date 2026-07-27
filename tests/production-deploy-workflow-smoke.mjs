@@ -19,6 +19,7 @@ assert.match(script, /npx prisma migrate deploy/, "Ausstehende Migrationen muess
 assert.match(script, /run --rm --no-deps app node scripts\/production-preflight\.mjs < \/dev\/null/, "Der Preflight darf den ueber SSH uebergebenen Bash-Input nicht konsumieren.");
 assert.match(script, /run --rm --no-deps app npx prisma migrate deploy < \/dev\/null/, "Die Migration darf den ueber SSH uebergebenen Bash-Input nicht konsumieren.");
 assert.match(script, /up -d --force-recreate --no-deps app caddy/, "Der Deploy muss den Reverse-Proxy mit dem aktuellen Caddyfile recreaten.");
+assert.match(script, /exec -T app node -e .*< \/dev\/null/, "Der App-Healthcheck darf den ueber SSH uebergebenen Bash-Input nicht konsumieren.");
 assert.match(script, /built_image=.*docker image inspect flyero-app/, "Der Deploy muss den Digest des gebauten Images festhalten.");
 assert.match(script, /app_container=.*compose\[@\].*ps -q app/, "Der Deploy muss den laufenden App-Container aus Compose ermitteln.");
 assert.match(script, /running_image=.*docker inspect .*\$app_container/, "Der Deploy muss den Digest des laufenden App-Containers auslesen.");

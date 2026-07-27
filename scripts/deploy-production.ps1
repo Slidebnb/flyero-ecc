@@ -51,7 +51,7 @@ built_image="$(docker image inspect flyero-app --format '{{.Id}}')"
 "${compose[@]}" up -d --force-recreate --no-deps app caddy
 
 for attempt in $(seq 1 30); do
-  if "${compose[@]}" exec -T app node -e "fetch('http://127.0.0.1:3000/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"; then
+  if "${compose[@]}" exec -T app node -e "fetch('http://127.0.0.1:3000/api/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))" < /dev/null; then
     break
   fi
   if [ "$attempt" -eq 30 ]; then
