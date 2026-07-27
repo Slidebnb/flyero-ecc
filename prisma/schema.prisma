@@ -603,6 +603,8 @@ model User {
   tenantId      String?
   status        UserStatus @default(EMAIL_UNVERIFIED)
   emailVerified DateTime?
+  termsAcceptedAt DateTime?
+  termsVersion    String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
 

@@ -15,6 +15,7 @@ import { sendVerificationEmail } from "@/lib/verificationEmail";
 import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
 import { createCustomerTenant } from "@/lib/tenant";
 import { safeInternalRedirectPath } from "@/lib/redirects";
+import { CURRENT_TERMS_VERSION } from "@/lib/legal";
 
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
@@ -46,6 +47,8 @@ export async function POST(request: NextRequest) {
           passwordHash,
           role: UserRole.CUSTOMER,
           status: UserStatus.EMAIL_UNVERIFIED,
+          termsAcceptedAt: new Date(),
+          termsVersion: CURRENT_TERMS_VERSION,
           tenantId: tenant.id,
           customerProfile: {
             create: {
@@ -94,18 +97,18 @@ export async function POST(request: NextRequest) {
       entityType: "User",
       entityId: user.id,
       newValues: { email: user.email, role: user.role },
-    });
+    }).catch(() => undefined);
     await createNotification({
       userId: user.id,
       type: "CUSTOMER_REGISTERED",
       title: "Kundenkonto erstellt",
       message: "Bitte bestätige deine E-Mail-Adresse, um dein Konto zu aktivieren.",
-    });
+    }).catch(() => undefined);
     await notifyAdmins({
       type: "CUSTOMER_REGISTERED",
       title: "Neuer Kunde registriert",
       message: `${data.companyName} hat ein Kundenkonto erstellt.`,
-    });
+    }).catch(() => undefined);
     const verificationDelivery = await sendVerificationEmail({
       email: user.email,
       token: verificationToken,
@@ -118,6 +121,8 @@ export async function POST(request: NextRequest) {
     if (request.headers.get("accept")?.includes("text/html")) {
       const loginUrl = publicUrl("/login", request.url);
       loginUrl.searchParams.set("next", next);
+      loginUrl.searchParams.set("registered", "customer");
+      loginUrl.searchParams.set("verificationEmailSent", String(verificationDelivery.sent));
       return NextResponse.redirect(loginUrl, { status: 303 });
     }
 

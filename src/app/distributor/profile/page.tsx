@@ -9,6 +9,7 @@ import {
   WORKING_TIMES,
 } from "@/lib/constants";
 import { asObject, formatDate } from "@/lib/format";
+import { decryptSensitiveBankAccount, decryptSensitiveString } from "@/lib/secureFields";
 
 function isChecked(values: string[], value: string) {
   return values.includes(value);
@@ -30,7 +31,8 @@ export default async function DistributorProfilePage() {
   const availabilityDays = Array.isArray(availability.days)
     ? availability.days.map(String)
     : [];
-  const bankAccount = asObject(profile.bankAccount);
+  const bankAccount = decryptSensitiveBankAccount(profile.bankAccount);
+  const taxNumber = decryptSensitiveString(profile.taxNumber);
 
   return (
     <main className="appShell">
@@ -165,7 +167,7 @@ export default async function DistributorProfilePage() {
           </label>
           <label>
             Steuernummer optional
-            <input name="taxNumber" defaultValue={profile.taxNumber || ""} />
+            <input name="taxNumber" defaultValue={taxNumber || ""} />
           </label>
           <label>
             Kontoinhaber optional

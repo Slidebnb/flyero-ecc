@@ -51,6 +51,34 @@ const optionalText = z
     return trimmed ? trimmed : undefined;
   });
 
+const acceptsTermsSchema = z.preprocess(
+  (value) => value === true || value === "true" || value === "on",
+  z.literal(true, { error: "Bitte akzeptiere AGB und Datenschutz." }),
+);
+
+const birthDateSchema = z.coerce.date()
+  .refine((value) => {
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setFullYear(cutoff.getFullYear() - 18);
+    return value <= cutoff;
+  }, "Du musst mindestens 18 Jahre alt sein.")
+  .refine((value) => {
+    const cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setFullYear(cutoff.getFullYear() - 100);
+    return value >= cutoff;
+  }, "Bitte gib ein gültiges Geburtsdatum ein.");
+
+const optionalIban = z.preprocess(
+  (value) => {
+    if (typeof value !== "string") return value;
+    const normalized = value.replace(/\s+/g, "").toUpperCase();
+    return normalized || undefined;
+  },
+  z.string().regex(/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/, "Bitte gib eine gültige IBAN ein.").optional(),
+);
+
 const orderPostalCode = z
   .string()
   .trim()
@@ -123,6 +151,7 @@ export const customerRegisterSchema = z.object({
   deliveryCity: optionalText,
   vatId: optionalText,
   logoUrl: optionalText,
+  acceptsTerms: acceptsTermsSchema,
   password: passwordSchema,
 });
 
@@ -159,7 +188,7 @@ export const customerProfileCompletionSchema = z.object({
 export const distributorRegisterSchema = z.object({
   firstName: z.string().min(2),
   lastName: z.string().min(2),
-  birthDate: z.coerce.date(),
+  birthDate: birthDateSchema,
   email: z.string().email().transform((value) => value.toLowerCase()),
   phone: z.string().min(6),
   street: z.string().min(1),
@@ -177,8 +206,8 @@ export const distributorRegisterSchema = z.object({
   ),
   taxNumber: optionalText,
   bankAccountOwner: optionalText,
-  iban: optionalText,
-  acceptsTerms: z.coerce.boolean().refine(Boolean),
+  iban: optionalIban,
+  acceptsTerms: acceptsTermsSchema,
   password: passwordSchema,
 });
 
@@ -187,7 +216,7 @@ export const distributorProfileUpdateSchema = distributorRegisterSchema
   .extend({
     taxNumber: optionalText,
     bankAccountOwner: optionalText,
-    iban: optionalText,
+    iban: optionalIban,
   });
 
 export const adminDistributorUpdateSchema = z.object({

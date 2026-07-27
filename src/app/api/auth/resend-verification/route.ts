@@ -77,7 +77,17 @@ export async function POST(request: NextRequest) {
     data: { usedAt: new Date() },
   });
   const { verificationToken } = await createEmailVerificationToken(user.id, redirectPath);
-  await sendVerificationEmail({ email: user.email, token: verificationToken, requestUrl: request.url });
+  try {
+    await sendVerificationEmail({ email: user.email, token: verificationToken, requestUrl: request.url });
+  } catch {
+    return Response.json(
+      {
+        ok: false,
+        error: "Der Bestätigungslink konnte gerade nicht versendet werden. Bitte versuche es gleich erneut.",
+      },
+      { status: 503 },
+    );
+  }
 
   return Response.json({
     ok: true,

@@ -13,6 +13,8 @@ import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
 import { sendVerificationEmail } from "@/lib/verificationEmail";
 import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
+import { CURRENT_TERMS_VERSION } from "@/lib/legal";
+import { encryptSensitiveBankAccount, encryptSensitiveString } from "@/lib/secureFields";
 
 export async function POST(request: NextRequest) {
   const body = await readBody(request);
@@ -36,6 +38,8 @@ export async function POST(request: NextRequest) {
         passwordHash,
         role: UserRole.DISTRIBUTOR,
         status: UserStatus.EMAIL_UNVERIFIED,
+        termsAcceptedAt: new Date(),
+        termsVersion: CURRENT_TERMS_VERSION,
         distributorProfile: {
           create: {
             firstName: data.firstName,
@@ -48,14 +52,8 @@ export async function POST(request: NextRequest) {
             availability: { days: data.availabilityDays },
             workingTimes: data.workingTimes,
             serviceRadiusKm: data.serviceRadiusKm,
-            taxNumber: data.taxNumber || null,
-            bankAccount:
-              data.bankAccountOwner || data.iban
-                ? {
-                    owner: data.bankAccountOwner || null,
-                    iban: data.iban || null,
-                  }
-                : undefined,
+            taxNumber: encryptSensitiveString(data.taxNumber),
+            bankAccount: encryptSensitiveBankAccount(data.bankAccountOwner, data.iban) ?? undefined,
             reviewStatus: DistributorReviewStatus.REGISTERED,
             address: {
               street: data.street,
@@ -83,18 +81,18 @@ export async function POST(request: NextRequest) {
       entityType: "User",
       entityId: user.id,
       newValues: { email: user.email, role: user.role },
-    });
+    }).catch(() => undefined);
     await createNotification({
       userId: user.id,
       type: "DISTRIBUTOR_REGISTERED",
       title: "Verteilerkonto erstellt",
       message: "Bitte bestätige deine E-Mail-Adresse. Danach prüft ein Admin dein Profil.",
-    });
+    }).catch(() => undefined);
     await notifyAdmins({
       type: "DISTRIBUTOR_REGISTERED",
       title: "Neuer Verteiler registriert",
       message: `${data.firstName} ${data.lastName} wartet nach E-Mail-Bestätigung auf Prüfung.`,
-    });
+    }).catch(() => undefined);
     const verificationDelivery = await sendVerificationEmail({
       email: user.email,
       token: verificationToken,
@@ -105,7 +103,10 @@ export async function POST(request: NextRequest) {
     );
 
     if (request.headers.get("accept")?.includes("text/html")) {
-      return NextResponse.redirect(publicUrl("/login", request.url), { status: 303 });
+      const loginUrl = publicUrl("/login", request.url);
+      loginUrl.searchParams.set("registered", "distributor");
+      loginUrl.searchParams.set("verificationEmailSent", String(verificationDelivery.sent));
+      return NextResponse.redirect(loginUrl, { status: 303 });
     }
 
     return Response.json(

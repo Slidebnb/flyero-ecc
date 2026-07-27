@@ -203,6 +203,10 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
           Passwort
           <input name="password" type="password" autoComplete="new-password" minLength={10} required />
         </label>
+        <label className="checkbox">
+          <input name="acceptsTerms" type="checkbox" value="true" required />
+          AGB und Datenschutz akzeptiert
+        </label>
         <button type="submit" disabled={isPending}>
           {isPending ? "Konto wird erstellt ..." : "Kundenkonto erstellen"}
         </button>

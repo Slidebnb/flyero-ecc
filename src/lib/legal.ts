@@ -1,0 +1,1 @@
+export const CURRENT_TERMS_VERSION = process.env.LEGAL_TERMS_VERSION || "2026-07-27";

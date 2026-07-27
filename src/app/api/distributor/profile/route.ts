@@ -6,6 +6,7 @@ import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { errorResponse, readBody, routeErrorResponse } from "@/lib/request";
 import { distributorProfileUpdateSchema } from "@/lib/validators";
+import { encryptSensitiveBankAccount, encryptSensitiveString, maskSensitiveValue } from "@/lib/secureFields";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,6 +26,14 @@ export async function POST(request: NextRequest) {
     return errorResponse("Verteilerprofil wurde nicht gefunden.", 404);
   }
 
+  if (profile.reviewStatus === DistributorReviewStatus.PAUSED || profile.reviewStatus === DistributorReviewStatus.BANNED) {
+    return errorResponse("Dein Verteilerkonto ist derzeit gesperrt. Bitte wende dich an FLYERO.", 403);
+  }
+
+  const previousBankAccount = profile.bankAccount && typeof profile.bankAccount === "object" && !Array.isArray(profile.bankAccount)
+    ? profile.bankAccount as { owner?: unknown; iban?: unknown }
+    : {};
+
   const oldValues = {
     firstName: profile.firstName,
     lastName: profile.lastName,
@@ -36,8 +45,11 @@ export async function POST(request: NextRequest) {
     availability: profile.availability,
     workingTimes: profile.workingTimes,
     serviceRadiusKm: profile.serviceRadiusKm,
-    taxNumber: profile.taxNumber,
-    bankAccount: profile.bankAccount,
+    taxNumber: maskSensitiveValue(profile.taxNumber),
+    bankAccount: {
+      owner: maskSensitiveValue(previousBankAccount.owner),
+      iban: maskSensitiveValue(previousBankAccount.iban),
+    },
     reviewStatus: profile.reviewStatus,
   };
 
@@ -56,11 +68,8 @@ export async function POST(request: NextRequest) {
     availability: { days: data.availabilityDays },
     workingTimes: data.workingTimes,
     serviceRadiusKm: data.serviceRadiusKm,
-    taxNumber: data.taxNumber || null,
-    bankAccount:
-      data.bankAccountOwner || data.iban
-        ? { owner: data.bankAccountOwner || null, iban: data.iban || null }
-        : Prisma.JsonNull,
+    taxNumber: encryptSensitiveString(data.taxNumber),
+    bankAccount: encryptSensitiveBankAccount(data.bankAccountOwner, data.iban) ?? Prisma.JsonNull,
     address: {
       street: data.street,
       houseNumber: data.houseNumber,

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { productionDistributorWhere } from "@/lib/productionData";
 import { DISTRIBUTOR_STATUS_LABELS } from "@/lib/constants";
 import { asObject, formatAddress, formatDate } from "@/lib/format";
+import { decryptSensitiveBankAccount, decryptSensitiveString } from "@/lib/secureFields";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 type PageProps = {
@@ -25,7 +26,7 @@ export default async function AdminDistributorDetailPage({ params }: PageProps) 
   }
 
   const availability = asObject(profile.availability);
-  const bankAccount = asObject(profile.bankAccount);
+  const bankAccount = decryptSensitiveBankAccount(profile.bankAccount);
   const days = Array.isArray(availability.days)
     ? availability.days.map(String).join(", ")
     : "-";
@@ -108,7 +109,7 @@ export default async function AdminDistributorDetailPage({ params }: PageProps) 
               </tr>
               <tr>
                 <th>Steuernummer</th>
-                <td>{profile.taxNumber || "-"}</td>
+                <td>{decryptSensitiveString(profile.taxNumber) || "-"}</td>
               </tr>
               <tr>
                 <th>Bankverbindung</th>

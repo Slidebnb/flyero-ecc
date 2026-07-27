@@ -46,7 +46,10 @@ const routePermissions = new Map([
 
 for (const [filePath, permission] of routePermissions) {
   const source = await readFile(filePath, "utf8");
-  assert.match(source, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${filePath} fehlt ${permission}.`);
+  const permissionSource = filePath === "src/app/api/distributor/available-orders/route.ts"
+    ? `${source}\n${await readFile("src/lib/distributorAccess.ts", "utf8")}`
+    : source;
+  assert.match(permissionSource, new RegExp(`requirePermission\\(Permission\\.${permission}\\)`), `${filePath} fehlt ${permission}.`);
   assert.doesNotMatch(source, /requireRole\(\[UserRole\.DISTRIBUTOR\]\)/, `${filePath} verwendet noch die direkte Rollenpruefung.`);
 }
 
