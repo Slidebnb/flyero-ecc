@@ -8,6 +8,10 @@ const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), "u
 
 const worker = read("src/lib/notificationWorker.ts");
 const notifications = read("src/lib/notifications.ts");
+const productionData = read("src/lib/productionData.ts");
+const notificationMessageWhere = productionData.match(
+  /export function productionNotificationMessageWhere[\s\S]*?\n}\n/,
+)?.[0] ?? "";
 
 assert.match(
   worker,
@@ -23,6 +27,16 @@ assert.match(
   notifications,
   /recipientEmail:\s*user\?\.email/,
   "Neue Kunden-Queues müssen die Empfängeradresse dauerhaft speichern.",
+);
+assert.match(
+  notificationMessageWhere,
+  /type:\s*\{\s*not:\s*"MODULE18_EMAIL_QUEUE"\s*\}/,
+  "Der Produktionsfilter muss die bekannten Seed-Queue-Nachrichten über ihren Typ ausschließen.",
+);
+assert.doesNotMatch(
+  notificationMessageWhere,
+  /data:\s*\{\s*path:\s*\["source"\][\s\S]*?equals:\s*"seed\.module18"/,
+  "Der Produktionsfilter darf keine Prisma-JSON-Pfad-NOT-Bedingung verwenden, die echte Nachrichten bei fehlendem Feld ausblendet.",
 );
 
 console.log("Notification production queue smoke passed");

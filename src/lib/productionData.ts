@@ -190,13 +190,12 @@ export function productionBackgroundJobWhere(): Prisma.BackgroundJobLogWhereInpu
 export function productionNotificationMessageWhere(): Prisma.NotificationMessageWhereInput {
   if (!isProductionRuntime) return {};
   return {
+    type: { not: "MODULE18_EMAIL_QUEUE" },
     NOT: [
       { subject: { contains: "Seed", mode: "insensitive" } },
       { body: { contains: "Seed", mode: "insensitive" } },
       { subject: { contains: "M15-", mode: "insensitive" } },
       { body: { contains: "M15-", mode: "insensitive" } },
-      { data: { path: ["source"], equals: "seed.module18" } },
-      { data: { path: ["companyName"], equals: "Flyero Demo" } },
     ],
   };
 }
