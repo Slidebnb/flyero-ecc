@@ -43,6 +43,7 @@ fi
 
 compose=(docker compose --env-file /opt/flyero/.env.production -f /opt/flyero/docker-compose.production.yml)
 "${compose[@]}" build --build-arg "DEPLOY_SHA=$deployed_sha" app
+built_image="$(docker image inspect flyero-app --format '{{.Id}}')"
 "${compose[@]}" run --rm --no-deps app node scripts/production-preflight.mjs
 "${compose[@]}" run --rm --no-deps app npx prisma migrate deploy
 # App und Reverse-Proxy gemeinsam recreaten: Das Caddyfile liegt als Bind-Mount
@@ -59,6 +60,19 @@ for attempt in $(seq 1 30); do
   fi
   sleep 2
 done
+
+app_container="$("${compose[@]}" ps -q app)"
+if [ -z "$app_container" ]; then
+  echo "Der App-Container wurde nach dem Deploy nicht gefunden." >&2
+  exit 1
+fi
+running_image="$(docker inspect --format '{{.Image}}' "$app_container")"
+if [ "$running_image" != "$built_image" ]; then
+  echo "Der laufende App-Container verwendet nicht das gerade gebaute Image." >&2
+  echo "Gebaut:  $built_image" >&2
+  echo "Laufend: $running_image" >&2
+  exit 1
+fi
 
 "${compose[@]}" ps
 curl --fail --silent --show-error https://flyero.org/api/health
