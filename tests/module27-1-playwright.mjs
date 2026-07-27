@@ -152,9 +152,7 @@ async function createInquiry(page) {
     targetAreaGeoJson: JSON.stringify(segment.geometryGeoJson),
     areaSegments: JSON.stringify([segment]),
     coverageAreaSqm: Number(quote.data.metrics.coverageAreaSqm),
-    estimatedHouseholds: Number(quote.data.metrics.households),
     estimatedFlyers: 3000,
-    estimatedDistanceMeters: Number(quote.data.metrics.routeDistanceMeters),
     areaCalculationSnapshot: JSON.stringify({ source: "module27-1-playwright", confidence: "low" }),
     centerLat: 50.355,
     centerLng: 7.585,
@@ -171,6 +169,12 @@ async function createInquiry(page) {
     notes: "Automatischer Playwright-Runtime-Test.",
     quoteFingerprint: quote.data.metrics.fingerprint,
   };
+  if (Number.isInteger(quote.data.metrics.households) && quote.data.metrics.households > 0) {
+    payload.estimatedHouseholds = quote.data.metrics.households;
+  }
+  if (Number.isInteger(quote.data.metrics.routeDistanceMeters) && quote.data.metrics.routeDistanceMeters > 0) {
+    payload.estimatedDistanceMeters = quote.data.metrics.routeDistanceMeters;
+  }
   const orderResponse = await postFromPage(page, `${baseUrl}/api/customer/orders`, payload);
   const order = orderResponse.body;
   assert(orderResponse.ok && order?.data?.id, `Anfrage konnte nicht angelegt werden: ${orderResponse.status} expected=${quote.data.metrics.fingerprint} ${JSON.stringify(order)}`);
@@ -264,14 +268,8 @@ async function run() {
     // expose direct payment in the real customer wizard.
     await customerPage.locator('[data-testid="order-step-2"]').click();
     await customerPage.getByRole("button", { name: /Sampling/ }).click();
-    const samplingDetails = customerPage.locator('[data-testid="sampling-details"]');
-    await samplingDetails.waitFor();
-    const samplingInputs = samplingDetails.locator("input:not([type=checkbox])");
-    await samplingInputs.nth(0).fill("Kosmetikprobe");
-    await samplingInputs.nth(1).fill("10 ml");
-    await samplingInputs.nth(2).fill("Beutel");
-    await samplingInputs.nth(3).fill("trocken lagern");
-    await customerPage.locator('[data-testid="customer-own-flyer-step"] input[type="number"]').first().fill("20");
+    await customerPage.locator('[data-testid="sampling-manual-review"]').waitFor();
+    await customerPage.locator('[data-testid="order-flyer-quantity"]').fill("100");
     const warehouseSelect = customerPage.locator('[data-testid="order-warehouse-select"]');
     if (await warehouseSelect.count()) {
       await warehouseSelect.waitFor({ state: "attached" });
@@ -318,6 +316,7 @@ async function run() {
     assert(manipulatedResponse.ok(), `Serverprüfung des manipulierten Gebiets fehlgeschlagen: ${manipulatedResponse.status()}`);
     assert(manipulatedBody?.data?.metrics?.areaDifficulty === "NORMAL", "Der manipulierte HARD-Hinweis darf nicht als serverseitige Gebietsart zurückkommen.");
 
+    await customerPage.goto(`${baseUrl}/customer/orders/new`, { waitUntil: "domcontentloaded" });
     const inquiry = await createInquiry(customerPage);
     const customerOrderPage = await customerContext.newPage();
     await customerOrderPage.goto(`${baseUrl}/customer/orders/${inquiry.id}?inquiry=success`, { waitUntil: "domcontentloaded" });

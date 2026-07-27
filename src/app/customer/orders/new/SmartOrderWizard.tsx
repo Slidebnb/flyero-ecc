@@ -2237,7 +2237,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       weightClass: effectiveWeightClass,
       weightInGrams: numericWeightInGrams,
       clientDifficultyHint: "NORMAL",
-      productDetails,
+      productDetails: productDetails ? JSON.stringify(productDetails) : undefined,
       printDataStatus,
       completionPath,
       preferredStartDate: startDate,

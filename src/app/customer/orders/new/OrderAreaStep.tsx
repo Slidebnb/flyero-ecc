@@ -143,7 +143,7 @@ export function OrderAreaStep({
           <strong>{areaSegmentsPayload.length}</strong>
         </div>
         {areaSegments.map((segment, index) => (
-          <div className={segment.id === activeSegmentId ? "orderSegmentRow active" : "orderSegmentRow"} key={segment.id}>
+          <div className={segment.id === activeSegmentId ? "orderSegmentRow active" : "orderSegmentRow"} key={segment.id || `${segment.name || "segment"}-${index}`}>
             <button type="button" onClick={() => onSelectSegment(segment)}>
               <span className="orderSegmentIndex">{index + 1}</span>
               <span>
