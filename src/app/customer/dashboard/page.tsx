@@ -10,6 +10,8 @@ import { getOrderGrossPrice } from "@/lib/pricing";
 import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 function formatNumber(value: number) {
   return new Intl.NumberFormat("de-DE").format(value);
 }
@@ -59,6 +61,20 @@ type DashboardReport = {
   };
 };
 
+type DashboardEvidence = {
+  id: string;
+  documentType: string;
+  title: string;
+  uploadedAt: Date;
+  order: {
+    orderNumber: string;
+    targetAreaName: string;
+    city: string;
+    targetAreaGeoJson: unknown;
+    distributionArea: { geoJson: unknown; geometryGeoJson: unknown } | null;
+  };
+};
+
 const runningStatuses = new Set<OrderStatus>();
 
 const completedStatuses = new Set<OrderStatus>([
@@ -66,8 +82,8 @@ const completedStatuses = new Set<OrderStatus>([
   OrderStatus.REPORT_READY_PREVIEW,
 ]);
 
-function evidenceState(order: DashboardOrder | null, report: DashboardReport | null) {
-  if (report) return "completed";
+function evidenceState(order: DashboardOrder | null, report: DashboardReport | null, evidence: DashboardEvidence[]) {
+  if (report || evidence.length > 0) return "completed";
   if (!order) return "empty";
   if (runningStatuses.has(order.status)) return "running";
   if (completedStatuses.has(order.status)) return "review";
@@ -78,26 +94,32 @@ function reportBelongsToOrder(order: DashboardOrder | null, report: DashboardRep
   return Boolean(report && (!order || report.order.orderNumber === order.orderNumber));
 }
 
-function evidenceGeoJson(order: DashboardOrder | null, report: DashboardReport | null) {
+function evidenceGeoJson(order: DashboardOrder | null, report: DashboardReport | null, evidence: DashboardEvidence[]) {
+  const firstEvidence = evidence[0] ?? null;
   return order?.targetAreaGeoJson
     ?? order?.distributionArea?.geoJson
     ?? order?.distributionArea?.geometryGeoJson
     ?? report?.order.targetAreaGeoJson
     ?? report?.order.distributionArea?.geoJson
     ?? report?.order.distributionArea?.geometryGeoJson
+    ?? firstEvidence?.order.targetAreaGeoJson
+    ?? firstEvidence?.order.distributionArea?.geoJson
+    ?? firstEvidence?.order.distributionArea?.geometryGeoJson
     ?? null;
 }
 
-function CampaignEvidencePreview({ order, report, compact = false }: { order: DashboardOrder | null; report: DashboardReport | null; compact?: boolean }) {
+function CampaignEvidencePreview({ order, report, evidence, compact = false }: { order: DashboardOrder | null; report: DashboardReport | null; evidence: DashboardEvidence[]; compact?: boolean }) {
   const currentReport = reportBelongsToOrder(order, report) ? report : null;
-  const state = evidenceState(order, currentReport);
-  const geoJson = evidenceGeoJson(order, currentReport);
+  const currentEvidence = evidence.filter((item) => !order || item.order.orderNumber === order.orderNumber);
+  const reportDocument = currentEvidence.find((item) => item.documentType === "REPORT");
+  const state = evidenceState(order, currentReport, currentEvidence);
+  const geoJson = evidenceGeoJson(order, currentReport, currentEvidence);
   const gpsPoints = currentReport?.tour._count.gpsPoints ?? 0;
-  const photoCount = currentReport?.tour.photoProofs.length ?? 0;
-  const hasExternalGpsDocument = Boolean(currentReport?.order.documents.some((document) => document.documentType === "REPORT"));
-  const hasGpsEvidence = Boolean(currentReport && (gpsPoints > 0 || hasExternalGpsDocument || currentReport.pdfUrl));
-  const hasPdf = Boolean(currentReport?.pdfUrl);
-  const hasPublishedReport = currentReport?.status === "PUBLISHED";
+  const photoCount = (currentReport?.tour.photoProofs.length ?? 0) + currentEvidence.filter((item) => item.documentType === "IMAGE").length;
+  const hasExternalGpsDocument = Boolean(currentReport?.order.documents.some((document) => document.documentType === "REPORT") || reportDocument);
+  const hasGpsEvidence = Boolean(gpsPoints > 0 || hasExternalGpsDocument || currentReport?.pdfUrl);
+  const hasPdf = Boolean(currentReport?.pdfUrl || reportDocument);
+  const hasPublishedReport = currentReport?.status === "PUBLISHED" || currentEvidence.length > 0;
   const title =
     state === "empty"
       ? "Noch kein Nachweis verfügbar."
@@ -179,6 +201,7 @@ export default async function CustomerDashboardPage() {
   const [
     lastOrder,
     latestReport,
+    latestEvidenceDocuments,
     latestInvoice,
   ] = await Promise.all([
     prisma.order.findFirst({
@@ -231,6 +254,33 @@ export default async function CustomerDashboardPage() {
         },
       },
     }),
+    prisma.document.findMany({
+      where: {
+        tenantId: session.tenantId,
+        customerId: profile.id,
+        customerVisible: true,
+        status: "APPROVED",
+        reviewStatus: "APPROVED",
+        documentType: { in: ["REPORT", "IMAGE"] },
+      },
+      orderBy: { uploadedAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        documentType: true,
+        title: true,
+        uploadedAt: true,
+        order: {
+          select: {
+            orderNumber: true,
+            targetAreaName: true,
+            city: true,
+            targetAreaGeoJson: true,
+            distributionArea: { select: { geoJson: true, geometryGeoJson: true } },
+          },
+        },
+      },
+    }),
     prisma.invoice.findFirst({
       where: { customerId: profile.id, tenantId: session.tenantId },
       orderBy: { createdAt: "desc" },
@@ -239,8 +289,16 @@ export default async function CustomerDashboardPage() {
   ]);
 
   const currentReport = reportBelongsToOrder(lastOrder, latestReport) ? latestReport : null;
+  const currentEvidenceDocuments = latestEvidenceDocuments.filter((item) => !lastOrder || item.order.orderNumber === lastOrder.orderNumber);
+  const currentEvidence = currentEvidenceDocuments.find((item) => item.documentType === "REPORT") ?? currentEvidenceDocuments[0] ?? null;
   const dashboardOrderStatus = currentReport ? OrderStatus.REPORT_READY_PREVIEW : lastOrder?.status ?? OrderStatus.DRAFT;
-  const primaryReportHref = currentReport ? `/customer/reports/${currentReport.id}` : latestInvoice ? `/customer/invoices/${latestInvoice.id}` : "/customer/reports";
+  const primaryReportHref = currentReport
+    ? `/customer/reports/${currentReport.id}`
+    : currentEvidence
+      ? `/api/customer/documents/${currentEvidence.id}/download`
+      : latestInvoice
+        ? `/customer/invoices/${latestInvoice.id}`
+        : "/customer/reports";
   const currentActionHref = lastOrder ? `/customer/orders/${lastOrder.id}` : "/customer/orders";
 
   return (
@@ -258,10 +316,10 @@ export default async function CustomerDashboardPage() {
           <div className="customerCommandActions">
             <Link className="primaryCommand" href="/customer/orders/new?fresh=1">Neue Verteilung starten<ArrowRight aria-hidden="true" /></Link>
             <Link href={currentActionHref}>{lastOrder ? "Kampagne öffnen" : "Meine Kampagnen"}</Link>
-            <Link href={primaryReportHref}>{currentReport ? "Nachweis ansehen" : "Rechnung ansehen"}</Link>
+            <Link href={primaryReportHref}>{currentReport || currentEvidence ? "Nachweis ansehen" : "Rechnung ansehen"}</Link>
           </div>
         </div>
-        <CampaignEvidencePreview order={lastOrder} report={currentReport} />
+        <CampaignEvidencePreview order={lastOrder} report={currentReport} evidence={currentEvidenceDocuments} />
       </section>
 
       <div className="customerMissionGrid">
@@ -273,12 +331,12 @@ export default async function CustomerDashboardPage() {
           {lastOrder ? (
             <>
               <div className="currentCampaignStatus">
-                <StatusBadge tone={customerOrderTone(dashboardOrderStatus)}>{currentReport ? "Freigegeben" : CUSTOMER_ORDER_STATUS_LABELS[dashboardOrderStatus]}</StatusBadge>
+                <StatusBadge tone={customerOrderTone(dashboardOrderStatus)}>{currentReport || currentEvidence ? "Nachweis verfügbar" : CUSTOMER_ORDER_STATUS_LABELS[dashboardOrderStatus]}</StatusBadge>
                 <strong>{lastOrder.postalCode} {lastOrder.city}</strong>
               </div>
               <div className="customerPlainNextStep">
                 <strong>Nächster Schritt</strong>
-                <span>{currentReport ? "Der geprüfte Verteilbericht ist im Kundenportal verfügbar." : customerOrderPlainNextStep(dashboardOrderStatus)}</span>
+                <span>{currentReport || currentEvidence ? "Der freigegebene Nachweis ist im Kundenportal verfügbar." : customerOrderPlainNextStep(dashboardOrderStatus)}</span>
               </div>
               <dl className="customerFactList">
                 <div><dt>Buchung</dt><dd>Ihre aktuelle Verteilung</dd></div>
@@ -300,13 +358,18 @@ export default async function CustomerDashboardPage() {
         <section className="customerMissionPanel proofPanel">
           <div className="missionPanelHeader">
             <span>Welche Nachweise liegen vor?</span>
-            <h2>{currentReport ? currentReport.reportNumber : "Nachweise erscheinen erst nach der Verteilung"}</h2>
+            <h2>{currentReport ? currentReport.reportNumber : currentEvidence ? "Nachweis verfügbar" : "Nachweise erscheinen erst nach der Verteilung"}</h2>
           </div>
-          <CampaignEvidencePreview order={lastOrder} report={currentReport} compact />
+          <CampaignEvidencePreview order={lastOrder} report={currentReport} evidence={currentEvidenceDocuments} compact />
           {currentReport ? (
             <div className="proofPanelFooter">
               <p>{customerAreaName(currentReport.order.targetAreaName)} / {currentReport.order.city}</p>
               <Link className="customerPanelLink" href={`/customer/reports/${currentReport.id}`}>Bericht ansehen<ArrowRight aria-hidden="true" /></Link>
+            </div>
+          ) : currentEvidence ? (
+            <div className="proofPanelFooter">
+              <p>{customerAreaName(currentEvidence.order.targetAreaName)} / {currentEvidence.order.city}</p>
+              <a className="customerPanelLink" href={`/api/customer/documents/${currentEvidence.id}/download`}>Nachweis herunterladen<ArrowRight aria-hidden="true" /></a>
             </div>
           ) : (
             <p className="proofExampleNote">Noch kein Nachweis verfügbar. Sobald die Verteilung abgeschlossen ist, sehen Sie hier GPS-Spur, Fotos und PDF-Bericht.</p>

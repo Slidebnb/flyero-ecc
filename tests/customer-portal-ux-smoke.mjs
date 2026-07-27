@@ -149,6 +149,12 @@ try {
   if (report) routes.push(`/customer/reports/${report.id}`);
   if (ticket) routes.push(`/customer/support/tickets/${ticket.id}`);
   for (const route of routes) {
+    if (route === "/customer/documents" || route.endsWith("/documents")) {
+      const response = await fetchWithTimeout(`${baseUrl}${route}`, { headers: { cookie } });
+      assert([307, 308].includes(response.status), `${route} muss auf die Nachweise weiterleiten, lieferte ${response.status}`);
+      assert(response.headers.get("location")?.endsWith("/customer/reports"), `${route} muss auf /customer/reports weiterleiten.`);
+      continue;
+    }
     assertCustomerLanguage(await customerPage(route, cookie), route);
   }
   const dashboardHtml = await customerPage("/customer/dashboard", cookie);

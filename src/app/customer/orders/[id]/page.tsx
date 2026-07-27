@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { CustomerLiveRefresh } from "@/app/customer/CustomerLiveRefresh";
 import {
   CUSTOMER_ORDER_STATUS_LABELS,
   customerAreaName,
@@ -20,6 +21,8 @@ import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { warehouseAddressText } from "@/lib/logistics";
 import { getOrderPriceBreakdown } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -94,6 +97,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
       title={customerOrderName(order.orderNumber)}
       description={customerOrderPlainNextStep(order.status)}
     >
+      <CustomerLiveRefresh />
       {query.payment === "success" ? (
         <section className="customerSuccessBanner">
           <strong>Gebucht. FLYERO prüft jetzt Gebiet und Druckdaten.</strong>
@@ -125,7 +129,6 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
       <section className="customerDetailActions" aria-label="Kampagnenaktionen">
         <Link className="secondaryButton" href="/customer/orders">Alle Kampagnen</Link>
         <Link className="secondaryButton" href={`/customer/orders/new?repeatFrom=${encodeURIComponent(order.id)}`}>Kampagne wiederholen</Link>
-        <Link className="secondaryButton" href={`/customer/orders/${order.id}/documents`}>Dateien öffnen</Link>
         <Link className="secondaryButton" href="/customer/reports">Nachweise ansehen</Link>
       </section>
 

@@ -12,7 +12,7 @@ const emailTemplate = await readFile("src/lib/emailTemplates.ts", "utf8");
 const packageJson = JSON.parse(await readFile("package.json", "utf8"));
 
 assert(dashboard.includes("CustomerLiveRefresh"), "Dashboard muss veröffentlichte Nachweise automatisch neu laden.");
-assert(dashboard.includes('currentReport ? "Freigegeben"'), "Veröffentlichten Bericht muss das Dashboard als freigegeben anzeigen.");
+assert(dashboard.includes('currentReport || currentEvidence ? "Nachweis verfügbar"'), "Freigegebene Berichte oder Nachweise muessen das Dashboard als verfuegbar anzeigen.");
 assert(reports.includes('forceEmail: true'), "Berichtsfreigabe muss die Kunden-E-Mail unabhängig von optionalen Präferenzen vormerken.");
 assert(reports.includes("campaignUrl"), "Berichtsfreigabe muss einen geschützten Portal-Link übergeben.");
 assert(reports.includes("emailHtml"), "Berichtsfreigabe muss das gebrandete HTML-E-Mail-Layout übergeben.");

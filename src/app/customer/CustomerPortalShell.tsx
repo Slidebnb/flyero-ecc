@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   CircleHelp,
-  FileStack,
   FileText,
   LayoutDashboard,
   ListChecks,
@@ -26,7 +25,6 @@ const navItems = [
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks, group: "Start" },
   { href: "/customer/reports", label: "Nachweise", icon: FileText, group: "Ergebnisse" },
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Ergebnisse" },
-  { href: "/customer/documents", label: "Dateien", icon: FileStack, group: "Ergebnisse" },
   { href: "/customer/support", label: "Hilfe", icon: CircleHelp, group: "Hilfe" },
 ];
 

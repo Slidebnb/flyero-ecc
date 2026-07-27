@@ -4,7 +4,9 @@ import { z } from "zod";
 import { AuthError, type SessionUser } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { normalizeExtension, storeDocumentFile, protectedDocumentUrl, type UploadableDocumentFile } from "@/lib/documentStorage";
-import { notifyAdmins } from "@/lib/notifications";
+import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
+import { buildEvidenceAvailableEmail } from "@/lib/emailTemplates";
 import { Permission, hasPermission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { generateOnlineReportUrl, generatePdf, generateReportNumber, publishReport } from "@/lib/reports";
@@ -73,11 +75,13 @@ export async function uploadExternalEvidence(input: {
   assertEvidenceFileMatchesType(data.evidenceType, input.file);
   const order = await prisma.order.findFirst({
     where: { id: input.orderId, ...tenantWhereForSession(input.actor) },
-    select: { id: true, customerId: true, tenantId: true, orderNumber: true },
+    select: { id: true, customerId: true, tenantId: true, orderNumber: true, targetAreaName: true, city: true, customer: { select: { userId: true, contactName: true, companyName: true } } },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
 
   const stored = await storeDocumentFile(input.file);
+  const autoRelease = stored.scanStatus === "CLEAN";
+  const releasedAt = autoRelease ? new Date() : null;
   const document = await prisma.document.create({
     data: {
       orderId: order.id,
@@ -91,17 +95,19 @@ export async function uploadExternalEvidence(input: {
       extension: stored.extension,
       fileSize: stored.fileSize,
       checksum: stored.checksum,
-      status: "UNDER_REVIEW",
+      status: autoRelease ? "APPROVED" : "UNDER_REVIEW",
       providerName: data.providerName || null,
       externalReportReference: data.externalReportReference || null,
       reportDate: data.reportDate ?? null,
-      customerVisible: false,
-      reviewStatus: "PENDING",
+      customerVisible: autoRelease,
+      reviewStatus: autoRelease ? "APPROVED" : "PENDING",
       scanStatus: stored.scanStatus,
       scanProvider: stored.scanProvider,
       scanMessage: stored.scanMessage,
-      scannedAt: stored.scanStatus === "CLEAN" ? new Date() : null,
+      scannedAt: releasedAt,
       uploadedById: input.actor.id,
+      approvedById: autoRelease ? input.actor.id : null,
+      approvedAt: releasedAt,
       versions: {
         create: {
           version: 1,
@@ -122,8 +128,39 @@ export async function uploadExternalEvidence(input: {
     action: "external_evidence.uploaded",
     entityType: "Document",
     entityId: document.id,
-    newValues: { evidenceType: data.evidenceType, providerName: data.providerName, reportSource: reportSourceForEvidence(data.evidenceType) },
+    newValues: {
+      evidenceType: data.evidenceType,
+      providerName: data.providerName,
+      reportSource: reportSourceForEvidence(data.evidenceType),
+      autoReleased: autoRelease,
+    },
   });
+  if (autoRelease) {
+    const evidenceEmail = buildEvidenceAvailableEmail({
+      customerName: order.customer.contactName,
+      companyName: order.customer.companyName,
+      orderNumber: order.orderNumber,
+      areaLabel: [order.targetAreaName, order.city].filter(Boolean).join(", "),
+      evidenceLabel: data.evidenceType === "PHOTO" ? "Die Foto-Dokumentation" : data.evidenceType === "GPS_PDF" ? "Der GPS-Nachweis" : "Der Nachweis",
+      evidenceUrl: `${(process.env.APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://flyero.org").replace(/\/$/, "")}${protectedDocumentUrl(document.id, 1)}`,
+    });
+    const customerNotification = await createNotification({
+      userId: order.customer.userId,
+      type: "DOCUMENT_APPROVED",
+      title: evidenceEmail.subject,
+      message: evidenceEmail.text,
+      forceEmail: true,
+      emailHtml: evidenceEmail.html,
+      data: {
+        orderNumber: order.orderNumber,
+        campaignUrl: `/customer/orders/${order.id}`,
+        dashboardUrl: "/customer/dashboard",
+        documentUrl: protectedDocumentUrl(document.id, 1),
+        nextStep: "Öffnen Sie Ihre Kampagne, um den Nachweis herunterzuladen.",
+      },
+    });
+    await dispatchNotificationImmediately(customerNotification.queue?.id);
+  }
   return document;
 }
 

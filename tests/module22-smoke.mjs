@@ -131,11 +131,7 @@ await includes("src/lib/analytics.ts", ["getDocumentAnalytics", "printOrders"]);
 await includes("README.md", ["Modul 22", "Dokumentenmanagement", "Druckprozess"]);
 await includes("ARCHITECTURE_DECISIONS.md", ["Modul 22", "DMS", "Druckmodul"]);
 await includes("package.json", ["test:module22"]);
-await includes("src/app/customer/documents/page.tsx", [
-  "Erst Kampagne starten",
-  "Druckdaten können hochgeladen werden",
-  "disabled={orders.length === 0}",
-]);
+await includes("src/app/customer/documents/page.tsx", ["redirect(\"/customer/reports\")"]);
 
 for (const filePath of [
   "src/app/customer/documents/page.tsx",
@@ -160,8 +156,11 @@ try {
   const customerCookie = await login("kunde.immobilien@example.com");
   const distributorCookie = await login("verteiler.approved1@example.com");
 
+  const customerDocumentsRedirect = await fetchLocal("/customer/documents", { headers: { cookie: customerCookie } });
+  assert([307, 308].includes(customerDocumentsRedirect.status), `/customer/documents lieferte ${customerDocumentsRedirect.status}`);
+  assert(customerDocumentsRedirect.headers.get("location")?.endsWith("/customer/reports"), "/customer/documents muss auf /customer/reports weiterleiten.");
+
   for (const [path, cookie, marker] of [
-    ["/customer/documents", customerCookie, "Dateien &amp; Druck"],
     ["/admin/documents", adminCookie, "Dokumentenzentrale"],
     ["/admin/print-partners", adminCookie, "Druckpartner"],
     ["/admin/print-orders", adminCookie, "Druckaufträge"],

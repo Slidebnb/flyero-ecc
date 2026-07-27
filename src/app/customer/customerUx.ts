@@ -100,7 +100,7 @@ const CUSTOMER_NOTIFICATION_TYPE_LABELS: Record<string, string> = {
   PAYMENT_COMPLETED: "Zahlung abgeschlossen",
   PAYMENT_REFUNDED: "Erstattung vorgemerkt",
   DOCUMENT_UPLOADED: "Druckdatei hochgeladen",
-  DOCUMENT_APPROVED: "Druckdatei freigegeben",
+  DOCUMENT_APPROVED: "Nachweis freigegeben",
   DOCUMENT_REJECTED: "Druckdatei bitte prüfen",
   PRINT_ORDER_REQUESTED: "Druckauftrag angefragt",
   PRINT_PRODUCTION_STARTED: "Druck gestartet",
@@ -119,7 +119,7 @@ const CUSTOMER_PREFERENCE_LABELS: Record<string, string> = {
   CUSTOMER_ORDER_CREATED: "Kampagnen-Updates erhalten",
   CUSTOMER_PAYMENT_FAILED: "Zahlungshinweise erhalten",
   ORDER_PRICE_UPDATED: "Preisänderungen erhalten",
-  DOCUMENT_APPROVED: "Druckdaten-Freigaben erhalten",
+  DOCUMENT_APPROVED: "Nachweise verfügbar",
   DOCUMENT_REJECTED: "Druckdaten-Rückfragen erhalten",
   PRINT_STATUS_UPDATED: "Druckstatus erhalten",
   SUPPORT_REPLY: "Support-Nachrichten erhalten",
@@ -154,7 +154,7 @@ export function customerOrderTone(status: OrderStatus): CustomerTone {
 }
 
 export function customerOrderAction(status: OrderStatus, orderId: string) {
-  if (status === "READY_FOR_FLYERS") return { href: "/customer/documents", label: "Druckdaten hochladen" };
+  if (status === "READY_FOR_FLYERS") return { href: `/customer/orders/${orderId}`, label: "Versandinformationen ansehen" };
   if (status === "PAYMENT_PENDING") return { href: `/customer/orders/${orderId}`, label: "Zahlung abschließen" };
   if (status === "ACCEPTED_AWAITING_PAYMENT") return { href: `/customer/orders/${orderId}`, label: "Zahlung abschließen" };
   if (status === "PAYMENT_FAILED") return { href: `/customer/orders/${orderId}`, label: "Zahlung erneut versuchen" };

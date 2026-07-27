@@ -7,7 +7,6 @@ import Link from "next/link";
 import { hasExplicitPublicLocationContext, isGermanPostalCode, type PublicLocationContext } from "@/lib/publicLocationContext";
 import {
   CircleHelp,
-  FileStack,
   FileText,
   Mail,
   LocateFixed,
@@ -54,7 +53,6 @@ const orderNavItems = [
   { href: "/customer/orders", label: "Kampagnen", icon: ListChecks, group: "Start" },
   { href: "/customer/reports", label: "Nachweise", icon: FileText, group: "Ergebnisse" },
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Ergebnisse" },
-  { href: "/customer/documents", label: "Dateien", icon: FileStack, group: "Ergebnisse" },
   { href: "/customer/support", label: "Hilfe", icon: CircleHelp, group: "Hilfe" },
 ];
 

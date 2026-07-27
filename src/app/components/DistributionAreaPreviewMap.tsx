@@ -9,6 +9,7 @@ type Props = {
 
 type GoogleMapsWindow = Window & {
   __flyeroMapsLibrary?: GoogleMapsLibrary;
+  __flyeroMapsLoading?: Promise<void>;
   google?: {
     maps: {
       Map: new (el: HTMLElement, options: Record<string, unknown>) => GoogleMap;
@@ -74,6 +75,8 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
+  const [loadRetry, setLoadRetry] = useState(0);
+  const [renderRetry, setRenderRetry] = useState(0);
   const browserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
   const areaFeatures = features(geoJson);
   const areaPaths = useMemo(() => areaFeatures.flatMap(pathsFromFeature), [areaFeatures]);
@@ -85,18 +88,43 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
       queueMicrotask(() => setLoaded(true));
       return;
     }
+    let cancelled = false;
     const existing = document.querySelector<HTMLScriptElement>("script[data-google-maps]");
-    if (existing) {
-      existing.addEventListener("load", () => setLoaded(true), { once: true });
-      return;
-    }
-    const script = document.createElement("script");
-    script.dataset.googleMaps = "true";
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=${GOOGLE_MAPS_VERSION}&loading=async`;
-    script.async = true;
-    script.onload = () => setLoaded(true);
-    document.head.appendChild(script);
-  }, [areaFeatures.length, browserKey]);
+    const loading = win.__flyeroMapsLoading ?? new Promise<void>((resolve, reject) => {
+      const script = existing ?? document.createElement("script");
+      const finish = () => win.google?.maps ? resolve() : reject(new Error("Google Maps wurde ohne API bereitgestellt."));
+      const fail = () => reject(new Error("Google Maps konnte nicht geladen werden."));
+      script.addEventListener("load", finish, { once: true });
+      script.addEventListener("error", fail, { once: true });
+      if (!existing) {
+        script.dataset.googleMaps = "true";
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${browserKey}&v=${GOOGLE_MAPS_VERSION}&loading=async`;
+        script.async = true;
+        document.head.appendChild(script);
+      } else if ((script as HTMLScriptElement & { readyState?: string }).readyState === "complete") {
+        window.setTimeout(finish, 0);
+      }
+    });
+    win.__flyeroMapsLoading = loading;
+    loading.then(() => {
+      if (!cancelled) {
+        setMapError(false);
+        setLoaded(true);
+      }
+    }).catch(() => {
+      if (!cancelled) {
+        win.__flyeroMapsLoading = undefined;
+        if (loadRetry < 2) {
+          window.setTimeout(() => setLoadRetry((value) => value + 1), 300);
+        } else {
+          setMapError(true);
+        }
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [areaFeatures.length, browserKey, loadRetry]);
 
   useEffect(() => {
     if (!loaded || !containerRef.current || areaPaths.length === 0) return;
@@ -115,11 +143,12 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
           : undefined;
         if (cancelled) return;
         const library = imported;
-        const MapConstructor = library?.Map ?? mapsApi.Map;
-        const BoundsConstructor = library?.LatLngBounds ?? mapsApi.LatLngBounds;
-        const PolygonConstructor = library?.Polygon ?? mapsApi.Polygon;
+        const MapConstructor = typeof mapsApi.Map === "function" ? mapsApi.Map : library?.Map;
+        const BoundsConstructor = typeof mapsApi.LatLngBounds === "function" ? mapsApi.LatLngBounds : library?.LatLngBounds;
+        const PolygonConstructor = typeof mapsApi.Polygon === "function" ? mapsApi.Polygon : library?.Polygon;
         if (typeof MapConstructor !== "function" || typeof BoundsConstructor !== "function" || typeof PolygonConstructor !== "function") {
-          setMapError(true);
+          if (renderRetry < 3) setRenderRetry((value) => value + 1);
+          else setMapError(true);
           return;
         }
         const map = new MapConstructor(containerRef.current!, {
@@ -143,14 +172,17 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
         });
         map.fitBounds?.(bounds);
       } catch {
-        if (!cancelled) setMapError(true);
+        if (!cancelled) {
+          if (renderRetry < 3) setRenderRetry((value) => value + 1);
+          else setMapError(true);
+        }
       }
     }
     void renderMap();
     return () => {
       cancelled = true;
     };
-  }, [areaPaths, loaded]);
+  }, [areaPaths, loaded, renderRetry]);
 
   if (!browserKey || areaPaths.length === 0) {
     return (
