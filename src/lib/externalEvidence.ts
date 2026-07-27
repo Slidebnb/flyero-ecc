@@ -7,7 +7,7 @@ import { normalizeExtension, storeDocumentFile, protectedDocumentUrl, type Uploa
 import { notifyAdmins } from "@/lib/notifications";
 import { Permission, hasPermission, requirePermission } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { generateOnlineReportUrl, generateReportNumber, publishReport } from "@/lib/reports";
+import { generateOnlineReportUrl, generatePdf, generateReportNumber, publishReport } from "@/lib/reports";
 import { requireActiveTenantMembership, tenantWhereForSession } from "@/lib/tenantPolicy";
 
 const evidenceTypeSchema = z.enum(["GPS_PDF", "GPS_FILE", "PHOTO", "OTHER"]);
@@ -325,7 +325,11 @@ export async function prepareExternalReportForOrder(input: {
       verificationCode: `VRF-${randomUUID().slice(0, 12).toUpperCase()}`,
     },
   });
-  await prisma.report.update({ where: { id: report.id }, data: { onlineUrl: generateOnlineReportUrl(report.id) } });
+  const pdf = await generatePdf(report.id);
+  const updatedReport = await prisma.report.update({
+    where: { id: report.id },
+    data: { onlineUrl: generateOnlineReportUrl(report.id), pdfUrl: pdf.pdfUrl, checksum: pdf.checksum },
+  });
   await createAuditLog({
     userId: input.actor.id,
     action: "external_report.prepared",
@@ -338,7 +342,7 @@ export async function prepareExternalReportForOrder(input: {
     title: "Externer Verteilnachweis vorbereitet",
     message: `${order.orderNumber}: GPS-Nachweis wurde für die Prüfung vorbereitet.`,
   });
-  return report;
+  return updatedReport;
 }
 
 export async function publishExternalReport(input: { actor: SessionUser; reportId: string }) {

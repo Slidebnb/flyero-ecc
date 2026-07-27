@@ -30,13 +30,14 @@ services:
       interval: 30s
       timeout: 5s
       retries: 5
-      start_period: 20s
+      start_period: 2m
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - app_storage:/app/storage
       - app_generated:/app/storage/generated
+      - clamav_data:/var/lib/clamav
     expose:
       - "3000"
 
@@ -58,5 +59,6 @@ volumes:
   postgres_data:
   app_storage:
   app_generated:
+  clamav_data:
   caddy_data:
   caddy_config:

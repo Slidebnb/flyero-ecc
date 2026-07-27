@@ -12,7 +12,7 @@ ARG NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED="false"
 ENV NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED=$NEXT_PUBLIC_GOOGLE_MAPS_BOUNDARIES_ENABLED
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl ca-certificates clamav \
+  && apt-get install -y --no-install-recommends openssl ca-certificates clamav clamav-freshclam \
   && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g npm@11.6.2
@@ -24,9 +24,10 @@ RUN npm ci
 ARG DEPLOY_SHA=local
 RUN test -n "$DEPLOY_SHA"
 COPY . .
+RUN test -f scripts/start-production.sh
 RUN npm run prisma:generate
 RUN npm run build
 
 ENV NODE_ENV=production
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+CMD ["sh", "/app/scripts/start-production.sh"]

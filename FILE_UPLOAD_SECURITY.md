@@ -27,6 +27,10 @@ Der Scanner muss auf dem Produktionshost bzw. im Container installiert, regelmä
 
 `FileScanStatus` wird an Dokumenten und Foto-Nachweisen gespeichert. Freigaben und Kunden-Sichtbarkeit werden serverseitig geprüft. Scanmeldungen enthalten keine Datei-Inhalte oder Secrets. Die privaten Storage-Keys werden nicht als öffentliche URLs ausgegeben.
 
+## Produktionsbetrieb
+
+Im Produktionscontainer installiert `clamav-freshclam` die Signaturen beim Start, wenn noch keine Datenbank vorhanden ist. Die Signaturen liegen im persistenten Volume `clamav_data` unter `/var/lib/clamav` und werden bei weiteren Starts aktualisiert. Wenn die erste Initialisierung fehlschlaegt oder danach keine `.cvd`-/`.cld`-Datei vorhanden ist, startet die Anwendung nicht. So kann `FILE_SCAN_MODE=required` nicht unbemerkt ohne wirksame Signaturdatenbank laufen.
+
 ## Noch offen
 
 - Altbestände müssen bewertet und gegebenenfalls nachgescannt werden.

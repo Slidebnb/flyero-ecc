@@ -148,6 +148,7 @@
     "test:payment-confirmation-email": "node --experimental-strip-types tests/payment-confirmation-email-smoke.mjs",
     "test:payment-dispute": "node --experimental-strip-types tests/payment-dispute-smoke.mjs",
     "test:file-scan": "node --experimental-strip-types tests/file-scan-smoke.mjs",
+    "test:clamav-production": "node tests/clamav-production-smoke.mjs",
     "test:tenant-policy": "node --experimental-strip-types tests/tenant-policy-smoke.mjs",
     "test:retention": "node -r dotenv/config tests/retention-smoke.mjs",
     "test:retention-hold": "node tests/retention-hold-smoke.mjs",
@@ -237,6 +238,7 @@
     "test:area-data-import": "node -r dotenv/config tests/area-data-import-smoke.mjs",
     "test:distribution-reports": "node -r dotenv/config tests/distribution-reports-smoke.mjs",
     "test:external-distribution-report": "node -r dotenv/config tests/external-distribution-report-smoke.mjs",
+    "test:external-report-pdf": "node tests/external-report-pdf-smoke.mjs",
     "test:beta": "node -r dotenv/config tests/beta-e2e-smoke.mjs",
     "visual:marketing": "node tests/visual-marketing.mjs"
   },
