@@ -95,7 +95,7 @@ export function PublicFooter() {
       <div className="mkFooterBrand">
         <FlyeroLogo />
         <p>Flyerverteilung mit GPS-Nachweis, Foto-Dokumentation und Kundenbericht.</p>
-        <a className="mkFooterEmail" href="mailto:hallo@flyero.org">hallo@flyero.org</a>
+        <span className="mkFooterEmail">hallo@flyero.org</span>
         <p className="mkFooterTrust">
           Für Unternehmen, Vereine und lokale Kampagnen, die nicht nur verteilt, sondern sauber belegt werden sollen.
         </p>
@@ -265,7 +265,7 @@ export function TrustBadge({ children, icon: Icon = ShieldCheck }: { children: R
 
 export function HeroVisual() {
   return (
-    <div className="mkHeroVisual" aria-label="FLYERO Prozess der Nachweiserstellung">
+    <div className="mkHeroVisual" aria-label="FLYERO Ablauf bis zum Bericht">
       <ProcessPreview />
     </div>
   );
@@ -276,7 +276,7 @@ export function ProcessPreview() {
     ["01", "Gebiet geplant", "Gebiet und Menge werden vorab festgelegt."],
     ["02", "Flyer bereit", "Bereits gedruckte Flyer werden dem Auftrag zugeordnet."],
     ["03", "Verteilung durchgeführt", "Die operative Durchführung wird dokumentiert."],
-    ["04", "Nachweise geprüft", "GPS-Bericht, Fotos und Angaben werden intern geprüft."],
+    ["04", "Nachweise geprüft", "GPS-Bericht, Fotos und Angaben werden durch FLYERO geprüft."],
     ["05", "Bericht folgt", "Nach der Prüfung erscheint der Bericht im Kundenkonto."],
   ] as const;
 
@@ -284,7 +284,7 @@ export function ProcessPreview() {
     <div className="mkProcessPreview" aria-label="FLYERO Nachweisablauf">
       <div className="mkProofBrand">
         <FlyeroLogo dark />
-        <span>Nachweisprozess</span>
+        <span>So entsteht dein Bericht</span>
       </div>
       <p className="mkProcessPreviewDisclosure">So bleibt deine Verteilung nachvollziehbar</p>
       <div className="mkProcessPreviewList">
@@ -310,10 +310,10 @@ export function ProofStatusPanel() {
   ] as const;
 
   return (
-    <div className="mkProofStatusPanel" aria-label="Nachweisablauf bei FLYERO">
+    <div className="mkProofStatusPanel" aria-label="Deine Nachweise bei FLYERO">
       <div className="mkProofStatusHeader">
         <FlyeroLogo dark />
-        <span>Nachweisablauf</span>
+        <span>Deine Nachweise</span>
       </div>
       <div className="mkProofStatusIntro">
         <span className="mkProofStatusKicker">Noch kein Nachweis</span>

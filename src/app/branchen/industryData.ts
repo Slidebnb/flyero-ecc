@@ -68,7 +68,7 @@ export const industryPages: IndustryPageData[] = [
     intro: "Für Fitnessangebote zählt die Nähe. Mit FLYERO definieren Sie Ihr gewünschtes Gebiet, sehen die Berechnung für die konkrete Auswahl und erhalten nach der Durchführung einen nachvollziehbaren Abschluss.",
     campaignExamples: ["Probetraining und Mitgliedschaft", "Kursstart oder Studio-Eröffnung", "Gesundheits-, Reha- oder Personal-Training-Angebote"],
     planningNote: "Kombinieren Sie Stadtteile, Nachbarorte oder einzelne Gebiete, wenn Ihre Zielgruppe über mehrere Standorte verteilt ist.",
-    proofNote: "GPS-Bericht, Foto-Dokumentation und PDF-Verteilbericht werden erst nach der echten Durchführung und internen Prüfung sichtbar.",
+    proofNote: "GPS-Bericht, Foto-Dokumentation und PDF-Verteilbericht werden erst nach der echten Durchführung und Prüfung durch FLYERO sichtbar.",
     faq: [
       { question: "Kann ich eine Aktion für mehrere Studios planen?", answer: "Ja. Mehrere Teilgebiete können in einer Kampagne getrennt erfasst werden. Das erleichtert die Zuordnung und spätere Auswertung." },
       { question: "Wie wird die Flyeranzahl festgelegt?", answer: "Die Empfehlung basiert auf dem ausgewählten Gebiet. Sie können die Menge anschließend selbst anpassen; der Preis wird serverseitig neu berechnet." },
@@ -104,7 +104,7 @@ export const industryPages: IndustryPageData[] = [
     intro: "Immobilienkampagnen brauchen eine nachvollziehbare regionale Auswahl. FLYERO verbindet Gebietsplanung mit einem klaren Auftrag, eigener Flyeranlieferung und späterem Verteilbericht.",
     campaignExamples: ["Neubauprojekt und Grundstücke", "Tag der offenen Tür und Besichtigung", "Vermietung, Verkauf oder Maklerstandort"],
     planningNote: "Legen Sie mehrere Teilgebiete rund um ein Projekt oder mehrere Objekte an. Die Flächen und Berechnungen bleiben je Gebiet nachvollziehbar.",
-    proofNote: "Nach der internen Prüfung kann der Kunde den Bericht mit Zeitraum, dokumentierter Menge, GPS-Nachweis und freigegebenen Fotos abrufen.",
+    proofNote: "Nach der Prüfung durch FLYERO kann der Kunde den Bericht mit Zeitraum, dokumentierter Menge, GPS-Nachweis und freigegebenen Fotos abrufen.",
     faq: [
       { question: "Kann eine Kampagne mehrere Bauprojekte enthalten?", answer: "Ja. Mehrere Teilgebiete können getrennt benannt und gemeinsam gebucht oder zunächst angefragt werden." },
       { question: "Werden private Adressdaten im Bericht veröffentlicht?", answer: "Nein. Kunden sehen nur die freigegebenen, für den Bericht notwendigen Informationen. Interne Rohdaten bleiben geschützt." },
@@ -137,7 +137,7 @@ export const industryPages: IndustryPageData[] = [
     description: "Flyerverteilung für Veranstaltungen, Vereine und lokale Initiativen: Termine, Feste und Mitgliederwerbung im passenden Gebiet bekannt machen.",
     keywords: ["Flyerverteilung Event", "Veranstaltung Flyer verteilen", "Verein Mitgliederwerbung Flyer"],
     heroLead: "Machen Sie Ihre Veranstaltung dort sichtbar, wo Besucher, Nachbarn und neue Mitglieder erreicht werden sollen.",
-    intro: "Events haben einen festen Termin und Vereine arbeiten häufig in einem klaren lokalen Umfeld. FLYERO unterstützt die Gebietsplanung mit ausreichend Vorlauf und einem geordneten Nachweisprozess.",
+    intro: "Events haben einen festen Termin und Vereine arbeiten häufig in einem klaren lokalen Umfeld. FLYERO unterstützt die Gebietsplanung mit ausreichend Vorlauf und einem geordneten Abschlussbericht.",
     campaignExamples: ["Stadtfest, Konzert oder Markt", "Sportveranstaltung und Vereinsfest", "Mitgliederwerbung und Saisonstart"],
     planningNote: "Geben Sie den gewünschten Zeitraum frühzeitig an. Bei mehreren Veranstaltungsorten können die Teilgebiete getrennt geplant werden.",
     proofNote: "Der Bericht beschreibt die dokumentierte Durchführung. Er ersetzt keine Einzelbestätigung jedes Briefkastens und macht diese Grenze transparent.",

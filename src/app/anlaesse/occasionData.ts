@@ -28,7 +28,7 @@ export const occasionPages: IndustryPageData[] = [
     description: "Flyer für Events und Veranstaltungen planen: Zielgebiet wählen, eigene Flyer anliefern und die Verteilung nach dem Termin nachvollziehbar abschließen.",
     keywords: ["Flyer für Events", "Event Flyer verteilen", "Veranstaltung Flyer Werbung"],
     heroLead: "Konzert, Stadtfest oder Vereinsveranstaltung: Bringen Sie Ihren Termin in die Umgebung, in der Besucher erreicht werden sollen.",
-    intro: "Veranstaltungen haben einen festen Termin und brauchen deshalb klare Planung. FLYERO verbindet die Gebietsentscheidung mit einem transparenten Auftrag und einem späteren Nachweisprozess.",
+    intro: "Veranstaltungen haben einen festen Termin und brauchen deshalb klare Planung. FLYERO verbindet die Gebietsentscheidung mit einem transparenten Auftrag und einem verständlichen Abschlussbericht.",
     campaignExamples: ["Konzert, Markt oder Stadtfest", "Sportveranstaltung und Vereinsfest", "Einladung, Vorverkauf oder Saisonstart"],
     planningNote: "Geben Sie den gewünschten Zeitraum frühzeitig an. Bei mehreren Veranstaltungsorten können die Teilgebiete getrennt geplant werden.",
     proofNote: "Der Bericht beschreibt die dokumentierte Durchführung. Er ersetzt keine Einzelbestätigung jedes Briefkastens und macht diese Grenze transparent.",
@@ -66,7 +66,7 @@ export const occasionPages: IndustryPageData[] = [
     heroLead: "Saisonale Angebote brauchen Timing. Planen Sie die Verteilung mit Vorlauf und stimmen Sie Gebiet und Menge auf Ihre Aktion ab.",
     intro: "Ob Saisonstart, Weihnachtsgeschäft oder Ferienaktion: Der Zeitraum ist Teil der Kampagne. FLYERO hält Gebiet, Menge und geplante Durchführung in einem verständlichen Ablauf zusammen.",
     campaignExamples: ["Frühjahrs- und Sommeraktion", "Weihnachts- und Winterangebote", "Ferien-, Schulanfangs- oder Ernteaktion"],
-    planningNote: "Wählen Sie den gewünschten Zeitraum frühzeitig. Der Start ist abhängig von Gebiet, Anlieferung und interner Prüfung und wird im Auftrag klar angezeigt.",
+    planningNote: "Wählen Sie den gewünschten Zeitraum frühzeitig. Der Start ist abhängig von Gebiet, Anlieferung und Prüfung durch FLYERO und wird im Auftrag klar angezeigt.",
     proofNote: "Der Kundenbericht trennt Planung und dokumentierte Durchführung. Er enthält nur freigegebene Nachweise und keine pauschalen Briefkasten-Garantien.",
     faq: [
       { question: "Wie viel Vorlauf sollte ich für eine Saisonaktion einplanen?", answer: "Planen Sie den Zeitraum frühzeitig, damit Flyer ankommen und Gebiet sowie Durchführung geprüft werden können. Der Auftrag zeigt den frühestmöglichen Start." },

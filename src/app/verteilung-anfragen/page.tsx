@@ -55,7 +55,7 @@ export default function DistributionRequestPage() {
             </span>
             <h3>Direkt online buchen</h3>
             <p>
-              Gebiet wählen, Flyerzahl sehen, Preis prüfen und direkt bezahlen. FLYERO prüft Gebiet und Druckdaten final.
+              Gebiet wählen, Flyerzahl sehen, Preis prüfen und direkt bezahlen. FLYERO prüft Gebiet und Unterlagen.
             </p>
             <ul>
               <li>Verteilgebiet wählen</li>
@@ -87,7 +87,7 @@ export default function DistributionRequestPage() {
             </span>
             <h3>Unverbindlich anfragen</h3>
             <p>
-              Wir prüfen Ihr Gebiet und melden uns mit einer Rückmeldung zu Preis, Ablauf und Druckdaten.
+              Wir prüfen Ihr Gebiet und melden uns mit einer Rückmeldung zu Preis, Ablauf und den benötigten Unterlagen.
             </p>
             <LeadForm source="verteilung-anfragen" inquiry />
           </article>

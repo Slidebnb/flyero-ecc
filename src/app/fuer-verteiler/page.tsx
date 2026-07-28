@@ -16,21 +16,21 @@ import { createSeoMetadata } from "@/app/seo";
 export const metadata = createSeoMetadata({
   title: "Als Verteiler bei FLYERO starten",
   description:
-    "Als Verteiler registrieren, Aufträge annehmen, Flyer per QR-Code abholen und Nachweise strukturiert dokumentieren.",
+    "Als Verteiler registrieren, Aufträge annehmen, Flyer im Lager abholen und Nachweise strukturiert dokumentieren.",
   path: "/fuer-verteiler",
   keywords: ["Flyer verteilen Job", "Verteiler werden", "Nebenjob Flyer verteilen"],
 });
 
 const workItems = [
   ["Touren annehmen", "Freigegebene Verteiler sehen passende Aufträge und nehmen Touren strukturiert an.", defaultProofIcons.bag],
-  ["Pickup dokumentieren", "Flyer werden per QR-Code im Lager abgeholt und dem Auftrag zugeordnet.", defaultProofIcons.report],
+  ["Abholung dokumentieren", "Flyer werden im Lager abgeholt und dem Auftrag zugeordnet.", defaultProofIcons.report],
   ["GPS-Nachweis sichern", "Im MVP wird ein externer GPS-Bericht oder geprüfter Tournachweis dem Auftrag zugeordnet.", defaultProofIcons.gps],
   ["Fotos ergänzen", "Foto-Nachweise werden strukturiert erfasst und vor Kundenfreigabe geprüft.", defaultProofIcons.camera],
 ] as const;
 
 const steps = [
   ["Profil anlegen", "Daten, Gebiet und Verfügbarkeit eintragen."],
-  ["Prüfung abwarten", "Das Admin-Team schaltet passende Verteiler frei."],
+  ["Prüfung abwarten", "FLYERO schaltet passende Verteiler nach der Prüfung frei."],
   ["Auftrag annehmen", "Tourdetails prüfen und verbindlich übernehmen."],
   ["Nachweise liefern", "Externen GPS-Bericht, Fotos und Ist-Werte vollständig übergeben."],
   ["Abschluss melden", "Tour beenden und Prüfung auslösen."],
@@ -46,8 +46,8 @@ export default function DistributorPage() {
             <p className="mkEyebrow">Für Verteiler</p>
             <h1 id="distributor-hero-title">Flexibel verteilen. Sauber dokumentieren.</h1>
             <p className="mkHeroLead">
-              Verteiler erhalten passende Touren, holen Flyer per QR-Code ab und liefern die Nachweise
-              sauber für die Admin-Prüfung. Vor Freischaltung wird jedes Profil geprüft.
+              Verteiler erhalten passende Touren, holen Flyer im Lager ab und liefern die Nachweise
+              sauber für die Prüfung durch FLYERO. Vor der Freischaltung wird jedes Profil geprüft.
             </p>
             <div className="mkHeroActions">
               <MarketingButton href="/register/distributor">Als Verteiler registrieren</MarketingButton>
@@ -56,7 +56,7 @@ export default function DistributorPage() {
             <div className="mkTrustRow">
               <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweise</TrustBadge>
               <TrustBadge icon={defaultProofIcons.camera}>Foto-Nachweise</TrustBadge>
-              <TrustBadge icon={defaultProofIcons.shield}>Admin-Prüfung</TrustBadge>
+              <TrustBadge icon={defaultProofIcons.shield}>Prüfung durch FLYERO</TrustBadge>
             </div>
           </div>
           <ProcessPreview />

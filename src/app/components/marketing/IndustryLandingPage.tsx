@@ -68,7 +68,7 @@ export function IndustryLandingPage({ page }: { page: IndustryPageData }) {
               <p>{page.intro}</p>
               <div className="mkIndustryAsideLine"><Check aria-hidden="true" /> Gebiet passend zum Vorhaben</div>
               <div className="mkIndustryAsideLine"><Check aria-hidden="true" /> Bereits gedruckte Flyer anliefern</div>
-              <div className="mkIndustryAsideLine"><Check aria-hidden="true" /> Nachweise nach Prüfung im Portal</div>
+              <div className="mkIndustryAsideLine"><Check aria-hidden="true" /> Bericht nach Prüfung im Portal</div>
             </aside>
           </div>
         </MarketingContainer>
@@ -120,9 +120,9 @@ export function IndustryLandingPage({ page }: { page: IndustryPageData }) {
             <p>{page.proofNote}</p>
           </div>
           <div className="mkIndustryProofList">
-            <p><ReceiptText aria-hidden="true" /><span><strong>GPS-Nachweis</strong><small>des eingesetzten Trackingsystems</small></span></p>
+            <p><ReceiptText aria-hidden="true" /><span><strong>GPS-Nachweis</strong><small>aus dem eingesetzten GPS-Gerät</small></span></p>
             <p><CameraIcon aria-hidden="true" /><span><strong>Foto-Dokumentation</strong><small>nur freigegebene Aufnahmen</small></span></p>
-            <p><ReceiptText aria-hidden="true" /><span><strong>PDF-Verteilbericht</strong><small>nach interner Prüfung</small></span></p>
+            <p><ReceiptText aria-hidden="true" /><span><strong>PDF-Verteilbericht</strong><small>nach Prüfung durch FLYERO</small></span></p>
           </div>
         </div>
       </MarketingSection>

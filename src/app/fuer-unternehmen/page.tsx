@@ -25,7 +25,7 @@ export const metadata = createSeoMetadata({
 });
 
 const reasons = [
-  ["Mehr Transparenz", "GPS-Bericht, Fotos und Admin-Prüfung ersetzen Bauchgefühl.", defaultProofIcons.gps],
+  ["Mehr Transparenz", "GPS-Bericht, Fotos und die Prüfung durch FLYERO ersetzen Bauchgefühl.", defaultProofIcons.gps],
   ["Weniger Abstimmung", "Auftrag, Zahlung, Lager und Bericht laufen strukturiert zusammen.", defaultProofIcons.bag],
   ["Besserer Abschluss", "Kunden erhalten Nachweis, PDF und Rechnung im Portal.", defaultProofIcons.report],
 ] as const;
@@ -57,7 +57,7 @@ export default function BusinessPage() {
             <p className="mkEyebrow">Für Unternehmen</p>
             <h1 id="business-hero-title">Lokale Kampagnen mit klarer Kontrolle.</h1>
             <p className="mkHeroLead">
-              FLYERO verbindet digitale Auftragserstellung, sichere Zahlung, Lagerprozess,
+              FLYERO verbindet digitale Auftragserstellung, sichere Zahlung, Flyer-Anlieferung,
               geprüfte Verteiler und Abschlussbericht in einem nachvollziehbaren Ablauf.
             </p>
             <div className="mkHeroActions">

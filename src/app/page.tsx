@@ -35,8 +35,8 @@ const problems = [
 const solutions = [
   ["Gebietsauswahl", "PLZ, Ort oder Wunschgebiet sauber planen und im Auftrag speichern.", defaultProofIcons.gps],
   ["Online-Zahlung", "Preis und Auftrag vor der Buchung transparent prüfen.", defaultProofIcons.report],
-  ["Lager & QR", "Flyer einchecken, Ware zuordnen und Abholung nachvollziehbar machen.", defaultProofIcons.bag],
-  ["GPS-Nachweis", "Externe GPS-Berichte oder geprüfte Tourdaten werden dem Auftrag zugeordnet.", defaultProofIcons.gps],
+  ["Flyer im Lager", "Flyer an das zugewiesene Lager senden und die Anlieferung nachvollziehen.", defaultProofIcons.bag],
+  ["GPS-Nachweis", "GPS-Berichte und Angaben zur Verteilung werden dem Auftrag zugeordnet.", defaultProofIcons.gps],
   ["Foto-Nachweise", "Bilder ergänzen Strecke, Zeit und Status der Verteilung.", defaultProofIcons.camera],
   ["PDF-Bericht", "Kunden erhalten einen geprüften Bericht mit Rechnung im Portal.", defaultProofIcons.report],
 ] as const;
@@ -59,7 +59,7 @@ const steps = [
 ] as const;
 
 const advantages = [
-  ["Ein Ablauf", "Auftrag, Zahlung, Lager, Dispatch und Bericht laufen im gleichen System."],
+  ["Ein Ablauf", "Auftrag, Zahlung, Lager und Bericht gehören übersichtlich zusammen."],
   ["Prüfbare Arbeit", "GPS-Bericht, Fotos und Zeiten machen die Verteilung nachvollziehbar."],
   ["Weniger Rückfragen", "Kunden sehen Status, Rechnung und Bericht zentral im Portal."],
   ["Skalierbar", "Deutschlandweit planen; Gebiet und Logistik werden je Auftrag geprüft."],
@@ -67,10 +67,10 @@ const advantages = [
 
 const faqs = [
   ["Muss ich mich registrieren, um anzufragen?", "Nein. Eine unverbindliche Anfrage ist öffentlich möglich. Für eine direkte Buchung und den späteren Bericht wird ein Kundenkonto benötigt."],
-  ["Wie entsteht der Nachweis?", "Im MVP nutzt FLYERO professionelle GPS-Trackingsysteme. Der externe GPS-Bericht, Fotos und Ist-Werte werden danach durch das Admin-Team geprüft."],
+  ["Wie entsteht der Nachweis?", "FLYERO nutzt professionelle GPS-Geräte. Der GPS-Bericht, Fotos und tatsächliche Angaben werden danach durch FLYERO geprüft."],
   ["Kann ich Druck und Verteilung zusammen buchen?", getPublicPrintMessage()],
   ["Wie schnell kann eine Verteilung starten?", "Das hängt von Gebiet, Auflage, Druckdaten und Verfügbarkeit der Verteiler ab. Für einfache Kampagnen kann die Planung kurzfristig starten, sobald Daten und Gebiet klar sind."],
-  ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Der Nachweis besteht aus dem GPS-Bericht des eingesetzten Trackingsystems, Foto-Dokumentation und einem geprüften Bericht, sobald die Verteilung freigegeben wurde."],
+  ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Der Nachweis besteht aus dem GPS-Bericht des eingesetzten GPS-Geräts, Foto-Dokumentation und einem geprüften Bericht, sobald die Verteilung freigegeben wurde."],
   ["Kann ich den Preis vorher sehen?", "Ja. Bei der direkten Online-Buchung werden Gebiet, Menge und Zeitraum vor der Zahlung geprüft."],
   ["Ist FLYERO nur für eine Region gedacht?", "Nein. Sie können Gebiete in ganz Deutschland planen. Ob eine direkte Durchführung möglich ist, prüfen wir je Gebiet und Logistik."],
 ] as const;
@@ -170,7 +170,7 @@ export default function HomePage() {
       <MarketingSection
         eyebrow="Ablauf"
         title="In fünf Schritten zur dokumentierten Verteilung."
-        intro="Einfach genug für Kunden. Strukturiert genug für Lager, Verteiler und Admin-Prüfung."
+        intro="Einfach genug für Kunden. Klar genug für Lager, Verteiler und die Prüfung durch FLYERO."
       >
         <ol className="mkProcessList">
           {steps.map(([title, text], index) => {

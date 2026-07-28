@@ -38,7 +38,7 @@ const priceDetails = [
   ["Marginale Staffel", "Die aktuelle Flyer-Staffel wird aus den aktiven FLYERO-Preisregeln geladen."],
   ["Gebiet", "PLZ, Ort oder gezeichnete Fläche bestimmen Planung, Aufwand und Zustellbarkeit."],
   ["Zeitfenster", "Standardverteilung, enge Termine oder Expresswünsche verändern die operative Planung."],
-  ["Nachweis", "GPS-Spur, Foto-Dokumentation, Admin-Prüfung und PDF-Bericht sind Teil des Qualitätsprozesses."],
+  ["Nachweis", "GPS-Spur, Foto-Dokumentation, Prüfung durch FLYERO und PDF-Bericht gehören zum Qualitätsversprechen."],
 ] as const;
 
 function PricingUnavailablePage() {
@@ -94,7 +94,7 @@ export default async function PricingPage() {
           : `Ab ${rule.minQuantity.toLocaleString("de-DE")} Flyern: ${formatNet(rule.pricePerUnit)} je zusätzlichem Flyer.`).join(" ")],
         ["Gebiet", "PLZ, Ort oder gezeichnete Fläche bestimmen Planung, Aufwand und Zustellbarkeit."],
         ["Zeitfenster", "Standardverteilung, enge Termine oder Expresswünsche verändern die operative Planung."],
-        ["Nachweis", "GPS-Spur, Foto-Dokumentation, Admin-Prüfung und PDF-Bericht sind Teil des Qualitätsprozesses."],
+        ["Nachweis", "GPS-Spur, Foto-Dokumentation, Prüfung durch FLYERO und PDF-Bericht gehören zum Qualitätsversprechen."],
       ]
     : priceDetails;
   return (

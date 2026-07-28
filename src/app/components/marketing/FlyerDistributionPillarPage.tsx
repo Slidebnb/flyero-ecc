@@ -42,7 +42,7 @@ export function FlyerDistributionPillarPage() {
               <ol>
                 <li><span>01</span><strong>Gebiet auswählen</strong><small>PLZ, Ort, Karte oder mehrere Teilgebiete.</small></li>
                 <li><span>02</span><strong>Flyer anliefern</strong><small>Eigene, bereits gedruckte Flyer zum passenden Lager senden.</small></li>
-                <li><span>03</span><strong>Verteilung prüfen</strong><small>Nach der Durchführung werden Nachweise geprüft und veröffentlicht.</small></li>
+                <li><span>03</span><strong>Nachweis erhalten</strong><small>Nach der Durchführung stellt FLYERO die freigegebenen Unterlagen bereit.</small></li>
               </ol>
             </aside>
           </div>
@@ -60,7 +60,7 @@ export function FlyerDistributionPillarPage() {
             <li><span>01</span><div><strong>Gebiet festlegen</strong><small>Deutschlandweit anfragen, mehrere Teilgebiete möglich.</small></div><MapPinned aria-hidden="true" /></li>
             <li><span>02</span><div><strong>Flyer bereitstellen</strong><small>Eigene, bereits gedruckte Flyer an das zugewiesene Lager senden.</small></div><PackageCheck aria-hidden="true" /></li>
             <li><span>03</span><div><strong>Verteilung beauftragen</strong><small>Direkt online buchen oder zuerst eine Rückmeldung erhalten.</small></div><Check aria-hidden="true" /></li>
-            <li><span>04</span><div><strong>Nachweis erhalten</strong><small>GPS-Bericht, Fotos und PDF-Bericht erst nach echter Prüfung.</small></div><ShieldCheck aria-hidden="true" /></li>
+            <li><span>04</span><div><strong>Nachweis erhalten</strong><small>GPS-Bericht, Fotos und PDF-Bericht nach Prüfung durch FLYERO.</small></div><ShieldCheck aria-hidden="true" /></li>
           </ol>
         </div>
       </MarketingSection>
@@ -81,12 +81,12 @@ export function FlyerDistributionPillarPage() {
           <div>
             <FlyeroLogo dark />
             <h3>Was im Kundenkonto sichtbar wird.</h3>
-            <p>FLYERO zeigt nur Unterlagen, die nach der Verteilung tatsächlich vorliegen und intern geprüft wurden. Keine erfundenen Routen, keine vorweggenommenen Ergebnisse.</p>
+            <p>FLYERO zeigt nur Unterlagen, die nach der Verteilung tatsächlich vorliegen und geprüft wurden. Keine erfundenen Routen, keine vorweggenommenen Ergebnisse.</p>
           </div>
           <ul>
-            <li><ReceiptText aria-hidden="true" /><span><strong>GPS-Nachweis</strong><small>des eingesetzten Trackingsystems</small></span></li>
+            <li><ReceiptText aria-hidden="true" /><span><strong>GPS-Nachweis</strong><small>aus dem eingesetzten GPS-Gerät</small></span></li>
             <li><ReceiptText aria-hidden="true" /><span><strong>Foto-Dokumentation</strong><small>nur freigegebene Aufnahmen</small></span></li>
-            <li><ReceiptText aria-hidden="true" /><span><strong>PDF-Verteilbericht</strong><small>nach interner Prüfung</small></span></li>
+            <li><ReceiptText aria-hidden="true" /><span><strong>PDF-Verteilbericht</strong><small>nach Prüfung durch FLYERO</small></span></li>
           </ul>
         </div>
       </MarketingSection>
@@ -112,8 +112,8 @@ export function FlyerDistributionPillarPage() {
         <div className="mkIndustryFaqList">
           <FAQItem question="Kann ich Flyer direkt online buchen?" answer="Ja. Sie wählen das Gebiet, geben die Menge und den Zeitraum an und können die Buchung online abschließen. Gebietsdaten und Durchführbarkeit werden von FLYERO final geprüft." />
           <FAQItem question="Kann ich zunächst nur unverbindlich anfragen?" answer="Ja. Wenn Gebiet, Termin oder Menge noch abgestimmt werden sollen, senden Sie eine unverbindliche Anfrage ohne direkte Zahlung." />
-          <FAQItem question="Druckt FLYERO meine Flyer?" answer="Der Onlineprozess ist auf eigene, bereits gedruckte Flyer ausgelegt. Sie erhalten nach der Buchung die Information, an welches Lager die Flyer gesendet werden sollen. Ein möglicher Druckservice wird separat über FLYERO besprochen." />
-          <FAQItem question="Wie sehe ich, was tatsächlich passiert ist?" answer="Nach der Verteilung lädt FLYERO die vorliegenden Nachweise hoch, prüft sie intern und veröffentlicht sie anschließend im Kundenkonto. Dort sehen Sie den freigegebenen GPS-Nachweis, Fotos und den PDF-Bericht." />
+          <FAQItem question="Druckt FLYERO meine Flyer?" answer="Nein, der Onlineprozess ist auf eigene, bereits gedruckte Flyer ausgelegt. Nach der Buchung sehen Sie, an welches Lager die Flyer gesendet werden sollen. Einen Druckservice besprechen wir separat." />
+          <FAQItem question="Wie sehe ich, was tatsächlich passiert ist?" answer="Nach der Verteilung lädt FLYERO die vorliegenden Nachweise hoch, prüft sie und stellt sie anschließend im Kundenkonto bereit. Dort sehen Sie den freigegebenen GPS-Nachweis, Fotos und den PDF-Bericht." />
         </div>
       </MarketingSection>
 

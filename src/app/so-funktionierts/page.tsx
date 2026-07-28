@@ -27,12 +27,12 @@ const steps = [
   ["Flyer bereitstellen", "Bereits gedruckte Flyer an das ausgewählte Lager senden."],
   ["Online bezahlen", "Preis, Zeitraum und Menge prüfen."],
   ["GPS-Nachweis", "Externen GPS-Bericht, Fotos und Ist-Werte prüfen."],
-  ["Bericht erhalten", "Admin-Prüfung, PDF, Fotos und Rechnung abrufen."],
+  ["Bericht erhalten", "Prüfung durch FLYERO, PDF, Fotos und Rechnung abrufen."],
 ] as const;
 
 const proof = [
-  ["Lager & QR", "Wareneingang und Abholung bleiben dem Auftrag zugeordnet.", defaultProofIcons.bag],
-  ["Tourdaten", "GPS-Bericht, Zeiten und Statusschritte werden für die Prüfung gespeichert.", defaultProofIcons.gps],
+  ["Flyer im Lager", "Anlieferung und Abholung bleiben dem Auftrag zugeordnet.", defaultProofIcons.bag],
+  ["Verteilnachweis", "GPS-Bericht, Zeiten und der Ablauf werden für die Prüfung gespeichert.", defaultProofIcons.gps],
   ["Kundenbericht", "Der Kunde erhält einen freigegebenen Bericht im Portal.", defaultProofIcons.report],
 ] as const;
 
@@ -47,7 +47,7 @@ export default function HowItWorksPage() {
             <h1 id="flow-hero-title">Ein klarer Prozess vom Auftrag bis zum Bericht.</h1>
             <p className="mkHeroLead">
               FLYERO führt Kunden Schritt für Schritt durch die Verteilung: von der Gebietsauswahl
-              über Lager und Dispatch bis zum geprüften Nachweis.
+              über die Anlieferung bis zum geprüften Nachweis.
             </p>
             <div className="mkHeroActions">
               <MarketingButton href="/verteilung-anfragen">Verteilung anfragen</MarketingButton>
