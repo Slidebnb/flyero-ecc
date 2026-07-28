@@ -6,6 +6,9 @@ import "dotenv/config";
 
 const baseUrl = process.env.PRICING_ADMIN_PROPAGATION_BASE_URL || "http://localhost:3000";
 const password = "DemoPasswort123!";
+const dateOnly = (date) => date.toISOString().slice(0, 10);
+const preferredStartDate = dateOnly(new Date(Date.now() + 10 * 24 * 60 * 60 * 1000));
+const preferredEndDate = dateOnly(new Date(Date.now() + 17 * 24 * 60 * 60 * 1000));
 let child = null;
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
@@ -100,8 +103,8 @@ function orderPayload(completionPath = "inquiry") {
     flyerSource: "CUSTOMER_OWN",
     printDataStatus: "UPLOAD_LATER",
     completionPath,
-    preferredStartDate: "2026-08-03",
-    preferredEndDate: "2026-08-10",
+    preferredStartDate,
+    preferredEndDate,
     flexibleScheduling: true,
     contactPerson: "Pricing Smoke",
     contactPhone: "+49 261 123456",
