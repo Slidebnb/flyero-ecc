@@ -112,6 +112,8 @@ export function PublicFooter() {
       <FooterColumn
         title="Starten"
         links={[
+          ["Flyerverteilung", "/flyer-verteilen-lassen"],
+          ["Planung starten", "/verteilung-planen"],
           ["Verteilung anfragen", "/verteilung-anfragen"],
           ["Anfrageformular herunterladen", "/downloads/flyero-anfrageformular.pdf"],
           ["Kontakt", "/kontakt"],
@@ -159,7 +161,10 @@ function FooterColumn({ title, links }: { title: string; links: readonly (readon
 
 export function MarketingPage({ children }: { children: ReactNode }) {
   return (
-    <main className="mkShell flyeroPublic">
+    <main id="main-content" className="mkShell flyeroPublic" tabIndex={-1}>
+      <a className="mkSkipLink" href="#main-content">
+        Zum Inhalt springen
+      </a>
       <PublicNavbar />
       {children}
       <PublicFooter />

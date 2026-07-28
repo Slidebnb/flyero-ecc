@@ -49,7 +49,13 @@ export function MobileMenu({
       </button>
       {open ? <button type="button" className="flyeroMobileMenuBackdrop" aria-label="Menü schließen" onClick={closeMenu} /> : null}
       {open ? (
-        <div id="flyero-mobile-menu-panel" className="flyeroMobileMenuPanel" role="dialog" aria-label="Navigation">
+        <div
+          id="flyero-mobile-menu-panel"
+          className="flyeroMobileMenuPanel"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation"
+        >
           <nav>
             {items.map((item) => (
               <Link href={item.href} key={item.href} onClick={closeMenu}>

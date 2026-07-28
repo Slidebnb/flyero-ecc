@@ -31,7 +31,10 @@ export default async function PublicDistributionPlannerPage({ searchParams }: Pa
   });
 
   return (
-    <main className="orderExperienceShell publicPlannerShell">
+    <main id="main-content" className="orderExperienceShell publicPlannerShell" tabIndex={-1}>
+      <a className="mkSkipLink" href="#main-content">
+        Zum Inhalt springen
+      </a>
       <header className="orderExperienceTopbar publicPlannerTopbar">
         <div className="publicPlannerTitle">
           <strong>FLYERO</strong>

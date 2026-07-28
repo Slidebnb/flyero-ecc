@@ -5,6 +5,25 @@
     linear-gradient(180deg, #ffffff 0%, #f8fafc 52%, #ffffff 100%);
 }
 
+.mkSkipLink {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 100;
+  transform: translateY(-180%);
+  padding: 10px 14px;
+  border-radius: var(--flyero-radius-button);
+  background: var(--flyero-green);
+  color: var(--flyero-text);
+  font-weight: 850;
+  text-decoration: none;
+  transition: transform 160ms ease;
+}
+
+.mkSkipLink:focus {
+  transform: translateY(0);
+}
+
 .mkContainer {
   width: min(calc(100% - 48px), var(--flyero-container));
   margin: 0 auto;

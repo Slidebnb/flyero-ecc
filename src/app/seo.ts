@@ -15,9 +15,12 @@ type SeoInput = {
 
 export function createSeoMetadata({ title, description, path = "/", keywords = [] }: SeoInput): Metadata {
   const canonical = new URL(path, baseUrl).toString();
+  const socialImage = absoluteUrl("/marketing/flyero-hero-proof.png");
   return {
     title,
     description,
+    creator: siteName,
+    publisher: siteName,
     keywords: [
       "Flyerverteilung",
       "Flyer verteilen lassen",
@@ -34,11 +37,20 @@ export function createSeoMetadata({ title, description, path = "/", keywords = [
       siteName,
       locale: "de_DE",
       type: "website",
+      images: [
+        {
+          url: socialImage,
+          width: 1570,
+          height: 1001,
+          alt: "FLYERO Flyerverteilung mit Gebiet, Nachweisen und Kundenbericht",
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
+      images: [socialImage],
     },
   };
 }
@@ -51,6 +63,29 @@ export const siteMetadata: Metadata = {
   },
   description: "Flyerverteilung online anfragen, Gebiet planen, Auftrag buchen und Nachweise im Kundenportal erhalten.",
   applicationName: siteName,
+  creator: siteName,
+  publisher: siteName,
+  openGraph: {
+    type: "website",
+    locale: "de_DE",
+    siteName,
+    title: "FLYERO - Flyerverteilung mit Nachweis",
+    description: "Flyerverteilung online planen, buchen und mit GPS-Nachweis, Fotos und Kundenbericht dokumentieren.",
+    images: [
+      {
+        url: "/marketing/flyero-hero-proof.png",
+        width: 1570,
+        height: 1001,
+        alt: "FLYERO Flyerverteilung mit Gebiet, Nachweisen und Kundenbericht",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "FLYERO - Flyerverteilung mit Nachweis",
+    description: "Flyerverteilung online planen, buchen und mit GPS-Nachweis, Fotos und Kundenbericht dokumentieren.",
+    images: ["/marketing/flyero-hero-proof.png"],
+  },
   appleWebApp: {
     capable: true,
     title: "FLYERO Verteiler",
@@ -113,6 +148,8 @@ export function createJsonLd() {
         "@type": "Country",
         name: "Deutschland",
       },
+      email: "hallo@flyero.org",
+      telephone: "+49-2601-9131820",
       contactPoint: {
         "@type": "ContactPoint",
         contactType: "customer support",
