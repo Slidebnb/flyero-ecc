@@ -20,5 +20,8 @@ assert(marketing.includes('["Planung starten", "/verteilung-planen"]'), "Der dir
 assert(marketing.includes('className="mkSkipLink"') && marketing.includes('id="main-content"'), "Marketingseiten brauchen einen Skip-Link zum Hauptinhalt.");
 assert(planner.includes('className="mkSkipLink"') && planner.includes('id="main-content"'), "Der öffentliche Planer braucht ebenfalls einen Skip-Link zum Hauptinhalt.");
 assert(mobileMenu.includes('aria-modal="true"'), "Das mobile öffentliche Menü muss als modaler Dialog ausgezeichnet sein.");
+assert(marketing.includes('className="mkVisualFrame"'), "Der Hero braucht eine klar strukturierte Nachweis-Visualisierung.");
+assert(marketing.includes('className="mkProofStatusTimeline"'), "Die Nachweis-Visualisierung braucht eine eigene Status-Timeline.");
+assert(marketing.includes("Nur echte Unterlagen werden sichtbar."), "Die Nachweis-Visualisierung muss klar zwischen Planung und echten Unterlagen unterscheiden.");
 
 console.log("Public SEO/design-system smoke checks passed.");

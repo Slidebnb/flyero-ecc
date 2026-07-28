@@ -271,37 +271,66 @@ export function TrustBadge({ children, icon: Icon = ShieldCheck }: { children: R
 export function HeroVisual() {
   return (
     <div className="mkHeroVisual" aria-label="FLYERO Ablauf bis zum Bericht">
+      <div className="mkVisualFrame">
+        <div className="mkVisualFrameHeader">
+          <div className="mkVisualFrameBrand">
+            <FlyeroLogo dark />
+            <span>Auftragsübersicht</span>
+          </div>
+          <span className="mkVisualFrameBadge">klar dokumentiert</span>
+        </div>
       <ProcessPreview />
+        <div className="mkVisualFrameFooter">
+          <span>Ein klarer Ablauf</span>
+          <strong>Planen <ArrowRight aria-hidden="true" /> Durchführen <ArrowRight aria-hidden="true" /> Bericht</strong>
+        </div>
+      </div>
     </div>
   );
 }
 
 export function ProcessPreview() {
   const processItems = [
-    ["01", "Gebiet geplant", "Gebiet und Menge werden vorab festgelegt."],
-    ["02", "Flyer bereit", "Bereits gedruckte Flyer werden dem Auftrag zugeordnet."],
-    ["03", "Verteilung durchgeführt", "Die operative Durchführung wird dokumentiert."],
-    ["04", "Nachweise geprüft", "GPS-Bericht, Fotos und Angaben werden durch FLYERO geprüft."],
-    ["05", "Bericht folgt", "Nach der Prüfung erscheint der Bericht im Kundenkonto."],
+    { number: "01", title: "Gebiet", text: "Auswahl im Auftrag gespeichert.", status: "festgelegt", Icon: MapPinned },
+    { number: "02", title: "Flyer", text: "Bereits gedruckte Flyer anliefern.", status: "bereitstellen", Icon: ShoppingBag },
+    { number: "03", title: "Durchführung", text: "Verteilung zum vereinbarten Zeitraum.", status: "geplant", Icon: Navigation },
+    { number: "04", title: "Nachweise", text: "GPS, Fotos und Angaben werden geprüft.", status: "danach", Icon: Camera },
+    { number: "05", title: "Bericht", text: "Freigegebene Unterlagen im Kundenkonto.", status: "danach", Icon: ReceiptText },
   ] as const;
 
   return (
     <div className="mkProcessPreview" aria-label="FLYERO Nachweisablauf">
-      <div className="mkProofBrand">
-        <FlyeroLogo dark />
-        <span>So entsteht dein Bericht</span>
-      </div>
-      <p className="mkProcessPreviewDisclosure">So bleibt deine Verteilung nachvollziehbar</p>
-      <div className="mkProcessPreviewList">
-        {processItems.map(([number, title, text]) => (
-          <div className="mkProcessPreviewRow" key={number}>
-            <span>{number}</span>
-            <div>
-              <strong>{title}</strong>
-              <small>{text}</small>
-            </div>
+      <div className="mkVisualJourney">
+        <div className="mkVisualAreaCard">
+          <div className="mkVisualCardHeader">
+            <span className="mkVisualCardIcon"><MapPinned aria-hidden="true" /></span>
+            <span>Gebietsauswahl</span>
+            <small>01</small>
           </div>
-        ))}
+          <div className="mkVisualAreaStage" aria-hidden="true">
+            <span className="mkVisualAreaShape" />
+            <span className="mkVisualAreaSignal" />
+          </div>
+          <div className="mkVisualAreaMeta">
+            <span>Deine Auswahl</span>
+            <strong>im Auftrag gespeichert</strong>
+          </div>
+        </div>
+        <div className="mkVisualProcessColumn">
+          <p className="mkVisualProcessKicker">Vom Gebiet zum Bericht</p>
+          <div className="mkProcessPreviewList">
+            {processItems.map(({ number, title, text, status, Icon }) => (
+              <div className="mkProcessPreviewRow" key={number}>
+                <span className="mkProcessPreviewIcon"><Icon aria-hidden="true" /></span>
+                <div>
+                  <strong>{title}</strong>
+                  <small>{text}</small>
+                </div>
+                <em>{status}</em>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -309,9 +338,9 @@ export function ProcessPreview() {
 
 export function ProofStatusPanel() {
   const proofItems = [
-    ["GPS-Nachweis", "wird nach der Verteilung hochgeladen"],
-    ["Foto-Dokumentation", "wird geprüft und freigegeben"],
-    ["PDF-Verteilbericht", "wird nach der Prüfung erstellt"],
+    { label: "GPS-Nachweis", status: "nach der Durchführung", Icon: Navigation },
+    { label: "Foto-Dokumentation", status: "nach der Durchführung", Icon: Camera },
+    { label: "PDF-Verteilbericht", status: "nach der Prüfung", Icon: ReceiptText },
   ] as const;
 
   return (
@@ -321,22 +350,30 @@ export function ProofStatusPanel() {
         <span>Deine Nachweise</span>
       </div>
       <div className="mkProofStatusIntro">
-        <span className="mkProofStatusKicker">Noch kein Nachweis</span>
-        <strong>Die Dokumentation entsteht nach der Verteilung.</strong>
-        <p>FLYERO veröffentlicht nur Nachweise, die tatsächlich vorliegen und geprüft wurden.</p>
+        <span className="mkProofStatusKicker">Nachweisstatus</span>
+        <strong>Nur echte Unterlagen werden sichtbar.</strong>
+        <p>Die Dokumentation entsteht nach der Verteilung und wird vor der Freigabe geprüft.</p>
       </div>
-      <div className="mkProofStatusList">
-        {proofItems.map(([label, status], index) => (
+      <div className="mkProofStatusTimeline">
+        {proofItems.map(({ label, status, Icon }, index) => (
           <div className="mkProofStatusRow" key={label}>
             <span className="mkProofStatusIndex">0{index + 1}</span>
-            <span>
+            <span className="mkProofStatusIcon"><Icon aria-hidden="true" /></span>
+            <span className="mkProofStatusCopy">
               <strong>{label}</strong>
               <small>{status}</small>
             </span>
+            <span className="mkProofStatusTag">folgt</span>
           </div>
         ))}
       </div>
-      <p className="mkProofStatusNote">Nachweise erscheinen nach der Verteilung und werden vor der Freigabe geprüft.</p>
+      <div className="mkProofStatusFooter">
+        <Check aria-hidden="true" />
+        <span>
+          <strong>Keine Vorab-Behauptungen</strong>
+          <small>Im Kundenkonto erscheinen nur freigegebene Nachweise.</small>
+        </span>
+      </div>
     </div>
   );
 }

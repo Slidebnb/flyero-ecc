@@ -2789,6 +2789,434 @@
   border-top: 1px solid var(--flyero-border);
 }
 
+/* Homepage proof visuals: a product-oriented workflow, never a fake campaign map. */
+.mkHeroVisual {
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+}
+
+.mkVisualFrame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(167, 255, 0, 0.09), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    #101820;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.32);
+}
+
+.mkVisualFrameHeader,
+.mkVisualFrameBrand,
+.mkVisualFrameFooter,
+.mkVisualCardHeader,
+.mkVisualAreaMeta,
+.mkProofStatusFooter,
+.mkProofStatusCopy {
+  display: flex;
+  align-items: center;
+}
+
+.mkVisualFrameHeader {
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.mkVisualFrameBrand {
+  gap: 14px;
+}
+
+.mkVisualFrameBrand .mkLogo {
+  font-size: 0.84rem;
+}
+
+.mkVisualFrameBrand > span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mkVisualFrameBadge,
+.mkProofStatusTag {
+  color: var(--flyero-green);
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mkVisualFrameBadge {
+  padding: 7px 10px;
+  border: 1px solid rgba(167, 255, 0, 0.28);
+  border-radius: 999px;
+  background: rgba(167, 255, 0, 0.08);
+  white-space: nowrap;
+}
+
+.mkVisualJourney {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.85fr) minmax(0, 1.15fr);
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.mkVisualAreaCard {
+  display: grid;
+  align-content: start;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 13px;
+  background: rgba(4, 8, 10, 0.34);
+}
+
+.mkVisualCardHeader {
+  gap: 10px;
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.mkVisualCardHeader small {
+  margin-left: auto;
+  color: var(--flyero-green);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.mkVisualCardIcon,
+.mkProcessPreviewIcon {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(167, 255, 0, 0.3);
+  border-radius: 9px;
+  color: var(--flyero-green);
+  background: rgba(167, 255, 0, 0.08);
+}
+
+.mkVisualCardIcon svg,
+.mkProcessPreviewIcon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.mkVisualAreaStage {
+  position: relative;
+  min-height: 218px;
+  display: grid;
+  place-items: center;
+  margin: 16px 0 14px;
+  overflow: hidden;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(167, 255, 0, 0.07));
+}
+
+.mkVisualAreaStage::before,
+.mkVisualAreaStage::after {
+  content: "";
+  position: absolute;
+  width: 72%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.mkVisualAreaStage::before {
+  transform: rotate(28deg);
+}
+
+.mkVisualAreaStage::after {
+  transform: rotate(-28deg);
+}
+
+.mkVisualAreaShape {
+  position: relative;
+  z-index: 1;
+  width: 72%;
+  height: 64%;
+  border: 1px solid rgba(167, 255, 0, 0.78);
+  background: rgba(167, 255, 0, 0.13);
+  clip-path: polygon(12% 18%, 42% 5%, 86% 23%, 76% 54%, 92% 80%, 48% 93%, 18% 68%, 4% 42%);
+}
+
+.mkVisualAreaSignal {
+  position: absolute;
+  z-index: 2;
+  width: 10px;
+  height: 10px;
+  border: 3px solid #101820;
+  border-radius: 50%;
+  background: var(--flyero-green);
+  box-shadow: 0 0 0 7px rgba(167, 255, 0, 0.15);
+}
+
+.mkVisualAreaMeta {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mkVisualAreaMeta span {
+  color: rgba(255, 255, 255, 0.53);
+  font-size: 0.72rem;
+}
+
+.mkVisualAreaMeta strong {
+  color: #ffffff;
+  font-size: 0.72rem;
+  text-align: right;
+}
+
+.mkVisualProcessColumn {
+  min-width: 0;
+}
+
+.mkVisualProcessKicker {
+  margin: 0 0 10px;
+  color: rgba(255, 255, 255, 0.53);
+  font-size: 0.7rem;
+  font-weight: 850;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mkProcessPreviewList {
+  display: grid;
+  border-top: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.mkProcessPreviewRow {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 61px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.mkProcessPreviewRow > div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mkProcessPreviewRow strong {
+  color: #ffffff;
+  font-size: 0.79rem;
+}
+
+.mkProcessPreviewRow small {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mkProcessPreviewRow em {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 0.65rem;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.mkVisualFrameFooter {
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.13);
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.7rem;
+}
+
+.mkVisualFrameFooter strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #ffffff;
+  font-size: 0.72rem;
+}
+
+.mkVisualFrameFooter svg {
+  width: 13px;
+  height: 13px;
+  color: var(--flyero-green);
+}
+
+.mkProofStatusPanel {
+  min-height: 0;
+  padding: 24px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
+}
+
+.mkProofStatusIntro {
+  gap: 8px;
+  padding: 26px 0 20px;
+}
+
+.mkProofStatusIntro strong {
+  font-size: clamp(1.45rem, 2.8vw, 2.1rem);
+}
+
+.mkProofStatusTimeline {
+  display: grid;
+  gap: 9px;
+}
+
+.mkProofStatusTimeline .mkProofStatusRow {
+  grid-template-columns: 24px 32px minmax(0, 1fr) auto;
+  gap: 10px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 11px;
+  background: rgba(4, 8, 10, 0.24);
+}
+
+.mkProofStatusTimeline .mkProofStatusIndex {
+  font-size: 0.65rem;
+}
+
+.mkProofStatusIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  color: var(--flyero-green);
+  background: rgba(167, 255, 0, 0.09);
+}
+
+.mkProofStatusIcon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.mkProofStatusTimeline .mkProofStatusCopy {
+  display: grid;
+  align-items: start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mkProofStatusTimeline .mkProofStatusCopy strong {
+  font-size: 0.8rem;
+}
+
+.mkProofStatusTimeline .mkProofStatusCopy small {
+  overflow: hidden;
+  font-size: 0.69rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mkProofStatusTag {
+  align-self: center;
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 0.62rem;
+  white-space: nowrap;
+}
+
+.mkProofStatusFooter {
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.13);
+}
+
+.mkProofStatusFooter > svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--flyero-green);
+}
+
+.mkProofStatusFooter span {
+  display: grid;
+  gap: 3px;
+}
+
+.mkProofStatusFooter strong {
+  color: #ffffff;
+  font-size: 0.76rem;
+}
+
+.mkProofStatusFooter small {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.68rem;
+}
+
+@media (max-width: 820px) {
+  .mkHeroVisual {
+    min-height: 0;
+  }
+
+  .mkVisualJourney {
+    grid-template-columns: 1fr;
+  }
+
+  .mkVisualAreaStage {
+    min-height: 160px;
+  }
+}
+
+@media (max-width: 460px) {
+  .mkVisualFrame {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .mkVisualFrameHeader {
+    align-items: flex-start;
+  }
+
+  .mkVisualFrameBrand {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mkVisualFrameBadge {
+    font-size: 0.58rem;
+  }
+
+  .mkVisualFrameFooter {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .mkProcessPreviewRow {
+    grid-template-columns: 28px minmax(0, 1fr);
+    min-height: 56px;
+  }
+
+  .mkProcessPreviewRow em {
+    grid-column: 2;
+    margin-top: -7px;
+  }
+
+  .mkProofStatusTimeline .mkProofStatusRow {
+    grid-template-columns: 22px 30px minmax(0, 1fr);
+  }
+
+  .mkProofStatusTag {
+    grid-column: 3;
+  }
+}
+
 .mkLandingLinkList a,
 .mkPillarLinkList a {
   display: flex;
