@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const wizard = readFileSync("src/app/customer/orders/new/SmartOrderWizard.tsx", "utf8");
 const proxy = readFileSync("src/proxy.ts", "utf8");
+const publicHomepage = readFileSync("src/app/page.tsx", "utf8");
 const customerFiles = [
   "src/app/customer/CustomerPortalShell.tsx",
   "src/app/customer/dashboard/page.tsx",
@@ -46,13 +47,18 @@ assert.match(
 );
 assert.match(
   customerSource,
-  /directBookingNext = "\/customer\/orders\/new\?fresh=1"/,
+  /customer\/orders\/new\?fresh=1/,
   "Der öffentliche Direktbuchungs-CTA muss ebenfalls frisch starten.",
 );
 assert.match(
   wizard,
   /freshStart[\s\S]*repeatFrom|repeatFrom[\s\S]*freshStart/,
   "Der Wiederholungslink muss als bewusster Ausnahmeweg erhalten bleiben.",
+);
+assert.match(
+  publicHomepage,
+  /href="\/login\?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1"/,
+  "Die Startseite muss den Direktbuchungs-CTA mit Frischstart öffnen.",
 );
 assert.match(
   proxy,

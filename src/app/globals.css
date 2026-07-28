@@ -5474,6 +5474,23 @@ body {
   font-size: 0.95rem;
 }
 
+.customerUnifiedContent .customerSimpleForm input,
+.customerUnifiedContent .customerSimpleForm select,
+.customerUnifiedContent .customerSimpleForm textarea,
+.customerUnifiedContent .customerSimpleForm option {
+  color: #f5f7fb;
+  background: #182028;
+  color-scheme: dark;
+}
+
+.customerUnifiedContent .customerSimpleForm select:focus,
+.customerUnifiedContent .customerSimpleForm input:focus,
+.customerUnifiedContent .customerSimpleForm textarea:focus {
+  border-color: #b7e800;
+  outline: 2px solid rgba(183, 232, 0, 0.28);
+  outline-offset: 1px;
+}
+
 .customerUnifiedContent .form button,
 .customerUnifiedContent .customerSimpleForm button,
 .customerUnifiedContent .primaryButton,

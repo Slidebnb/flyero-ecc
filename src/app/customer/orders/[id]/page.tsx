@@ -83,6 +83,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
   const customerShipment = order.logisticsShipments[0] ?? null;
   const householdEstimate = trustedHouseholdEstimate(order.distributionArea);
   const action = customerOrderAction(order.status, order.id);
+  const paymentRequired = ["PAYMENT_PENDING", "ACCEPTED_AWAITING_PAYMENT", "PAYMENT_FAILED"].includes(order.status);
   const warehouseLabel = order.assignedWarehouse
     ? `${order.assignedWarehouse.name}, ${warehouseAddressText(order.assignedWarehouse)}`
     : order.customerOwnFlyers
@@ -143,7 +144,14 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
           <h2>{action.label}</h2>
           <p>{customerOrderPlainNextStep(order.status)}</p>
         </div>
-        <Link className="primaryButton" href={action.href}>{action.label}</Link>
+        {paymentRequired ? (
+          <form action="/api/payments/checkout" method="post">
+            <input type="hidden" name="orderId" value={order.id} />
+            <button className="primaryButton" type="submit">{action.label}</button>
+          </form>
+        ) : (
+          <Link className="primaryButton" href={action.href}>{action.label}</Link>
+        )}
       </section>
 
       <section className="customerDetailActions" aria-label="Kampagnenaktionen">
@@ -178,20 +186,6 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
           <strong>{formatDate(order.preferredStartDate)} bis {formatDate(order.preferredEndDate)}</strong>
         </article>
       </section>
-
-      {order.status === "PAYMENT_PENDING" || order.status === "PAYMENT_FAILED" ? (
-        <section className="customerFocusPanel">
-          <div>
-            <span className="customerTinyLabel">Zahlung</span>
-            <h2>Jetzt kostenpflichtig buchen</h2>
-            <p>Nach erfolgreicher Zahlung prüft FLYERO Gebiet, Druckdaten und Zustellbarkeit final.</p>
-          </div>
-          <form action="/api/payments/checkout" method="post">
-            <input type="hidden" name="orderId" value={order.id} />
-            <button type="submit">Jetzt bezahlen</button>
-          </form>
-        </section>
-      ) : null}
 
       <div className="customerTwoColumn">
         <DataSection title="Planung" description="Alles Wichtige zur Verteilung auf einen Blick.">

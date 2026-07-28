@@ -42,7 +42,7 @@ export function OrderMaterialStep({
         </div>
         <div className="quantityControl">
           <button type="button" onClick={() => onMoveQuantity(-1000)}>−</button>
-          <input data-testid="order-flyer-quantity" value={flyerQuantity} onChange={(event) => onQuantityChange(Number(event.target.value) || 100)} onBlur={onQuantityBlur} inputMode="numeric" aria-label="Flyermenge" />
+          <input data-testid="order-flyer-quantity" value={flyerQuantity > 0 ? flyerQuantity : ""} onChange={(event) => { const rawValue = event.target.value.trim(); const parsedValue = rawValue ? Number(rawValue) : 0; onQuantityChange(Number.isFinite(parsedValue) ? Math.max(0, parsedValue) : 0); }} onBlur={onQuantityBlur} inputMode="numeric" aria-label="Flyermenge" placeholder="Mindestmenge ab 100" />
           <button type="button" onClick={() => onMoveQuantity(1000)}>+</button>
           <span>Stück</span>
         </div>

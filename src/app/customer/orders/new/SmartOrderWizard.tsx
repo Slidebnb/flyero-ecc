@@ -532,7 +532,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
   const [, setHistory] = useState<LatLng[][]>([]);
-  const [flyerQuantity, setFlyerQuantity] = useState(MINIMUM_FLYER_QUANTITY);
+  const [flyerQuantity, setFlyerQuantity] = useState(0);
   const [serviceType, setServiceType] = useState<OnlineServiceType>("FLYER_STANDARD");
   const [productFormat, setProductFormat] = useState(() => serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
   const [weightInGrams, setWeightInGrams] = useState("");
@@ -1314,7 +1314,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setRepeatPrintChoice(null);
         setUsedAutocomplete(false);
         setClickCount(0);
-        setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
+        setFlyerQuantity(0);
         setFlyerQuantityTouched(false);
         setServiceType("FLYER_STANDARD");
         setProductFormat(serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
@@ -1390,7 +1390,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       if (restoredQuantityTouched && draft.flyerQuantity) {
         setFlyerQuantity(Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, draft.flyerQuantity)));
       } else {
-        setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
+        setFlyerQuantity(0);
       }
       setFlyerSource("CUSTOMER_OWN");
       const restoredServiceType = normalizeOnlineServiceType(draft.serviceType ?? "FLYER_STANDARD");
@@ -2107,7 +2107,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
 
   function moveQuantity(delta: number) {
     setFlyerQuantityTouched(true);
-    setFlyerQuantity((value) => Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, value + delta)));
+    setFlyerQuantity((value) => Math.max(0, Math.min(MAXIMUM_FLYER_QUANTITY, value + delta)));
   }
 
   function polygonSourceLabel() {
@@ -2395,7 +2395,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     }
   }
 
-  const stepState = [
+  const rawStepState = [
     { id: 1, title: "Gebiet", detail: "Ort und Fläche festlegen", value: coverageAreaSqm > 0 ? `${(coverageAreaSqm / 1_000_000).toLocaleString("de-DE", { maximumFractionDigits: 2 })} km²` : "Gebiet auswählen" },
     { id: 2, title: selectedService.shortLabel, detail: "Werbemittel und Menge", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Zustellung", detail: "Empfänger und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Private Haushalte" : distributionType },
@@ -2403,6 +2403,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     { id: 5, title: "Zusammenfassung", detail: "Preis und Leistungen prüfen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : hasSelectedLocation ? "Nach Flächenauswahl" : "Noch offen" },
     { id: 6, title: "Abschluss", detail: "Buchen oder unverbindlich anfragen", value: "Bereit" },
   ];
+  const stepState = rawStepState.map((step) => step.id === 2 && flyerQuantity <= 0 ? { ...step, value: "Menge auswählen" } : step);
   const activeNavItems = isPublicPlanner ? publicPlannerNavItems : orderNavItems;
   const orderNavGroups = Array.from(new Set(activeNavItems.map((item) => item.group)));
   const mapLocationLabel = [postalCode, city].filter(Boolean).join(" ") || targetAreaName || query || "Deutschland";
@@ -2512,7 +2513,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           setFlyerQuantityTouched(true);
           setFlyerQuantity(quantity);
         }}
-        onQuantityBlur={() => setFlyerQuantity((value) => Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, value)))}
+        onQuantityBlur={() => setFlyerQuantity((value) => value <= 0 ? 0 : Math.min(MAXIMUM_FLYER_QUANTITY, value))}
       />;
     }
 
@@ -2569,7 +2570,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         onContactPersonChange={setContactPerson}
         onContactPhoneChange={setContactPhone}
         onNotesChange={setNotes}
-        formatNumber={formatNumber}
+        formatNumber={(value) => value > 0 ? formatNumber(value) : "Menge auswählen"}
         formatCurrency={formatCurrency}
       />;
     }

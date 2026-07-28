@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CUSTOMER_SUPPORT_STATUS_LABELS, customerOrderName, customerReportName, customerSafeText, customerTicketName } from "@/app/customer/customerUx";
 import { DataSection, StatusBadge } from "@/app/PortalComponents";
@@ -8,7 +8,7 @@ import { requireTenantSession } from "@/lib/tenant";
 import { formatDateTime } from "@/lib/format";
 import { addTicketMessage, getTicket, SUPPORT_TYPE_LABELS } from "@/lib/support";
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams?: Promise<{ sent?: string }> };
 
 async function reply(formData: FormData) {
   "use server";
@@ -16,6 +16,7 @@ async function reply(formData: FormData) {
   const ticketId = String(formData.get("ticketId"));
   await addTicketMessage(session, ticketId, { message: String(formData.get("message") || "") });
   revalidatePath(`/customer/support/tickets/${ticketId}`);
+  redirect(`/customer/support/tickets/${ticketId}?sent=1`);
 }
 
 function ticketTone(status: string) {
@@ -24,14 +25,21 @@ function ticketTone(status: string) {
   return "neutral" as const;
 }
 
-export default async function CustomerTicketDetailPage({ params }: PageProps) {
+export default async function CustomerTicketDetailPage({ params, searchParams }: PageProps) {
   const session = await requireTenantSession();
   const { id } = await params;
+  const query = searchParams ? await searchParams : {};
   const ticket = await getTicket(session, id).catch(() => null);
   if (!ticket) notFound();
 
   return (
     <CustomerPortalShell active="/customer/support" title={customerTicketName(ticket.ticketNumber)} description={customerSafeText(ticket.subject, "Nachricht zu Ihrer Kampagne")}>
+      {query.sent === "1" ? (
+        <section className="customerSuccessBanner" data-testid="support-reply-success" role="status">
+          <strong>Antwort gesendet.</strong>
+          <span>Ihre Nachricht wurde dem Vorgang hinzugefügt.</span>
+        </section>
+      ) : null}
       <section className="customerFocusPanel">
         <div>
           <span className="customerTinyLabel">Hilfe</span>

@@ -60,7 +60,14 @@ export default async function CustomerOrdersPage() {
                   </div>
                 </div>
                 <div className="customerCampaignActions">
-                  <Link className="primaryButton" href={action.href}>{action.label}</Link>
+                  {['PAYMENT_PENDING', 'ACCEPTED_AWAITING_PAYMENT', 'PAYMENT_FAILED'].includes(order.status) ? (
+                    <form action="/api/payments/checkout" method="post">
+                      <input type="hidden" name="orderId" value={order.id} />
+                      <button className="primaryButton" type="submit">{action.label}</button>
+                    </form>
+                  ) : (
+                    <Link className="primaryButton" href={action.href}>{action.label}</Link>
+                  )}
                   {["DRAFT", "PAYMENT_PENDING", "PAYMENT_FAILED"].includes(order.status) ? (
                     <OrderDeleteButton orderId={order.id} orderLabel={customerOrderName(order.orderNumber)} />
                   ) : null}

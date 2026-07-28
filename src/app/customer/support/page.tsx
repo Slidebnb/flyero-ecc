@@ -54,7 +54,7 @@ async function createCustomerTicket(formData: FormData) {
       })
     : null;
 
-  const ticket = await createTicket(session, {
+  await createTicket(session, {
     type,
     priority: type === TicketType.COMPLAINT ? TicketPriority.HIGH : TicketPriority.NORMAL,
     subject: String(formData.get("subject") || ""),
@@ -63,7 +63,7 @@ async function createCustomerTicket(formData: FormData) {
     reportId: report?.id,
     tourId: report?.tourId,
   });
-  redirect(`/customer/support/tickets/${ticket.id}`);
+  redirect("/customer/support?created=1");
 }
 
 function tone(status: string) {
@@ -72,9 +72,9 @@ function tone(status: string) {
   return "neutral" as const;
 }
 
-export default async function CustomerSupportPage({ searchParams }: { searchParams: Promise<{ reportId?: string }> }) {
+export default async function CustomerSupportPage({ searchParams }: { searchParams: Promise<{ reportId?: string; created?: string }> }) {
   const session = await requireTenantSession();
-  const { reportId } = await searchParams;
+  const { reportId, created } = await searchParams;
   const [tickets, orders, reports] = await Promise.all([
     listTickets(session),
     customerOrderOptions(session.id, session.tenantId),
@@ -92,6 +92,12 @@ export default async function CustomerSupportPage({ searchParams }: { searchPara
       title="Hilfe"
       description="Eine Frage stellen, eine Kampagne klären oder eine Rückfrage zum Bericht senden."
     >
+      {created === "1" ? (
+        <section className="customerSuccessBanner" data-testid="support-success" role="status">
+          <strong>Nachricht gesendet.</strong>
+          <span>Wir haben Ihre Anfrage erhalten und melden uns schnellstmöglich im Portal.</span>
+        </section>
+      ) : null}
       <section className={waitingTicket ? "customerWarningBanner" : "customerFocusPanel"}>
         <div>
           <span className="customerTinyLabel">Schnellkontakt</span>
