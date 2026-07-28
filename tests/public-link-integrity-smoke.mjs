@@ -18,7 +18,7 @@ const links = new Set();
 try {
   for (const route of publicRoutes) {
     const page = await browser.newPage();
-    await page.goto(new URL(route, baseUrl).toString(), { waitUntil: "networkidle" });
+    await page.goto(new URL(route, baseUrl).toString(), { waitUntil: "domcontentloaded" });
     const hrefs = await page.locator("a[href]").evaluateAll((anchors) => anchors.map((anchor) => anchor.getAttribute("href")));
     for (const href of hrefs) {
       if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) continue;
