@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import type { ComponentType, ReactNode } from "react";
 import {
   ArrowRight,
@@ -279,7 +280,7 @@ export function HeroVisual() {
           </div>
           <span className="mkVisualFrameBadge">klar dokumentiert</span>
         </div>
-      <ProcessPreview />
+        <ProcessPreview />
         <div className="mkVisualFrameFooter">
           <span>Ein klarer Ablauf</span>
           <strong>Planen <ArrowRight aria-hidden="true" /> Durchführen <ArrowRight aria-hidden="true" /> Bericht</strong>
@@ -301,21 +302,18 @@ export function ProcessPreview() {
   return (
     <div className="mkProcessPreview" aria-label="FLYERO Nachweisablauf">
       <div className="mkVisualJourney">
-        <div className="mkVisualAreaCard">
-          <div className="mkVisualCardHeader">
-            <span className="mkVisualCardIcon"><MapPinned aria-hidden="true" /></span>
-            <span>Gebietsauswahl</span>
-            <small>01</small>
+        <figure className="mkVisualImageCard">
+          <div className="mkVisualImageWrap">
+            <Image
+              src="/marketing/flyero-doorstep-proof.jpg"
+              alt="Illustrative Darstellung von FLYERO Verteilung und Beleg"
+              fill
+              priority
+              sizes="(max-width: 820px) 100vw, 34vw"
+            />
           </div>
-          <div className="mkVisualAreaStage" aria-hidden="true">
-            <span className="mkVisualAreaShape" />
-            <span className="mkVisualAreaSignal" />
-          </div>
-          <div className="mkVisualAreaMeta">
-            <span>Deine Auswahl</span>
-            <strong>im Auftrag gespeichert</strong>
-          </div>
-        </div>
+          <figcaption>Illustrative Darstellung von Verteilung und Beleg</figcaption>
+        </figure>
         <div className="mkVisualProcessColumn">
           <p className="mkVisualProcessKicker">Vom Gebiet zum Bericht</p>
           <div className="mkProcessPreviewList">
