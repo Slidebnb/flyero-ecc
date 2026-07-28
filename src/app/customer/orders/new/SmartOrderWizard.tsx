@@ -5,6 +5,7 @@
 import { type PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { hasExplicitPublicLocationContext, isGermanPostalCode, type PublicLocationContext } from "@/lib/publicLocationContext";
+import { hasStatisticsConsent, readConsentFromDocument } from "@/lib/cookieConsent";
 import {
   CircleHelp,
   FileText,
@@ -189,12 +190,18 @@ function customerFacingSubmissionError(error: unknown) {
 }
 
 function trackPublicPlannerEvent(endpoint: string, eventType: string, data: Record<string, unknown> = {}) {
+  if (endpoint === "/api/public/planner/experience" && !hasStatisticsConsent(readConsentFromDocument())) return;
   void fetch(endpoint, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ eventType, ...data }),
     keepalive: true,
   }).catch(() => undefined);
+}
+
+function sendPlannerBeacon(endpoint: string, payload: string) {
+  if (endpoint === "/api/public/planner/experience" && !hasStatisticsConsent(readConsentFromDocument())) return;
+  navigator.sendBeacon?.(endpoint, new Blob([payload], { type: "application/json" }));
 }
 
 function polygonToGeoJson(points: LatLng[]) {
@@ -1335,7 +1342,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       if (stalePublicDraft) {
         window.localStorage.removeItem(PUBLIC_ORDER_DRAFT_KEY);
         const discardedPayload = JSON.stringify({ eventType: "PUBLIC_STALE_DRAFT_DISCARDED", source: "public-planner", reason: "public-planner-does-not-restore-persistent-location" });
-        navigator.sendBeacon?.(experienceEndpoint, new Blob([discardedPayload], { type: "application/json" }));
+        sendPlannerBeacon(experienceEndpoint, discardedPayload);
       }
       const rawDraft = isPublicPlanner ? null : window.localStorage.getItem(draftStorageKey) ?? window.localStorage.getItem(LEGACY_ORDER_DRAFT_KEY);
       if (!rawDraft) {
@@ -1376,7 +1383,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       if (hasExplicitLocation && rawDraft) {
         window.localStorage.removeItem(draftStorageKey);
         const discardedPayload = JSON.stringify({ eventType: "PUBLIC_STALE_DRAFT_DISCARDED", source: "public-planner", reason: "explicit-location-navigation" });
-        navigator.sendBeacon?.(experienceEndpoint, new Blob([discardedPayload], { type: "application/json" }));
+        sendPlannerBeacon(experienceEndpoint, discardedPayload);
       }
       const restoredQuantityTouched = draft.flyerQuantityTouched === true;
       setFlyerQuantityTouched(restoredQuantityTouched);
@@ -1406,7 +1413,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       setDraftStatus("Entwurf geladen");
       if (!hasExplicitLocation) {
         const restoredPayload = JSON.stringify({ eventType: "DRAFT_RESTORED", city: draft.city, postalCode: draft.postalCode, source: isPublicPlanner ? "public-planner" : "customer-planner" });
-        navigator.sendBeacon?.(experienceEndpoint, new Blob([restoredPayload], { type: "application/json" }));
+        sendPlannerBeacon(experienceEndpoint, restoredPayload);
       }
     } catch {
       window.localStorage.removeItem(draftStorageKey);
@@ -1654,12 +1661,13 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       postalCode,
       source: "order-wizard-reference-redesign",
     });
-    navigator.sendBeacon?.(experienceEndpoint, new Blob([startedPayload], { type: "application/json" }));
+    sendPlannerBeacon(experienceEndpoint, startedPayload);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [experienceEndpoint, isPublicPlanner]);
 
   useEffect(() => {
     if (!isPublicPlanner || trackedPublicStepsRef.current.has(activeStep)) return;
+    if (!hasStatisticsConsent(readConsentFromDocument())) return;
     const eventType = activeStep === 2
       ? "AREA_SELECTED"
       : activeStep === 3
@@ -1673,6 +1681,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               : null;
     if (!eventType) return;
     trackedPublicStepsRef.current.add(activeStep);
+    if (!hasStatisticsConsent(readConsentFromDocument())) return;
     void fetch(experienceEndpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -2157,6 +2166,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       window.localStorage.setItem(ORDER_DRAFT_KEY, JSON.stringify(handoffDraft));
     }
     const durationMs = Date.now() - (startedAtRef.current ?? Date.now());
+    if (experienceEndpoint === "/api/public/planner/experience" && !hasStatisticsConsent(readConsentFromDocument())) return;
     void fetch(experienceEndpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },

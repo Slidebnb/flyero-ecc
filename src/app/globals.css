@@ -8627,6 +8627,194 @@ body {
   font-weight: 800;
 }
 
+.cookieConsentRoot {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  left: 20px;
+  z-index: 1200;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.cookieConsentBanner,
+.cookieConsentPanel {
+  width: min(100%, 900px);
+  border: 1px solid rgba(183, 232, 0, 0.32);
+  border-radius: 18px;
+  background: #151b20;
+  color: #f5f7f9;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.32);
+  pointer-events: auto;
+}
+
+.cookieConsentBanner {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 24px;
+}
+
+.cookieConsentPanel {
+  padding: 24px;
+}
+
+.cookieConsentEyebrow {
+  margin: 0 0 6px;
+  color: #b7e800;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cookieConsentBanner h2,
+.cookieConsentPanel h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+
+.cookieConsentText {
+  max-width: 680px;
+  margin: 8px 0 0;
+  color: #c6ced5;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.cookieConsentText a {
+  margin-left: 5px;
+  color: #b7e800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.cookieConsentHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.cookieConsentClose {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #45505a;
+  border-radius: 50%;
+  background: transparent;
+  color: #f5f7f9;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.cookieConsentOptions {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.cookieConsentOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 60px;
+  padding: 12px 14px;
+  border: 1px solid #303b45;
+  border-radius: 12px;
+  background: #1b232a;
+}
+
+.cookieConsentOption > div,
+.cookieConsentOption > span:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.cookieConsentOption strong {
+  font-size: 0.92rem;
+}
+
+.cookieConsentOption span {
+  color: #aeb8c1;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.cookieConsentAlways {
+  flex: 0 0 auto;
+  color: #b7e800 !important;
+  font-weight: 800;
+}
+
+.cookieConsentOptionInteractive {
+  cursor: pointer;
+}
+
+.cookieConsentOptionInteractive input {
+  width: 20px;
+  height: 20px;
+  accent-color: #b7e800;
+}
+
+.cookieConsentActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.cookieConsentBanner .cookieConsentActions {
+  flex: 0 0 auto;
+  margin-top: 0;
+}
+
+.cookieConsentButton {
+  min-height: 42px;
+  padding: 10px 15px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.cookieConsentButtonPrimary {
+  border: 1px solid #b7e800;
+  background: #b7e800;
+  color: #101519;
+}
+
+.cookieConsentButtonSecondary {
+  border: 1px solid #53606b;
+  background: transparent;
+  color: #f5f7f9;
+}
+
+.mkFooterCookieSettings {
+  align-self: end;
+}
+
+.mkFooterCookieLink {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mkFooterCookieLink:hover,
+.mkFooterCookieLink:focus-visible {
+  color: var(--flyero-green-dark);
+}
+
 @media (max-width: 1120px) and (min-width: 821px) {
   .publicPlannerTopbar {
     grid-template-columns: max-content minmax(0, 1fr);
@@ -8660,5 +8848,38 @@ body {
 
   .publicPlannerTitle h1 {
     font-size: 1.05rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .cookieConsentRoot {
+    right: 10px;
+    bottom: 10px;
+    left: 10px;
+  }
+
+  .cookieConsentBanner,
+  .cookieConsentPanel {
+    padding: 18px;
+    border-radius: 14px;
+  }
+
+  .cookieConsentBanner {
+    display: block;
+  }
+
+  .cookieConsentBanner .cookieConsentActions,
+  .cookieConsentPanel .cookieConsentActions {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin-top: 16px;
+  }
+
+  .cookieConsentButton {
+    width: 100%;
+  }
+
+  .mkFooterCookieSettings {
+    align-self: start;
   }
 }

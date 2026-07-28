@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { CookieConsent } from "./CookieConsent";
 import { ServiceWorkerRegister } from "./ServiceWorkerRegister";
 import { createJsonLd, siteMetadata } from "./seo";
 import "./globals.css";
@@ -26,6 +27,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }}
         />
         <ServiceWorkerRegister />
+        <CookieConsent />
         {children}
       </body>
     </html>

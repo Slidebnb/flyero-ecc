@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { hasStatisticsConsent, readConsentFromDocument } from "@/lib/cookieConsent";
 
 type LeadFormProps = {
   defaultType?: "CUSTOMER" | "DISTRIBUTOR" | "PARTNER" | "OTHER";
@@ -17,7 +18,7 @@ export function LeadForm({ defaultType = "CUSTOMER", source = "website", inquiry
     eventType: "PUBLIC_INQUIRY_STARTED" | "PUBLIC_INQUIRY_COMPLETED" | "PUBLIC_INQUIRY_FAILED",
     requestId = idempotencyKey,
   ) {
-    if (!inquiry) return;
+    if (!inquiry || !hasStatisticsConsent(readConsentFromDocument())) return;
     void fetch("/api/public/planner/experience", {
       method: "POST",
       headers: { "content-type": "application/json" },

@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState, useTransition } from "react";
+import { hasStatisticsConsent, readConsentFromDocument } from "@/lib/cookieConsent";
 
 type NoticeTone = "success" | "warning" | "danger";
 
@@ -47,11 +48,13 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
     if (next) body.next = next;
     setEmail(submittedEmail);
 
-    void fetch("/api/public/planner/experience", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ eventType: "REGISTRATION_STARTED" }),
-    });
+    if (hasStatisticsConsent(readConsentFromDocument())) {
+      void fetch("/api/public/planner/experience", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ eventType: "REGISTRATION_STARTED" }),
+      });
+    }
 
     startTransition(async () => {
       const response = await fetch("/api/auth/register-customer", {
@@ -66,11 +69,13 @@ export function CustomerRegisterForm({ next }: CustomerRegisterFormProps) {
       const data = payload.data && typeof payload.data === "object" ? (payload.data as Record<string, unknown>) : {};
 
       if (response.ok && payload.ok === true) {
-        void fetch("/api/public/planner/experience", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ eventType: "REGISTRATION_COMPLETED" }),
-        });
+        if (hasStatisticsConsent(readConsentFromDocument())) {
+          void fetch("/api/public/planner/experience", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ eventType: "REGISTRATION_COMPLETED" }),
+          });
+        }
         const verificationEmailSent = data.verificationEmailSent !== false;
         setShowResend(!verificationEmailSent);
         setDialogNotice({

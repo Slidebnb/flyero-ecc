@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { isGermanPostalCode, publicLocationSearchParams } from "@/lib/publicLocationContext";
+import { hasStatisticsConsent, readConsentFromDocument } from "@/lib/cookieConsent";
 
 type Suggestion = {
   id: string;
@@ -28,6 +29,7 @@ export function PublicPlannerSearch() {
   const selectionSequenceRef = useRef(0);
 
   function track(eventType: string, data: Record<string, unknown> = {}) {
+    if (!hasStatisticsConsent(readConsentFromDocument())) return;
     void fetch("/api/public/planner/experience", {
       method: "POST",
       headers: { "content-type": "application/json" },

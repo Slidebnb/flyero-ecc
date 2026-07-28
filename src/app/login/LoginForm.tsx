@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState, useTransition } from "react";
+import { hasStatisticsConsent, readConsentFromDocument } from "@/lib/cookieConsent";
 
 type NoticeTone = "success" | "warning" | "danger";
 
@@ -53,11 +54,13 @@ export function LoginForm({ next }: LoginFormProps) {
 
       if (response.ok && payload.ok === true) {
         const data = payload.data && typeof payload.data === "object" ? (payload.data as Record<string, unknown>) : {};
-        void fetch("/api/public/planner/experience", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ eventType: "LOGIN_COMPLETED" }),
-        });
+        if (hasStatisticsConsent(readConsentFromDocument())) {
+          void fetch("/api/public/planner/experience", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ eventType: "LOGIN_COMPLETED" }),
+          });
+        }
         window.location.href = readString(data.redirectTo) || "/customer/dashboard";
         return;
       }

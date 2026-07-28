@@ -24,6 +24,12 @@ export default function PrivacyPage() {
           <p>
             Externe Dienstleister wie Zahlungsanbieter werden nur eingesetzt, wenn sie für den jeweiligen Prozess erforderlich sind.
           </p>
+          <h2>Cookies und Einwilligungen</h2>
+          <p>
+            FLYERO verwendet notwendige Cookies fuer Sicherheit, Anmeldung und die Nutzung der Planung. Optionale Statistik-Cookies
+            sind standardmaessig ausgeschaltet und werden nur aktiviert, wenn du zustimmst. Deine Auswahl wird fuer sechs Monate
+            gespeichert und kann ueber "Cookie-Einstellungen" im Footer jederzeit geaendert werden.
+          </p>
           <p className="notice">
             Beta-Hinweis: Die Datenschutzerklärung muss vor Livegang anwaltlich geprüft und um finale Anbieter,
             Auftragsverarbeiter und Speicherfristen ergänzt werden.

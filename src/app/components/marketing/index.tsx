@@ -23,6 +23,7 @@ import {
   Utensils,
 } from "lucide-react";
 import { MobileMenu } from "@/app/components/MobileMenu";
+import { CookieSettingsLink } from "@/app/CookieSettingsLink";
 import { industryPages } from "@/app/branchen/industryData";
 import { occasionPages } from "@/app/anlaesse/occasionData";
 export { IndustryLandingPage } from "@/app/components/marketing/IndustryLandingPage";
@@ -137,6 +138,9 @@ export function PublicFooter() {
           ["AGB", "/agb"],
         ]}
       />
+      <div className="mkFooterCookieSettings">
+        <CookieSettingsLink />
+      </div>
     </footer>
   );
 }
