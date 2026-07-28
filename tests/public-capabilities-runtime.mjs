@@ -39,12 +39,13 @@ try {
     assert.doesNotMatch(html, /Druckoption wählen|Druck und Verteilung können im Ablauf zusammen geplant/);
   }
   const home = await (await fetch(`${baseUrl}/`)).text();
-  assert.match(home, /So bleibt deine Verteilung nachvollziehbar/);
+  assert.match(home, /FLYERO macht Verteilung nachvollziehbar/);
   assert.match(home, /Druck wird aktuell separat mit FLYERO besprochen/);
   const inquiry = await (await fetch(`${baseUrl}/verteilung-anfragen`)).text();
-  assert.match(inquiry, /Direkt online buchen/);
   assert.match(inquiry, /Unverbindlich anfragen/);
-  assert.match(inquiry, /Anfrageformular nutzen/);
+  assert.match(inquiry, /Anfrage in drei einfachen Schritten/);
+  assert.match(inquiry, /Online planen/);
+  assert.match(inquiry, /hallo@flyero\.org/);
   assert.match(inquiry, /postalCode/);
 
   const printQuote = await fetch(`${baseUrl}/api/public/planner/quote`, {

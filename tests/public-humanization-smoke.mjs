@@ -53,6 +53,12 @@ assert(!marketing.includes("mailto:hallo@flyero.org"), "Die öffentliche Footer-
 assert(marketing.includes("/downloads/flyero-anfrageformular.pdf"), "Der Footer muss das Anfrageformular verlinken.");
 assert(inquiryPage.includes("hallo@flyero.org"), "Die Anfrage-Seite muss die Kontaktadresse sichtbar zeigen.");
 assert(!inquiryPage.includes("mailto:hallo@flyero.org"), "Die Anfrage-Seite darf kein Mailprogramm erzwingen.");
+assert(inquiryPage.includes("mkInquirySteps"), "Die Anfrage-Seite braucht einen einfachen Drei-Schritte-Ablauf.");
+assert(inquiryPage.includes("Anfrage in drei einfachen Schritten"), "Die Anfrage-Seite braucht eine klare menschliche Einordnung.");
+assert(inquiryPage.includes("E-Mail-Adresse"), "Die Anfrage-Seite muss die direkte E-Mail-Alternative verständlich benennen.");
+assert(!inquiryPage.includes("mkLeadChoiceGridThree"), "Die Anfrage-Seite darf nicht als technisches Drei-Karten-Raster aufgebaut sein.");
+assert(!inquiryPage.includes("mkBookingPath"), "Die Anfrage-Seite darf keinen technischen Buchungspfad anzeigen.");
+assert(!inquiryPage.includes("Drei Wege zur FLYERO Verteilung."), "Die Anfrage-Seite darf den Kunden nicht mit drei gleichwertigen Wegen überfordern.");
 assert(pillarPage.includes("eigene, bereits gedruckte Flyer"), "Die öffentliche Leistungsseite muss den eigenen Flyer-Workflow erklären.");
 assert(pillarPage.includes("zugewiesene Lager"), "Die öffentliche Leistungsseite muss die Lageranlieferung verständlich erklären.");
 

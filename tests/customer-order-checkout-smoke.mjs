@@ -9,6 +9,8 @@ let baseUrl = process.env.CUSTOMER_ORDER_CHECKOUT_BASE_URL || "http://localhost:
 let createdSmokeWarehouseId = null;
 const PASSWORD = "DemoPasswort123!";
 const LOGIN_TEST_IP = process.env.SMOKE_TEST_IP || "198.51.100.24";
+const SMOKE_START_DATE = new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const SMOKE_END_DATE = new Date(Date.now() + 17 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -197,8 +199,8 @@ function orderPayload(suffix, completionPath, quoteFingerprint, includeSegments 
     flyerSource: "CUSTOMER_OWN",
     printDataStatus: "UPLOAD_LATER",
     completionPath,
-    preferredStartDate: "2026-08-03",
-    preferredEndDate: "2026-08-10",
+    preferredStartDate: SMOKE_START_DATE,
+    preferredEndDate: SMOKE_END_DATE,
     flexibleScheduling: true,
     contactPerson: "Smoke Kunde",
     contactPhone: "+49 261 123456",
@@ -219,8 +221,8 @@ async function planningQuote(completionPath, includeSegments = true) {
       coverageAreaSqm: 640000,
       flyerSource: "CUSTOMER_OWN",
       printDataStatus: "UPLOAD_LATER",
-      preferredStartDate: "2026-08-03",
-      preferredEndDate: "2026-08-10",
+      preferredStartDate: SMOKE_START_DATE,
+      preferredEndDate: SMOKE_END_DATE,
       ...(includeSegments ? { segments: [smokeSegment] } : {}),
       completionPath,
     }),
@@ -248,12 +250,11 @@ try {
     "PDF-Bericht",
   ]);
   includes("src/app/verteilung-anfragen/page.tsx", [
-    "Direkt online buchen",
     "Unverbindlich anfragen",
-    "Anfrageformular nutzen",
+    "Anfrage in drei einfachen Schritten",
+    "Online planen",
     "/downloads/flyero-anfrageformular.pdf",
     "hallo@flyero.org",
-    "mailto:",
   ]);
   includes("public/downloads/flyero-anfrageformular.html", [
     "FLYERO Anfrageformular",

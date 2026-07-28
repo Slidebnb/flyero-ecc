@@ -132,9 +132,9 @@ await includes("src/app/distributor/dashboard/page.tsx", ["PortalShell", "Status
 await includes("src/app/admin/dashboard/page.tsx", ["PortalShell", "MetricTile", "DataSection"]);
 await includes("src/app/verteilung-anfragen/page.tsx", [
   "Unverbindlich anfragen",
-  "Direkt online buchen",
-  "Anfrageformular nutzen",
-  "next=${directBookingParam}",
+  "Anfrage in drei einfachen Schritten",
+  "Online planen",
+  "hallo@flyero.org",
 ]);
 await includes("src/app/seo.ts", ["publicSeoRoutes", "createJsonLd", "noIndexMetadata"]);
 await includes("src/app/sitemap.ts", ["MetadataRoute.Sitemap", "publicSeoRoutes"]);
@@ -205,9 +205,9 @@ try {
   const requestPage = await fetchLocal("/verteilung-anfragen");
   const requestHtml = await requestPage.text();
   assert(requestHtml.includes("Unverbindlich anfragen"), "/verteilung-anfragen zeigt keine öffentliche Anfrageoption.");
-  assert(requestHtml.includes("Direkt online buchen"), "/verteilung-anfragen zeigt keine Online-Buchungsoption.");
+  assert(requestHtml.includes("Online planen"), "/verteilung-anfragen zeigt keine Online-Planungsoption.");
   assert(requestHtml.includes("Anfrageformular herunterladen"), "/verteilung-anfragen zeigt keinen klassischen Anfrageformular-Weg.");
-  assert(requestHtml.includes("next=%2Fcustomer%2Forders%2Fnew"), "/verteilung-anfragen verlinkt Direktbuchung nicht mit next-Parameter.");
+  assert(requestHtml.includes("Anfrage in drei einfachen Schritten"), "/verteilung-anfragen zeigt keinen klaren Anfrageablauf.");
 
   const protectedOrder = await fetchLocal("/customer/orders/new");
   assert([302, 303, 307, 308].includes(protectedOrder.status), `/customer/orders/new ist ohne Login nicht geschützt: ${protectedOrder.status}`);
