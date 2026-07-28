@@ -4,6 +4,7 @@ import { createErrorLog } from "@/lib/monitoring";
 import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
 import { prisma } from "@/lib/prisma";
 import { productionUserWhere } from "@/lib/productionData";
+import { buildCustomerNotificationEmail } from "@/lib/customerEmailTemplate";
 
 export const TEMPLATE_PLACEHOLDERS = [
   "customerName",
@@ -180,6 +181,10 @@ export async function createNotification(input: NotificationInput) {
   const subject = template ? renderTemplateText(template.subject, { ...data, title: input.title }) : input.title;
   const body = template ? renderTemplateText(template.body, { ...data, message: input.message }) : input.message;
   const audience = template?.audience ?? inferAudience(user?.role);
+  const customerRecipient = user?.role === UserRole.CUSTOMER || audience === NotificationAudience.CUSTOMER;
+  const customerEmail = customerRecipient && !input.emailHtml
+    ? buildCustomerNotificationEmail({ type: input.type, subject, body, data })
+    : null;
 
   const message = await prisma.notificationMessage.create({
     data: {
@@ -216,7 +221,12 @@ export async function createNotification(input: NotificationInput) {
         recipientEmail: user?.email ?? null,
         channel,
         status: NotificationQueueStatus.PENDING,
-        payload: { subject, body, data, ...(input.emailHtml ? { html: input.emailHtml } : {}) },
+        payload: {
+          subject,
+          body: customerEmail?.text ?? body,
+          data,
+          ...((input.emailHtml || customerEmail) ? { html: input.emailHtml ?? customerEmail?.html } : {}),
+        },
       },
     });
   }
@@ -318,6 +328,12 @@ export async function notifyEmailRecipient(input: {
   data?: PlaceholderData;
 }) {
   const recipientEmail = input.recipientEmail.trim().toLowerCase();
+  const email = buildCustomerNotificationEmail({
+    type: input.type,
+    subject: input.subject,
+    body: input.body,
+    data: input.data,
+  });
   const message = await prisma.notificationMessage.create({
     data: {
       type: input.type,
@@ -334,7 +350,7 @@ export async function notifyEmailRecipient(input: {
       recipientEmail,
       channel: NotificationChannel.EMAIL,
       status: NotificationQueueStatus.PENDING,
-      payload: { subject: input.subject, body: input.body, data: input.data ?? {} },
+      payload: { subject: email.subject, body: email.text, data: input.data ?? {}, html: email.html },
     },
   });
   await prisma.notificationLog.create({

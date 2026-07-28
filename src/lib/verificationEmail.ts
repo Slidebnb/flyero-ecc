@@ -1,4 +1,5 @@
 import { createVerificationToken, hashVerificationToken } from "@/lib/auth";
+import { buildCustomerEmail } from "./customerEmailTemplate.ts";
 import { sendEmail } from "@/lib/email";
 import { publicUrl } from "@/lib/publicUrl";
 import { prisma } from "@/lib/prisma";
@@ -33,28 +34,20 @@ export async function sendVerificationEmail({
   requestUrl: string;
 }) {
   const verifyUrl = publicUrl(`/verify-email?token=${encodeURIComponent(token)}`, requestUrl).toString();
+  const customerEmail = buildCustomerEmail({
+    subject: "Ihre FLYERO-E-Mail-Adresse best\u00e4tigen",
+    eyebrow: "KONTO AKTIVIEREN",
+    title: "Best\u00e4tigen Sie Ihre E-Mail-Adresse",
+    intro: "Willkommen bei FLYERO. Best\u00e4tigen Sie Ihre E-Mail-Adresse, damit Ihr Konto aktiviert wird.",
+    action: { label: "E-Mail-Adresse best\u00e4tigen", url: verifyUrl },
+    note: "Falls Sie diese Registrierung nicht gestartet haben, k\u00f6nnen Sie diese E-Mail ignorieren.",
+  });
 
   return sendEmail({
     to: email,
-    subject: "FLYERO E-Mail bestätigen",
-    text: [
-      "Willkommen bei FLYERO.",
-      "",
-      "Bitte bestätigen Sie Ihre E-Mail-Adresse, damit Ihr Konto aktiviert wird:",
-      verifyUrl,
-      "",
-      "Falls Sie diese Registrierung nicht gestartet haben, können Sie diese E-Mail ignorieren.",
-    ].join("\n"),
-    html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827">
-        <h1 style="margin:0 0 12px">E-Mail bestätigen</h1>
-        <p>Willkommen bei <strong>FLYERO</strong>. Bitte bestätigen Sie Ihre E-Mail-Adresse, damit Ihr Konto aktiviert wird.</p>
-        <p style="margin:24px 0">
-          <a href="${verifyUrl}" style="background:#b7ff00;color:#111827;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">E-Mail bestätigen</a>
-        </p>
-        <p style="color:#4b5563">Falls der Button nicht funktioniert, kopieren Sie diesen Link in den Browser:<br />${verifyUrl}</p>
-      </div>
-    `,
+    subject: customerEmail.subject,
+    text: customerEmail.text,
+    html: customerEmail.html,
     metadata: { type: "email_verification" },
   });
 }
@@ -69,28 +62,20 @@ export async function sendPasswordResetEmail({
   requestUrl: string;
 }) {
   const resetUrl = publicUrl(`/reset-password?token=${encodeURIComponent(token)}`, requestUrl).toString();
+  const customerEmail = buildCustomerEmail({
+    subject: "Ihr FLYERO-Passwort zur\u00fccksetzen",
+    eyebrow: "KONTO SICHERN",
+    title: "Neues Passwort festlegen",
+    intro: "Sie haben das Zur\u00fccksetzen Ihres FLYERO-Passworts angefordert.",
+    action: { label: "Neues Passwort festlegen", url: resetUrl },
+    note: "Der Link ist 30 Minuten g\u00fcltig. Falls Sie diese Anfrage nicht gestellt haben, m\u00fcssen Sie nichts tun.",
+  });
 
   return sendEmail({
     to: email,
-    subject: "FLYERO Passwort zurücksetzen",
-    text: [
-      "Sie haben das Zurücksetzen Ihres FLYERO-Passworts angefordert.",
-      "",
-      "Öffnen Sie diesen Link, um ein neues Passwort festzulegen:",
-      resetUrl,
-      "",
-      "Der Link ist 30 Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.",
-    ].join("\n"),
-    html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.55;color:#111827">
-        <h1 style="margin:0 0 12px">Passwort zurücksetzen</h1>
-        <p>Sie haben das Zurücksetzen Ihres <strong>FLYERO</strong>-Passworts angefordert.</p>
-        <p style="margin:24px 0">
-          <a href="${resetUrl}" style="background:#b7ff00;color:#111827;padding:12px 18px;border-radius:999px;text-decoration:none;font-weight:700">Neues Passwort festlegen</a>
-        </p>
-        <p style="color:#4b5563">Der Link ist 30 Minuten gültig. Falls Sie die Anfrage nicht gestellt haben, müssen Sie nichts tun.</p>
-      </div>
-    `,
+    subject: customerEmail.subject,
+    text: customerEmail.text,
+    html: customerEmail.html,
     metadata: { type: "password_reset" },
   });
 }

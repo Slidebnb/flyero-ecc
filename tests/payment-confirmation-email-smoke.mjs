@@ -9,7 +9,7 @@ const invoicesSource = await readFile("src/lib/invoices.ts", "utf8");
 const emailTemplatesSource = await readFile("src/lib/emailTemplates.ts", "utf8");
 
 const result = buildPaymentConfirmationEmail({
-  customerName: "Huwa Gebäudedienste",
+  customerName: "Huwa Geb\u00e4udedienste",
   order: {
     id: "order-confirmation-1",
     orderNumber: "FLY-2026-0001",
@@ -30,43 +30,43 @@ const result = buildPaymentConfirmationEmail({
       city: "Neuwied",
       postalCode: "56566",
       country: "DE",
-      openingHours: "Mo–Fr 08:00–16:00 Uhr",
+      openingHours: "Mo-Fr 08:00-16:00 Uhr",
       contactPerson: "FLYERO Lagerteam",
       contactPhone: "02601 9131820",
       contactEmail: "hallo@flyero.org",
     },
     distributionSegments: [
       { name: "Lahnstein", city: "Lahnstein", postalCode: "56112", areaSqm: "500000.00", flyerQuantity: 2500 },
-      { name: "Koblenz-Süd", city: "Koblenz", postalCode: "56073", areaSqm: "734567.89", flyerQuantity: 2500 },
+      { name: "Koblenz-S\u00fcd", city: "Koblenz", postalCode: "56073", areaSqm: "734567.89", flyerQuantity: 2500 },
     ],
   },
   appUrl: "https://flyero.org",
 });
 const invoiceEmail = buildInvoiceAvailableEmail({
-  customerName: "Huwa Gebäudedienste",
-  companyName: "Huwa Gebäudedienste",
+  customerName: "Huwa Geb\u00e4udedienste",
+  companyName: "Huwa Geb\u00e4udedienste",
   invoiceNumber: "FLY-RE-2026-0001",
   orderNumber: "FLY-2026-0001",
-  netAmount: "1.900,00 €",
-  vatAmount: "361,00 €",
-  grossAmount: "2.261,00 €",
+  netAmount: "1.900,00 EUR",
+  vatAmount: "361,00 EUR",
+  grossAmount: "2.261,00 EUR",
   invoiceUrl: "https://flyero.org/customer/invoices",
 });
 
-assert.equal(result.subject, "Zahlung erhalten – deine FLYERO-Verteilung ist bestätigt");
-assert.match(result.html, /<!doctype html>/i, "Die Kundenbestätigung muss ein gebrandetes HTML-Layout enthalten.");
-assert.match(result.html, /Deine Bestellung ist bestätigt/, "Die Kundenmail muss mit einer klaren Bestätigung beginnen.");
+assert.equal(result.subject, "Ihre Zahlung ist eingegangen - Ihre FLYERO-Verteilung ist best\u00e4tigt");
+assert.match(result.html, /<!doctype html>/i, "Die Kundenbest\u00e4tigung muss ein gebrandetes HTML-Layout enthalten.");
+assert.match(result.html, /Ihre Bestellung ist best\u00e4tigt/, "Die Kundenmail muss mit einer klaren Best\u00e4tigung beginnen.");
 assert.match(result.html, /FLYERO Empfangslager Neuwied/, "Das Empfangslager muss im Kundenlayout sichtbar sein.");
-assert.doesNotMatch(result.html, /paymentId|stripeCheckoutSessionId|provider|Queue|Zahlungsreferenz/i, "Interne Zahlungs- und Queue-Daten dürfen nicht in der Kundenmail stehen.");
-assert.doesNotMatch(result.body, /Haushalte|Schätzung/i, "Nicht belastbare Gebietskennzahlen dürfen nicht als Bestellbestätigung versendet werden.");
+assert.doesNotMatch(result.html, /paymentId|stripeCheckoutSessionId|provider|Queue|Zahlungsreferenz/i, "Interne Zahlungs- und Queue-Daten d\u00fcrfen nicht in der Kundenmail stehen.");
+assert.doesNotMatch(result.body, /Haushalte|Sch\u00e4tzung/i, "Nicht belastbare Gebietskennzahlen d\u00fcrfen nicht als Bestellbest\u00e4tigung versendet werden.");
 assert.match(result.body, /FLY-2026-0001/);
 assert.match(result.body, /5\.000 Flyer/);
 assert.match(result.body, /Lahnstein/);
-assert.match(result.body, /Koblenz-Süd/);
+assert.match(result.body, /Koblenz-S\u00fcd/);
 assert.match(result.body, /FLYERO Empfangslager Neuwied/);
 assert.match(result.body, /Mittelweg 24/);
 assert.match(result.body, /56566 Neuwied/);
-assert.match(result.body, /Bitte gib die Auftragsnummer FLY-2026-0001 als Versandreferenz an/);
+assert.match(result.body, /Bitte geben Sie beim Versand die Auftragsnummer FLY-2026-0001 als Versandreferenz an/);
 assert.match(result.body, /https:\/\/flyero\.org\/customer\/orders\//);
 assert.equal(result.data.warehouseName, "FLYERO Empfangslager Neuwied");
 assert.equal(result.data.flyerQuantity, 5000);
@@ -82,7 +82,7 @@ assert.match(notificationsSource, /input\.skipTemplate\s*\n\s*\? null/);
 assert.doesNotMatch(invoicesSource, /Zahlungsreferenz:/, "Die Kundenrechnung darf keine technische Zahlungsreferenz ausgeben.");
 assert.match(emailTemplatesSource, /buildInvoiceAvailableEmail/);
 assert.match(invoicesSource, /emailHtml:\s*invoiceEmail\.html/);
-assert.match(invoiceEmail.html, /Ihre Rechnung ist verfügbar/);
+assert.match(invoiceEmail.html, /Ihre Rechnung ist verf\u00fcgbar/);
 assert.match(invoiceEmail.html, /FLY-RE-2026-0001/);
 assert.doesNotMatch(invoiceEmail.html, /Stripe|payment|Queue|UUID|Zahlungsreferenz/i);
 assert.match(invoicesSource, /Helvetica-Bold/);
