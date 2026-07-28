@@ -104,7 +104,7 @@ const context = await browser.newContext({
   serviceWorkers: "block",
   extraHTTPHeaders: { "x-forwarded-for": testIp },
 });
-const page = await context.newPage();
+let page = await context.newPage();
 const errors = [];
 const failedRequests = [];
 let activeRoute = "login";
@@ -114,24 +114,33 @@ const isExpectedLocalMapsConfigurationMessage = (text) => baseUrl.startsWith("ht
   "The map is initialized without a valid map ID",
   "The Map Style does not have the following FeatureLayer configured",
 ].some((fragment) => text.includes(fragment));
-page.on("console", (message) => {
-  if (message.type() === "error"
-    && !message.text().includes("maps.googleapis.com/$rpc")
-    && !message.text().includes("maps.googleapis.com/maps/api/mapsjs/gen_204")
-    && !isExpectedLocalMapsConfigurationMessage(message.text())
-    && !message.text().includes("Failed to load resource: net::ERR_FAILED")) {
-    errors.push(`${activeRoute}: ${message.text()}`);
-  }
-});
-page.on("pageerror", (error) => errors.push(`${activeRoute}: ${error.message}`));
-page.on("requestfailed", (request) => failedRequests.push({ route: activeRoute, url: request.url(), error: request.failure()?.errorText ?? "unknown" }));
+function attachDiagnostics(targetPage) {
+  targetPage.on("console", (message) => {
+    if (message.type() === "error"
+      && !message.text().includes("maps.googleapis.com/$rpc")
+      && !message.text().includes("maps.googleapis.com/maps/api/mapsjs/gen_204")
+      && !isExpectedLocalMapsConfigurationMessage(message.text())
+      && !message.text().includes("Failed to load resource: net::ERR_FAILED")) {
+      errors.push(`${activeRoute}: ${message.text()}`);
+    }
+  });
+  targetPage.on("pageerror", (error) => errors.push(`${activeRoute}: ${error.message}`));
+  targetPage.on("requestfailed", (request) => failedRequests.push({ route: activeRoute, url: request.url(), error: request.failure()?.errorText ?? "unknown" }));
+}
+
+async function waitForPortalHydration(targetPage) {
+  await targetPage.waitForLoadState("load");
+  await targetPage.waitForTimeout(750);
+}
+
+attachDiagnostics(page);
 
 try {
   await login(page);
   for (const [name, path] of routes) {
     activeRoute = path;
     await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(250);
+    await waitForPortalHydration(page);
     assert.equal(new URL(page.url()).pathname, path, `${path} leitet unerwartet weiter.`);
     const metrics = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
@@ -158,18 +167,21 @@ try {
   for (const [name, path, expectedPath] of legacyRoutes) {
     activeRoute = path;
     await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(250);
+    await waitForPortalHydration(page);
     assert.equal(new URL(page.url()).pathname, expectedPath, `${path} muss auf ${expectedPath} weiterleiten.`);
     const bodyText = await page.locator("body").innerText();
     assertNoVisibleTechnicalText(bodyText, path);
     await page.screenshot({ path: join(outDir, `${name}-redirect-desktop.png`), fullPage: true });
   }
 
+  await page.close();
+  page = await context.newPage();
+  attachDiagnostics(page);
   await page.setViewportSize({ width: 390, height: 844 });
   for (const [name, path] of routes.slice(0, 6)) {
     activeRoute = `${path} (mobile)`;
     await page.goto(`${baseUrl}${path}`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(250);
+    await waitForPortalHydration(page);
     const metrics = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
