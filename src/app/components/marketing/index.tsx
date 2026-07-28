@@ -113,6 +113,7 @@ export function PublicFooter() {
         title="Starten"
         links={[
           ["Verteilung anfragen", "/verteilung-anfragen"],
+          ["Anfrageformular herunterladen", "/downloads/flyero-anfrageformular.pdf"],
           ["Kontakt", "/kontakt"],
           ["Login", "/login"],
         ]}
@@ -142,9 +143,15 @@ function FooterColumn({ title, links }: { title: string; links: readonly (readon
     <nav aria-label={title}>
       <strong>{title}</strong>
       {links.map(([label, href]) => (
-        <Link key={href} href={href}>
-          {label}
-        </Link>
+        href.endsWith(".pdf") ? (
+          <a key={href} href={href} download>
+            {label}
+          </a>
+        ) : (
+          <Link key={href} href={href}>
+            {label}
+          </Link>
+        )
       ))}
     </nav>
   );

@@ -10,7 +10,6 @@ type OrderFinishStepProps = {
   isFinishing: boolean;
   finishStatus: string;
   inquiryFormHref: string;
-  inquiryMailHref: string;
   onFinish: (completionPath: "direct_payment" | "inquiry") => void;
 };
 
@@ -21,7 +20,6 @@ export function OrderFinishStep({
   isFinishing,
   finishStatus,
   inquiryFormHref,
-  inquiryMailHref,
   onFinish,
 }: OrderFinishStepProps) {
   const sampling = serviceType === "PRODUCT_SAMPLING";
@@ -46,10 +44,13 @@ export function OrderFinishStep({
           <Download aria-hidden="true" />
           Anfrageformular herunterladen
         </a>
-        <a href={inquiryMailHref}>
+        <div className="orderFinishContact">
           <Mail aria-hidden="true" />
-          Per E-Mail anfragen
-        </a>
+          <span>
+            <strong>Direkter Kontakt</strong>
+            <small>hallo@flyero.org</small>
+          </span>
+        </div>
       </div>
       <p className="orderReviewNotice">Deine Flyer sind bereits gedruckt. Nach der Verteilung erhältst du GPS-Nachweis, Foto-Dokumentation und PDF-Bericht.</p>
       {finishStatus ? <p className="finishStatus" role="status">{finishStatus}</p> : null}

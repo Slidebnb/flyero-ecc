@@ -33,12 +33,17 @@ export default async function PublicDistributionPlannerPage({ searchParams }: Pa
   return (
     <main className="orderExperienceShell publicPlannerShell">
       <header className="orderExperienceTopbar publicPlannerTopbar">
-        <h1>Verteilung planen</h1>
+        <div className="publicPlannerTitle">
+          <strong>FLYERO</strong>
+          <h1>Verteilung planen</h1>
+        </div>
         <p>Adresse, Ort oder PLZ eingeben und Gebiet sowie Preis prüfen.</p>
-        <span>Preisvorschau ohne Registrierung</span>
-        <div className="orderTopActions" aria-label="Planeraktionen">
-          <a href="/verteilung-anfragen">Anfrage senden</a>
-          <a href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1">Einloggen</a>
+        <div className="publicPlannerMeta">
+          <span>Preisvorschau ohne Registrierung</span>
+          <div className="orderTopActions" aria-label="Planeraktionen">
+            <a href="/verteilung-anfragen">Anfrage senden</a>
+            <a href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1">Einloggen</a>
+          </div>
         </div>
         <MobileMenu
           items={[

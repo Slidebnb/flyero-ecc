@@ -1,4 +1,5 @@
 import { LeadForm } from "@/app/LeadForm";
+import { Mail } from "lucide-react";
 import {
   MarketingButton,
   MarketingContainer,
@@ -103,9 +104,13 @@ export default function DistributionRequestPage() {
               <MarketingButton href="/downloads/flyero-anfrageformular.pdf" variant="ghost">
                 Anfrageformular herunterladen
               </MarketingButton>
-              <MarketingButton href="mailto:hallo@flyero.org?subject=Flyerverteilung%20anfragen" variant="ghost">
-                Per E-Mail anfragen
-              </MarketingButton>
+              <div className="mkContactMethod">
+                <Mail aria-hidden="true" />
+                <span>
+                  <strong>Per E-Mail</strong>
+                  <small>hallo@flyero.org</small>
+                </span>
+              </div>
             </div>
           </article>
         </div>

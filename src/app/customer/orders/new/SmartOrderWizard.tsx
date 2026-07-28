@@ -140,7 +140,6 @@ const MAXIMUM_FLYER_QUANTITY = 250_000;
 const invalidAreaFinishStatus = "Bitte w\u00e4hle zuerst ein g\u00fcltiges Verteilgebiet aus.";
 
 const inquiryFormHref = "/downloads/flyero-anfrageformular.pdf";
-const inquiryMailHref = "mailto:hallo@flyero.org?subject=Flyerverteilung%20anfragen&body=Hallo%20FLYERO%2C%0A%0Aich%20m%C3%B6chte%20eine%20Flyerverteilung%20anfragen.%0A%0AFirma%3A%0AAnsprechpartner%3A%0ATelefon%3A%0AE-Mail%3A%0AVerteilgebiet%2FPLZ%2FOrt%3A%0AFlyeranzahl%3A%0AWunschzeitraum%3A%0ABemerkungen%3A";
 
 function OrderLogo() {
   return (
@@ -2437,7 +2436,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         isFinishing={isSubmitting}
         finishStatus={visibleFinishStatus}
         inquiryFormHref={inquiryFormHref}
-        inquiryMailHref={inquiryMailHref}
         onFinish={finishOrder}
       />;
     }
@@ -2573,7 +2571,6 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       isFinishing={isSubmitting}
       finishStatus={visibleFinishStatus}
       inquiryFormHref={inquiryFormHref}
-      inquiryMailHref={inquiryMailHref}
       onFinish={finishOrder}
     />;
   }
