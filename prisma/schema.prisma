@@ -958,7 +958,6 @@ model DistributionArea {
   district                String?
   state                   String?
   country                 String                 @default("DE")
-  officialRegionCode      String?
   centerLat               Decimal?               @db.Decimal(10, 7)
   centerLng               Decimal?               @db.Decimal(10, 7)
   radiusMeters            Int?
@@ -997,7 +996,6 @@ model DistributionArea {
   @@index([city])
   @@index([city, postalCode])
   @@index([dataSourceType, dataUpdatedAt])
-  @@index([officialRegionCode])
   @@index([googlePlaceId])
   @@index([spatialGeometry], type: Gist, name: "DistributionArea_spatialGeometry_gist_idx")
   @@index([customerId, status])

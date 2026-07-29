@@ -28,7 +28,6 @@ type AreaInput = {
   district?: string | null;
   state?: string | null;
   country?: string | null;
-  officialRegionCode?: string | null;
   centerLat?: number | null;
   centerLng?: number | null;
   radiusMeters?: number | null;
@@ -266,7 +265,6 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
       district: input.district ?? null,
       state: input.state ?? null,
       country: input.country ?? "DE",
-      officialRegionCode: input.officialRegionCode ?? null,
       centerLat: decimal(input.centerLat),
       centerLng: decimal(input.centerLng),
       radiusMeters: input.radiusMeters ?? null,
@@ -357,7 +355,6 @@ export async function updateDistributionArea(input: AreaInput & { id: string; us
       district: input.district ?? null,
       state: input.state ?? null,
       country: input.country ?? existing.country,
-      officialRegionCode: input.officialRegionCode !== undefined ? input.officialRegionCode : existing.officialRegionCode,
       centerLat: decimal(input.centerLat) ?? null,
       centerLng: decimal(input.centerLng) ?? null,
       radiusMeters: input.radiusMeters ?? null,

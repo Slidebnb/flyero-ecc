@@ -22,11 +22,6 @@ function text(value) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-function officialRegionCode(value) {
-  const code = text(value);
-  return code && /^\d{12}$/.test(code) ? code : null;
-}
-
 function propertiesOf(feature) {
   return feature?.properties && typeof feature.properties === "object" ? feature.properties : {};
 }
@@ -105,7 +100,6 @@ function readRows(featureCollection) {
       postalCode: text(props.postalCode ?? props.postleitzahl ?? props.plz),
       district: text(props.kreis_name ?? props.Kreis ?? props.district),
       state: text(props.bundesland ?? props.Land ?? props.state),
-      officialRegionCode: officialRegionCode(props.ARS ?? props.ARS_G ?? props.region_ars ?? props.regionArs),
       geometry,
       coverageAreaSqm: Math.round(areaSqm(geometry)),
     }];
@@ -127,7 +121,6 @@ async function applyRows(rows) {
           district: row.district,
           state: row.state,
           country: "DE",
-          officialRegionCode: row.officialRegionCode,
           geoJson: row.geometry,
           geometryGeoJson: row.geometry,
           coverageAreaSqm: row.coverageAreaSqm,
@@ -153,7 +146,6 @@ async function applyRows(rows) {
           district: row.district,
           state: row.state,
           country: "DE",
-          officialRegionCode: row.officialRegionCode,
           geoJson: row.geometry,
           geometryGeoJson: row.geometry,
           coverageAreaSqm: row.coverageAreaSqm,
