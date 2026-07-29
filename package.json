@@ -240,6 +240,7 @@
     "test:official-boundary-engine": "node tests/official-boundary-engine-smoke.mjs",
     "import:vg250-boundaries": "node scripts/import-vg250-boundaries.mjs",
     "test:customer-order-new-playwright": "node -r dotenv/config tests/customer-order-new-playwright.mjs",
+    "test:mobile-customer-order-flow": "npm run test:customer-order-new-playwright",
     "test:auth-session-management": "node -r dotenv/config tests/auth-session-management-smoke.mjs",
     "test:auth-registration-security": "node tests/auth-registration-security-smoke.mjs",
     "test:secure-fields": "node --experimental-strip-types tests/secure-fields-smoke.mjs",

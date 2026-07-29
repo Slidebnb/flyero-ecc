@@ -2489,6 +2489,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         onRemoveSegment={removeSegment}
         onAddSegment={addSegment}
         polygonSourceLabel={polygonSourceLabel}
+        isReady={draftRestored}
       />;
     }
 

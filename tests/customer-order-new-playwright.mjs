@@ -20,6 +20,15 @@ const bucketIds = ["ip", "account"].map((scope) => createHash("sha256")
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 let server = null;
 
+function consentCookie() {
+  return encodeURIComponent(JSON.stringify({
+    v: 1,
+    statistics: false,
+    marketing: false,
+    updatedAt: new Date().toISOString(),
+  }));
+}
+
 async function waitForHealth() {
   for (let attempt = 0; attempt < 45; attempt += 1) {
     try {
@@ -45,21 +54,12 @@ async function ensureServer() {
 }
 
 async function login(page) {
-  await page.goto(`${baseUrl}/login?next=/customer/orders/new`, { waitUntil: "domcontentloaded" });
-  await page.locator('input[name="email"]').fill(email);
-  await page.locator('input[name="password"]').fill(password);
-  await page.locator('button[type="submit"]').click({ noWaitAfter: true });
-  try {
-    await page.waitForURL((url) => !url.pathname.endsWith("/login"), { timeout: 15000 });
-  } catch (error) {
-    const response = await page.request.post(`${baseUrl}/api/auth/login`, {
-      data: { email, password, next: "/customer/orders/new" },
-      headers: { "x-forwarded-for": testIp },
-    });
-    assert(response.ok(), `Kundenlogin fehlgeschlagen: ${response.status()}`);
-    await page.goto(`${baseUrl}/customer/orders/new`, { waitUntil: "domcontentloaded" });
-    if (new URL(page.url()).pathname.endsWith("/login")) throw error;
-  }
+  const response = await page.request.post(`${baseUrl}/api/auth/login`, {
+    data: { email, password, next: "/customer/orders/new" },
+    headers: { "x-forwarded-for": testIp },
+  });
+  assert(response.ok(), `Kundenlogin fehlgeschlagen: ${response.status()}`);
+  await page.goto(`${baseUrl}/customer/orders/new`, { waitUntil: "domcontentloaded" });
 }
 
 await mkdir(desktopDir, { recursive: true });
@@ -73,6 +73,11 @@ const context = await browser.newContext({
   serviceWorkers: "block",
   extraHTTPHeaders: { "x-forwarded-for": testIp },
 });
+await context.addCookies([{
+  name: "flyero_cookie_consent_v1",
+  value: consentCookie(),
+  url: baseUrl,
+}]);
 const page = await context.newPage();
 const browserErrors = [];
 const failedRequests = [];
@@ -102,6 +107,10 @@ try {
   await login(page);
   assert.equal(new URL(page.url()).pathname, "/customer/orders/new", "Der Kunden-Wizard muss nach dem Login direkt geöffnet werden.");
   await page.waitForSelector('[data-testid="order-location-input"]');
+  await page.waitForFunction(() => {
+    const input = document.querySelector('[data-testid="order-location-input"]');
+    return input instanceof HTMLInputElement && !input.disabled;
+  }, null, { timeout: 12000 });
   if (process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY) {
     await page.waitForFunction(
       () => document.querySelector('[data-testid="order-map"]')?.getAttribute("aria-hidden") === "false",
@@ -134,6 +143,10 @@ try {
   assert(!desktopMetrics.hasDisabledBoundaryAction, "Eine nicht verfügbare Grenzschaltfläche darf nicht als deaktivierter Hauptweg erscheinen.");
   await page.screenshot({ path: join(desktopDir, "start.png"), fullPage: true });
   const locationInput = page.locator('[data-testid="order-location-input"]');
+  await page.waitForFunction(() => {
+    const input = document.querySelector('[data-testid="order-location-input"]');
+    return input instanceof HTMLInputElement && !input.disabled;
+  }, null, { timeout: 12000 });
   await locationInput.fill("56068");
   await page.waitForTimeout(900);
   const suggestion = page.locator(".orderSuggestions button").first();
@@ -206,6 +219,13 @@ try {
     const separatedVertically = mobileMapLabel.y + mobileMapLabel.height + 6 <= mobileMapTabs.y
       || mobileMapTabs.y + mobileMapTabs.height + 6 <= mobileMapLabel.y;
     assert(separatedHorizontally || separatedVertically, "Ortsbezeichnung und Kartenumschaltung überlappen mobil.");
+  }
+  if (mobileMapNotice && mobileMapTabs) {
+    const separatedFromTabs = mobileMapNotice.x + mobileMapNotice.width + 6 <= mobileMapTabs.x
+      || mobileMapTabs.x + mobileMapTabs.width + 6 <= mobileMapNotice.x
+      || mobileMapNotice.y + mobileMapNotice.height + 6 <= mobileMapTabs.y
+      || mobileMapTabs.y + mobileMapTabs.height + 6 <= mobileMapNotice.y;
+    assert(separatedFromTabs, "Der Kartenhinweis darf mobil nicht unter der Kartenumschaltung liegen.");
   }
   if (mobileMapNotice && mobileMapZoomRail) {
     const separatedFromZoomRail = mobileMapNotice.x + mobileMapNotice.width + 6 <= mobileMapZoomRail.x

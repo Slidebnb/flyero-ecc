@@ -42,6 +42,10 @@ try {
   await page.reload({ waitUntil: "networkidle" });
   await page.screenshot({ path: path.join(qaDir, "mobile.png"), fullPage: false });
   assert.equal(await page.getByTestId("cookie-consent-banner").isVisible(), true);
+  const mobileBannerBox = await page.getByTestId("cookie-consent-banner").boundingBox();
+  assert(mobileBannerBox, "Cookie-Hinweis muss mobil sichtbar messbar sein.");
+  await page.getByTestId("cookie-consent-reject").click();
+  assert.equal(await page.getByTestId("cookie-consent-banner").count(), 0);
   console.log(`Cookie consent Playwright passed: ${qaDir}`);
 } finally {
   await browser.close();

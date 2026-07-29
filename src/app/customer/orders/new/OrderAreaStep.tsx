@@ -32,6 +32,7 @@ type OrderAreaStepProps = {
   onRemoveSegment: (segmentId: string) => void;
   onAddSegment: () => void;
   polygonSourceLabel: () => string;
+  isReady?: boolean;
 };
 
 export function OrderAreaStep({
@@ -62,7 +63,9 @@ export function OrderAreaStep({
   onRemoveSegment,
   onAddSegment,
   polygonSourceLabel,
+  isReady = true,
 }: OrderAreaStepProps) {
+  const searchDisabled = !isReady;
   return (
     <section className="orderPanelBlock primary inlineStepBlock">
       <p className="orderStepHint">Gib eine Adresse oder PLZ ein. Danach wählst du eine grün markierte Fläche auf der Karte.</p>
@@ -73,8 +76,12 @@ export function OrderAreaStep({
             data-testid="order-location-input"
             value={query}
             ref={searchInputRef}
-            onChange={(event) => onQueryChange(event.target.value)}
+            onChange={(event) => {
+              if (searchDisabled) return;
+              onQueryChange(event.target.value);
+            }}
             onKeyDown={(event) => {
+              if (searchDisabled) return;
               if (event.key === "Enter") {
                 event.preventDefault();
                 onEnter();
@@ -84,10 +91,13 @@ export function OrderAreaStep({
             onBlur={onBlur}
             placeholder="z. B. PLZ, Ort oder Straße"
             autoComplete="off"
+            disabled={searchDisabled}
+            aria-busy={searchDisabled}
           />
-          <button type="button" onClick={onSearch} aria-label="Adresse suchen"><Search aria-hidden="true" /></button>
+          <button type="button" onClick={onSearch} aria-label="Adresse suchen" disabled={searchDisabled}><Search aria-hidden="true" /></button>
         </div>
       </label>
+      {searchDisabled ? <small className="orderSegmentHint">Planung wird vorbereitet. Die Suche ist gleich bereit.</small> : null}
       {showSuggestions && suggestions.length > 0 ? (
         <div className="orderSuggestions">
           {suggestions.map((suggestion) => (

@@ -7,6 +7,19 @@ const baseUrl = process.env.MODULE28_BASE_URL || "http://localhost:3000";
 const outDir = join(process.cwd(), ".tmp", "module28-public-playwright");
 await mkdir(outDir, { recursive: true });
 
+function daysFromNow(days) {
+  const date = new Date();
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+async function waitForReactEventHandlers(page, selector) {
+  await page.waitForFunction((targetSelector) => {
+    const element = document.querySelector(targetSelector);
+    return Boolean(element && Object.keys(element).some((key) => key.startsWith("__reactProps")));
+  }, selector);
+}
+
 const browser = await chromium.launch();
 const targets = [
   ["home-desktop", "/", 1440, 900],
@@ -80,6 +93,7 @@ try {
   await menuPage.goto(new URL("/", baseUrl).toString(), { waitUntil: "domcontentloaded" });
   const menuButton = menuPage.locator(".flyeroMobileMenuButton");
   assert.equal(await menuButton.count(), 1, "Mobile Navigation fehlt.");
+  await waitForReactEventHandlers(menuPage, ".flyeroMobileMenuButton");
   await menuButton.click();
   assert.equal(await menuButton.getAttribute("aria-expanded"), "true", "Hamburger-Menue muss sich oeffnen.");
   assert.ok(await menuPage.locator("#flyero-mobile-menu-panel").isVisible(), "Geoeffnetes Mobile-Menue ist nicht sichtbar.");
@@ -99,6 +113,7 @@ try {
     });
   });
   await inquiryPage.goto(new URL("/verteilung-anfragen", baseUrl).toString(), { waitUntil: "domcontentloaded" });
+  await waitForReactEventHandlers(inquiryPage, ".mkLeadForm");
   assert.ok(await inquiryPage.locator('a[href="/datenschutz"]').first().isVisible(), "Anfrageformular braucht einen sichtbaren Datenschutzlink.");
   await inquiryPage.locator('input[name="name"]').fill("Playwright Anfrage");
   await inquiryPage.locator('input[name="companyName"]').fill("FLYERO Testbetrieb");
@@ -107,8 +122,8 @@ try {
   await inquiryPage.locator('input[name="city"]').fill("Koblenz");
   await inquiryPage.locator('input[name="postalCode"]').fill("56068");
   await inquiryPage.locator('input[name="flyerQuantity"]').fill("3000");
-  await inquiryPage.locator('input[name="startDate"]').fill("2026-08-01");
-  await inquiryPage.locator('input[name="endDate"]').fill("2026-08-08");
+  await inquiryPage.locator('input[name="startDate"]').fill(daysFromNow(14));
+  await inquiryPage.locator('input[name="endDate"]').fill(daysFromNow(21));
   await inquiryPage.locator('select[name="flyersAlreadyPrinted"]').selectOption("true");
   await inquiryPage.locator('input[name="targetGroup"]').fill("Haushalte");
   await inquiryPage.locator('input[name="distributionMode"]').fill("Haushaltsverteilung");
