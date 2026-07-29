@@ -13,7 +13,7 @@ import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { prisma } from "@/lib/prisma";
 import { tenantWhereForSession } from "@/lib/tenantPolicy";
-import { productionDocumentWhere, productionPrintOrderWhere, productionPrintPartnerWhere } from "@/lib/productionData";
+import { productionCustomerWhere, productionDocumentWhere, productionOrderWhere, productionPrintOrderWhere, productionPrintPartnerWhere } from "@/lib/productionData";
 
 const adminRoles: UserRole[] = [UserRole.ADMIN, UserRole.SUPPORT_DISPATCHER];
 const DOCUMENT_TYPE_VALUES = ["FLYER_PDF", "PRINT_FILE", "INDESIGN", "ILLUSTRATOR", "LOGO", "IMAGE", "ZIP", "REPORT", "INVOICE", "CONTRACT", "OTHER"] as const;
@@ -29,6 +29,15 @@ export const documentCreateSchema = z.object({
   mimeType: z.string().optional(),
   content: z.string().optional(),
   folderId: z.string().optional(),
+});
+
+export const approvedCustomerDocumentSchema = z.object({
+  customerId: z.string().min(1),
+  orderId: z.string().min(1),
+  documentType: z.enum(["REPORT", "IMAGE", "INVOICE"]).default("REPORT"),
+  title: z.string().trim().min(2).max(180),
+  originalFilename: z.string().trim().min(3).max(255),
+  mimeType: z.string().optional(),
 });
 
 export const documentUpdateSchema = z.object({
@@ -329,6 +338,83 @@ export async function createDocument(actor: SessionUser, input: unknown, file?: 
   await createAuditLog({ userId: actor.id, tenantId: document.tenantId, action: "document.uploaded", entityType: "Document", entityId: document.id, newValues: { type: document.documentType, status: document.status } });
   await notifyAdmins({ type: "DOCUMENT_UPLOADED", title: "Neue Druckdatei", message: `${document.title} wurde hochgeladen.`, data: { documentId: document.id } });
   await createNotification({ userId: actor.id, type: "DOCUMENT_UPLOADED", title: "Dokument hochgeladen", message: `${document.title} wurde gespeichert.`, data: { documentId: document.id } });
+  return getDocument(actor, document.id);
+}
+
+export async function createApprovedCustomerDocument(actor: SessionUser, input: unknown, file: UploadableDocumentFile) {
+  if (!isPlatformAdmin(actor)) throw new AuthError("Nur Admins duerfen Kundendokumente direkt bereitstellen.", 403);
+  const data = approvedCustomerDocumentSchema.parse(input);
+
+  const customer = await prisma.customerProfile.findFirst({
+    where: { id: data.customerId, ...productionCustomerWhere() },
+    select: { id: true, tenantId: true, userId: true },
+  });
+  if (!customer) throw new AuthError("Kunde wurde nicht gefunden.", 404);
+
+  const order = await prisma.order.findFirst({
+    where: { id: data.orderId, customerId: customer.id, tenantId: customer.tenantId, ...productionOrderWhere() },
+    select: { id: true, customerId: true, tenantId: true, orderNumber: true },
+  });
+  if (!order) throw new AuthError("Auftrag wurde fuer diesen Kunden nicht gefunden.", 404);
+
+  const stored = await storeDocumentFile(file);
+  const approvedAt = new Date();
+  const document = await prisma.document.create({
+    data: {
+      orderId: order.id,
+      customerId: customer.id,
+      tenantId: customer.tenantId,
+      documentType: data.documentType,
+      title: data.title,
+      originalFilename: file.originalFilename,
+      storedFilename: stored.storageKey,
+      mimeType: stored.mimeType,
+      extension: stored.extension,
+      fileSize: stored.fileSize,
+      checksum: stored.checksum,
+      status: "APPROVED",
+      customerVisible: true,
+      reviewStatus: "APPROVED",
+      scanStatus: stored.scanStatus,
+      scanProvider: stored.scanProvider,
+      scanMessage: stored.scanMessage,
+      scannedAt: stored.scanStatus === "CLEAN" ? approvedAt : null,
+      uploadedById: actor.id,
+      approvedById: actor.id,
+      approvedAt,
+      versions: {
+        create: {
+          version: 1,
+          storageKey: stored.storageKey,
+          fileUrl: "pending",
+          checksum: stored.checksum,
+          uploadedById: actor.id,
+        },
+      },
+    },
+    include: documentInclude(false),
+  });
+
+  await prisma.documentVersion.updateMany({
+    where: { documentId: document.id, version: 1 },
+    data: { fileUrl: protectedDocumentUrl(document.id, 1) },
+  });
+  await createAuditLog({
+    userId: actor.id,
+    tenantId: document.tenantId,
+    action: "document.customer_approved_upload",
+    entityType: "Document",
+    entityId: document.id,
+    newValues: { type: document.documentType, status: document.status, customerVisible: document.customerVisible },
+  });
+  await createNotification({
+    userId: customer.userId,
+    type: data.documentType === "INVOICE" ? "INVOICE_AVAILABLE" : "EVIDENCE_AVAILABLE",
+    title: data.documentType === "INVOICE" ? "Rechnung verfügbar" : "Nachweis verfügbar",
+    message: `${data.title} ist in deinem Kundenkonto verfügbar.`,
+    data: { documentId: document.id, orderId: order.id, orderNumber: order.orderNumber },
+  });
+
   return getDocument(actor, document.id);
 }
 

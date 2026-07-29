@@ -63,6 +63,7 @@ export default async function AdminDashboardPage() {
           title="Operative Prüfung"
           description="Bezahlte Aufträge, Verteilerfreigaben und Tourprüfungen priorisiert abarbeiten."
           actions={[
+            { href: "/admin/customers", label: "Kunden öffnen" },
             { href: "/admin/orders?status=PAID_WAITING_FOR_ADMIN_REVIEW", label: "Aufträge prüfen" },
             { href: "/admin/distributors", label: "Verteiler prüfen" },
             { href: "/admin/tours", label: "Touren prüfen" },
@@ -75,6 +76,8 @@ export default async function AdminDashboardPage() {
         >
           <div className="portalActions">
             <Link href="/admin/accounting">Buchhaltung</Link>
+            <Link href="/admin/invoices">Rechnungen</Link>
+            <Link href="/admin/payments">Zahlungen</Link>
             <Link href="/admin/settings">Einstellungen</Link>
             <Link href="/admin/notifications">Benachrichtigungen</Link>
             <Link href="/admin/analytics">Analytics</Link>

@@ -21,7 +21,21 @@ export default async function CustomerInvoicesPage() {
     include: { order: true, payment: true },
     orderBy: { invoiceDate: "desc" },
   });
+  const uploadedInvoiceDocuments = await prisma.document.findMany({
+    where: {
+      tenantId: session.tenantId,
+      customerVisible: true,
+      status: "APPROVED",
+      reviewStatus: "APPROVED",
+      documentType: "INVOICE",
+      customer: { userId: session.id, tenantId: session.tenantId },
+    },
+    include: { order: { select: { id: true, orderNumber: true, targetAreaName: true, city: true } } },
+    orderBy: { uploadedAt: "desc" },
+    take: 20,
+  });
   const latestInvoice = invoices[0] ?? null;
+  const latestUploadedInvoice = uploadedInvoiceDocuments[0] ?? null;
   const visibleInvoices = invoices.slice(0, 10);
 
   return (
@@ -29,11 +43,19 @@ export default async function CustomerInvoicesPage() {
       <section className="customerFocusPanel">
         <div>
           <span className="customerTinyLabel">Abrechnung</span>
-          <h2>{latestInvoice ? "Letzte Rechnung direkt öffnen." : "Noch keine Rechnung vorhanden."}</h2>
-          <p>{latestInvoice ? `${latestInvoice.invoiceNumber} · ${formatCurrency(latestInvoice.totalGross)}` : "Sobald eine Kampagne abgerechnet wird, erscheint die Rechnung hier."}</p>
+          <h2>{latestInvoice || latestUploadedInvoice ? "Letzte Rechnung direkt öffnen." : "Noch keine Rechnung vorhanden."}</h2>
+          <p>
+            {latestInvoice
+              ? `${latestInvoice.invoiceNumber} · ${formatCurrency(latestInvoice.totalGross)}`
+              : latestUploadedInvoice
+                ? `${latestUploadedInvoice.title} · ${customerOrderName(latestUploadedInvoice.order?.orderNumber || "Kampagne")}`
+                : "Sobald eine Kampagne abgerechnet wird, erscheint die Rechnung hier."}
+          </p>
         </div>
         {latestInvoice?.pdfUrl ? (
           <a className="primaryButton" href={`/api/customer/invoices/${latestInvoice.id}/download`}>PDF herunterladen</a>
+        ) : latestUploadedInvoice ? (
+          <a className="primaryButton" href={`/api/customer/documents/${latestUploadedInvoice.id}/download`}>PDF herunterladen</a>
         ) : (
           <Link className="secondaryButton" href="/customer/orders">Kampagnen öffnen</Link>
         )}
@@ -65,15 +87,38 @@ export default async function CustomerInvoicesPage() {
           {invoices.length > visibleInvoices.length ? (
             <p className="customerListHint">Weitere Rechnungen bleiben gespeichert. Die aktuell wichtigsten Einträge stehen oben.</p>
           ) : null}
-          {invoices.length === 0 ? (
+          {invoices.length === 0 && uploadedInvoiceDocuments.length === 0 ? (
             <EmptyState
               title="Noch keine Rechnungen vorhanden."
-              description="Rechnungen werden nach erfolgreicher Zahlung und Freigabe automatisch erzeugt."
+              description="Rechnungen werden nach erfolgreicher Zahlung oder manueller Bereitstellung hier angezeigt."
               action={{ href: "/customer/orders", label: "Kampagnen prüfen" }}
             />
           ) : null}
         </div>
       </DataSection>
+
+      {uploadedInvoiceDocuments.length > 0 ? (
+        <DataSection title="Bereitgestellte Rechnungen" description="Von FLYERO freigegebene Rechnungs-PDFs für dein Kundenkonto.">
+          <div className="customerCampaignList">
+            {uploadedInvoiceDocuments.map((document) => (
+              <article className="customerCampaignItem" key={document.id}>
+                <div>
+                  <div className="customerItemHeader">
+                    <strong>{document.title}</strong>
+                    <StatusBadge tone="success">PDF bereit</StatusBadge>
+                  </div>
+                  <p>{customerOrderName(document.order?.orderNumber || "Kampagne")}</p>
+                  <div className="customerItemMeta">
+                    <span>{formatDate(document.uploadedAt)}</span>
+                    <span>{document.order?.targetAreaName || document.order?.city || "Kampagne"}</span>
+                  </div>
+                </div>
+                <a className="primaryButton" href={`/api/customer/documents/${document.id}/download`}>PDF laden</a>
+              </article>
+            ))}
+          </div>
+        </DataSection>
+      ) : null}
     </CustomerPortalShell>
   );
 }

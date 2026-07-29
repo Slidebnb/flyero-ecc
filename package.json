@@ -210,6 +210,7 @@
     "test:single-area-logistics-gate": "node tests/single-area-logistics-gate-smoke.mjs",
     "test:print-service-payment-gate": "node tests/print-service-payment-gate-smoke.mjs",
     "test:report-evidence-tenant-scope": "node tests/report-evidence-tenant-scope-smoke.mjs",
+    "test:admin-customer-portal": "node tests/admin-customer-portal-smoke.mjs",
     "test:tenant-ab-idor": "node -r dotenv/config tests/tenant-ab-idor-smoke.mjs",
     "test:warehouse-scope": "node -r dotenv/config tests/warehouse-scope-smoke.mjs",
     "test:admin-warehouse-real-data": "node tests/admin-warehouse-real-data.mjs",
