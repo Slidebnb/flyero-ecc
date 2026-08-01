@@ -19,6 +19,7 @@ assert(!marketing.includes("/generated/marketing/flyero-hero-proof.png"), "Das H
 for (const path of ["/", "/verteilung-anfragen", "/verteilung-planen", "/fuer-unternehmen", "/fuer-verteiler", "/so-funktionierts", "/preise", "/kontakt", "/impressum", "/datenschutz", "/agb"]) {
   assert(seo.includes(`path: \"${path}\"`), `Sitemap-Route fehlt: ${path}`);
 }
+assert(seo.includes('path: \"/downloads/flyero-anfrageformular.pdf\"'), "Sitemap-Route fuer das Anfrageformular-PDF fehlt.");
 for (const slug of ["baeckereien", "gastronomie", "fitnessstudios", "handwerk", "immobilien", "einzelhandel", "events-vereine", "neueroeffnungen"]) {
   assert(industryData.includes(`path: \"/branchen/${slug}\"`), `Branchen-Sitemap-Route fehlt: ${slug}`);
 }

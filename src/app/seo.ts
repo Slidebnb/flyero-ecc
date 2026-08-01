@@ -117,6 +117,7 @@ export const publicSeoRoutes = [
   { path: "/fuer-verteiler", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "/kontakt", priority: 0.65, changeFrequency: "monthly" as const },
   { path: "/flyer-verteilen-lassen", priority: 0.9, changeFrequency: "monthly" as const },
+  { path: "/downloads/flyero-anfrageformular.pdf", priority: 0.35, changeFrequency: "monthly" as const },
   ...seoIntentRoutes,
   ...industrySeoRoutes,
   ...occasionSeoRoutes,

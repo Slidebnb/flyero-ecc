@@ -22,6 +22,21 @@ const locations = sitemap
 
 assert.ok(locations.length > 0, "Sitemap enthaelt keine oeffentlichen URLs.");
 
+const locationPaths = new Set(locations.map((location) => location.pathname));
+for (const path of [
+  "/",
+  "/verteilung-anfragen",
+  "/verteilung-planen",
+  "/preise",
+  "/kontakt",
+  "/flyer-verteilen-lassen",
+  "/branchen/baeckereien",
+  "/flyer-fuer/neueroeffnung",
+  "/downloads/flyero-anfrageformular.pdf",
+]) {
+  assert.ok(locationPaths.has(path), `Pflicht-URL fehlt in sitemap.xml: ${path}`);
+}
+
 for (const location of locations) {
   await fetchChecked(`${location.pathname}${location.search}`);
 }
