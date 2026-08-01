@@ -303,18 +303,7 @@ export function HeroVisual() {
   return (
     <div className="mkHeroVisual" aria-label="FLYERO Ablauf bis zum Bericht">
       <div className="mkVisualFrame">
-        <div className="mkVisualFrameHeader">
-          <div className="mkVisualFrameBrand">
-            <FlyeroLogo dark />
-            <span>Auftragsübersicht</span>
-          </div>
-          <span className="mkVisualFrameBadge">klar dokumentiert</span>
-        </div>
         <ProcessPreview />
-        <div className="mkVisualFrameFooter">
-          <span>Ein klarer Ablauf</span>
-          <strong>Planen <ArrowRight aria-hidden="true" /> Durchführen <ArrowRight aria-hidden="true" /> Bericht</strong>
-        </div>
       </div>
     </div>
   );
@@ -322,40 +311,43 @@ export function HeroVisual() {
 
 export function ProcessPreview() {
   const processItems = [
-    { number: "01", title: "Gebiet", text: "Auswahl im Auftrag gespeichert.", status: "festgelegt", Icon: MapPinned },
-    { number: "02", title: "Flyer", text: "Bereits gedruckte Flyer anliefern.", status: "bereitstellen", Icon: ShoppingBag },
-    { number: "03", title: "Durchführung", text: "Verteilung zum vereinbarten Zeitraum.", status: "geplant", Icon: Navigation },
-    { number: "04", title: "Nachweise", text: "GPS, Fotos und Angaben werden geprüft.", status: "danach", Icon: Camera },
-    { number: "05", title: "Bericht", text: "Freigegebene Unterlagen im Kundenkonto.", status: "danach", Icon: ReceiptText },
+    { number: "01", title: "Gebiet planen", text: "Du wählst die Fläche aus, FLYERO übernimmt sie sauber in die Kampagne.", Icon: MapPinned },
+    { number: "02", title: "Flyer einsenden", text: "Nach der Buchung erhältst du die Adresse des passenden Empfangslagers.", Icon: ShoppingBag },
+    { number: "03", title: "Verteilung durchführen", text: "Die Zustellung wird im gewählten Gebiet organisiert und dokumentiert.", Icon: Navigation },
+    { number: "04", title: "Nachweise erhalten", text: "GPS-Unterlagen, Fotos und Bericht werden nach der Durchführung freigegeben.", Icon: Camera },
   ] as const;
 
   return (
     <div className="mkProcessPreview" aria-label="FLYERO Nachweisablauf">
-      <p className="mkProcessPreviewDisclosure">So bleibt deine Verteilung nachvollziehbar.</p>
+      <div className="mkProcessPreviewIntro">
+        <p className="mkProcessPreviewDisclosure">So bleibt deine Verteilung nachvollziehbar.</p>
+        <strong>Vom Gebiet bis zum Bericht.</strong>
+        <span>Planen, verteilen und Nachweise im Kundenkonto erhalten.</span>
+      </div>
       <div className="mkVisualJourney">
         <figure className="mkVisualImageCard">
           <div className="mkVisualImageWrap">
             <Image
               src="/marketing/flyero-doorstep-proof.jpg"
-              alt="Illustrative Darstellung von FLYERO Verteilung und Beleg"
+              alt="Darstellung des FLYERO Nachweisprinzips mit Flyerzustellung und Kundenbericht"
               fill
               priority
               sizes="(max-width: 820px) 100vw, 34vw"
             />
           </div>
-          <figcaption>Illustrative Darstellung von Verteilung und Beleg</figcaption>
+          <figcaption>Darstellung des Nachweisprinzips.</figcaption>
         </figure>
         <div className="mkVisualProcessColumn">
-          <p className="mkVisualProcessKicker">Vom Gebiet zum Bericht</p>
+          <p className="mkVisualProcessKicker">Was nach deiner Auswahl passiert</p>
           <div className="mkProcessPreviewList">
-            {processItems.map(({ number, title, text, status, Icon }) => (
+            {processItems.map(({ number, title, text, Icon }) => (
               <div className="mkProcessPreviewRow" key={number}>
                 <span className="mkProcessPreviewIcon"><Icon aria-hidden="true" /></span>
                 <div>
                   <strong>{title}</strong>
                   <small>{text}</small>
                 </div>
-                <em>{status}</em>
+                <em>{number}</em>
               </div>
             ))}
           </div>

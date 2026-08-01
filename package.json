@@ -128,6 +128,7 @@
     "test:seo-sitemap": "node tests/seo-sitemap-smoke.mjs",
     "test:public-seo-intent": "node tests/public-seo-intent-coverage-smoke.mjs",
     "test:public-seo-design-system": "node tests/public-seo-design-system-smoke.mjs",
+    "test:public-proof-visual-ux": "node tests/public-proof-visual-ux-smoke.mjs",
     "test:legal-page-heading": "node tests/legal-page-heading-smoke.mjs",
     "test:public-sitemap-runtime": "node tests/public-sitemap-runtime-smoke.mjs",
     "test:public-link-integrity": "node tests/public-link-integrity-smoke.mjs",
