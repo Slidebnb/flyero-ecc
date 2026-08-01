@@ -21,7 +21,8 @@ assert(marketing.includes('className="mkSkipLink"') && marketing.includes('id="m
 assert(planner.includes('className="mkSkipLink"') && planner.includes('id="main-content"'), "Der öffentliche Planer braucht ebenfalls einen Skip-Link zum Hauptinhalt.");
 assert(mobileMenu.includes('aria-modal="true"'), "Das mobile öffentliche Menü muss als modaler Dialog ausgezeichnet sein.");
 assert(marketing.includes('className="mkVisualFrame"'), "Der Hero braucht eine klar strukturierte Nachweis-Visualisierung.");
-assert(marketing.includes('src="/marketing/flyero-doorstep-proof.jpg"'), "Der Homepage-Hero muss das freigegebene FLYERO-Motiv verwenden.");
+assert(marketing.includes('src="/marketing/flyero-proof-dashboard-showcase.png"'), "Der Homepage-Hero muss das aktuelle FLYERO-Nachweismotiv verwenden.");
+assert(fs.existsSync(path.join(root, "public", "marketing", "flyero-proof-dashboard-showcase.png")), "Das aktuelle FLYERO-Nachweismotiv fehlt im Public-Asset-Ordner.");
 assert(marketing.includes("Darstellung des Nachweisprinzips"), "Das Homepage-Motiv muss ehrlich und kundenverständlich eingeordnet werden.");
 assert(marketing.includes('className="mkProofStatusTimeline"'), "Die Nachweis-Visualisierung braucht eine eigene Status-Timeline.");
 assert(marketing.includes("Nur echte Unterlagen werden sichtbar."), "Die Nachweis-Visualisierung muss klar zwischen Planung und echten Unterlagen unterscheiden.");

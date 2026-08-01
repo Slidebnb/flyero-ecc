@@ -328,7 +328,7 @@ export function ProcessPreview() {
         <figure className="mkVisualImageCard">
           <div className="mkVisualImageWrap">
             <Image
-              src="/marketing/flyero-doorstep-proof.jpg"
+              src="/marketing/flyero-proof-dashboard-showcase.png"
               alt="Darstellung des FLYERO Nachweisprinzips mit Flyerzustellung und Kundenbericht"
               fill
               priority
