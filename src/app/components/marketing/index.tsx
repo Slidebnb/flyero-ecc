@@ -26,6 +26,7 @@ import { MobileMenu } from "@/app/components/MobileMenu";
 import { CookieSettingsLink } from "@/app/CookieSettingsLink";
 import { industryPages } from "@/app/branchen/industryData";
 import { occasionPages } from "@/app/anlaesse/occasionData";
+import { seoIntentPages } from "@/app/seoIntentData";
 export { IndustryLandingPage } from "@/app/components/marketing/IndustryLandingPage";
 export { FlyerDistributionPillarPage } from "@/app/components/marketing/FlyerDistributionPillarPage";
 
@@ -34,7 +35,7 @@ type ButtonVariant = "primary" | "secondary" | "ghost" | "dark" | "coral";
 export type CardTone = "light" | "dark" | "green";
 
 export const navItems = [
-  ["Leistungen", "/fuer-unternehmen"],
+  ["Leistungen", "/flyerverteilung"],
   ["Ablauf", "/so-funktionierts"],
   ["Zielgruppen", "/fuer-unternehmen#zielgruppen"],
   ["Preise", "/preise"],
@@ -92,6 +93,23 @@ export function PublicNavbar() {
 }
 
 export function PublicFooter() {
+  const serviceLinks = [
+    ["Flyerverteilung", "/flyerverteilung"],
+    ["Prospektverteilung", "/prospektverteilung"],
+    ["Haushaltswerbung", "/haushaltswerbung"],
+    ["GPS-Nachweis", "/flyerverteilung-mit-gps-nachweis"],
+    ["Bundesweite Flyerverteilung", "/bundesweite-flyerverteilung"],
+    ["Kosten", "/flyerverteilung-kosten"],
+  ] as const;
+  const knowledgeLinks = [
+    [seoIntentPages.find((entry) => entry.path === "/ratgeber")?.label ?? "Ratgeber", "/ratgeber"],
+    [seoIntentPages.find((entry) => entry.path === "/ratgeber/flyerverteilung-planen")?.label ?? "Flyerverteilung planen", "/ratgeber/flyerverteilung-planen"],
+    [seoIntentPages.find((entry) => entry.path === "/ratgeber/richtige-flyer-auflage")?.label ?? "Richtige Flyerauflage", "/ratgeber/richtige-flyer-auflage"],
+    [seoIntentPages.find((entry) => entry.path === "/ratgeber/verteilgebiet-bestimmen")?.label ?? "Verteilgebiet bestimmen", "/ratgeber/verteilgebiet-bestimmen"],
+    ["Qualitätssicherung", "/qualitaetssicherung"],
+    ["Häufige Fragen", "/haeufige-fragen"],
+  ] as const;
+
   return (
     <footer className="mkFooter">
       <div className="mkFooterBrand">
@@ -102,6 +120,14 @@ export function PublicFooter() {
           Für Unternehmen, Vereine und lokale Kampagnen, die nicht nur verteilt, sondern sauber belegt werden sollen.
         </p>
       </div>
+      <FooterColumn
+        title="Leistungen"
+        links={serviceLinks}
+      />
+      <FooterColumn
+        title="Wissen"
+        links={knowledgeLinks}
+      />
       <FooterColumn
         title="FLYERO"
         links={[
@@ -305,6 +331,7 @@ export function ProcessPreview() {
 
   return (
     <div className="mkProcessPreview" aria-label="FLYERO Nachweisablauf">
+      <p className="mkProcessPreviewDisclosure">So bleibt deine Verteilung nachvollziehbar.</p>
       <div className="mkVisualJourney">
         <figure className="mkVisualImageCard">
           <div className="mkVisualImageWrap">

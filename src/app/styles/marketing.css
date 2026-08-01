@@ -3681,6 +3681,38 @@
   border-bottom: 1px solid var(--flyero-border);
 }
 
+.mkSeoIntentList {
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkSeoIntentList article {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 22px;
+  gap: 18px;
+  align-items: center;
+  min-height: 82px;
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+.mkSeoIntentList article span {
+  color: #5e8500;
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.1em;
+}
+
+.mkSeoIntentList article strong {
+  color: var(--flyero-text);
+  font-size: 1.08rem;
+  line-height: 1.25;
+}
+
+.mkSeoIntentList article svg {
+  width: 18px;
+  height: 18px;
+  color: var(--flyero-green-dark);
+}
+
 @media (max-width: 1080px) {
   .mkPillarHeroLayout,
   .mkPillarFlow,
@@ -3733,6 +3765,11 @@
     grid-template-columns: 42px minmax(0, 1fr) 20px;
     gap: 12px;
     padding: 16px 0;
+  }
+
+  .mkSeoIntentList article {
+    grid-template-columns: 42px minmax(0, 1fr) 20px;
+    gap: 12px;
   }
 
   .mkPillarSignal .mkTextLink {
