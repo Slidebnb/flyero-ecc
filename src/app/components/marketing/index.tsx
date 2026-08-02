@@ -110,6 +110,12 @@ export function PublicFooter() {
     ["Häufige Fragen", "/haeufige-fragen"],
   ] as const;
 
+  const localLinks = [
+    ["Flyerverteilung Bendorf", "/flyerverteilung-bendorf"],
+    ["Flyerverteilung Koblenz", "/flyerverteilung-koblenz"],
+    ["Flyerverteilung Neuwied", "/flyerverteilung-neuwied"],
+  ] as const;
+
   return (
     <footer className="mkFooter">
       <div className="mkFooterBrand">
@@ -127,6 +133,10 @@ export function PublicFooter() {
       <FooterColumn
         title="Wissen"
         links={knowledgeLinks}
+      />
+      <FooterColumn
+        title="Regionen"
+        links={localLinks}
       />
       <FooterColumn
         title="FLYERO"

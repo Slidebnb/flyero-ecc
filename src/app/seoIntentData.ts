@@ -16,6 +16,7 @@ export type SeoIntentPageData = {
   title: string;
   description: string;
   keywords: string[];
+  areaServed?: string[];
   eyebrow: string;
   lead: string;
   asideTitle: string;
@@ -592,6 +593,141 @@ export const seoIntentPages: SeoIntentPageData[] = [
     ],
     relatedLinks: guideRelatedLinks,
     schemaKind: "article",
+  },
+  {
+    path: "/flyerverteilung-bendorf",
+    label: "Bendorf",
+    title: "Flyerverteilung Bendorf: Gebiet waehlen, Preis pruefen, Nachweis erhalten.",
+    description:
+      "Flyerverteilung in Bendorf und Umgebung mit FLYERO: Gebiet online auswaehlen, eigene Flyer anliefern, Auftrag buchen oder anfragen und Nachweise im Kundenkonto erhalten.",
+    keywords: ["Flyerverteilung Bendorf", "Flyer verteilen Bendorf", "Prospektverteilung Bendorf", "Haushaltswerbung Bendorf"],
+    areaServed: ["Bendorf", "Sayn", "Muelhofen", "Stromberg", "Weitersburg", "Neuwied", "Koblenz"],
+    eyebrow: "Raum Bendorf",
+    lead:
+      "FLYERO hilft Unternehmen im Raum Bendorf, Flyer- und Prospektkampagnen sauber zu planen: Gebiet auswaehlen, Menge festlegen, eigene Drucksachen anliefern und nach der Durchfuehrung freigegebene Nachweise erhalten.",
+    asideTitle: "Fuer lokale Aktionen rund um Bendorf.",
+    asidePoints: ["Bendorf und Stadtteile planen", "Nachbarorte als Teilgebiete ergaenzen", "Nachweise nach der Verteilung erhalten"],
+    sections: [
+      {
+        eyebrow: "Einsatz",
+        title: "Flyerverteilung fuer Bendorf und direkte Umgebung.",
+        text: "Ob Geschaeft, Praxis, Verein, Gastronomie oder Dienstleister: In Bendorf zaehlt ein klar begrenztes Gebiet, damit die Verteilung zur lokalen Zielgruppe passt.",
+        points: ["Sayn und Muelhofen", "Stromberg und Weitersburg", "Kampagnen mit Neuwied oder Koblenz kombinieren"],
+      },
+      {
+        eyebrow: "Planung",
+        title: "Ort oder PLZ eingeben und Gebiet auswaehlen.",
+        text: "Im Planer starten Sie mit Bendorf oder einer PLZ, waehlen die passende Flaeche und koennen bei Bedarf weitere Teilgebiete hinzufuegen.",
+        points: ["Gebiet sichtbar auf der Karte", "mehrere Teilgebiete moeglich", "Preisvorschau vor dem Absenden"],
+      },
+      {
+        eyebrow: "Nachweis",
+        title: "Nach Abschluss bleiben Unterlagen greifbar.",
+        text: "Nach der Durchfuehrung stellt FLYERO freigegebene Nachweise und den PDF-Bericht im Kundenkonto bereit.",
+        points: ["GPS-Unterlagen nach Durchfuehrung", "Foto-Dokumentation nach Freigabe", "PDF-Bericht zum Download"],
+      },
+    ],
+    faq: [
+      { question: "Kann ich Bendorf zusammen mit Neuwied oder Koblenz planen?", answer: "Ja. Mehrere Orte koennen als Teilgebiete in einer Kampagne zusammengefuehrt werden." },
+      { question: "Muss ich die Flyer selbst drucken?", answer: "Online geht FLYERO von bereits gedruckten Flyern aus. Die Empfangslager-Informationen erhalten Sie im Auftrag." },
+    ],
+    relatedLinks: [
+      ["Flyerverteilung Neuwied", "/flyerverteilung-neuwied"],
+      ["Flyerverteilung Koblenz", "/flyerverteilung-koblenz"],
+      ["Gebiet und Preis pruefen", "/verteilung-planen"],
+      ["Unverbindlich anfragen", "/verteilung-anfragen"],
+    ],
+    schemaKind: "service",
+  },
+  {
+    path: "/flyerverteilung-koblenz",
+    label: "Koblenz",
+    title: "Flyerverteilung Koblenz: lokale Kampagnen mit Gebiet und Nachweis.",
+    description:
+      "Flyerverteilung in Koblenz planen: Gebiet online auswaehlen, Flyer anliefern, Preisvorschau pruefen und Nachweise nach der Verteilung im Kundenkonto erhalten.",
+    keywords: ["Flyerverteilung Koblenz", "Flyer verteilen Koblenz", "Prospektverteilung Koblenz", "Haushaltswerbung Koblenz"],
+    areaServed: ["Koblenz", "Altstadt", "Luetzel", "Metternich", "Rauental", "Karthause", "Neuwied", "Bendorf"],
+    eyebrow: "Raum Koblenz",
+    lead:
+      "Koblenz hat viele unterschiedliche Einzugsgebiete. FLYERO macht die Auswahl sichtbar: Sie legen die passende Flaeche fest, bestimmen die Stueckzahl und erhalten nach Abschluss freigegebene Unterlagen.",
+    asideTitle: "Fuer Kampagnen in Koblenz und Nachbarorten.",
+    asidePoints: ["Koblenzer Stadtteile gezielt planen", "Teilgebiete ergaenzen", "Nachweise im Kundenkonto erhalten"],
+    sections: [
+      {
+        eyebrow: "Lokale Reichweite",
+        title: "Koblenz braucht eine saubere Gebietsauswahl.",
+        text: "Eine Verteilung in Koblenz kann je nach Ziel rund um Innenstadt, Stadtteile, Filialstandort oder Nachbarorte sinnvoll sein.",
+        points: ["Innenstadt und Altstadt", "Metternich, Luetzel und Rauental", "Kombination mit Bendorf oder Neuwied"],
+      },
+      {
+        eyebrow: "Ablauf",
+        title: "Von der Karte zum Auftrag.",
+        text: "Der Planer verbindet Gebietsauswahl, Menge, Zeitraum und Preisvorschau. Wenn alles passt, kann online gebucht oder zuerst angefragt werden.",
+        points: ["PLZ, Ort oder Adresse nutzen", "Flaeche sichtbar auswaehlen", "Auftrag oder Anfrage starten"],
+      },
+      {
+        eyebrow: "Dokumentation",
+        title: "Verteilung nachvollziehbar abschliessen.",
+        text: "Nachweise werden erst nach Durchfuehrung und Freigabe bereitgestellt. So bleibt der Abschluss ehrlich und belastbar.",
+        points: ["GPS-Nachweis", "Foto-Dokumentation", "PDF-Bericht"],
+      },
+    ],
+    faq: [
+      { question: "Kann ich nur einzelne Koblenzer Stadtteile auswaehlen?", answer: "Wenn passende Flaechen verfuegbar sind, koennen einzelne Bereiche ausgewaehlt und kombiniert werden." },
+      { question: "Ist Koblenz direkt online buchbar?", answer: "Der Planer zeigt die aktuelle Buchungsmoeglichkeit. Falls FLYERO ein Gebiet pruefen muss, fuehrt der Ablauf zur unverbindlichen Anfrage." },
+    ],
+    relatedLinks: [
+      ["Flyerverteilung Bendorf", "/flyerverteilung-bendorf"],
+      ["Flyerverteilung Neuwied", "/flyerverteilung-neuwied"],
+      ["Kosten verstehen", "/flyerverteilung-kosten"],
+      ["Planer oeffnen", "/verteilung-planen"],
+    ],
+    schemaKind: "service",
+  },
+  {
+    path: "/flyerverteilung-neuwied",
+    label: "Neuwied",
+    title: "Flyerverteilung Neuwied: Gebiet planen, Flyer einsenden, Bericht erhalten.",
+    description:
+      "Flyerverteilung in Neuwied und Umgebung mit FLYERO: Gebiet auswaehlen, Preis pruefen, Empfangslager nutzen und Nachweise nach Abschluss herunterladen.",
+    keywords: ["Flyerverteilung Neuwied", "Flyer verteilen Neuwied", "Prospektverteilung Neuwied", "Haushaltswerbung Neuwied"],
+    areaServed: ["Neuwied", "Heddesdorf", "Engers", "Feldkirchen", "Irlich", "Oberbieber", "Bendorf", "Koblenz"],
+    eyebrow: "Raum Neuwied",
+    lead:
+      "Im Raum Neuwied kann FLYERO lokale Kampagnen vom Gebiet bis zum Bericht abbilden. Sie waehlen die Flaeche, senden eigene gedruckte Flyer an das Empfangslager und erhalten nach Abschluss freigegebene Nachweise.",
+    asideTitle: "Fuer Verteilungen in Neuwied und Umgebung.",
+    asidePoints: ["Neuwied und Stadtteile planen", "Bendorf oder Koblenz ergaenzen", "Empfangslager im Auftrag sehen"],
+    sections: [
+      {
+        eyebrow: "Gebiet",
+        title: "Neuwied mit passenden Teilgebieten planen.",
+        text: "Je nach Kampagne kann eine Verteilung in Neuwied einzelne Stadtteile, Gewerbeumfelder oder Nachbarorte enthalten.",
+        points: ["Heddesdorf und Innenstadt", "Engers, Feldkirchen und Irlich", "mehrere Orte in einer Kampagne"],
+      },
+      {
+        eyebrow: "Buchung",
+        title: "Eigene Flyer anliefern und Auftrag sauber starten.",
+        text: "Online geht FLYERO von bereits gedruckten Flyern aus. Nach der Buchung sehen Sie die relevanten Informationen zur Anlieferung.",
+        points: ["Stueckzahl festlegen", "Zeitraum waehlen", "Empfangslager beachten"],
+      },
+      {
+        eyebrow: "Nachweise",
+        title: "Unterlagen nach der Durchfuehrung.",
+        text: "Freigegebene Nachweise und Berichte erscheinen im Kundenkonto und koennen dort heruntergeladen werden.",
+        points: ["GPS-Unterlagen", "Fotos", "PDF-Abschlussbericht"],
+      },
+    ],
+    faq: [
+      { question: "Kann ich im Raum Neuwied mehrere Orte zusammen buchen?", answer: "Ja. Bendorf, Koblenz oder weitere Orte koennen als Teilgebiete in derselben Kampagne geplant werden." },
+      { question: "Wo sende ich meine Flyer hin?", answer: "Das Empfangslager wird im Auftrag angezeigt. Fuer den aktuellen Betrieb ist Neuwied als Lagerstandort vorgesehen." },
+    ],
+    relatedLinks: [
+      ["Flyerverteilung Bendorf", "/flyerverteilung-bendorf"],
+      ["Flyerverteilung Koblenz", "/flyerverteilung-koblenz"],
+      ["Gebiet bestimmen", "/ratgeber/verteilgebiet-bestimmen"],
+      ["Verteilung anfragen", "/verteilung-anfragen"],
+    ],
+    schemaKind: "service",
   },
 ];
 

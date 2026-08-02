@@ -135,7 +135,9 @@ export function createSeoIntentJsonLd(page: SeoIntentPageData, absoluteUrl: (pat
         ...base,
         serviceType: "Flyerverteilung",
         provider: { "@type": "Organization", name: "FLYERO", url: absoluteUrl("/") },
-        areaServed: { "@type": "Country", name: "Deutschland" },
+        areaServed: page.areaServed?.length
+          ? page.areaServed.map((name) => ({ "@type": "Place", name }))
+          : { "@type": "Country", name: "Deutschland" },
       }
     : {
         ...base,

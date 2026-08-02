@@ -27,5 +27,8 @@ for (const slug of ["neueroeffnung", "events", "gutscheine", "saisonaktionen", "
   assert(occasionData.includes(`path: \"/flyer-fuer/${slug}\"`), `Anlass-Sitemap-Route fehlt: ${slug}`);
 }
 assert(seo.includes('path: \"/flyer-verteilen-lassen\"'), "Pillar-Sitemap-Route fehlt.");
+for (const route of ["/flyerverteilung-bendorf", "/flyerverteilung-koblenz", "/flyerverteilung-neuwied"]) {
+  assert(seo.includes("seoIntentRoutes") && readFileSync("src/app/seoIntentData.ts", "utf8").includes(`path: \"${route}\"`), `Regionale SEO-Sitemap-Route fehlt: ${route}`);
+}
 
 console.log("SEO-Sitemap smoke checks passed.");

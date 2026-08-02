@@ -126,6 +126,7 @@
     "test:admin-order-workspace": "node tests/admin-order-workspace-smoke.mjs",
     "test:inquiry-form-contact": "node tests/inquiry-form-contact-smoke.mjs",
     "test:seo-sitemap": "node tests/seo-sitemap-smoke.mjs",
+    "test:local-seo": "node tests/local-seo-smoke.mjs",
     "test:public-seo-intent": "node tests/public-seo-intent-coverage-smoke.mjs",
     "test:public-seo-design-system": "node tests/public-seo-design-system-smoke.mjs",
     "test:public-proof-visual-ux": "node tests/public-proof-visual-ux-smoke.mjs",
