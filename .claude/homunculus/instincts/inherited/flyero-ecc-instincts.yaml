@@ -1,0 +1,491 @@
+# Instincts generated from https://github.com/Slidebnb/flyero-ecc
+# Generated: 2026-07-19T17:51:39.317Z
+# Version: 2.0
+# NOTE: This file supplements (does not replace) any existing curated instincts.
+# High-confidence manually curated instincts should be preserved alongside these.
+
+---
+id: flyero-ecc-commit-length
+trigger: "when writing a commit message"
+confidence: 0.6
+domain: git
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Commit Length
+
+## Action
+
+Keep commit messages concise (~36 characters)
+
+## Evidence
+
+- Average commit message length: 36 chars
+- Based on 8 commits
+
+---
+id: flyero-ecc-naming-files
+trigger: "when creating a new file"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Naming Files
+
+## Action
+
+Use camelCase naming convention
+
+## Evidence
+
+- Analyzed file naming patterns in repository
+- Dominant pattern: camelCase
+
+---
+id: flyero-ecc-import-alias
+trigger: "when importing modules"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Import Alias
+
+## Action
+
+Use path aliases (@/, ~/) instead of relative imports
+
+## Evidence
+
+- Import analysis shows alias pattern
+- Example: import { x } from '@/lib/x'
+
+---
+id: flyero-ecc-export-style
+trigger: "when exporting from a module"
+confidence: 0.7
+domain: code-style
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Export Style
+
+## Action
+
+Prefer named exports
+
+## Evidence
+
+- Export pattern analysis
+- Dominant style: named
+
+---
+id: flyero-ecc-arch-type-based
+trigger: "when adding new code"
+confidence: 0.8
+domain: architecture
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Arch Type Based
+
+## Action
+
+Place code in the appropriate type folder (components/, services/, utils/, etc.)
+
+## Evidence
+
+- Type-based module organization detected
+- Folders: app, lib
+
+---
+id: flyero-ecc-test-separate
+trigger: "when writing tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Test Separate
+
+## Action
+
+Place tests in the tests/ or __tests__/ directory, mirroring src structure
+
+## Evidence
+
+- Separate test directory pattern detected
+- Tests live in dedicated test folders
+
+---
+id: flyero-ecc-test-naming
+trigger: "when creating a test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Test Naming
+
+## Action
+
+Name test files using the pattern: *.test.ts
+
+## Evidence
+
+- File pattern: *.test.ts
+- Consistent across test files
+
+---
+id: flyero-ecc-test-types
+trigger: "when planning tests for a feature"
+confidence: 0.7
+domain: testing
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Test Types
+
+## Action
+
+Write unit, e2e tests to match project standards
+
+## Evidence
+
+- Test types detected: unit, e2e
+- Coverage config: no
+
+---
+id: flyero-ecc-workflow-customer-order-wizard-feature-update
+trigger: "when doing customer order wizard feature update"
+confidence: 0.65
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Workflow Customer Order Wizard Feature Update
+
+## Action
+
+Follow the customer-order-wizard-feature-update workflow:
+1. Modify or add files in src/app/customer/orders/new/ (such as SmartOrderWizard.tsx, step components, or hooks)
+2. Update or create supporting files (e.g., orderWizardTypes.ts, hooks/)
+3. Update or add related test files (tests/customer-order-area-smoke.mjs, tests/customer-order-new-flow-smoke.mjs, tests/customer-planner-integrity-smoke.mjs, etc.)
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~3x per month
+- Files: src/app/customer/orders/new/SmartOrderWizard.tsx, src/app/customer/orders/new/OrderAreaStep.tsx, src/app/customer/orders/new/OrderFinishStep.tsx
+
+---
+id: flyero-ecc-workflow-api-feature-or-integrity-update-with-tests
+trigger: "when doing api feature or integrity update with tests"
+confidence: 0.6
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Workflow Api Feature Or Integrity Update With Tests
+
+## Action
+
+Follow the api-feature-or-integrity-update-with-tests workflow:
+1. Modify or add API route files (e.g., src/app/api/customer/orders/route.ts, src/app/api/maps/*.ts)
+2. Update supporting libraries (e.g., src/lib/pricing.ts, src/lib/validators.ts, src/lib/orderAreaSnapshot.ts, etc.)
+3. Update or add related test files (tests/pricing-admin-propagation-smoke.mjs, tests/maps-abuse-smoke.mjs, tests/customer-order-area-smoke.mjs, etc.)
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~2x per month
+- Files: src/app/api/customer/orders/route.ts, src/app/api/maps/autocomplete/route.ts, src/app/api/maps/geocode/route.ts
+
+---
+id: flyero-ecc-workflow-feature-or-bugfix-with-smoke-test-update
+trigger: "when doing feature or bugfix with smoke test update"
+confidence: 0.7
+domain: workflow
+source: repo-analysis
+source_repo: https://github.com/Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Workflow Feature Or Bugfix With Smoke Test Update
+
+## Action
+
+Follow the feature-or-bugfix-with-smoke-test-update workflow:
+1. Modify or add implementation files (could be in src/app/, src/lib/)
+2. Update or add one or more test files in tests/*-smoke.mjs
+
+## Evidence
+
+- Workflow detected from commit patterns
+- Frequency: ~4x per month
+- Files: src/app/customer/orders/new/SmartOrderWizard.tsx, src/app/lib/*.ts, tests/*-smoke.mjs
+
+---
+id: flyero-ecc-instinct-file-naming-camelCase
+trigger: "When creating a new file in the codebase"
+confidence: 0.85
+domain: code-style
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct File Naming CamelCase
+
+## Action
+
+Name the file using camelCase convention
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.files
+- All files in src/app/ and src/lib/ follow camelCase
+
+---
+id: flyero-ecc-instinct-function-naming-camelCase
+trigger: "When defining a new function"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Function Naming CamelCase
+
+## Action
+
+Name the function using camelCase convention
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.functions
+
+---
+id: flyero-ecc-instinct-class-naming-PascalCase
+trigger: "When defining a new class"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Class Naming PascalCase
+
+## Action
+
+Name the class using PascalCase convention
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.classes
+
+---
+id: flyero-ecc-instinct-constant-naming-SCREAMING_SNAKE_CASE
+trigger: "When defining a constant"
+confidence: 0.9
+domain: code-style
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Constant Naming SCREAMING_SNAKE_CASE
+
+## Action
+
+Name the constant using SCREAMING_SNAKE_CASE convention
+
+## Evidence
+
+- Pattern in codeStyle.namingConventions.constants
+
+---
+id: flyero-ecc-instinct-import-alias-style
+trigger: "When importing modules"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Import Alias Style
+
+## Action
+
+Use alias import style
+
+## Evidence
+
+- Pattern in codeStyle.importStyle
+
+---
+id: flyero-ecc-instinct-named-exports
+trigger: "When exporting functions or classes from a module"
+confidence: 0.8
+domain: code-style
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Named Exports
+
+## Action
+
+Use named exports
+
+## Evidence
+
+- Pattern in codeStyle.exportStyle
+
+---
+id: flyero-ecc-instinct-test-file-pattern
+trigger: "When adding a new test file"
+confidence: 0.85
+domain: testing
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Test File Pattern
+
+## Action
+
+Name the test file with the pattern *.test.ts for unit/e2e or *-smoke.mjs for smoke tests
+
+## Evidence
+
+- Pattern in testing.filePattern
+- All smoke tests in tests/ end with -smoke.mjs
+
+---
+id: flyero-ecc-instinct-add-smoke-test-with-feature
+trigger: "When implementing a new feature or bugfix"
+confidence: 0.9
+domain: testing
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Add Smoke Test With Feature
+
+## Action
+
+Immediately add or update a corresponding smoke test in tests/*-smoke.mjs
+
+## Evidence
+
+- Workflow: feature-or-bugfix-with-smoke-test-update
+- Commits: 'fix customer order map and pricing integrity' + test updates
+
+---
+id: flyero-ecc-instinct-unit-e2e-test-location
+trigger: "When adding unit or e2e tests"
+confidence: 0.8
+domain: testing
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Unit E2e Test Location
+
+## Action
+
+Place them in the separate tests/ directory using *.test.ts pattern
+
+## Evidence
+
+- Pattern in architecture.testLocation
+- Pattern in testing.filePattern
+
+---
+id: flyero-ecc-instinct-git-commit-freeform
+trigger: "When writing a commit message"
+confidence: 0.7
+domain: git
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Git Commit Freeform
+
+## Action
+
+Use a short, freeform message (average 36 chars), often starting with an action verb
+
+## Evidence
+
+- Commits: 'fix customer order map and pricing integrity', 'add service specific order formats'
+
+---
+id: flyero-ecc-instinct-customer-order-wizard-workflow
+trigger: "When updating or adding features to the customer order wizard flow"
+confidence: 0.95
+domain: workflow
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Customer Order Wizard Workflow
+
+## Action
+
+Modify/add files in src/app/customer/orders/new/, update supporting files (orderWizardTypes.ts, hooks/), and update/add related smoke/flow tests
+
+## Evidence
+
+- Workflow: customer-order-wizard-feature-update
+- Commit sequences and files involved
+
+---
+id: flyero-ecc-instinct-api-feature-with-tests-workflow
+trigger: "When adding or fixing API endpoints or backend logic (orders, pricing, maps)"
+confidence: 0.9
+domain: workflow
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Api Feature With Tests Workflow
+
+## Action
+
+Modify/add API route files, update supporting libraries, and update/add targeted smoke tests
+
+## Evidence
+
+- Workflow: api-feature-or-integrity-update-with-tests
+- Commit sequences and files involved
+
+---
+id: flyero-ecc-instinct-feature-bugfix-smoke-test-workflow
+trigger: "When implementing any new feature or bugfix"
+confidence: 0.85
+domain: workflow
+source: repo-analysis
+source_repo: Slidebnb/flyero-ecc
+---
+
+# Flyero Ecc Instinct Feature Bugfix Smoke Test Workflow
+
+## Action
+
+Modify/add implementation files and immediately update/add corresponding smoke tests
+
+## Evidence
+
+- Workflow: feature-or-bugfix-with-smoke-test-update
+- Commit sequences and files involved
+
