@@ -148,7 +148,11 @@ export async function findBestWarehouseForArea(area: {
 export async function assignWarehouseForOrder(input: { orderId: string; userId?: string | null; reserveCapacity?: boolean }) {
   const order = await prisma.order.findUnique({
     where: { id: input.orderId },
-    include: { distributionArea: true, customer: true, assignedWarehouse: true },
+    include: {
+      distributionArea: { select: { city: true, postalCode: true } },
+      customer: true,
+      assignedWarehouse: true,
+    },
   });
   if (!order) throw new Error("Auftrag wurde nicht gefunden.");
   if (order.assignedWarehouseId) {

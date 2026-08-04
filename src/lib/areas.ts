@@ -210,6 +210,43 @@ function confidenceDecimal(value?: number | null) {
   return new Prisma.Decimal(Math.max(0, Math.min(1, value)).toFixed(3));
 }
 
+const distributionAreaBusinessSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  type: true,
+  status: true,
+  reusable: true,
+  city: true,
+  postalCode: true,
+  district: true,
+  state: true,
+  country: true,
+  centerLat: true,
+  centerLng: true,
+  radiusMeters: true,
+  geoJson: true,
+  geometryGeoJson: true,
+  coverageAreaSqm: true,
+  areaKm2: true,
+  estimatedHouseholds: true,
+  estimatedFlyers: true,
+  estimatedDistanceMeters: true,
+  googlePlaceId: true,
+  googleFeatureType: true,
+  dataSourceName: true,
+  dataSourceType: true,
+  dataSourceUrl: true,
+  licenseNote: true,
+  dataUpdatedAt: true,
+  confidence: true,
+  customerId: true,
+  tenantId: true,
+  createdById: true,
+  createdAt: true,
+  updatedAt: true,
+} satisfies Prisma.DistributionAreaSelect;
+
 async function logAreaHistory(input: {
   areaId: string;
   userId?: string | null;
@@ -307,6 +344,7 @@ export async function createDistributionArea(input: AreaInput & { userId?: strin
           }
         : undefined,
     },
+    select: distributionAreaBusinessSelect,
   });
 
   await persistPolygons(area.id, geoJson);
@@ -330,6 +368,7 @@ export async function updateDistributionArea(input: AreaInput & { id: string; us
       ...productionAreaWhere(),
       ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }),
     },
+    select: distributionAreaBusinessSelect,
   });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
   rejectSeedAreaInProduction(input.dataSourceType);
@@ -375,6 +414,7 @@ export async function updateDistributionArea(input: AreaInput & { id: string; us
       confidence: confidenceDecimal(input.confidence) ?? null,
       reusable: input.reusable ?? existing.reusable,
     },
+    select: distributionAreaBusinessSelect,
   });
 
   if (input.estimatedHouseholds != null) {
@@ -425,11 +465,13 @@ export async function deleteDistributionArea(input: { id: string; userId?: strin
       ...productionAreaWhere(),
       ...(input.tenantId === undefined ? {} : { tenantId: input.tenantId ?? "__no_tenant__" }),
     },
+    select: distributionAreaBusinessSelect,
   });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
   const area = await prisma.distributionArea.update({
     where: { id: input.id },
     data: { status: "DELETED", reusable: false },
+    select: distributionAreaBusinessSelect,
   });
 
   await logAreaHistory({ areaId: area.id, userId: input.userId, action: "area.deleted", oldValue: existing, newValue: area });
@@ -453,7 +495,10 @@ export async function deleteDistributionArea(input: { id: string; userId?: strin
 export async function copyDistributionArea(input: { id: string; userId?: string | null; tenantId?: string | null }) {
   const existing = await prisma.distributionArea.findFirst({
     where: { id: input.id, ...productionAreaWhere() },
-    include: { polygons: { orderBy: { sortOrder: "asc" } } },
+    select: {
+      ...distributionAreaBusinessSelect,
+      polygons: { orderBy: { sortOrder: "asc" } },
+    },
   });
   if (!existing || existing.status === "DELETED") throw new Error("Gebiet wurde nicht gefunden.");
   if (input.tenantId !== undefined && existing.tenantId !== null && existing.tenantId !== input.tenantId) {
@@ -573,7 +618,8 @@ export async function listAreas(filters: {
       ...(filters.type ? { type: filters.type } : {}),
       ...(filters.city ? { city: { contains: filters.city, mode: "insensitive" } } : {}),
     },
-    include: {
+    select: {
+      ...distributionAreaBusinessSelect,
       polygons: { orderBy: { sortOrder: "asc" } },
       estimates: { orderBy: { createdAt: "desc" }, take: 1 },
       orders: { select: { id: true } },
