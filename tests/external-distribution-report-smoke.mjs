@@ -50,12 +50,15 @@ for (const snippet of [
   "photoDocumentIds",
   "Nachweis basiert auf externem GPS-Bericht und manueller Prüfung.",
   "EXTERNAL_GPS_REPORT",
-  "customerVisible: false",
-  'status: "UNDER_REVIEW"',
+  "customerVisible: autoRelease",
+  'status: autoRelease ? "APPROVED" : "UNDER_REVIEW"',
+  "buildEvidenceAvailableEmail",
+  "dispatchNotificationImmediately",
 ]) {
   assert(evidenceService.includes(snippet), `External-Evidence-Service enthält nicht: ${snippet}`);
 }
 assert(!evidenceService.includes("status: data.customerVisible"), "Uploads dürfen nicht per Client-Feld automatisch freigegeben werden.");
+assert(!evidenceService.includes("customerVisible: data.customerVisible"), "Uploads duerfen nicht per Client-Feld sichtbar geschaltet werden.");
 assert(!evidenceService.includes("Math.random"), "External-Evidence-Service darf keine Fake-Daten erzeugen.");
 assert(!evidenceService.includes("actualCoveragePercent: new Prisma.Decimal"), "Externe MVP-Reports dürfen keine Fake-Coverage setzen.");
 assert(evidenceService.includes("publishReport({ reportId: input.reportId, adminUserId: input.actor.id })"), "Externe Report-Veröffentlichung muss die zentrale Snapshot-Freigabe verwenden.");
