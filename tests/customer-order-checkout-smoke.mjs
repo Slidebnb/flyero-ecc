@@ -19,12 +19,22 @@ function assert(condition, message) {
 const checkoutRouteSource = readFileSync("src/app/api/payments/checkout/route.ts", "utf8");
 const paymentsSource = readFileSync("src/lib/payments.ts", "utf8");
 const logisticsSource = readFileSync("src/lib/logistics.ts", "utf8");
+const customerOrderDetailSource = readFileSync("src/app/customer/orders/[id]/page.tsx", "utf8");
+const reportsSource = readFileSync("src/lib/reports.ts", "utf8");
 assert(checkoutRouteSource.includes("CustomerProfileIncompleteError"), "Checkout muss unvollständige Kundenprofile verständlich blockieren.");
 assert(paymentsSource.includes("getCustomerProfileCompleteness"), "Checkout muss die zentrale Rechnungsdatenpruefung verwenden.");
 
 assert(
   /distributionArea:\s*{\s*select:\s*{\s*city:\s*true,\s*postalCode:\s*true\s*}\s*}/.test(logisticsSource),
   "Lagerzuordnung darf DistributionArea nicht vollstaendig laden, damit optionale Spatial-Spalten den Checkout nicht blockieren.",
+);
+assert(
+  customerOrderDetailSource.includes("distributionAreaBusinessSelect") && !customerOrderDetailSource.includes("distributionArea: { include: { estimates"),
+  "Kundendetailseite darf DistributionArea nicht vollstaendig laden, damit optionale Spatial-Spalten die Auftragsansicht nicht blockieren.",
+);
+assert(
+  reportsSource.includes("distributionArea: { select: distributionAreaBusinessSelect }"),
+  "Report-Erzeugung darf DistributionArea nicht vollstaendig laden, damit optionale Spatial-Spalten die Berichtserstellung nicht blockieren.",
 );
 
 async function sleep(ms) {

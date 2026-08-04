@@ -311,17 +311,24 @@ async function run() {
       areaDifficulty: "HARD",
       segments: JSON.stringify([manipulatedSegment]),
     });
-    const manipulatedResponse = await customerPage.request.get(`${baseUrl}/api/maps/order-intelligence?${manipulatedParams.toString()}`);
-    const manipulatedBody = await manipulatedResponse.json();
-    assert(manipulatedResponse.ok(), `Serverprüfung des manipulierten Gebiets fehlgeschlagen: ${manipulatedResponse.status()}`);
+    const manipulatedResponse = await customerPage.evaluate(async (url) => {
+      const response = await fetch(url);
+      return { ok: response.ok, status: response.status, body: await response.json().catch(() => null) };
+    }, `${baseUrl}/api/maps/order-intelligence?${manipulatedParams.toString()}`);
+    const manipulatedBody = manipulatedResponse.body;
+    assert(manipulatedResponse.ok, `Serverprüfung des manipulierten Gebiets fehlgeschlagen: ${manipulatedResponse.status} ${JSON.stringify(manipulatedBody)}`);
     assert(manipulatedBody?.data?.metrics?.areaDifficulty === "NORMAL", "Der manipulierte HARD-Hinweis darf nicht als serverseitige Gebietsart zurückkommen.");
 
     await customerPage.goto(`${baseUrl}/customer/orders/new`, { waitUntil: "domcontentloaded" });
     const inquiry = await createInquiry(customerPage);
     const customerOrderPage = await customerContext.newPage();
     await customerOrderPage.goto(`${baseUrl}/customer/orders/${inquiry.id}?inquiry=success`, { waitUntil: "domcontentloaded" });
+    await customerOrderPage.waitForFunction(() => document.body?.innerText.trim().length > 0, null, { timeout: 10000 });
     const customerOrderText = await customerOrderPage.locator("body").innerText();
-    assert(customerOrderText.includes("Kampagne") && customerOrderText.includes("Verteilgebiet"), "Kunde sieht den angelegten Auftrag nicht.");
+    assert(
+      customerOrderText.includes("Kampagne") && customerOrderText.includes("Verteilgebiet"),
+      `Kunde sieht den angelegten Auftrag nicht. Seitentext: ${customerOrderText.slice(0, 600)}`,
+    );
 
     const adminContext = await browser.newContext({ serviceWorkers: "block", viewport: { width: 1440, height: 900 }, extraHTTPHeaders: { "x-forwarded-for": "198.51.100.42" } });
     const adminPage = await adminContext.newPage();

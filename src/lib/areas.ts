@@ -210,7 +210,7 @@ function confidenceDecimal(value?: number | null) {
   return new Prisma.Decimal(Math.max(0, Math.min(1, value)).toFixed(3));
 }
 
-const distributionAreaBusinessSelect = {
+export const distributionAreaBusinessSelect = {
   id: true,
   name: true,
   slug: true,

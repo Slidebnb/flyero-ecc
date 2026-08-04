@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Prisma, ReportStatus, ReportTemplate } from "@prisma/client";
+import { distributionAreaBusinessSelect } from "@/lib/areas";
 import { createAuditLog } from "@/lib/audit";
 import { formatDateTime } from "@/lib/format";
 import { writeGeneratedAsset } from "@/lib/generatedAssets";
@@ -212,7 +213,7 @@ export async function collectReportData(tourId: string) {
       order: {
         include: {
           customer: true,
-          distributionArea: true,
+          distributionArea: { select: distributionAreaBusinessSelect },
           distributionSegments: { orderBy: { sortOrder: "asc" } },
         },
       },

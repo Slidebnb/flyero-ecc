@@ -21,6 +21,7 @@ import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { warehouseAddressText } from "@/lib/logistics";
 import { getOrderPriceBreakdown } from "@/lib/pricing";
 import { prisma } from "@/lib/prisma";
+import { distributionAreaBusinessSelect } from "@/lib/areas";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +64,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
     where: { id, tenantId: session.tenantId, customer: { userId: session.id, tenantId: session.tenantId } },
     include: {
       statusEvents: { orderBy: { createdAt: "desc" }, take: 4 },
-      distributionArea: { include: { estimates: { orderBy: { createdAt: "desc" }, take: 1 } } },
+      distributionArea: { select: { ...distributionAreaBusinessSelect, estimates: { orderBy: { createdAt: "desc" }, take: 1 } } },
       assignedWarehouse: true,
       distributionSegments: { orderBy: { sortOrder: "asc" }, include: { assignedWarehouse: true } },
       logisticsShipments: {
