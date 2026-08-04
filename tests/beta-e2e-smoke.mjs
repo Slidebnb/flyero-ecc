@@ -163,6 +163,7 @@ async function main() {
         billingPostalCode: "56068",
         billingCity: "Koblenz",
         password: PASSWORD,
+        acceptsTerms: true,
       },
     });
     assert(register.data.verificationToken, "Registrierung lieferte keinen Test-Verifizierungstoken.");
