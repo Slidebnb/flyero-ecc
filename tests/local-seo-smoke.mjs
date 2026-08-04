@@ -27,9 +27,13 @@ assert(seo.includes("seoIntentRoutes"), "Sitemap muss lokale SEO-Seiten ueber se
 assert(marketing.includes("/flyerverteilung-bendorf"), "Footer-Link fuer Bendorf fehlt.");
 assert(marketing.includes("/flyerverteilung-koblenz"), "Footer-Link fuer Koblenz fehlt.");
 assert(marketing.includes("/flyerverteilung-neuwied"), "Footer-Link fuer Neuwied fehlt.");
+assert(marketing.includes("/regionen"), "Footer-Link fuer die Regionen-Uebersicht fehlt.");
+assert(seo.includes('path: "/regionen"'), "Sitemap-Route fuer die Regionen-Uebersicht fehlt.");
+assert(robots.includes('"/regionen"'), "Robots-Allowlist fuer die Regionen-Uebersicht fehlt.");
 
 assert(existsSync("src/app/llms.txt/route.ts"), "llms.txt Route fehlt.");
 const llms = readFileSync("src/app/llms.txt/route.ts", "utf8");
+assert(llms.includes("/regionen"), "llms.txt enthaelt die Regionen-Uebersicht nicht.");
 for (const route of localRoutes) {
   assert(llms.includes(route.path), `llms.txt enthaelt ${route.path} nicht.`);
 }

@@ -111,6 +111,7 @@ export function PublicFooter() {
   ] as const;
 
   const localLinks = [
+    ["Regionen Übersicht", "/regionen"],
     ["Flyerverteilung Bendorf", "/flyerverteilung-bendorf"],
     ["Flyerverteilung Koblenz", "/flyerverteilung-koblenz"],
     ["Flyerverteilung Neuwied", "/flyerverteilung-neuwied"],
@@ -321,34 +322,29 @@ export function HeroVisual() {
 
 export function ProcessPreview() {
   const processItems = [
-    { number: "01", title: "Gebiet planen", text: "Du wählst die Fläche aus, FLYERO übernimmt sie sauber in die Kampagne.", Icon: MapPinned },
+    { number: "01", title: "Gebiet planen", text: "Die gewünschte Fläche wird sauber in die Kampagne übernommen.", Icon: MapPinned },
     { number: "02", title: "Flyer einsenden", text: "Nach der Buchung erhältst du die Adresse des passenden Empfangslagers.", Icon: ShoppingBag },
-    { number: "03", title: "Verteilung durchführen", text: "Die Zustellung wird im gewählten Gebiet organisiert und dokumentiert.", Icon: Navigation },
-    { number: "04", title: "Nachweise erhalten", text: "GPS-Unterlagen, Fotos und Bericht werden nach der Durchführung freigegeben.", Icon: Camera },
+    { number: "03", title: "Verteilung durchführen", text: "Die Zustellung wird im gewählten Gebiet organisiert.", Icon: Navigation },
+    { number: "04", title: "Nachweise erhalten", text: "GPS-Unterlagen, Fotos und Bericht werden nach Abschluss freigegeben.", Icon: Camera },
   ] as const;
 
   return (
     <div className="mkProcessPreview" aria-label="FLYERO Nachweisablauf">
-      <div className="mkProcessPreviewIntro">
-        <p className="mkProcessPreviewDisclosure">So bleibt deine Verteilung nachvollziehbar.</p>
-        <strong>Vom Gebiet bis zum Bericht.</strong>
-        <span>Planen, verteilen und Nachweise im Kundenkonto erhalten.</span>
-      </div>
       <div className="mkVisualJourney">
         <figure className="mkVisualImageCard">
           <div className="mkVisualImageWrap">
             <Image
               src="/marketing/flyero-proof-dashboard-showcase.png"
-              alt="Darstellung des FLYERO Nachweisprinzips mit Flyerzustellung und Kundenbericht"
+              alt="FLYERO Nachweisprinzip mit Abschlussbericht, Kartenansicht und Fotonachweis"
               fill
               priority
               sizes="(max-width: 820px) 100vw, 34vw"
             />
           </div>
-          <figcaption>Darstellung des Nachweisprinzips.</figcaption>
+          <figcaption>So bleibt deine Verteilung nachvollziehbar: Gebiet planen, Flyer einsenden, Nachweise erhalten.</figcaption>
         </figure>
         <div className="mkVisualProcessColumn">
-          <p className="mkVisualProcessKicker">Was nach deiner Auswahl passiert</p>
+          <p className="mkVisualProcessKicker">Vom Gebiet bis zum Bericht</p>
           <div className="mkProcessPreviewList">
             {processItems.map(({ number, title, text, Icon }) => (
               <div className="mkProcessPreviewRow" key={number}>

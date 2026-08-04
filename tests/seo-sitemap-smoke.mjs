@@ -16,7 +16,7 @@ assert(sitemap.includes("publicSeoRoutes"), "Sitemap muss die zentrale öffentli
 assert(marketing.includes("ProcessPreview"), "Die öffentliche Nachweisansicht muss den ehrlichen Prozessstatus verwenden.");
 assert(marketing.includes("So bleibt deine Verteilung nachvollziehbar"), "Die Prozessansicht braucht einen verständlichen Nachweis-Hinweis.");
 assert(!marketing.includes("/generated/marketing/flyero-hero-proof.png"), "Das Hero-Mockup darf nicht vom Production-Volume verdeckt werden.");
-for (const path of ["/", "/verteilung-anfragen", "/verteilung-planen", "/fuer-unternehmen", "/fuer-verteiler", "/so-funktionierts", "/preise", "/kontakt", "/impressum", "/datenschutz", "/agb"]) {
+for (const path of ["/", "/verteilung-anfragen", "/verteilung-planen", "/fuer-unternehmen", "/fuer-verteiler", "/so-funktionierts", "/preise", "/kontakt", "/impressum", "/datenschutz", "/agb", "/regionen"]) {
   assert(seo.includes(`path: \"${path}\"`), `Sitemap-Route fehlt: ${path}`);
 }
 assert(seo.includes('path: \"/downloads/flyero-anfrageformular.pdf\"'), "Sitemap-Route fuer das Anfrageformular-PDF fehlt.");

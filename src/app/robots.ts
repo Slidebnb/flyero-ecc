@@ -17,6 +17,7 @@ export default function robots(): MetadataRoute.Robots {
           "/branchen",
           "/flyer-fuer",
           "/flyer-verteilen-lassen",
+          "/regionen",
           "/flyerverteilung",
           "/flyerverteilung-bendorf",
           "/flyerverteilung-koblenz",

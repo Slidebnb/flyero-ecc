@@ -3476,6 +3476,21 @@
   border-right: 1px solid var(--flyero-border);
 }
 
+.mkLandingLinkList a > span,
+.mkPillarLinkList a > span {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mkLandingLinkList a small,
+.mkPillarLinkList a small {
+  color: var(--flyero-muted);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .mkLandingLinkList a:hover,
 .mkPillarLinkList a:hover {
   background: var(--flyero-green-soft);

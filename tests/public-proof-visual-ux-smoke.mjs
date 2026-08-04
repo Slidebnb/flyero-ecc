@@ -14,7 +14,7 @@ const oldOverviewLabel = `Auftrags${String.fromCharCode(252)}bersicht`;
 assert(!marketing.includes(oldOverviewLabel), "Der oeffentliche Nachweis-Hero darf nicht wie eine technische Auftragsuebersicht wirken.");
 assert(!marketing.includes("Illustrative Darstellung von Verteilung und Beleg"), "Die Bildunterschrift darf nicht wie ein technischer Mockup-Hinweis wirken.");
 assert(marketing.includes("Vom Gebiet bis zum Bericht"), "Der Abschnitt braucht eine klare, kundenverstaendliche Ablaufueberschrift.");
-assert(marketing.includes("Darstellung des Nachweisprinzips"), "Das Motiv muss ehrlich eingeordnet werden, ohne technisch zu wirken.");
+assert(marketing.includes("So bleibt deine Verteilung nachvollziehbar"), "Das Motiv muss ehrlich eingeordnet werden, ohne technisch zu wirken.");
 assert(!/text-overflow:\s*ellipsis/.test(processRowSmallRule), "Prozess-Texte duerfen nicht gekuerzt werden.");
 assert(!/white-space:\s*nowrap/.test(processRowSmallRule), "Prozess-Texte muessen umbrechen duerfen.");
 assert(!/text-overflow:\s*ellipsis/.test(proofStatusSmallRule), "Nachweisstatus-Texte duerfen nicht gekuerzt werden.");

@@ -16,7 +16,7 @@ type SeoInput = {
 
 export function createSeoMetadata({ title, description, path = "/", keywords = [] }: SeoInput): Metadata {
   const canonical = new URL(path, baseUrl).toString();
-  const socialImage = absoluteUrl("/marketing/flyero-hero-proof.png");
+  const socialImage = absoluteUrl("/marketing/flyero-proof-dashboard-showcase.png");
   return {
     title,
     description,
@@ -41,8 +41,8 @@ export function createSeoMetadata({ title, description, path = "/", keywords = [
       images: [
         {
           url: socialImage,
-          width: 1570,
-          height: 1001,
+          width: 1672,
+          height: 941,
           alt: "FLYERO Flyerverteilung mit Gebiet, Nachweisen und Kundenbericht",
         },
       ],
@@ -74,9 +74,9 @@ export const siteMetadata: Metadata = {
     description: "Flyerverteilung online planen, buchen und mit GPS-Nachweis, Fotos und Kundenbericht dokumentieren.",
     images: [
       {
-        url: "/marketing/flyero-hero-proof.png",
-        width: 1570,
-        height: 1001,
+        url: "/marketing/flyero-proof-dashboard-showcase.png",
+        width: 1672,
+        height: 941,
         alt: "FLYERO Flyerverteilung mit Gebiet, Nachweisen und Kundenbericht",
       },
     ],
@@ -85,7 +85,7 @@ export const siteMetadata: Metadata = {
     card: "summary_large_image",
     title: "FLYERO - Flyerverteilung mit Nachweis",
     description: "Flyerverteilung online planen, buchen und mit GPS-Nachweis, Fotos und Kundenbericht dokumentieren.",
-    images: ["/marketing/flyero-hero-proof.png"],
+    images: ["/marketing/flyero-proof-dashboard-showcase.png"],
   },
   appleWebApp: {
     capable: true,
@@ -117,6 +117,7 @@ export const publicSeoRoutes = [
   { path: "/fuer-verteiler", priority: 0.7, changeFrequency: "monthly" as const },
   { path: "/kontakt", priority: 0.65, changeFrequency: "monthly" as const },
   { path: "/flyer-verteilen-lassen", priority: 0.9, changeFrequency: "monthly" as const },
+  { path: "/regionen", priority: 0.82, changeFrequency: "monthly" as const },
   { path: "/downloads/flyero-anfrageformular.pdf", priority: 0.35, changeFrequency: "monthly" as const },
   ...seoIntentRoutes,
   ...industrySeoRoutes,
