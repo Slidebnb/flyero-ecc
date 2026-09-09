@@ -5,7 +5,6 @@ import { createAuditLog } from "@/lib/audit";
 import { createDistributionArea, linkAreaReferenceToOrder } from "@/lib/areas";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
-import { createCheckoutForOrder } from "@/lib/payments";
 import { assignWarehouseForOrder, warehouseAddressText } from "@/lib/logistics";
 import { generateOrderNumber, createOrderStatusEvent } from "@/lib/orders";
 import { calculateOrderPrice, deriveOrderPricingOptions, withCurrentPricingSnapshot } from "@/lib/pricing";
@@ -371,26 +370,6 @@ export async function POST(request: NextRequest) {
       });
       notificationWarehouse = assignment.warehouse;
     }
-    let paymentUrl: string | null = null;
-    if (!requiresManualReview && data.completionPath === "direct_payment") {
-      try {
-        const checkout = await createCheckoutForOrder({
-          orderId: order.id,
-          customerUserId: session.id,
-          tenantId: session.tenantId,
-        });
-        paymentUrl = checkout.checkoutUrl;
-      } catch (error) {
-        await createAuditLog({
-          userId: session.id,
-          tenantId: session.tenantId,
-          action: "order.payment_link_deferred",
-          entityType: "Order",
-          entityId: order.id,
-          newValues: { reason: error instanceof Error ? error.message : "Checkout konnte nicht vorbereitet werden." },
-        });
-      }
-    }
     const customerNotification = await createNotification({
       userId: session.id,
       type: requiresManualReview ? "ORDER_UNDER_REVIEW" : "ORDER_SUBMITTED",
@@ -399,9 +378,9 @@ export async function POST(request: NextRequest) {
         orderNumber: order.orderNumber,
         customerEmail: session.email,
         campaignUrl: publicUrl(`/customer/orders/${order.id}`, request.url).toString(),
-        paymentUrl: paymentUrl ?? (!requiresManualReview && data.completionPath === "direct_payment"
+        paymentUrl: !requiresManualReview && data.completionPath === "direct_payment"
           ? publicUrl(`/customer/orders/${order.id}`, request.url).toString()
-          : null),
+          : null,
         completionPath: data.completionPath,
         flyerQuantity: order.flyerQuantity,
         areaName: order.targetAreaName,
