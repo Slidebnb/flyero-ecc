@@ -157,7 +157,10 @@ jobs:
           # stale index and aborts Playwright's dependency installation. The
           # browser package is not needed by this job; Playwright downloads
           # Chromium itself below.
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list
+          while IFS= read -r source; do
+            sudo rm -f "$source"
+          done < <(sudo grep -RIl 'dl.google.com/linux/chrome-stable' /etc/apt/sources.list /etc/apt/sources.list.d 2>/dev/null || true)
+          sudo rm -rf /var/lib/apt/lists/*
           npx playwright install --with-deps chromium
 
       - name: Module 27.1 browser smoke
