@@ -13,8 +13,7 @@ test('creation and acceptance supply durable authenticated order links', () => {
   const creation = readFileSync('src/app/api/customer/orders/route.ts', 'utf8');
   const review = readFileSync('src/lib/orderReviewWorkflow.ts', 'utf8');
   assert.match(creation, /campaignUrl: publicUrl\(`/);
-  assert.match(creation, /createCheckoutForOrder\(/, 'Direkte Aufträge müssen den Stripe-Checkout vor der Kundenmail erzeugen.');
-  assert.match(creation, /paymentUrl: paymentUrl \?\?/);
+  assert.match(creation, /paymentUrl: !requiresManualReview/);
   assert.match(creation, /dispatchNotificationImmediately\(customerNotification\.queue\?\.id\)/);
   assert.match(review, /campaignUrl: publicUrl\(`/);
 });

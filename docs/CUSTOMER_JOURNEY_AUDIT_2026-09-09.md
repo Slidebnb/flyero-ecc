@@ -8,7 +8,7 @@ Jeder Kunde soll jederzeit wissen: Was ist passiert, was passiert als Nächstes,
 
 | Bereich | Bewertung | Befund |
 | --- | --- | --- |
-| Anfrage direkt nach dem Absenden | vorhanden, aber unvollständig | Portal-Link und E-Mail waren vorhanden; bei direkter Zahlung wurde nicht zuverlässig sofort ein Stripe Checkout-Link mitgegeben. |
+| Anfrage direkt nach dem Absenden | vorhanden und korrekt | Der Kunde erhält sofort eine E-Mail mit Portal-Link. Der Stripe Checkout wird erst beim Zahlungsstart mit dem aktuellen serverseitigen Preis erzeugt, damit nachträgliche Admin-Preisänderungen keinen veralteten Zahlungsbetrag verwenden. |
 | Annahme durch FLYERO | vorhanden | `ORDER_ACCEPTED_PAYMENT_REQUIRED` führt den Kunden ins Portal und enthält den Zahlungsaufruf. |
 | Zahlung fehlgeschlagen | fehlerhaft | Der Kunde erhielt bislang keinen neuen Zahlungslink. |
 | Zahlung erfolgreich | vorhanden und korrekt | `buildPaymentConfirmationEmail` versendet eine Bestätigung mit Betrag, Zeitraum, Gebiet und Lageranweisung. |
@@ -18,7 +18,7 @@ Jeder Kunde soll jederzeit wissen: Was ist passiert, was passiert als Nächstes,
 
 ## Umgesetzte Korrekturen
 
-1. Direkte Online-Aufträge erzeugen vor der Kunden-E-Mail einen Checkout über den zentralen serverseitigen Payment-Service. Die E-Mail enthält die echte, für diesen Auftrag erzeugte Stripe-URL; fällt die Erzeugung aus, bleibt der Portal-Link als klarer Fallback bestehen und der Vorgang wird auditiert.
+1. Direkte Online-Aufträge versenden sofort eine transaktionale E-Mail mit einem sicheren Portal-Link. Der Stripe Checkout wird erst beim tatsächlichen Zahlungsstart über den zentralen serverseitigen Payment-Service erzeugt. Dadurch bleibt der Zahlungsbetrag auch nach einer Admin-Preisänderung korrekt.
 2. Nach einem fehlgeschlagenen Zahlungsversuch wird einmalig ein neuer Checkout-Link erzeugt. Die Kunden-E-Mail enthält diesen Link, eine verständliche Handlungsanweisung und den Portal-Link als Fallback.
 3. Kritische Kundenmails werden direkt an die E-Mail-Queue übergeben. Präferenzen werden nicht still übergangen; `forceEmail` wird nur für transaktionale Ereignisse verwendet: Auftrag eingegangen, Zahlungsfehler und Zahlungserfolg.
 4. Die vorhandene Zahlungserfolgs-Mail bleibt die zentrale Bestätigung. Sie nennt Betrag, Zeitraum, ausgewählte Gebiete, Versand-/Empfangslager und die Auftragsnummer als Paket-Referenz. Bei Druckservice wird ausdrücklich keine Eigenanlieferung verlangt.
