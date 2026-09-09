@@ -36,7 +36,7 @@ jobs:
       DEPLOY_KNOWN_HOSTS: ${{ secrets.FLYERO_DEPLOY_KNOWN_HOSTS }}
     steps:
       - name: Checkout tested commit
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.expected_sha || github.sha }}
 
