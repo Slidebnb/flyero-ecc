@@ -651,16 +651,40 @@ export async function completePaymentFromCheckoutSession(session: Stripe.Checkou
     newValues: { orderId: order.id, sessionId: session.id, amount: paidPayment.amount.toString() },
   });
   if (!wasAlreadyPaid) {
+    const confirmationOrder = await prisma.order.findUnique({
+      where: { id: order.id },
+      include: {
+        customer: { include: { user: { select: { email: true } } } },
+        assignedWarehouse: {
+          select: {
+            name: true,
+            address: true,
+            city: true,
+            postalCode: true,
+            country: true,
+            openingHours: true,
+            contactPerson: true,
+            contactPhone: true,
+            contactEmail: true,
+          },
+        },
+        distributionSegments: {
+          orderBy: { sortOrder: "asc" },
+          select: { name: true, city: true, postalCode: true, areaSqm: true, flyerQuantity: true },
+        },
+      },
+    });
+    const currentOrder = confirmationOrder ?? order;
     const confirmation = buildPaymentConfirmationEmail({
       customerName: order.customer.contactName || order.customer.companyName,
       order: promotion
         ? {
-            ...order,
+            ...currentOrder,
             calculatedNetPrice: new Prisma.Decimal(promotion.finalNet),
             calculatedVat: new Prisma.Decimal(promotion.finalVat),
             calculatedGrossPrice: new Prisma.Decimal(promotion.finalGross),
           }
-        : order,
+        : currentOrder,
       appUrl: appUrl(),
     });
     const customerNotification = await createNotification({

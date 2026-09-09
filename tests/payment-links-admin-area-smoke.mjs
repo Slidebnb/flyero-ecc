@@ -25,6 +25,8 @@ test('failed payments provide a fresh retry link and are emailed immediately', (
   assert.match(payments, /retryPaymentUrl/);
   assert.match(payments, /type: "PAYMENT_FAILED"[\s\S]{0,900}paymentUrl: retryPaymentUrl/);
   assert.match(payments, /dispatchNotificationImmediately\(customerNotification\.queue\?\.id\)/);
+  assert.match(payments, /const confirmationOrder = await prisma\.order\.findUnique/);
+  assert.match(payments, /order: promotion[\s\S]{0,240}\.\.\.currentOrder/);
 });
 
 test('payment email has a real absolute payment action ahead of the generic dashboard', () => {
