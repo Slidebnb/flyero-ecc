@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { UserRole } from "@prisma/client";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
+import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
+import { DataSection } from "@/app/PortalComponents";
 import { requireRole } from "@/lib/auth";
 import {
   DISPATCH_STATUS_LABELS,
@@ -127,6 +129,20 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
           <span>Erstellt</span>
         </article>
       </section>
+
+      <DataSection title="Gespeichertes Verteilgebiet" description="Die Karte zeigt die beim Auftrag gespeicherten Gebietsgrenzen. Bitte vor der Annahme mit dem Kundenwunsch abgleichen.">
+        <DistributionAreaPreviewMap geoJson={order.targetAreaGeoJson} height={440} />
+        {order.distributionSegments.length > 1 || (!order.targetAreaGeoJson && order.distributionSegments.length > 0) ? (
+          <div className="stack">
+            {order.distributionSegments.map((segment) => (
+              <details key={segment.id}>
+                <summary>{segment.name} · {segment.postalCode} {segment.city}</summary>
+                <DistributionAreaPreviewMap geoJson={segment.geometryGeoJson} />
+              </details>
+            ))}
+          </div>
+        ) : null}
+      </DataSection>
 
       {order.status === "PAID_WAITING_FOR_ADMIN_REVIEW" ? (
         <section className="panel stack widePanel" style={{ marginTop: 18 }}>

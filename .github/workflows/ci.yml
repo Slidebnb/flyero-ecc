@@ -79,6 +79,9 @@ jobs:
       - name: Validate security headers
         run: npm run test:security-headers
 
+      - name: Validate payment links and admin area view
+        run: npm run test:payment-links-admin-area
+
   critical-smoke:
     name: Critical PostgreSQL smoke tests
     runs-on: ubuntu-latest

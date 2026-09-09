@@ -167,6 +167,7 @@
     "test:private-storage": "node tests/private-storage-smoke.mjs",
     "test:public-artifact-privacy": "node tests/public-artifact-privacy-smoke.mjs",
     "test:security-headers": "node tests/security-headers-smoke.mjs",
+    "test:payment-links-admin-area": "node --experimental-strip-types --test tests/payment-links-admin-area-smoke.mjs tests/maps-readiness-runtime.mjs",
     "test:maps-loader-async": "node tests/maps-loader-async-smoke.mjs",
     "test:upload-security": "node tests/upload-security-smoke.mjs",
     "test:protected-download-headers": "node tests/protected-download-headers-smoke.mjs",

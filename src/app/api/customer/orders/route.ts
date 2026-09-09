@@ -16,6 +16,7 @@ import { warehouseSourceWhere } from "@/lib/warehouse";
 import { normalizeServiceProductFormat, serviceCatalogLabel } from "@/lib/serviceCatalog";
 import { weightClassFromGrams } from "@/lib/servicePricing";
 import { buildServerAreaCalculationSnapshot } from "@/lib/orderAreaSnapshot";
+import { publicUrl } from "@/lib/publicUrl";
 
 export async function GET() {
   try {
@@ -374,6 +375,10 @@ export async function POST(request: NextRequest) {
       data: {
         orderNumber: order.orderNumber,
         customerEmail: session.email,
+        campaignUrl: publicUrl(`/customer/orders/${order.id}`, request.url).toString(),
+        paymentUrl: !requiresManualReview && data.completionPath === "direct_payment"
+          ? publicUrl(`/customer/orders/${order.id}`, request.url).toString()
+          : null,
         completionPath: data.completionPath,
         flyerQuantity: order.flyerQuantity,
         areaName: order.targetAreaName,

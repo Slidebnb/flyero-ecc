@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { waitForMapReadiness } from "@/lib/mapsReadiness";
 
 type Props = {
   geoJson?: unknown;
@@ -85,9 +86,8 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [mapError, setMapError] = useState(false);
   const [loadRetry, setLoadRetry] = useState(0);
-  const [renderRetry, setRenderRetry] = useState(0);
   const browserKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
-  const areaFeatures = features(geoJson);
+  const areaFeatures = useMemo(() => features(geoJson), [geoJson]);
   const areaPaths = useMemo(() => areaFeatures.flatMap(pathsFromFeature), [areaFeatures]);
 
   useEffect(() => {
@@ -140,26 +140,20 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
     let cancelled = false;
     async function renderMap() {
       try {
-        await Promise.resolve();
-        const maps = (window as GoogleMapsWindow).google?.maps;
-        if (!maps) {
-          setMapError(true);
-          return;
-        }
-        const mapsApi = maps;
-        const imported = typeof mapsApi.importLibrary === "function"
-          ? await mapsApi.importLibrary("maps") as GoogleMapsLibrary
-          : undefined;
+        const { MapConstructor, BoundsConstructor, PolygonConstructor } = await waitForMapReadiness(async () => {
+          const mapsApi = (window as GoogleMapsWindow).google?.maps;
+          if (!mapsApi) return null;
+          const library = typeof mapsApi.importLibrary === "function"
+            ? await mapsApi.importLibrary("maps") as GoogleMapsLibrary
+            : undefined;
+          const MapConstructor = library?.Map ?? mapsApi.Map;
+          const BoundsConstructor = library?.LatLngBounds ?? mapsApi.LatLngBounds;
+          const PolygonConstructor = library?.Polygon ?? mapsApi.Polygon;
+          return typeof MapConstructor === "function" && typeof BoundsConstructor === "function" && typeof PolygonConstructor === "function"
+            ? { MapConstructor, BoundsConstructor, PolygonConstructor }
+            : null;
+        });
         if (cancelled) return;
-        const library = imported;
-        const MapConstructor = typeof library?.Map === "function" ? library.Map : mapsApi.Map;
-        const BoundsConstructor = typeof library?.LatLngBounds === "function" ? library.LatLngBounds : mapsApi.LatLngBounds;
-        const PolygonConstructor = typeof library?.Polygon === "function" ? library.Polygon : mapsApi.Polygon;
-        if (typeof MapConstructor !== "function" || typeof BoundsConstructor !== "function" || typeof PolygonConstructor !== "function") {
-          if (renderRetry < 3) setRenderRetry((value) => value + 1);
-          else setMapError(true);
-          return;
-        }
         const container = containerRef.current;
         if (!container) return;
         container.replaceChildren();
@@ -185,8 +179,7 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
         map.fitBounds?.(bounds);
       } catch {
         if (!cancelled) {
-          if (renderRetry < 3) setRenderRetry((value) => value + 1);
-          else setMapError(true);
+          setMapError(true);
         }
       }
     }
@@ -194,7 +187,7 @@ export function DistributionAreaPreviewMap({ geoJson, height = 320 }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [areaPaths, loaded, renderRetry]);
+  }, [areaPaths, loaded]);
 
   if (!browserKey || areaPaths.length === 0) {
     return (
