@@ -82,6 +82,11 @@ echo "Production deployed: $deployed_sha"
 
 $remoteScript = $remoteScript.Replace("__EXPECTED_SHA__", $ExpectedSha).Replace("`r`n", "`n")
 
+$sshCommand = Get-Command ssh.exe -ErrorAction SilentlyContinue
+if (-not $sshCommand) {
+    $sshCommand = Get-Command ssh -ErrorAction Stop
+}
+
 $sshArgs = @(
     "-i", $IdentityFile,
     "-o", "IdentitiesOnly=yes",
@@ -93,7 +98,7 @@ $sshArgs = @(
     "bash -s"
 )
 
-$remoteScript | & ssh.exe @sshArgs
+$remoteScript | & $sshCommand.Source @sshArgs
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
