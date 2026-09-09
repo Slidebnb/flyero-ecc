@@ -720,12 +720,39 @@ export async function markPaymentFailed(input: { orderId?: string; sessionId?: s
     });
   }
   await createAuditLog({ action: "payment.failed", entityType: "Payment", entityId: payment.id, newValues: { reason: input.reason } });
-  await createNotification({
+  let retryPaymentUrl = payment.checkoutUrl;
+  if (!wasAlreadyFailed) {
+    try {
+      const retryPayment = await createCheckoutForOrder({
+        orderId: payment.orderId,
+        customerUserId: payment.order.customer.userId,
+        tenantId: payment.order.tenantId,
+      });
+      retryPaymentUrl = retryPayment.checkoutUrl;
+    } catch (error) {
+      await createAuditLog({
+        tenantId: payment.order.tenantId,
+        action: "payment.retry_link_deferred",
+        entityType: "Payment",
+        entityId: payment.id,
+        newValues: { reason: error instanceof Error ? error.message : "Neuer Zahlungslink konnte nicht erstellt werden." },
+      });
+    }
+  }
+  const customerNotification = await createNotification({
     userId: payment.order.customer.userId,
     type: "PAYMENT_FAILED",
     title: "Zahlung fehlgeschlagen",
     message: `Die Zahlung für ${payment.order.orderNumber} ist fehlgeschlagen. Du kannst erneut bezahlen.`,
+    data: {
+      orderNumber: payment.order.orderNumber,
+      campaignUrl: `${appUrl()}/customer/orders/${payment.orderId}`,
+      paymentUrl: retryPaymentUrl ?? `${appUrl()}/customer/orders/${payment.orderId}`,
+      nextStep: "Bitte öffne den Zahlungslink und versuche die Zahlung erneut.",
+    },
+    forceEmail: true,
   });
+  await dispatchNotificationImmediately(customerNotification.queue?.id);
   if (!wasAlreadyFailed) {
     await notifyAdmins({
       type: "PAYMENT_FAILED",

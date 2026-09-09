@@ -13,7 +13,18 @@ test('creation and acceptance supply durable authenticated order links', () => {
   const creation = readFileSync('src/app/api/customer/orders/route.ts', 'utf8');
   const review = readFileSync('src/lib/orderReviewWorkflow.ts', 'utf8');
   assert.match(creation, /campaignUrl: publicUrl\(`/);
+  assert.match(creation, /createCheckoutForOrder\(/, 'Direkte Aufträge müssen den Stripe-Checkout vor der Kundenmail erzeugen.');
+  assert.match(creation, /paymentUrl: paymentUrl \?\?/);
+  assert.match(creation, /dispatchNotificationImmediately\(customerNotification\.queue\?\.id\)/);
   assert.match(review, /campaignUrl: publicUrl\(`/);
+});
+
+test('failed payments provide a fresh retry link and are emailed immediately', () => {
+  const payments = readFileSync('src/lib/payments.ts', 'utf8');
+  assert.match(payments, /payment\.retry_link_deferred/);
+  assert.match(payments, /retryPaymentUrl/);
+  assert.match(payments, /type: "PAYMENT_FAILED"[\s\S]{0,900}paymentUrl: retryPaymentUrl/);
+  assert.match(payments, /dispatchNotificationImmediately\(customerNotification\.queue\?\.id\)/);
 });
 
 test('payment email has a real absolute payment action ahead of the generic dashboard', () => {

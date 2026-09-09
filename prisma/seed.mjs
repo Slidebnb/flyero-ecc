@@ -2676,6 +2676,7 @@ const module27Templates = [
   ["LOGISTICS_CUSTOMER_DELIVERY_EXPECTED", "CUSTOMER", "Lieferung erwartet", "Flyer fuer {{orderNumber}} angekuendigt", "Die Flyer fuer {{orderNumber}} werden voraussichtlich am {{nextStep}} im Lager erwartet. Referenz: {{packageReference}}"],
   ["DISPATCH_NEW_ORDER", "ADMIN", "Neue Verteilung vorbereiten", "Neue Kampagne fuer die Disposition: {{orderNumber}}", "{{companyName}}: {{flyerQuantity}} Flyer in {{areaName}}. Bitte Lager und Verteiler einplanen."],
   ["PAYMENT_REFUNDED", "CUSTOMER", "Rueckerstattung erfolgt", "Rueckerstattung zu {{orderNumber}}", "Die Rueckerstattung ueber {{grossAmount}} fuer {{orderNumber}} wurde abgeschlossen."],
+  ["PAYMENT_FAILED", "CUSTOMER", "Zahlung erneut starten", "Zahlung zu {{orderNumber}} konnte nicht abgeschlossen werden", "Bitte starte die Zahlung für {{orderNumber}} erneut: {{paymentUrl}}"],
 ];
 
 for (const [key, audience, name, subject, body] of module27Templates) {
