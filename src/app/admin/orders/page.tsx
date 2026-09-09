@@ -68,11 +68,11 @@ export default async function AdminOrdersPage({ searchParams }: PageProps) {
         <form className="form grid" action="/admin/orders" method="get">
           <label>
             Suche
-            <input name="search" defaultValue={params.search || ""} />
+            <input name="search" defaultValue={params.search || ""} suppressHydrationWarning />
           </label>
           <label>
             Stadt
-            <input name="city" defaultValue={params.city || ""} />
+            <input name="city" defaultValue={params.city || ""} suppressHydrationWarning />
           </label>
           <label>
             Status
