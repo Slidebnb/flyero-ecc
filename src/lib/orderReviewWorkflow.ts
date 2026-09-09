@@ -6,6 +6,7 @@ import { assertOrderTransition } from "@/lib/orders";
 import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
 import { approvePaidOrder } from "@/lib/orderApproval";
 import { prisma } from "@/lib/prisma";
+import { publicUrl } from "@/lib/publicUrl";
 
 async function notifyOnce(input: {
   orderId: string;
@@ -25,7 +26,14 @@ async function notifyOnce(input: {
     type: input.type,
     title: input.title,
     message: input.message,
-    data: { orderId: input.orderId, ...input.data },
+    data: {
+      orderId: input.orderId,
+      campaignUrl: publicUrl(`/customer/orders/${input.orderId}`, "https://flyero.org").toString(),
+      paymentUrl: input.type === "ORDER_ACCEPTED_PAYMENT_REQUIRED"
+        ? publicUrl(`/customer/orders/${input.orderId}`, "https://flyero.org").toString()
+        : null,
+      ...input.data,
+    },
   });
 }
 

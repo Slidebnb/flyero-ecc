@@ -18,7 +18,8 @@ async function sleep(ms) {
 
 async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 5000);
+  // Report generation can cross the five-second mark on a cold CI server.
+  const timer = setTimeout(() => controller.abort(), 30000);
   try {
     return await fetch(url, { ...options, signal: controller.signal, redirect: "manual" });
   } finally {

@@ -35,8 +35,15 @@ function escapeHtml(value: unknown) {
 function safeUrl(value: unknown) {
   if (typeof value !== "string") return null;
   const url = value.trim();
-  if (/^https?:\/\//i.test(url)) return url;
-  if (/^\//.test(url)) return url;
+  if (url.startsWith("//") || url.includes("\\")) return null;
+  if (/^https?:\/\//i.test(url) || url.startsWith("/")) {
+    try {
+      const parsed = new URL(url, process.env.APP_URL || "https://flyero.org");
+      return ["https:", "http:"].includes(parsed.protocol) ? parsed.toString() : null;
+    } catch {
+      return null;
+    }
+  }
   return null;
 }
 
@@ -116,7 +123,8 @@ export function buildCustomerEmail(input: CustomerEmailInput) {
 
 export function buildCustomerNotificationEmail(input: CustomerNotificationEmailInput) {
   const data = input.data ?? {};
-  const actionValue = [data.campaignUrl, data.dashboardUrl, data.invoiceUrl, data.paymentUrl, data.reportUrl, data.trackingUrl]
+  const paymentAction = safeUrl(data.paymentUrl);
+  const actionValue = [paymentAction, data.campaignUrl, data.dashboardUrl, data.invoiceUrl, data.reportUrl, data.trackingUrl]
     .map(safeUrl)
     .find(Boolean) ?? null;
   const customerName = typeof data.customerName === "string" ? data.customerName : null;
@@ -131,7 +139,7 @@ export function buildCustomerNotificationEmail(input: CustomerNotificationEmailI
     customerName,
     intro,
     content: bodyLines.join("\n"),
-    action: actionValue ? { label: actionForType(input.type), url: actionValue } : undefined,
+    action: actionValue ? { label: paymentAction ? "Zahlung im Kundenportal starten" : actionForType(input.type), url: actionValue } : undefined,
     note: typeof data.nextStep === "string" ? data.nextStep : null,
   });
 }
