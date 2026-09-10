@@ -20,6 +20,7 @@ import {
 import { formatCurrency, formatDate, formatDateTime } from "@/lib/format";
 import { warehouseAddressText } from "@/lib/logistics";
 import { getOrderPriceBreakdown } from "@/lib/pricing";
+import { allocateOrderSegmentFlyerQuantities } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
 import { distributionAreaBusinessSelect } from "@/lib/areas";
 
@@ -81,6 +82,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
 
   const latestPayment = order.payments[0] ?? null;
   const price = getOrderPriceBreakdown(order);
+  const segmentFlyerQuantities = allocateOrderSegmentFlyerQuantities(order.flyerQuantity, order.distributionSegments);
   const customerShipment = order.logisticsShipments[0] ?? null;
   const householdEstimate = trustedHouseholdEstimate(order.distributionArea);
   const action = customerOrderAction(order.status, order.id);
@@ -219,8 +221,8 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
         {order.distributionSegments.length > 1 ? (
           <div className="customerFactList compact">
             <p><span>Flyeraufteilung</span><strong>{order.flyerQuantity.toLocaleString("de-DE")} Flyer insgesamt</strong></p>
-            {order.distributionSegments.map((segment) => (
-              <p key={segment.id}><span>{segment.name}</span><strong>{segment.flyerQuantity?.toLocaleString("de-DE") ?? "Wird verteilt"} Flyer</strong></p>
+            {order.distributionSegments.map((segment, segmentIndex) => (
+              <p key={segment.id}><span>{segment.name}</span><strong>{(segment.flyerQuantity ?? segmentFlyerQuantities[segmentIndex]).toLocaleString("de-DE")} Flyer</strong></p>
             ))}
           </div>
         ) : null}

@@ -56,13 +56,13 @@ export type AggregatedOrderAreaSegments = {
  */
 export function allocateOrderSegmentFlyerQuantities(
   totalQuantity: number,
-  segments: Array<Pick<NormalizedOrderAreaSegment, "flyerQuantity" | "areaSqm">>,
+  segments: Array<{ flyerQuantity?: number | null; areaSqm: number | string | { toString(): string } }>,
   weights?: Array<number | null | undefined>,
 ) {
   const total = Math.max(0, Math.floor(totalQuantity));
   if (!segments.length) return [];
-  const explicit = segments.map((segment) => segment.flyerQuantity);
-  if (explicit.every((quantity) => quantity !== null) && explicit.reduce((sum, quantity) => sum + (quantity ?? 0), 0) === total) {
+  const explicit = segments.map((segment) => segment.flyerQuantity ?? null);
+  if (explicit.every((quantity) => quantity !== null) && explicit.reduce<number>((sum, quantity) => sum + (quantity ?? 0), 0) === total) {
     return explicit.map((quantity) => quantity ?? 0);
   }
 
