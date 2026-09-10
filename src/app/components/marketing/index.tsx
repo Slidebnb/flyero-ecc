@@ -93,8 +93,8 @@ export function PublicNavbar() {
           <Link className="mkNavRegister" href="/register/customer">
             Registrierung
           </Link>
-          <Link className="mkNavCta" href="/verteilung-anfragen">
-            Verteilung anfragen
+          <Link className="mkNavCta" href="/verteilung-planen">
+            Gebiet & Preis prüfen
             <ArrowRight aria-hidden="true" />
           </Link>
         </nav>
@@ -104,7 +104,7 @@ export function PublicNavbar() {
             { label: "Login", href: "/login" },
             { label: "Registrierung", href: "/register/customer" },
           ]}
-          cta={{ label: "Verteilung anfragen", href: "/verteilung-anfragen" }}
+          cta={{ label: "Gebiet & Preis prüfen", href: "/verteilung-planen" }}
         />
       </div>
     </header>
