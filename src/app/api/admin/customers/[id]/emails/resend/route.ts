@@ -78,7 +78,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return errorResponse("Für diesen Auftrag ist aktuell keine Zahlung ausstehend.", 409);
       }
 
-      const payment = await createCheckoutForOrder({ orderId: order.id, customerUserId: customer.user.id, tenantId: order.tenantId });
+      // Bei einem erneuten Versand zuerst den bereits gespeicherten Checkout-Link
+      // verwenden. So hängt die reine Zustellwiederholung nicht an einer späteren
+      // Neuberechnung des Auftrags und erzeugt keine zweite Stripe-Session.
+      const existingPayment = await prisma.payment.findFirst({
+        where: { orderId: order.id, checkoutUrl: { not: null }, status: { in: ["CREATED", "CHECKOUT_CREATED", "PENDING"] } },
+        orderBy: { createdAt: "desc" },
+      });
+      const payment = existingPayment ?? await createCheckoutForOrder({ orderId: order.id, customerUserId: customer.user.id, tenantId: order.tenantId });
       if (!payment.checkoutUrl) return errorResponse("Der Stripe-Zahlungslink konnte nicht erstellt werden.", 503);
       const campaignUrl = publicUrl(`/customer/orders/${order.id}`, request.url).toString();
       const notification = await createNotification({
