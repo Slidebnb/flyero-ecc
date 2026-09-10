@@ -50,6 +50,7 @@ export const Permission = {
   MONITORING_MANAGE: "monitoring.manage",
   NOTIFICATION_OPERATIONS_VIEW: "notification-operations.view",
   NOTIFICATION_OPERATIONS_MANAGE: "notification-operations.manage",
+  CUSTOMER_EMAIL_SEND: "customer-email.send",
   DISTRIBUTOR_OPERATIONS_VIEW: "distributor.operations.view",
   DISTRIBUTOR_OPERATIONS_MANAGE: "distributor.operations.manage",
   DISTRIBUTOR_SUPPORT_VIEW: "distributor.support.view",
@@ -89,6 +90,7 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, readonly Permission[]>>
     Permission.PRINT_PARTNER_VIEW,
     Permission.PRINT_ORDER_VIEW,
     Permission.PRINT_ORDER_MANAGE,
+    Permission.CUSTOMER_EMAIL_SEND,
   ],
   [UserRole.WAREHOUSE_STAFF]: [
     Permission.WAREHOUSE_OPERATIONS_VIEW,

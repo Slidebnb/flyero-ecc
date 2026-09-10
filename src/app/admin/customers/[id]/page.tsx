@@ -11,6 +11,7 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { getOrderGrossPrice } from "@/lib/pricing";
 import { productionCustomerWhere, productionDocumentWhere, productionInvoiceWhere, productionOrderWhere } from "@/lib/productionData";
+import { CustomerEmailActions, type CustomerEmailHistoryItem, type CustomerPaymentEmailItem } from "./CustomerEmailActions";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -64,7 +65,22 @@ export default async function AdminCustomerDetailPage({ params, searchParams }: 
   const customer = await prisma.customerProfile.findFirst({
     where: { id, ...productionCustomerWhere() },
     include: {
-      user: { select: { email: true, status: true, emailVerified: true, createdAt: true, updatedAt: true } },
+      user: {
+        select: {
+          id: true,
+          email: true,
+          status: true,
+          emailVerified: true,
+          createdAt: true,
+          updatedAt: true,
+          notificationMessages: {
+            where: { audience: "CUSTOMER", queues: { some: { channel: "EMAIL" } } },
+            orderBy: { createdAt: "desc" },
+            take: 50,
+            include: { queues: { where: { channel: "EMAIL" }, orderBy: { createdAt: "desc" }, take: 1, select: { createdAt: true } } },
+          },
+        },
+      },
       orders: {
         where: productionOrderWhere(),
         orderBy: { createdAt: "desc" },
@@ -90,6 +106,21 @@ export default async function AdminCustomerDetailPage({ params, searchParams }: 
 
   if (!customer) notFound();
   const latestOrder = customer.orders[0] ?? null;
+  const paymentEmails: CustomerPaymentEmailItem[] = customer.orders
+    .filter((order) => !order.needsPrintService && ["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "ACCEPTED_AWAITING_PAYMENT"].includes(order.status) && order.payments[0]?.status !== "PAID")
+    .map((order) => ({ orderId: order.id, orderNumber: order.orderNumber }));
+  const emailHistory: CustomerEmailHistoryItem[] = customer.user.notificationMessages
+    .filter((message) => !["ORDER_ACCEPTED_PAYMENT_REQUIRED", "PAYMENT_FAILED"].includes(message.type))
+    .map((message) => {
+      const data = message.data && typeof message.data === "object" && !Array.isArray(message.data) ? message.data as Record<string, unknown> : {};
+      return {
+        id: message.id,
+        type: message.type,
+        subject: message.subject,
+        createdAt: (message.queues[0]?.createdAt ?? message.createdAt).toISOString(),
+        orderNumber: typeof data.orderNumber === "string" ? data.orderNumber : null,
+      };
+    });
 
   return (
     <AdminPortalShell
@@ -129,6 +160,16 @@ export default async function AdminCustomerDetailPage({ params, searchParams }: 
             <p><strong>Telefon:</strong> {customer.phone || "Nicht angegeben"}</p>
             <p><strong>Registriert:</strong> {formatDate(customer.user.createdAt)}</p>
           </div>
+        </DataSection>
+
+        <DataSection title="E-Mails" description="Vorhandene System-E-Mails erneut an die hinterlegte Kundenadresse senden.">
+          <CustomerEmailActions
+            customerId={customer.id}
+            recipientEmail={customer.user.email}
+            verificationAvailable={customer.user.status === "EMAIL_UNVERIFIED"}
+            paymentEmails={paymentEmails}
+            history={emailHistory}
+          />
         </DataSection>
 
         <DataSection title="Unterlage für Kundenkonto hochladen" description="Die Datei wird nach erfolgreicher Dateiprüfung direkt freigegeben und dem Kunden angezeigt.">
