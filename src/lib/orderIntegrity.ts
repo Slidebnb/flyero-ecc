@@ -119,9 +119,10 @@ export async function getOrderIntegrityCheck(orderId: string): Promise<OrderInte
     ? promotionBaseMatchesSnapshot && promotionFinalMatchesOrder
     : priceMatches;
   const segmentFlyerTotal = order.distributionSegments.reduce((sum, segment) => sum + (segment.flyerQuantity ?? 0), 0);
+  const hasSegmentAllocations = order.distributionSegments.some((segment) => segment.flyerQuantity !== null);
   const flyerQuantityConsistent = Boolean(quoteInput.flyerQuantity)
     && Number(quoteInput.flyerQuantity) === order.flyerQuantity
-    && (segmentFlyerTotal === 0 || segmentFlyerTotal <= order.flyerQuantity);
+    && (!hasSegmentAllocations || segmentFlyerTotal === order.flyerQuantity);
   const warehouseBasedOnCurrentArea = Boolean(order.assignedWarehouseId) || Boolean(snapshot.area.needsManualReview);
   const quoteMatchesOrder = Boolean(quoteFingerprint) && quoteFingerprint === currentFingerprint.fingerprint
     && Number(snapshot.quote.flyerQuantity) === order.flyerQuantity

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { aggregateOrderAreaSegments } from "../src/lib/orderSegments.ts";
+import { aggregateOrderAreaSegments, allocateOrderSegmentFlyerQuantities } from "../src/lib/orderSegments.ts";
 
 function square(lng, lat, size = 0.001) {
   return {
@@ -39,5 +39,13 @@ const reduced = aggregateOrderAreaSegments([
 ]);
 assert.ok(reduced);
 assert.ok(reduced.totalAreaSqm < result.totalAreaSqm);
+
+const allocation = allocateOrderSegmentFlyerQuantities(2000, result.segments);
+assert.equal(allocation.reduce((sum, quantity) => sum + quantity, 0), 2000);
+assert.equal(allocation.length, 3);
+assert.deepEqual(allocateOrderSegmentFlyerQuantities(2000, [
+  { areaSqm: 1, flyerQuantity: 1200 },
+  { areaSqm: 1, flyerQuantity: 800 },
+]), [1200, 800], "Explizite Teilgebietsmengen werden beibehalten, wenn sie die Gesamtmenge ergeben.");
 
 console.log("Multi-area order runtime checks passed.");

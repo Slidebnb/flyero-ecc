@@ -9,7 +9,7 @@ import { assignWarehouseForOrder, warehouseAddressText } from "@/lib/logistics";
 import { generateOrderNumber, createOrderStatusEvent } from "@/lib/orders";
 import { calculateOrderPrice, deriveOrderPricingOptions, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getOrderIntelligence } from "@/lib/smartMaps";
-import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
+import { aggregateOrderAreaSegments, allocateOrderSegmentFlyerQuantities } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, validationErrorResponse } from "@/lib/request";
 import { orderCreateSchema } from "@/lib/validators";
@@ -149,6 +149,13 @@ export async function POST(request: NextRequest) {
     });
     const requiresManualReview = Boolean(intelligence.metrics.needsManualReview);
     const samplingRequiresManualReview = data.serviceType === "PRODUCT_SAMPLING";
+    const segmentFlyerQuantities = areaSelection
+      ? allocateOrderSegmentFlyerQuantities(
+          data.flyerQuantity,
+          areaSelection.segments,
+          intelligence.metrics.segments?.map((segment) => segment.households),
+        )
+      : [];
 
     const price = await calculateOrderPrice({
       serviceType: data.serviceType,
@@ -300,7 +307,7 @@ export async function POST(request: NextRequest) {
                   centerLng: segment.centerLng,
                   areaSqm: new Prisma.Decimal(segment.areaSqm),
                   estimatedHouseholds: intelligenceSegment?.households ?? null,
-                  flyerQuantity: segment.flyerQuantity,
+                  flyerQuantity: segmentFlyerQuantities[index] ?? 0,
                   dataSource: intelligenceSegment?.householdCountSource ?? null,
                   dataSourceType: "ESTIMATED",
                   confidence: intelligenceSegment?.confidence === "high"
