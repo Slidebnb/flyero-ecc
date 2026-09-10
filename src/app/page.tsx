@@ -18,27 +18,26 @@ import { PublicPlannerSearch } from "@/app/PublicPlannerSearch";
 import { getPublicPrintMessage } from "@/lib/publicCapabilities";
 
 export const metadata = createSeoMetadata({
-  title: "Flyerverteilung mit GPS-Nachweis und Kundenbericht",
+  title: "Professionelle Flyerverteilung mit GPS-Nachweis | FLYERO",
   description:
-    "FLYERO plant Flyerverteilung digital: Gebiet anfragen oder online buchen, externe GPS-Nachweise prüfen und Kundenbericht erhalten.",
+    "Professionelle Flyerverteilung für Unternehmen und Vereine: Gebiet online planen, Verteilung organisieren und GPS-Nachweis, Fotos sowie Abschlussbericht erhalten.",
   path: "/",
   keywords: ["Flyerverteilung GPS Nachweis", "Flyer verteilen mit Bericht", "Flyer Zustellnachweis"],
 });
 
 const problems = [
-  ["Keine Kontrolle", "Nach der Abgabe bleibt oft unklar, ob wirklich im richtigen Gebiet verteilt wurde.", defaultProofIcons.shield],
-  ["Keine Nachweise", "Fotos, Zeiten und Tourverlauf liegen selten sauber zusammen.", defaultProofIcons.camera],
-  ["Unklare Zustellung", "Kunden sehen am Ende nur eine Aussage, aber keinen belastbaren Ablauf.", defaultProofIcons.report],
-  ["Zu viel Abstimmung", "Gebiet, Lager, Verteiler und Bericht laufen oft über einzelne Nachrichten.", defaultProofIcons.bag],
+  ["Gebiet nachvollziehbar", "Ihr gewünschtes Gebiet bleibt vom ersten Planungsschritt bis zum Abschluss klar erkennbar.", defaultProofIcons.shield],
+  ["Durchführung dokumentiert", "GPS-Daten und Fotos ergänzen die Angaben zur durchgeführten Verteilung.", defaultProofIcons.camera],
+  ["Abschlussbericht erhalten", "Sie bekommen die geprüften Unterlagen übersichtlich in Ihrem Kundenkonto.", defaultProofIcons.report],
 ] as const;
 
 const solutions = [
-  ["Gebietsauswahl", "PLZ, Ort oder Wunschgebiet sauber planen und im Auftrag speichern.", defaultProofIcons.gps],
-  ["Online-Zahlung", "Preis und Auftrag vor der Buchung transparent prüfen.", defaultProofIcons.report],
-  ["Flyer im Lager", "Flyer an das zugewiesene Lager senden und die Anlieferung nachvollziehen.", defaultProofIcons.bag],
-  ["GPS-Nachweis", "GPS-Berichte und Angaben zur Verteilung werden dem Auftrag zugeordnet.", defaultProofIcons.gps],
-  ["Foto-Nachweise", "Bilder ergänzen Strecke, Zeit und Status der Verteilung.", defaultProofIcons.camera],
-  ["PDF-Bericht", "Kunden erhalten einen geprüften Bericht mit Rechnung im Portal.", defaultProofIcons.report],
+  ["Gebiet auswählen", "PLZ, Ort oder Wunschgebiet planen und im Auftrag speichern.", defaultProofIcons.gps],
+  ["Preis online prüfen", "Sie sehen den Preis vor der Buchung transparent und verständlich.", defaultProofIcons.report],
+  ["Flyer einsenden", "Ihre gedruckten Flyer gehen an das passende, zugewiesene Lager.", defaultProofIcons.bag],
+  ["Durchführung begleiten", "Die Verteilung wird im vereinbarten Gebiet organisiert.", defaultProofIcons.gps],
+  ["Nachweise prüfen", "GPS-Daten und Fotos werden dem Auftrag übersichtlich zugeordnet.", defaultProofIcons.camera],
+  ["Bericht erhalten", "Nach der Prüfung finden Sie Bericht und Rechnung in Ihrem Kundenkonto.", defaultProofIcons.report],
 ] as const;
 
 const audiences = [
@@ -51,26 +50,26 @@ const audiences = [
 ] as const;
 
 const steps = [
-  ["Gebiet wählen", "Ort, PLZ oder Wunschgebiet festlegen."],
-  ["Flyer bereitstellen", "Bereits gedruckte Flyer an das ausgewählte Lager senden."],
-  ["Online bezahlen", "Preis prüfen und Auftrag buchen."],
-  ["GPS-Nachweis", "Externen GPS-Bericht, Fotos und Ist-Werte prüfen."],
-  ["Bericht erhalten", "PDF, Fotos und Rechnung im Portal sehen."],
+  ["Gebiet auswählen", "Ort, PLZ oder gewünschtes Gebiet festlegen."],
+  ["Flyer einsenden", "Ihre gedruckten Flyer gehen an das zugewiesene Lager."],
+  ["Auftrag bestätigen", "Preis prüfen und Auftrag verbindlich bestätigen."],
+  ["Verteilung", "Die Kampagne wird im vereinbarten Gebiet durchgeführt."],
+  ["Nachweise erhalten", "GPS, Fotos und Abschlussbericht erscheinen nach Prüfung in Ihrem Kundenkonto."],
 ] as const;
 
 const advantages = [
   ["Ein Ablauf", "Auftrag, Zahlung, Lager und Bericht gehören übersichtlich zusammen."],
-  ["Prüfbare Arbeit", "GPS-Bericht, Fotos und Zeiten machen die Verteilung nachvollziehbar."],
+  ["Nachvollziehbare Durchführung", "GPS-Bericht, Fotos und Zeiten dokumentieren die Verteilung."],
   ["Weniger Rückfragen", "Kunden sehen Status, Rechnung und Bericht zentral im Portal."],
-  ["Skalierbar", "Deutschlandweit planen; Gebiet und Logistik werden je Auftrag geprüft."],
+  ["Deutschlandweit planbar", "Gebiet und Logistik werden je Auftrag sorgfältig geprüft."],
 ] as const;
 
 const faqs = [
   ["Muss ich mich registrieren, um anzufragen?", "Nein. Eine unverbindliche Anfrage ist öffentlich möglich. Für eine direkte Buchung und den späteren Bericht wird ein Kundenkonto benötigt."],
-  ["Wie entsteht der Nachweis?", "FLYERO nutzt professionelle GPS-Geräte. Der GPS-Bericht, Fotos und tatsächliche Angaben werden danach durch FLYERO geprüft."],
+  ["Wie entsteht der Nachweis?", "FLYERO nutzt professionelle GPS-Geräte. GPS-Bericht und Fotos werden nach der Durchführung geprüft."],
   ["Kann ich Druck und Verteilung zusammen buchen?", getPublicPrintMessage()],
   ["Wie schnell kann eine Verteilung starten?", "Das hängt von Gebiet, Auflage, Druckdaten und Verfügbarkeit der Verteiler ab. Für einfache Kampagnen kann die Planung kurzfristig starten, sobald Daten und Gebiet klar sind."],
-  ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Der Nachweis besteht aus dem GPS-Bericht des eingesetzten GPS-Geräts, Foto-Dokumentation und einem geprüften Bericht, sobald die Verteilung freigegeben wurde."],
+  ["Bekomme ich Fotos und GPS-Nachweis nach der Verteilung?", "Ja. Nach der Prüfung werden GPS-Bericht, Foto-Dokumentation und Abschlussbericht in Ihrem Kundenkonto freigegeben."],
   ["Kann ich den Preis vorher sehen?", "Ja. Bei der direkten Online-Buchung werden Gebiet, Menge und Zeitraum vor der Zahlung geprüft."],
   ["Ist FLYERO nur für eine Region gedacht?", "Nein. Sie können Gebiete in ganz Deutschland planen. Ob eine direkte Durchführung möglich ist, prüfen wir je Gebiet und Logistik."],
 ] as const;
@@ -82,17 +81,15 @@ export default function HomePage() {
         <PremiumFlyerField />
         <MarketingContainer className="mkHeroLayout">
           <div className="mkHeroCopy">
-            <p className="mkEyebrow">Flyerverteilung mit Nachweis</p>
-            <h1 id="home-hero-title">Flyer verteilen. Beweise liefern.</h1>
+            <h1 id="home-hero-title">Professionelle Flyerverteilung mit GPS-Nachweis.</h1>
             <p className="mkHeroLead">
-              Flyer verteilen kann jeder. Nachweisen nicht.{" "}
-              FLYERO verbindet Gebietsauswahl, Zahlung, Lager, GPS-Nachweis, Foto-Dokumentation und Kundenbericht
-              in einem professionellen Ablauf für lokale Kampagnen.
+              Ihre Werbung in den richtigen Briefkästen. Planen Sie Ihr Verteilgebiet online und behalten Sie
+              Ihre Kampagne mit GPS-Nachweis, Fotodokumentation und geprüftem Abschlussbericht im Blick.
             </p>
             <PublicPlannerSearch />
             <div className="mkHeroActions">
-              <MarketingButton href="/verteilung-anfragen">Verteilung anfragen</MarketingButton>
-              <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1" variant="ghost">Online buchen</MarketingButton>
+              <MarketingButton href="/verteilung-planen">Gebiet & Preis prüfen</MarketingButton>
+              <MarketingButton href="/verteilung-anfragen" variant="ghost">Unverbindlich anfragen</MarketingButton>
             </div>
             <div className="mkTrustRow" aria-label="FLYERO Nachweise">
               <TrustBadge icon={defaultProofIcons.gps}>GPS-Nachweis</TrustBadge>
@@ -105,9 +102,8 @@ export default function HomePage() {
       </section>
 
       <MarketingSection
-        eyebrow="Problem"
-        title="Flyer verteilt - aber wirklich?"
-        intro="Ohne saubere Nachweise bleibt Flyerverteilung schwer prüfbar. FLYERO macht die operative Arbeit sichtbar."
+        title="Sie geben tausende Flyer aus der Hand. Was passiert danach?"
+        intro="Bei klassischer Flyerverteilung bleibt häufig nur die Aussage: „Ist verteilt.“ FLYERO dokumentiert Gebiet, Durchführung und Abschluss Ihrer Kampagne nachvollziehbar."
       >
         <div className="mkEditorialList">
           {problems.map(([title, text, Icon], index) => (
@@ -124,9 +120,8 @@ export default function HomePage() {
       </MarketingSection>
 
       <MarketingSection
-        eyebrow="Lösung"
-        title="FLYERO macht Verteilung nachvollziehbar."
-        intro="Jeder Schritt bekommt einen Status, einen Ort im Prozess und am Ende einen prüfbaren Bericht."
+        title="Ihre Kampagne bleibt klar begleitet."
+        intro="Von der Gebietsplanung bis zum geprüften Abschlussbericht sehen Sie, was als Nächstes passiert."
         tone="green"
       >
         <div className="mkEditorialList mkSolutionList">
@@ -145,9 +140,8 @@ export default function HomePage() {
 
       <MarketingSection
         id="zielgruppen"
-        eyebrow="Zielgruppen"
-        title="Für jede Branche der passende Verteilerweg."
-        intro="Kurze Wege, klare Gebiete und ein Bericht, der auch nach der Kampagne noch belastbar bleibt."
+        title="Flyerverteilung für lokale Unternehmen."
+        intro="Ob Neueröffnung, Angebot, Immobilie oder Veranstaltung: Sie wählen das Gebiet – FLYERO organisiert die Verteilung und Dokumentation."
       >
         <div className="mkAudienceList">
           {audiences.map(([title, text, signal], index) => {
@@ -168,9 +162,8 @@ export default function HomePage() {
       </MarketingSection>
 
       <MarketingSection
-        eyebrow="Ablauf"
-        title="In fünf Schritten zur dokumentierten Verteilung."
-        intro="Einfach genug für Kunden. Klar genug für Lager, Verteiler und die Prüfung durch FLYERO."
+        title="So einfach funktioniert’s."
+        intro="In wenigen Schritten zu mehr Sichtbarkeit in Ihrer Region."
       >
         <ol className="mkProcessList">
           {steps.map(([title, text], index) => {
@@ -191,11 +184,10 @@ export default function HomePage() {
       <MarketingSection tone="dark" className="mkProofSection">
         <div className="mkProofLayout">
           <div className="mkProofText">
-            <p className="mkEyebrow">Nachweis</p>
-            <h2>Nachweise, die am Ende wirklich zählen.</h2>
+            <h2>Nach der Verteilung sehen Sie, was gemacht wurde.</h2>
             <p>
-              Im Kundenkonto erscheinen GPS-Nachweis, Fotos und Bericht, sobald die Verteilung abgeschlossen
-              und von FLYERO geprüft wurde.
+              GPS-Daten, Fotodokumentation und Abschlussbericht werden nach der Durchführung geprüft und
+              anschließend in Ihrem Kundenkonto freigegeben.
             </p>
             <div className="mkProofMetrics">
               <span><strong>01</strong>GPS-Nachweis</span>
@@ -208,9 +200,8 @@ export default function HomePage() {
       </MarketingSection>
 
       <MarketingSection
-        eyebrow="Vorteile"
-        title="Eine Plattform für den ganzen Kernprozess."
-        intro="FLYERO bleibt bewusst auf den Ablauf fokussiert, der für Kunden wirklich zählt: Auftrag, Verteilung, Nachweis."
+        title="Alles an einem Ort – vom Auftrag bis zum Verteilbericht."
+        intro="FLYERO verbindet die Schritte, die für Sie wirklich zählen: Auftrag, Verteilung und nachvollziehbarer Abschluss."
       >
         <div className="mkAdvantageList">
           {advantages.map(([title, text], index) => (
@@ -224,7 +215,6 @@ export default function HomePage() {
       </MarketingSection>
 
       <MarketingSection
-        eyebrow="Starten"
         title="Beratung oder direkte Buchung."
         intro="Unverbindlich anfragen bleibt öffentlich. Die direkte Buchung läuft geschützt über das Kundenkonto."
       >
@@ -235,7 +225,7 @@ export default function HomePage() {
               <h3>Unverbindlich anfragen</h3>
               <p>Für Kampagnen, bei denen Gebiet, Auflage oder Timing noch geklärt werden sollen.</p>
             </div>
-            <MarketingButton href="/verteilung-anfragen">Anfrage starten</MarketingButton>
+            <MarketingButton href="/verteilung-anfragen">Unverbindlich anfragen</MarketingButton>
           </article>
           <article className="mkStartRow">
             <span className="mkEditorialIndex">02</span>
@@ -243,7 +233,7 @@ export default function HomePage() {
               <h3>Online buchen</h3>
               <p>Gebiet wählen, Preis prüfen und den Auftrag geschützt über Ihr Kundenkonto abschließen.</p>
             </div>
-            <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1" variant="dark">Buchung starten</MarketingButton>
+            <MarketingButton href="/login?next=%2Fcustomer%2Forders%2Fnew%3Ffresh%3D1" variant="dark">Auftrag buchen</MarketingButton>
           </article>
         </div>
       </MarketingSection>

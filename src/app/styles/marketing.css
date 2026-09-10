@@ -1807,6 +1807,32 @@
   color: var(--flyero-text);
 }
 
+.mkFooterGroup {
+  min-width: 0;
+}
+
+.mkFooterGroup summary {
+  color: var(--flyero-text);
+  font-weight: 900;
+  list-style: none;
+  cursor: pointer;
+}
+
+.mkFooterGroup summary::-webkit-details-marker {
+  display: none;
+}
+
+.mkFooterGroup summary::after {
+  display: none;
+  content: "⌄";
+  color: var(--flyero-green-dark);
+  font-size: 1.15rem;
+}
+
+.mkFooterGroupLinks {
+  display: grid !important;
+}
+
 .mkRequestHero {
   position: relative;
   overflow: hidden;
@@ -2524,6 +2550,46 @@
 
   .mkFooter {
     grid-template-columns: 1fr;
+  }
+
+  .mkFooterGroup {
+    padding: 14px 0;
+    border-top: 1px solid var(--flyero-border);
+  }
+
+  .mkFooterGroup:last-child {
+    border-bottom: 1px solid var(--flyero-border);
+  }
+
+  .mkFooterGroup summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 28px;
+    font-size: 1rem;
+  }
+
+  .mkFooterGroup summary::after {
+    display: block;
+  }
+
+  .mkFooterGroup[open] summary::after {
+    transform: rotate(180deg);
+  }
+
+  .mkFooterGroupLinks {
+    display: grid !important;
+    gap: 12px !important;
+    padding-top: 14px;
+  }
+
+  .mkFooterGroup:not([open]) .mkFooterGroupLinks {
+    display: none !important;
+  }
+
+  .mkFooterGroupLinks a {
+    font-size: 0.95rem;
+    line-height: 1.4;
   }
 
   .mkIndustryHero {
@@ -3949,5 +4015,114 @@
 
   .mkPillarSignal .mkTextLink {
     white-space: normal;
+  }
+}
+
+/* Keep homepage overrides last so the public landing page remains consistent with its redesign. */
+.mkHero {
+  min-height: auto;
+  padding: clamp(72px, 9vw, 124px) 0 clamp(76px, 9vw, 124px);
+  background:
+    radial-gradient(circle at 82% 14%, rgba(167, 255, 0, 0.16), transparent 25rem),
+    linear-gradient(180deg, #fbfcf8 0%, #f5f7f1 100%);
+  color: var(--flyero-text);
+}
+
+.mkHero h1 {
+  max-width: 720px;
+  font-size: clamp(3.35rem, 6.3vw, 6.15rem);
+  line-height: 0.96;
+}
+
+.mkHeroLead {
+  color: var(--flyero-muted);
+}
+
+.mkHero .mkPlannerSearch label {
+  color: var(--flyero-text);
+}
+
+.mkHero .mkPlannerSearch input {
+  border-color: var(--flyero-border);
+  color: var(--flyero-text);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.mkHero .mkPlannerSearch input::placeholder {
+  color: var(--flyero-muted);
+}
+
+.mkHero .mkPlannerSearchHint {
+  color: var(--flyero-muted);
+}
+
+.mkHero .mkButton-ghost {
+  border-color: var(--flyero-text);
+  color: var(--flyero-text);
+  background: transparent;
+}
+
+.mkHero .mkButton-ghost:hover {
+  color: var(--flyero-text);
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.mkHero .mkTrustBadge {
+  color: var(--flyero-text);
+}
+
+.mkHero .mkTrustBadge + .mkTrustBadge {
+  border-left-color: var(--flyero-border);
+}
+
+.mkHero .mkFlyingFlyer {
+  opacity: 0.05;
+}
+
+.mkSectionHeader h2 {
+  font-size: clamp(2.45rem, 4vw, 4.4rem);
+  line-height: 1.02;
+}
+
+.mkSectionHeader span,
+.mkEditorialRow p,
+.mkAudienceRow p,
+.mkAdvantageRow p,
+.mkStartRow p,
+.mkProcessRow p,
+.mkFaqItem p {
+  font-size: 1.04rem;
+}
+
+@media (max-width: 820px) {
+  .mkHero {
+    padding: 62px 0 70px;
+  }
+
+  .mkHero h1 {
+    max-width: 100%;
+    font-size: clamp(2.75rem, 12vw, 4rem);
+    line-height: 0.99;
+  }
+
+  .mkHeroLead {
+    max-width: none;
+    font-size: 1.06rem;
+    line-height: 1.6;
+  }
+
+  .mkSectionHeader h2 {
+    font-size: clamp(2.15rem, 9.6vw, 3rem);
+  }
+
+  .mkSectionHeader span,
+  .mkEditorialRow p,
+  .mkAudienceRow p,
+  .mkAdvantageRow p,
+  .mkStartRow p,
+  .mkProcessRow p,
+  .mkFaqItem p {
+    font-size: 1rem;
+    line-height: 1.62;
   }
 }

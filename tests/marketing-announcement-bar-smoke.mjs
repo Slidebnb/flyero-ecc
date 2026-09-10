@@ -9,7 +9,7 @@ const css = readFileSync("src/app/styles/marketing.css", "utf8");
 
 assert(marketing.includes('className="mkAnnouncementBar"'), "Die Gutschein-Ankündigungsleiste fehlt.");
 assert(marketing.includes('role="status"'), "Die Ankündigung muss für Screenreader als Status angekündigt werden.");
-assert(marketing.includes("10 % Rabatt auf deine Online-Zahlung"), "Der Rabatttext fehlt.");
+assert(marketing.includes("10 % Rabatt auf Ihre Online-Zahlung"), "Der Rabatttext fehlt.");
 assert(marketing.includes("FLYERO10NKB"), "Der aktuelle Gutscheincode fehlt.");
 assert(marketing.includes('href="/verteilung-anfragen"'), "Die Ankündigung braucht einen klaren Einstieg zur Anfrage.");
 assert(css.includes(".mkAnnouncementBar"), "Die Ankündigungsleiste benötigt eigene responsive Styles.");

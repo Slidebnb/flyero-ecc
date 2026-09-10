@@ -23,6 +23,7 @@ import {
   Utensils,
 } from "lucide-react";
 import { MobileMenu } from "@/app/components/MobileMenu";
+import { FooterColumn } from "@/app/components/marketing/FooterColumn";
 import { CookieSettingsLink } from "@/app/CookieSettingsLink";
 import { industryPages } from "@/app/branchen/industryData";
 import { occasionPages } from "@/app/anlaesse/occasionData";
@@ -68,7 +69,7 @@ export function PublicNavbar() {
   return (
     <header className="mkHeader">
       <div className="mkAnnouncementBar" role="status" aria-label="Aktuelle Gutscheinaktion">
-        <span className="mkAnnouncementCopy">10 % Rabatt auf deine Online-Zahlung</span>
+        <span className="mkAnnouncementCopy">10 % Rabatt auf Ihre Online-Zahlung</span>
         <span className="mkAnnouncementCode">Code: <strong>FLYERO10NKB</strong></span>
         <span className="mkAnnouncementHint">Im Stripe-Checkout einlösen</span>
         <Link href="/verteilung-anfragen" className="mkAnnouncementLink">
@@ -198,25 +199,6 @@ export function PublicFooter() {
         <CookieSettingsLink />
       </div>
     </footer>
-  );
-}
-
-function FooterColumn({ title, links }: { title: string; links: readonly (readonly [string, string])[] }) {
-  return (
-    <nav aria-label={title}>
-      <strong>{title}</strong>
-      {links.map(([label, href]) => (
-        href.endsWith(".pdf") ? (
-          <a key={href} href={href} download>
-            {label}
-          </a>
-        ) : (
-          <Link key={href} href={href}>
-            {label}
-          </Link>
-        )
-      ))}
-    </nav>
   );
 }
 
@@ -368,7 +350,7 @@ export function PaymentMethods() {
 export function ProcessPreview() {
   const processItems = [
     { number: "01", title: "Gebiet planen", text: "Die gewünschte Fläche wird sauber in die Kampagne übernommen.", Icon: MapPinned },
-    { number: "02", title: "Flyer einsenden", text: "Nach der Buchung erhältst du die Adresse des passenden Empfangslagers.", Icon: ShoppingBag },
+    { number: "02", title: "Flyer einsenden", text: "Nach der Buchung erhalten Sie die Adresse des passenden Empfangslagers.", Icon: ShoppingBag },
     { number: "03", title: "Verteilung durchführen", text: "Die Zustellung wird im gewählten Gebiet organisiert.", Icon: Navigation },
     { number: "04", title: "Nachweise erhalten", text: "GPS-Unterlagen, Fotos und Bericht werden nach Abschluss freigegeben.", Icon: Camera },
   ] as const;
@@ -386,7 +368,7 @@ export function ProcessPreview() {
               sizes="(max-width: 820px) 100vw, 34vw"
             />
           </div>
-          <figcaption>So bleibt deine Verteilung nachvollziehbar: Gebiet planen, Flyer einsenden, Nachweise erhalten.</figcaption>
+          <figcaption>So bleibt Ihre Verteilung nachvollziehbar: Gebiet planen, Flyer einsenden, Nachweise erhalten.</figcaption>
         </figure>
         <div className="mkVisualProcessColumn">
           <p className="mkVisualProcessKicker">Vom Gebiet bis zum Bericht</p>
