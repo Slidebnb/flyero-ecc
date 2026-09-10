@@ -532,7 +532,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
   const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
   const [pendingLocation, setPendingLocation] = useState<LocationResult | null>(null);
   const [, setHistory] = useState<LatLng[][]>([]);
-  const [flyerQuantity, setFlyerQuantity] = useState(0);
+  const [flyerQuantity, setFlyerQuantity] = useState(MINIMUM_FLYER_QUANTITY);
   const [serviceType, setServiceType] = useState<OnlineServiceType>("FLYER_STANDARD");
   const [productFormat, setProductFormat] = useState(() => serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
   const [weightInGrams, setWeightInGrams] = useState("");
@@ -1314,7 +1314,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         setRepeatPrintChoice(null);
         setUsedAutocomplete(false);
         setClickCount(0);
-        setFlyerQuantity(0);
+        setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
         setFlyerQuantityTouched(false);
         setServiceType("FLYER_STANDARD");
         setProductFormat(serviceCatalogItem("FLYER_STANDARD").formatOptions[0]);
@@ -1390,7 +1390,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
       if (restoredQuantityTouched && draft.flyerQuantity) {
         setFlyerQuantity(Math.max(MINIMUM_FLYER_QUANTITY, Math.min(MAXIMUM_FLYER_QUANTITY, draft.flyerQuantity)));
       } else {
-        setFlyerQuantity(0);
+        setFlyerQuantity(MINIMUM_FLYER_QUANTITY);
       }
       setFlyerSource("CUSTOMER_OWN");
       const restoredServiceType = normalizeOnlineServiceType(draft.serviceType ?? "FLYER_STANDARD");
@@ -2400,8 +2400,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
     { id: 2, title: selectedService.shortLabel, detail: "Werbemittel und Menge", value: `${formatNumber(flyerQuantity)} Stück` },
     { id: 3, title: "Zustellung", detail: "Empfänger und Hinweise", value: distributionType === "Haushaltsverteilung" ? "Private Haushalte" : distributionType },
     { id: 4, title: "Zeitraum", detail: `Start ab ${formatShortDate(minimumStartDate)}`, value: formatShortDate(startDate) },
-    { id: 5, title: "Zusammenfassung", detail: "Preis und Leistungen prüfen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : hasSelectedLocation ? "Nach Flächenauswahl" : "Noch offen" },
-    { id: 6, title: "Abschluss", detail: "Buchen oder unverbindlich anfragen", value: "Bereit" },
+    { id: 5, title: "Zusammenfassung", detail: "Alles prüfen und bestätigen", value: Number(netPrice) > 0 ? formatCurrency(netPrice) : hasSelectedLocation ? "Preis wird angezeigt" : "Noch offen" },
+    { id: 6, title: "Abschluss", detail: "Buchung fertigstellen", value: "Bereit" },
   ];
   const stepState = rawStepState.map((step) => step.id === 2 && flyerQuantity <= 0 ? { ...step, value: "Menge auswählen" } : step);
   const activeNavItems = isPublicPlanner ? publicPlannerNavItems : orderNavItems;
@@ -2686,8 +2686,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
               >
                 <span>{step.id}</span>
                 <strong>{step.id === 6 ? "Abschluss" : step.title}</strong>
-                <small>{step.id === 6 ? "Weg auswählen und absenden" : step.detail}</small>
-                <em>{step.id === 6 ? "Fast fertig" : step.value}</em>
+                <small>{step.id === 6 ? "Jetzt abschließen oder Anfrage senden" : step.detail}</small>
+                <em>{step.id === 6 ? "Bereit zum Abschluss" : step.value}</em>
               </button>
               {activeStep === step.id ? renderStepContent(step.id) : null}
             </article>
@@ -2698,7 +2698,7 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
           <span>Preis netto zzgl. MwSt.</span>
           <strong>{pricePreviewText}</strong>
           <button type="button" onClick={() => setActiveStep((step) => Math.min(6, step + 1))}>
-            {activeStep >= 6 ? "Weg auswählen" : "Weiter"}
+            {activeStep >= 6 ? "Buchung abschließen" : "Weiter"}
             <span aria-hidden="true">→</span>
           </button>
         </div>

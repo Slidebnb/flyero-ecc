@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   ADMIN_ORDER_STATUS_OPTIONS,
+  MINIMUM_FLYER_QUANTITY,
   SERVICE_RADII,
   WEEKDAYS,
   WORKING_TIMES,
@@ -275,7 +276,7 @@ export const orderCreateSchema = z
     weightInGrams: z.coerce.number().int().min(1).max(10000).optional(),
     areaDifficulty: z.enum(["NORMAL", "MIXED", "LOW_DENSITY", "RURAL", "HARD"]).optional().default("NORMAL"),
     clientDifficultyHint: z.enum(["NORMAL", "MIXED", "LOW_DENSITY", "RURAL", "HARD"]).optional(),
-    flyerQuantity: z.coerce.number().int().min(100, "Die Mindestmenge beträgt 100 Stück."),
+    flyerQuantity: z.coerce.number().int().min(MINIMUM_FLYER_QUANTITY, `Die Mindestmenge beträgt ${MINIMUM_FLYER_QUANTITY} Stück.`),
     flyerSource: z.enum(["CUSTOMER_OWN", "PRINT_SERVICE"]),
     warehouseId: z.string().trim().min(1).optional(),
     productFormat: z.string().trim().min(2).max(80).optional().default("DIN Lang (99 x 210 mm)"),

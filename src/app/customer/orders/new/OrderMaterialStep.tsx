@@ -31,10 +31,10 @@ export function OrderMaterialStep({
 }: OrderMaterialStepProps) {
   return (
     <section className="orderPanelBlock inlineStepBlock" data-testid="customer-own-flyer-step">
-      <p className="orderStepHint">Wähle zuerst, welches Werbemittel du verteilen lassen möchtest. Online buchbar sind bereits gedruckte Materialien, die an ein FLYERO-Lager gesendet werden.</p>
+      <p className="orderStepHint">Wähle dein Werbemittel und die gewünschte Menge. Deine gedruckten Materialien sendest du nach der Buchung an das passende FLYERO-Lager.</p>
       <div className="flyerQuantityIntro">
-        <strong>Wie viele Stück möchtest du verteilen?</strong>
-        <small>Die Menge ist die Gesamtmenge deiner Kampagne. Bei mehreren Teilgebieten wird sie anschließend auf die Gebiete verteilt; FLYERO zeigt dir direkt die passende Preisvorschau.</small>
+        <strong>Wie viele Flyer sollen verteilt werden?</strong>
+        <small>Die Menge gilt für deine gesamte Kampagne. Bei mehreren Teilgebieten wird sie anschließend auf die Gebiete verteilt.</small>
         <div className="flyerRecommendation">
           <span>{recommendationLabel}</span>
           <strong>{recommendedFlyerQuantity == null ? "Noch nicht verfügbar" : `${new Intl.NumberFormat("de-DE").format(Math.round(recommendedFlyerQuantity))} Stück`}</strong>
@@ -42,10 +42,11 @@ export function OrderMaterialStep({
         </div>
         <div className="quantityControl">
           <button type="button" onClick={() => onMoveQuantity(-1000)}>−</button>
-          <input data-testid="order-flyer-quantity" value={flyerQuantity > 0 ? flyerQuantity : ""} onChange={(event) => { const rawValue = event.target.value.trim(); const parsedValue = rawValue ? Number(rawValue) : 0; onQuantityChange(Number.isFinite(parsedValue) ? Math.max(0, parsedValue) : 0); }} onBlur={onQuantityBlur} inputMode="numeric" aria-label="Flyermenge" placeholder="Mindestmenge ab 100" />
+          <input data-testid="order-flyer-quantity" value={flyerQuantity > 0 ? flyerQuantity : ""} onChange={(event) => { const rawValue = event.target.value.trim(); const parsedValue = rawValue ? Number(rawValue) : 0; onQuantityChange(Number.isFinite(parsedValue) ? Math.max(0, parsedValue) : 0); }} onBlur={onQuantityBlur} inputMode="numeric" aria-label="Flyermenge" placeholder="1.000" />
           <button type="button" onClick={() => onMoveQuantity(1000)}>+</button>
           <span>Stück</span>
         </div>
+        <small className="quantityControlHint">Ab 1.000 Stück · weitere Mengen einfach über + auswählen</small>
       </div>
       <div className="serviceChoiceList" aria-label="Werbemittel auswählen" data-testid="order-service-type">
         {distributionServiceCatalog.map((service) => (

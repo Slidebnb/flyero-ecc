@@ -26,19 +26,19 @@ export function OrderFinishStep({
 
   return (
     <section className="orderPanelBlock inlineStepBlock" data-testid="order-completion-step">
-      <p className="orderStepHint">Fast geschafft. Prüfe deine Angaben und entscheide, wie du fortfahren möchtest.</p>
+      <p className="orderStepHint">Fast geschafft – prüfe kurz deine Angaben und wähle jetzt die passende Option.</p>
       <div className="orderFinishChoices">
         {flyerSource === "CUSTOMER_OWN" && effectiveWeightClass !== "CUSTOM" && !sampling ? (
           <button data-testid="order-finish-direct" type="button" className="finishPrimary" disabled={isFinishing} onClick={() => onFinish("direct_payment")}>
             Jetzt buchen und bezahlen
-            <small>Auftrag anlegen und sicher zur Zahlung weitergehen.</small>
+            <small>Auftrag sicher abschließen und direkt zur Zahlung weitergehen.</small>
           </button>
         ) : null}
         <button data-testid="order-finish-inquiry" type="button" disabled={isFinishing} onClick={() => onFinish("inquiry")}>
-          {sampling ? "Individuelles Sampling-Angebot anfragen" : "Unverbindlich anfragen"}
+          {sampling ? "Individuelles Sampling-Angebot anfragen" : "Anfrage senden"}
           <small>{sampling
             ? "Gewicht, Verpackung, Lagerung und Übergabe werden vorab geprüft."
-            : "Wir prüfen Gebiet, Zustellbarkeit und deine Flyer und melden uns schnell."}</small>
+            : "Wir prüfen Gebiet und Zustellung und melden uns schnell bei dir."}</small>
         </button>
         <a href={inquiryFormHref} download>
           <Download aria-hidden="true" />

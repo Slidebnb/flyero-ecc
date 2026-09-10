@@ -24,10 +24,10 @@ assert.strictEqual((activeOrderPage.match(/action=\"\/api\/payments\/checkout\"/
 assert.match(css, /customerSimpleForm[^\{]*select/, "Support-Auswahlfelder brauchen einen expliziten Kontrast.");
 assert.match(css, /customerSimpleForm[^\{]*color-scheme|color-scheme:\s*dark/, "Kundenformulare muessen ein konsistentes Farbschema erzwingen.");
 
-assert.match(wizard, /useState\(0\)/, "Die neue Verteilung darf nicht mit 100 Flyer vorbefuellt werden.");
+assert.match(wizard, /useState\(MINIMUM_FLYER_QUANTITY\)/, "Die neue Verteilung muss mit der zentralen Mindestmenge starten.");
 assert.match(materialStep, /flyerQuantity > 0 \? flyerQuantity : \"\"/, "Leere Flyermenge muss als leerer Eingabestatus dargestellt werden.");
-assert.match(wizard, /freshStart[\s\S]*?setFlyerQuantity\(0\)/, "Ein neuer Auftrag muss die Flyermenge leer starten.");
-assert.match(wizard, /restoredQuantityTouched[\s\S]*?setFlyerQuantity\(0\)/, "Ein unverändertes altes Entwurfsfeld darf keine 100 Flyer vortäuschen.");
-assert.match(materialStep, /Bitte gib die gewuenschte Menge ein|Mindestmenge/, "Die Mengenmaske muss eine klare Eingabeaufforderung statt einer stillen 100 zeigen.");
+assert.match(wizard, /freshStart[\s\S]*?setFlyerQuantity\(MINIMUM_FLYER_QUANTITY\)/, "Ein neuer Auftrag muss mit der zentralen Mindestmenge starten.");
+assert.match(wizard, /restoredQuantityTouched[\s\S]*?setFlyerQuantity\(MINIMUM_FLYER_QUANTITY\)/, "Ein unverändertes altes Entwurfsfeld darf keine falsche Menge vortäuschen.");
+assert.match(materialStep, /Bitte gib die gewuenschte Menge ein|Mindestmenge|Ab 1\.000 Stück/, "Die Mengenmaske muss eine klare Eingabeaufforderung statt einer stillen Menge zeigen.");
 
 console.log("Customer portal action UX smoke tests passed.");

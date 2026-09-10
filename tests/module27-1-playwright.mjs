@@ -212,7 +212,7 @@ async function run() {
       polygon: restoredSegment.points,
       polygonSource: "saved_area",
       areaSegments: [{ ...restoredSegment, polygonSource: "saved_area" }],
-      flyerQuantity: 100,
+      flyerQuantity: 1000,
       flyerQuantityTouched: false,
       serviceType: "FLYER_STANDARD",
       flyerSource: "CUSTOMER_OWN",
