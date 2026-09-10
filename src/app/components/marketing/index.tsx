@@ -69,7 +69,7 @@ export function PublicNavbar() {
   return (
     <header className="mkHeader">
       <div className="mkAnnouncementBar" role="status" aria-label="Aktuelle Gutscheinaktion">
-        <span className="mkAnnouncementCopy">10 % Rabatt auf Ihre Online-Zahlung</span>
+        <span className="mkAnnouncementCopy">10 % Online-Rabatt</span>
         <span className="mkAnnouncementCode">Code: <strong>FLYERO10NKB</strong></span>
         <span className="mkAnnouncementHint">Im Stripe-Checkout einlösen</span>
         <Link href="/verteilung-anfragen" className="mkAnnouncementLink">
