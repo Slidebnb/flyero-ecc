@@ -12,7 +12,7 @@ import { createSeoMetadata } from "@/app/seo";
 import { getPublicPrintMessage } from "@/lib/publicCapabilities";
 
 export const metadata = createSeoMetadata({
-  title: "Flyerverteilung einfach anfragen | FLYERO",
+  title: "Flyerverteilung einfach anfragen",
   description:
     "Flyerverteilung unkompliziert anfragen: Gebiet, Menge und Zeitraum nennen, Rückmeldung erhalten und die nächsten Schritte gemeinsam festlegen.",
   path: "/verteilung-anfragen",

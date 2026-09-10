@@ -11,7 +11,7 @@ import {
 import { createSeoMetadata } from "@/app/seo";
 
 export const metadata = createSeoMetadata({
-  title: "Flyerverteilung im Raum Koblenz, Neuwied und Bendorf | FLYERO",
+  title: "Flyerverteilung im Raum Koblenz, Neuwied und Bendorf",
   description:
     "Regionale Flyerverteilung mit FLYERO: Gebiete im Raum Koblenz, Neuwied und Bendorf planen, mehrere Teilgebiete kombinieren und Nachweise nach Abschluss erhalten.",
   path: "/regionen",
