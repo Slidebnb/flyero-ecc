@@ -1,9 +1,11 @@
 import { MarketingPage, MarketingSection } from "@/app/components/marketing";
+import { LegalDocument } from "@/app/components/LegalDocument";
+import privacyPolicy from "@/content/datenschutz";
 import { createSeoMetadata } from "@/app/seo";
 
 export const metadata = createSeoMetadata({
   title: "Datenschutz",
-  description: "Datenschutzinformationen für FLYERO: Anfragen, Aufträge, Zahlungsdaten, Tourdaten und Nachweise.",
+  description: "Datenschutzerklärung von FLYERO für Website, Kundenportal, Aufträge, Zahlungen und Nachweise.",
   path: "/datenschutz",
   keywords: ["FLYERO Datenschutz", "Flyerverteilung Datenschutz"],
 });
@@ -12,29 +14,7 @@ export default function PrivacyPage() {
   return (
     <MarketingPage>
       <MarketingSection eyebrow="Rechtliches" title="Datenschutz" headingLevel="h1" className="mkLegalPage">
-        <div className="legalText">
-          <p>
-            FLYERO verarbeitet personenbezogene Daten zur Bereitstellung der Plattform, zur Bearbeitung von Anfragen,
-            zur Auftragserstellung, Zahlung, Lagerabwicklung, Tourdokumentation und Berichtserstellung.
-          </p>
-          <p>
-            Dazu können Kontakt-, Vertrags-, Zahlungs-, Rollen-, Standort- und Nachweisdaten gehören.
-            Der Zugriff ist rollenbasiert beschränkt.
-          </p>
-          <p>
-            Externe Dienstleister wie Zahlungsanbieter werden nur eingesetzt, wenn sie für den jeweiligen Prozess erforderlich sind.
-          </p>
-          <h2>Cookies und Einwilligungen</h2>
-          <p>
-            FLYERO verwendet notwendige Cookies fuer Sicherheit, Anmeldung und die Nutzung der Planung. Optionale Statistik-Cookies
-            sind standardmaessig ausgeschaltet und werden nur aktiviert, wenn du zustimmst. Deine Auswahl wird fuer sechs Monate
-            gespeichert und kann ueber &quot;Cookie-Einstellungen&quot; im Footer jederzeit geaendert werden.
-          </p>
-          <p className="notice">
-            Beta-Hinweis: Die Datenschutzerklärung muss vor Livegang anwaltlich geprüft und um finale Anbieter,
-            Auftragsverarbeiter und Speicherfristen ergänzt werden.
-          </p>
-        </div>
+        <LegalDocument markdown={privacyPolicy} />
       </MarketingSection>
     </MarketingPage>
   );
