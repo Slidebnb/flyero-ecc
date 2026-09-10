@@ -16,6 +16,7 @@ import { formatAddress, formatCurrency, formatDate, formatDateTime } from "@/lib
 import { prisma } from "@/lib/prisma";
 import { getOrderPriceBreakdown } from "@/lib/pricing";
 import { productionDistributorWhere, productionOrderWhere } from "@/lib/productionData";
+import { allocateOrderSegmentFlyerQuantities } from "@/lib/orderSegments";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -89,6 +90,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
   const snapshot = order.priceRuleSnapshot as OrderSnapshot;
   const areaSnapshot = snapshot.areaCalculationSnapshot;
   const price = getOrderPriceBreakdown(order);
+  const segmentFlyerQuantities = allocateOrderSegmentFlyerQuantities(order.flyerQuantity, order.distributionSegments);
   const distributorRecommendations =
     order.warehouseInventory?.status === "READY_FOR_PICKUP"
       ? await getSuitableDistributors(order.id)
@@ -399,14 +401,14 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                   <tr><th>Teilgebiet</th><th>PLZ / Ort</th><th>Flyer</th><th>Flaeche</th><th>Haushalte</th><th>Lager</th><th>Verteiler / Zuweisung</th><th>Tour</th></tr>
                 </thead>
                 <tbody>
-                  {order.distributionSegments.map((segment) => {
+                  {order.distributionSegments.map((segment, segmentIndex) => {
                     const assignments = order.dispatchAssignments.filter((assignment) => assignment.segment?.id === segment.id);
                     const tours = order.tours.filter((tour) => tour.segment?.id === segment.id);
                     return (
                       <tr key={segment.id}>
                         <td><strong>{segment.name}</strong></td>
                         <td>{segment.postalCode || "-"} / {segment.city || "-"}</td>
-                        <td>{segment.flyerQuantity?.toLocaleString("de-DE") ?? "Nach Verteilung"}</td>
+                        <td>{(segment.flyerQuantity ?? segmentFlyerQuantities[segmentIndex]).toLocaleString("de-DE")}</td>
                         <td>{Number(segment.areaSqm).toLocaleString("de-DE")} m2</td>
                         <td>{segment.estimatedHouseholds ?? "Nach Pruefung"}</td>
                         <td>{segment.assignedWarehouse?.name ?? "Manuelle Pruefung"}</td>

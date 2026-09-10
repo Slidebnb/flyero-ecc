@@ -7,6 +7,7 @@ import { getSystemSettings } from "@/lib/settings";
 import { warehouseSourceWhere } from "@/lib/warehouse";
 import { productionOrderWhere, productionUserWhere } from "@/lib/productionData";
 import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
+import { allocateOrderSegmentFlyerQuantities } from "@/lib/orderSegments";
 
 const ACTIVE_ASSIGNMENT_STATUSES: DispatchAssignmentStatus[] = ["ASSIGNED", "ACCEPTED"];
 const ACTIVE_TOUR_STATUSES = ["ASSIGNED", "READY", "PICKED_UP", "STARTED", "PAUSED", "RESUMED"] as const;
@@ -123,6 +124,21 @@ async function syncDistributorCapacity(distributorId: string) {
   return { currentAssignedFlyers, currentAssignedTours, completedTours };
 }
 
+async function resolvedSegmentFlyerQuantity(orderId: string, segmentId: string, totalQuantity: number) {
+  const segments = await prisma.orderDistributionSegment.findMany({
+    where: { orderId },
+    orderBy: { sortOrder: "asc" },
+    select: { id: true, flyerQuantity: true, areaSqm: true },
+  });
+  const index = segments.findIndex((segment) => segment.id === segmentId);
+  if (index < 0) return null;
+  const allocations = allocateOrderSegmentFlyerQuantities(totalQuantity, segments.map((segment) => ({
+    flyerQuantity: segment.flyerQuantity,
+    areaSqm: Number(segment.areaSqm),
+  })));
+  return allocations[index] ?? null;
+}
+
 async function distributorSnapshot(distributor: DistributorWithUser, inventory: ReadyInventory, flyerQuantityOverride?: number | null) {
   const capacity = await syncDistributorCapacity(distributor.id);
   const city = addressCity(distributor.address);
@@ -215,7 +231,7 @@ export async function getSuitableDistributors(orderId: string, tenantId?: string
   if (segmentId) {
     const segment = await prisma.orderDistributionSegment.findFirst({ where: { id: segmentId, orderId }, select: { flyerQuantity: true } });
     if (!segment) throw new Error("Teilgebiet gehÃ¶rt nicht zu diesem Auftrag.");
-    segmentFlyerQuantity = segment.flyerQuantity;
+    segmentFlyerQuantity = segment.flyerQuantity ?? await resolvedSegmentFlyerQuantity(orderId, segmentId, inventory.order.flyerQuantity);
   }
 
   const distributors = await prisma.distributorProfile.findMany({
@@ -405,7 +421,10 @@ export async function assignOrderToDistributor(input: {
     ? await prisma.orderDistributionSegment.findFirst({ where: { id: input.segmentId, orderId: input.orderId }, select: { flyerQuantity: true } })
     : null;
   if (input.segmentId && !segment) throw new Error("Teilgebiet gehÃ¶rt nicht zu diesem Auftrag.");
-  const segmentAwareRecommendation = await distributorSnapshot(distributor, inventory, segment?.flyerQuantity);
+  const assignedSegmentQuantity = input.segmentId
+    ? segment?.flyerQuantity ?? await resolvedSegmentFlyerQuantity(input.orderId, input.segmentId, inventory.order.flyerQuantity)
+    : null;
+  const segmentAwareRecommendation = await distributorSnapshot(distributor, inventory, assignedSegmentQuantity);
   const previousActive = await prisma.dispatchAssignment.findMany({
     where: {
       orderId: input.orderId,
@@ -502,7 +521,7 @@ export async function assignOrderToDistributor(input: {
     message: `Auftrag ${inventory.order.orderNumber} wartet auf deine Annahme.`,
     data: {
       orderNumber: inventory.order.orderNumber,
-      flyerQuantity: segment?.flyerQuantity ?? inventory.order.flyerQuantity,
+      flyerQuantity: assignedSegmentQuantity ?? inventory.order.flyerQuantity,
       areaName: inventory.order.targetAreaName,
       city: inventory.order.city,
       postalCode: inventory.order.postalCode,

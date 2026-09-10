@@ -7,6 +7,7 @@ import { DISPATCH_STATUS_LABELS, TOUR_STATUS_LABELS } from "@/lib/constants";
 import { getDispatchDashboard } from "@/lib/dispatch";
 import { formatDateTime } from "@/lib/format";
 import { combineOrders } from "@/lib/routing";
+import { allocateOrderSegmentFlyerQuantities } from "@/lib/orderSegments";
 
 type PageProps = {
   searchParams: Promise<{
@@ -92,6 +93,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
         <h2 className="sectionTitle">Nicht zugewiesene Aufträge</h2>
         {dashboard.unassignedInventories.map((inventory) => {
           const isMultiSegmentOrder = inventory.order.distributionSegments.length > 1;
+          const segmentFlyerQuantities = allocateOrderSegmentFlyerQuantities(inventory.order.flyerQuantity, inventory.order.distributionSegments);
           const recommendations = isMultiSegmentOrder ? [] : dashboard.recommendationsByOrderId[inventory.orderId] ?? [];
           return (
             <article className="stack" key={inventory.id} style={{ borderBottom: "1px solid var(--border)", paddingBottom: 18 }}>
@@ -109,7 +111,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                   {isMultiSegmentOrder ? (
                     <select name="segmentId" required defaultValue="">
                       <option value="" disabled>Teilgebiet auswählen</option>
-                      {inventory.order.distributionSegments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name} ({segment.flyerQuantity ?? inventory.expectedFlyers} Flyer)</option>)}
+                      {inventory.order.distributionSegments.map((segment, segmentIndex) => <option key={segment.id} value={segment.id}>{segment.name} ({(segment.flyerQuantity ?? segmentFlyerQuantities[segmentIndex]).toLocaleString("de-DE")} Flyer)</option>)}
                     </select>
                   ) : null}
                   <button type="submit">Empfehlungen erstellen</button>
@@ -118,7 +120,7 @@ export default async function AdminDispatchPage({ searchParams }: PageProps) {
                   {isMultiSegmentOrder ? (
                     <select name="segmentId" required defaultValue="">
                       <option value="" disabled>Teilgebiet auswählen</option>
-                      {inventory.order.distributionSegments.map((segment) => <option key={segment.id} value={segment.id}>{segment.name} ({segment.flyerQuantity ?? inventory.expectedFlyers} Flyer)</option>)}
+                      {inventory.order.distributionSegments.map((segment, segmentIndex) => <option key={segment.id} value={segment.id}>{segment.name} ({(segment.flyerQuantity ?? segmentFlyerQuantities[segmentIndex]).toLocaleString("de-DE")} Flyer)</option>)}
                     </select>
                   ) : null}
                   <button type="submit">Auto-Zuweisung prüfen</button>
