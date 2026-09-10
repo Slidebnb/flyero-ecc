@@ -132,6 +132,15 @@ export function buildCustomerNotificationEmail(input: CustomerNotificationEmailI
     .map((line) => line.replace(/https?:\/\/\S+/gi, "").replace(/\s*:\s*$/, "").trim())
     .filter(Boolean);
   const intro = bodyLines.shift() ?? "Es gibt eine neue Information zu Ihrer FLYERO-Kampagne.";
+  const logisticsDetails = input.type.startsWith("LOGISTICS_")
+    ? [
+        typeof data.orderNumber === "string" && data.orderNumber.trim() ? { label: "Auftrag", value: data.orderNumber } : null,
+        typeof data.warehouseName === "string" && data.warehouseName.trim() ? { label: "Empfangslager", value: data.warehouseName } : null,
+        typeof data.warehouseAddress === "string" && data.warehouseAddress.trim() ? { label: "Lieferadresse", value: data.warehouseAddress } : null,
+        (typeof data.flyerQuantity === "number" || typeof data.flyerQuantity === "string") ? { label: "Flyermenge", value: `${Number(data.flyerQuantity).toLocaleString("de-DE")} Flyer` } : null,
+        typeof data.packageReference === "string" && data.packageReference.trim() ? { label: "Paketreferenz", value: data.packageReference } : null,
+      ].filter((detail): detail is { label: string; value: string } => Boolean(detail))
+    : [];
   return buildCustomerEmail({
     subject: input.subject,
     eyebrow: input.type.includes("REPORT") || input.type.includes("DOCUMENT") ? "NACHWEIS AKTUALISIERT" : "FLYERO KAMPAGNEN-UPDATE",
@@ -139,6 +148,7 @@ export function buildCustomerNotificationEmail(input: CustomerNotificationEmailI
     customerName,
     intro,
     content: bodyLines.join("\n"),
+    details: logisticsDetails,
     action: actionValue ? { label: paymentAction ? "Zahlung im Kundenportal starten" : actionForType(input.type), url: actionValue } : undefined,
     note: typeof data.nextStep === "string" ? data.nextStep : null,
   });

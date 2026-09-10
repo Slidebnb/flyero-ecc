@@ -37,6 +37,24 @@ assert.match(generic.html, /Kundenportal \u00f6ffnen/);
 assert.doesNotMatch(generic.html, /Mehr Informationen:\s*https:\/\/flyero\.org\/customer\/dashboard/);
 assert.doesNotMatch(generic.html, /Vollst\u00e4ndige Vorgangsdaten|NotificationQueue|Stripe|providerMessageId|RPT-SEED|pi_seed|localhost/i);
 
+const warehouse = buildCustomerNotificationEmail({
+  type: "LOGISTICS_WAREHOUSE_ASSIGNED",
+  subject: "Lager zugewiesen",
+  body: "Für Auftrag ORD-2026-001019 wurde ein Empfangslager zugewiesen.",
+  data: {
+    orderNumber: "ORD-2026-001019",
+    warehouseName: "Lager Neuwied",
+    warehouseAddress: "Hafenstraße 1, 56564 Neuwied, DE",
+    flyerQuantity: 2000,
+    packageReference: "ORD-2026-001019",
+    nextStep: "Bitte versende die Flyer an diese Adresse.",
+  },
+});
+assert.match(warehouse.html, /Empfangslager/);
+assert.match(warehouse.html, /Hafenstraße 1/);
+assert.match(warehouse.html, /2\.000 Flyer/);
+assert.match(warehouse.html, /Paketreferenz/);
+
 const notifications = await readFile("src/lib/notifications.ts", "utf8");
 const worker = await readFile("src/lib/notificationWorker.ts", "utf8");
 const verification = await readFile("src/lib/verificationEmail.ts", "utf8");

@@ -209,13 +209,26 @@ export async function assignWarehouseForOrder(input: { orderId: string; userId?:
     entityId: order.id,
     newValues: { warehouseId: best.warehouse.id, reason: best.reason },
   });
-  await createNotification({
+  const customerNotification = await createNotification({
     userId: order.customer.userId,
     type: "LOGISTICS_WAREHOUSE_ASSIGNED",
     title: "Lager zugewiesen",
-    message: `Fuer Auftrag ${order.orderNumber} ist ${best.warehouse.name} zustaendig.`,
-    data: { orderId: order.id, warehouseId: best.warehouse.id },
+    message: `Für Auftrag ${order.orderNumber} wurde ein Empfangslager zugewiesen. Bitte sende deine Flyer an die unten angegebene Adresse und schreibe die Auftragsnummer auf das Paket.`,
+    data: {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      warehouseId: best.warehouse.id,
+      warehouseName: best.warehouse.name,
+      warehouseAddress: warehouseAddressText(best.warehouse),
+      flyerQuantity: order.flyerQuantity,
+      packageReference: order.orderNumber,
+      campaignUrl: publicUrl(`/customer/orders/${order.id}`, "https://flyero.org").toString(),
+      nextStep: "Bitte versende die Flyer an diese Adresse. Sobald die Lieferung eingegangen ist, informieren wir dich im Kundenportal über den nächsten Schritt.",
+    },
+    skipTemplate: true,
+    forceEmail: true,
   });
+  await dispatchNotificationImmediately(customerNotification.queue?.id);
   if (capacity.exceedsCapacity || capacity.nearCapacity) {
     await createAuditLog({
       userId: input.userId ?? null,
@@ -603,13 +616,7 @@ export async function ensureShipmentForCustomerFlyers(input: { orderId: string; 
     // This message is deliberately complete because older production template
     // rows may still contain the former placeholder-only copy. The shipment
     // notification must remain useful even before a template seed is rerun.
-    message: [
-      `Deine Flyerlieferung für ${order.orderNumber} ist vorbereitet.`,
-      `Lager: ${assigned.warehouse.name}`,
-      `Lieferadresse: ${warehouseAddressText(assigned.warehouse)}`,
-      `Menge: ${order.flyerQuantity.toLocaleString("de-DE")} Flyer`,
-      `Paketreferenz: ${order.orderNumber}`,
-    ].join("\n"),
+    message: `Deine Flyerlieferung für ${order.orderNumber} ist vorbereitet.`,
     data: {
       shipmentId: shipment.id,
       warehouseId: assigned.warehouse.id,
