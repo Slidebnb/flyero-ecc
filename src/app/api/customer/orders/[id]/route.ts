@@ -6,7 +6,7 @@ import { createDistributionArea, linkAreaReferenceToOrder } from "@/lib/areas";
 import { createOrderStatusEvent } from "@/lib/orders";
 import { calculateOrderPrice, deriveOrderPricingOptions, withCurrentPricingSnapshot } from "@/lib/pricing";
 import { getOrderIntelligence } from "@/lib/smartMaps";
-import { aggregateOrderAreaSegments } from "@/lib/orderSegments";
+import { aggregateOrderAreaSegments, allocateOrderSegmentFlyerQuantities } from "@/lib/orderSegments";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, readBody, routeErrorResponse, validationErrorResponse } from "@/lib/request";
 import { orderUpdateSchema } from "@/lib/validators";
@@ -115,6 +115,13 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       preferredEndDate: data.preferredEndDate,
       includeOperationalData: true,
     });
+    const segmentFlyerQuantities = areaSelection
+      ? allocateOrderSegmentFlyerQuantities(
+          data.flyerQuantity,
+          areaSelection.segments,
+          intelligence.metrics.segments?.map((segment) => segment.households),
+        )
+      : [];
     if (data.completionPath === "direct_payment" && data.quoteFingerprint !== intelligence.metrics.fingerprint) {
       return Response.json({
         ok: false,
@@ -264,7 +271,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
                 centerLng: segment.centerLng,
                 areaSqm: new Prisma.Decimal(segment.areaSqm),
                 estimatedHouseholds: intelligenceSegment?.households ?? null,
-                flyerQuantity: segment.flyerQuantity,
+                flyerQuantity: segmentFlyerQuantities[index] ?? 0,
                 dataSource: intelligenceSegment?.householdCountSource ?? null,
                 dataSourceType: "ESTIMATED" as const,
                 confidence: intelligenceSegment?.confidence === "high"

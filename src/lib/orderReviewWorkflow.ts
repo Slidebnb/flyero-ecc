@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createCheckoutForOrder, refundPayment } from "@/lib/payments";
 import { createNotification } from "@/lib/notifications";
+import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
 import { assertOrderTransition } from "@/lib/orders";
 import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
 import { approvePaidOrder } from "@/lib/orderApproval";
@@ -21,7 +22,7 @@ async function notifyOnce(input: {
     select: { id: true },
   });
   if (existing) return null;
-  return createNotification({
+  const notification = await createNotification({
     userId: input.userId,
     type: input.type,
     title: input.title,
@@ -34,7 +35,10 @@ async function notifyOnce(input: {
         : null,
       ...input.data,
     },
+    forceEmail: true,
   });
+  await dispatchNotificationImmediately(notification.queue?.id);
+  return notification;
 }
 
 async function assertCriticalIntegrity(orderId: string) {

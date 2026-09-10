@@ -392,11 +392,11 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
         {order.distributionSegments.length > 0 ? (
           <div className="stack" style={{ marginTop: 24 }}>
             <h2 className="sectionTitle">Teilgebiete und Umsetzung</h2>
-            <p className="muted">Jedes Teilgebiet bleibt in Lager, Disposition und Touren separat nachvollziehbar.</p>
+            <p className="muted">Die Flyerzahl oben ist die Gesamtmenge der Kampagne. Sie wird auf die Teilgebiete verteilt und hier je Teilgebiet angezeigt.</p>
             <div className="tableWrap">
               <table>
                 <thead>
-                  <tr><th>Teilgebiet</th><th>PLZ / Ort</th><th>Flaeche</th><th>Haushalte</th><th>Lager</th><th>Verteiler / Zuweisung</th><th>Tour</th></tr>
+                  <tr><th>Teilgebiet</th><th>PLZ / Ort</th><th>Flyer</th><th>Flaeche</th><th>Haushalte</th><th>Lager</th><th>Verteiler / Zuweisung</th><th>Tour</th></tr>
                 </thead>
                 <tbody>
                   {order.distributionSegments.map((segment) => {
@@ -406,6 +406,7 @@ export default async function AdminOrderDetailPage({ params }: PageProps) {
                       <tr key={segment.id}>
                         <td><strong>{segment.name}</strong></td>
                         <td>{segment.postalCode || "-"} / {segment.city || "-"}</td>
+                        <td>{segment.flyerQuantity?.toLocaleString("de-DE") ?? "Nach Verteilung"}</td>
                         <td>{Number(segment.areaSqm).toLocaleString("de-DE")} m2</td>
                         <td>{segment.estimatedHouseholds ?? "Nach Pruefung"}</td>
                         <td>{segment.assignedWarehouse?.name ?? "Manuelle Pruefung"}</td>

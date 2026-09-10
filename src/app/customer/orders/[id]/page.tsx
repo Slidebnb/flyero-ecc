@@ -216,6 +216,14 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
           <p><span>Haushalte</span><strong>{householdEstimate ?? "Wird vor der Verteilung geprüft"}</strong></p>
           <p><span>Fläche</span><strong>{order.coverageAreaSqm ? `${Number(order.coverageAreaSqm).toLocaleString("de-DE")} m²` : "Wird geprüft"}</strong></p>
         </div>
+        {order.distributionSegments.length > 1 ? (
+          <div className="customerFactList compact">
+            <p><span>Flyeraufteilung</span><strong>{order.flyerQuantity.toLocaleString("de-DE")} Flyer insgesamt</strong></p>
+            {order.distributionSegments.map((segment) => (
+              <p key={segment.id}><span>{segment.name}</span><strong>{segment.flyerQuantity?.toLocaleString("de-DE") ?? "Wird verteilt"} Flyer</strong></p>
+            ))}
+          </div>
+        ) : null}
       </DataSection>
 
       {order.customerOwnFlyers ? (

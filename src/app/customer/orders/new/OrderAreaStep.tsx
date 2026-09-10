@@ -165,7 +165,7 @@ export function OrderAreaStep({
           </div>
         ))}
         <button type="button" className="orderSegmentAdd" onClick={onAddSegment}>Teilgebiet hinzufügen</button>
-        <small className="orderSegmentHint">Mehrere Orte und Stadtteile bleiben getrennt sichtbar und werden gemeinsam geplant.</small>
+        <small className="orderSegmentHint">Die Flyerzahl gilt für alle Teilgebiete zusammen. FLYERO verteilt die Gesamtmenge nach den geprüften Gebietsdaten und zeigt die Einzelmengen im Auftrag an.</small>
       </div>
     </section>
   );

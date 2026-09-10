@@ -15,6 +15,8 @@ Jeder Kunde soll jederzeit wissen: Was ist passiert, was passiert als Nächstes,
 | Lageranweisung | vorhanden, aber zeitlich uneinheitlich | Für eigene Flyer wird sie bei der Lagerzuweisung erstellt; die Zahlungsbestätigung enthält sie, sobald das Lager feststeht. |
 | Zustellung/Retry | vorhanden | Queue, sofortiger Versand kritischer Nachrichten, Retry und AuditLog sind vorhanden. |
 | Organisations-Zahlung | teilweise vorhanden | Der Checkout wird serverseitig über den konfigurierten Stripe-Provider erzeugt; pro Auftrag wird ausschließlich die zurückgegebene Checkout-URL verwendet. Eine getrennte Stripe-Konfiguration pro Tenant existiert derzeit nicht. |
+| Flyerzahl bei mehreren Teilgebieten | vorher missverständlich | Die eingegebene Flyerzahl ist die Gesamtmenge der Kampagne. Sie wird serverseitig auf die Teilgebiete verteilt, als Einzelmenge gespeichert und im Kunden-/Adminportal angezeigt. |
+| Admin-Statusmails | vorher unvollständig | Statusänderungen aus dem Adminbereich erzeugen jetzt eine transaktionale E-Mail mit Kampagnenlink und werden sofort über die E-Mail-Queue angestoßen. |
 
 ## Umgesetzte Korrekturen
 
@@ -23,6 +25,8 @@ Jeder Kunde soll jederzeit wissen: Was ist passiert, was passiert als Nächstes,
 3. Kritische Kundenmails werden direkt an die E-Mail-Queue übergeben. Präferenzen werden nicht still übergangen; `forceEmail` wird nur für transaktionale Ereignisse verwendet: Auftrag eingegangen, Zahlungsfehler und Zahlungserfolg.
 4. Die vorhandene Zahlungserfolgs-Mail bleibt die zentrale Bestätigung. Sie nennt Betrag, Zeitraum, ausgewählte Gebiete, Versand-/Empfangslager und die Auftragsnummer als Paket-Referenz. Bei Druckservice wird ausdrücklich keine Eigenanlieferung verlangt.
 5. Alle Schritte bleiben idempotent: Checkout-Erzeugung verwendet die vorhandenen Claims, Zahlungsabschluss ist über Stripe-Event und Payment-Status geschützt, Benachrichtigungen werden über den Queue-/Audit-Pfad nachvollziehbar.
+6. Die Gesamtmenge eines Auftrags wird bei mehreren Teilgebieten einmalig verteilt. Die Allokation nutzt geprüfte Haushaltswerte, fällt auf die Gebietsfläche zurück und stellt sicher, dass die Summe der Teilmengen exakt der Auftragsmenge entspricht.
+7. Manuelle Admin-Statusänderungen versenden die Kundeninformation sofort. Die Nachricht enthält den verständlichen Status, den Portal-Link und den nächsten Schritt.
 
 ## Bewusste Grenze
 

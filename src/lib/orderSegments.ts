@@ -49,6 +49,41 @@ export type AggregatedOrderAreaSegments = {
   primarySegment: NormalizedOrderAreaSegment;
 };
 
+/**
+ * The order quantity is the campaign total. Segment quantities are an
+ * operational allocation of that total, never an additional multiplier.
+ * Existing explicit allocations are preserved when they add up exactly.
+ */
+export function allocateOrderSegmentFlyerQuantities(
+  totalQuantity: number,
+  segments: Array<Pick<NormalizedOrderAreaSegment, "flyerQuantity" | "areaSqm">>,
+  weights?: Array<number | null | undefined>,
+) {
+  const total = Math.max(0, Math.floor(totalQuantity));
+  if (!segments.length) return [];
+  const explicit = segments.map((segment) => segment.flyerQuantity);
+  if (explicit.every((quantity) => quantity !== null) && explicit.reduce((sum, quantity) => sum + (quantity ?? 0), 0) === total) {
+    return explicit.map((quantity) => quantity ?? 0);
+  }
+
+  const resolvedWeights = segments.map((segment, index) => {
+    const candidate = Number(weights?.[index] ?? segment.areaSqm);
+    return Number.isFinite(candidate) && candidate > 0 ? candidate : 1;
+  });
+  const weightTotal = resolvedWeights.reduce((sum, weight) => sum + weight, 0);
+  const allocations = resolvedWeights.map((weight) => Math.floor((total * weight) / weightTotal));
+  let remainder = total - allocations.reduce((sum, quantity) => sum + quantity, 0);
+  const fractional = resolvedWeights
+    .map((weight, index) => ({ index, fraction: (total * weight) / weightTotal - allocations[index] }))
+    .sort((left, right) => right.fraction - left.fraction);
+  for (const item of fractional) {
+    if (remainder <= 0) break;
+    allocations[item.index] += 1;
+    remainder -= 1;
+  }
+  return allocations;
+}
+
 function parseJson(value: unknown) {
   if (typeof value !== "string") return value;
   try {

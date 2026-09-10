@@ -3,6 +3,7 @@ import { createInvoiceForOrder } from "@/lib/invoices";
 import { ensurePrintOrderForOrder } from "@/lib/documents";
 import { ensureShipmentForCustomerFlyers } from "@/lib/logistics";
 import { createNotification } from "@/lib/notifications";
+import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
 import { assertOrderTransition } from "@/lib/orders";
 import { getOrderIntegrityCheck } from "@/lib/orderIntegrity";
 import { prisma } from "@/lib/prisma";
@@ -24,13 +25,16 @@ async function notifyOrderOnce(input: {
     select: { id: true },
   });
   if (existing) return null;
-  return createNotification({
+  const notification = await createNotification({
     userId: input.userId,
     type: input.type,
     title: input.title,
     message: input.message,
     data: { orderId: input.orderId, ...(input.data ?? {}) },
+    forceEmail: true,
   });
+  await dispatchNotificationImmediately(notification.queue?.id);
+  return notification;
 }
 
 export async function approvePaidOrder(input: { orderId: string; actorId?: string | null; reason?: string }) {

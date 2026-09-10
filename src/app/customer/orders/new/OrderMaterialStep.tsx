@@ -34,7 +34,7 @@ export function OrderMaterialStep({
       <p className="orderStepHint">Wähle zuerst, welches Werbemittel du verteilen lassen möchtest. Online buchbar sind bereits gedruckte Materialien, die an ein FLYERO-Lager gesendet werden.</p>
       <div className="flyerQuantityIntro">
         <strong>Wie viele Stück möchtest du verteilen?</strong>
-        <small>Die Menge kannst du jederzeit anpassen. FLYERO zeigt dir direkt die passende Preisvorschau.</small>
+        <small>Die Menge ist die Gesamtmenge deiner Kampagne. Bei mehreren Teilgebieten wird sie anschließend auf die Gebiete verteilt; FLYERO zeigt dir direkt die passende Preisvorschau.</small>
         <div className="flyerRecommendation">
           <span>{recommendationLabel}</span>
           <strong>{recommendedFlyerQuantity == null ? "Noch nicht verfügbar" : `${new Intl.NumberFormat("de-DE").format(Math.round(recommendedFlyerQuantity))} Stück`}</strong>
