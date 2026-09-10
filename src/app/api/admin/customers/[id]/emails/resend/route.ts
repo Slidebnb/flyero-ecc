@@ -82,10 +82,27 @@ export async function POST(request: NextRequest, context: RouteContext) {
       // verwenden. So hängt die reine Zustellwiederholung nicht an einer späteren
       // Neuberechnung des Auftrags und erzeugt keine zweite Stripe-Session.
       const existingPayment = await prisma.payment.findFirst({
-        where: { orderId: order.id, checkoutUrl: { not: null }, status: { in: ["CREATED", "CHECKOUT_CREATED", "PENDING"] } },
+        // Ein Stripe-Link bleibt auch nach einem fehlgeschlagenen Zustell- oder
+        // Zahlungsversuch der richtige Auftrag-Link. Nur bereits abgeschlossene
+        // oder ausdrücklich stornierte Zahlungen dürfen nicht erneut verlinkt werden.
+        where: { orderId: order.id, checkoutUrl: { not: null }, status: { notIn: ["PAID", "REFUNDED", "PARTIALLY_REFUNDED", "CANCELLED"] } },
         orderBy: { createdAt: "desc" },
       });
-      const payment = existingPayment ?? await createCheckoutForOrder({ orderId: order.id, customerUserId: customer.user.id, tenantId: order.tenantId });
+      let payment;
+      try {
+        payment = existingPayment ?? await createCheckoutForOrder({ orderId: order.id, customerUserId: customer.user.id, tenantId: order.tenantId });
+      } catch (error) {
+        await createAuditLog({
+          userId: session.id,
+          tenantId: customer.tenantId,
+          action: "customer.email.resend_failed",
+          entityType: "Order",
+          entityId: order.id,
+          result: "FAILURE",
+          newValues: { emailType: "payment", recipientEmail: customer.user.email, error: error instanceof Error ? error.message : "unknown" },
+        });
+        return errorResponse("Der vorhandene Zahlungslink konnte nicht verwendet werden. Bitte prüfe die Stripe-Zahlungseinstellungen oder öffne den Auftrag erneut.", 503);
+      }
       if (!payment.checkoutUrl) return errorResponse("Der Stripe-Zahlungslink konnte nicht erstellt werden.", 503);
       const campaignUrl = publicUrl(`/customer/orders/${order.id}`, request.url).toString();
       const notification = await createNotification({

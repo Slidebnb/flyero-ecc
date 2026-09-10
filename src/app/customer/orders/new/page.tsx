@@ -1,4 +1,5 @@
 import { SmartOrderWizard } from "@/app/customer/orders/new/SmartOrderWizard";
+import Link from "next/link";
 import { requireTenantSession } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { productionAreaWhere } from "@/lib/productionData";
@@ -44,10 +45,10 @@ export default async function NewCustomerOrderPage() {
   return (
     <main className="orderExperienceShell">
       <header className="orderExperienceTopbar">
-        <h1>Neue Kampagne starten</h1>
-        <span>Automatische Speicherung</span>
+        <h1>Neue Verteilung planen</h1>
+        <span>Entwurf wird automatisch gespeichert</span>
         <div className="orderTopActions" aria-label="Kontoaktionen">
-          <strong>Kundenkonto</strong>
+          <Link className="orderAccountLink" href="/customer/dashboard">Kundenkonto <small>Zur Übersicht</small></Link>
         </div>
         <MobileMenu
           items={[

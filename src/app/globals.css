@@ -4121,6 +4121,29 @@ body {
   gap: 16px;
 }
 
+.orderAccountLink {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 9px;
+  color: #ffffff;
+  font-size: 0.98rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.orderAccountLink small {
+  color: #a7ff00;
+  font-size: 0.78rem;
+  font-weight: 750;
+}
+
+.orderAccountLink:hover,
+.orderAccountLink:focus-visible {
+  color: #b7e800;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .orderExperience {
   min-height: calc(100vh - 76px);
   display: grid;
