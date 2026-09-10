@@ -4,6 +4,7 @@ const reports = readFileSync("src/lib/reports.ts", "utf8");
 const notifications = readFileSync("src/lib/notifications.ts", "utf8");
 const reviewWorkflow = readFileSync("src/lib/orderReviewWorkflow.ts", "utf8");
 const adminStatusRoute = readFileSync("src/app/api/admin/orders/[id]/status/route.ts", "utf8");
+const logistics = readFileSync("src/lib/logistics.ts", "utf8");
 assert(reports.includes('type: "REPORT_PUBLISHED"'), "Kunde muss nach Veröffentlichung benachrichtigt werden.");
 assert(reports.includes("notifyAdmins"), "Admin-Auditbenachrichtigung fehlt.");
 assert(notifications.includes("notificationQueue.create"), "E-Mail/In-App-Versand muss über die Queue laufen.");
@@ -11,4 +12,9 @@ assert(reviewWorkflow.includes("forceEmail: true"), "Admin-Review muss Kunden-E-
 assert(reviewWorkflow.includes("dispatchNotificationImmediately"), "Admin-Review muss die Kunden-E-Mail sofort anstoßen.");
 assert(adminStatusRoute.includes("forceEmail: true"), "Manuelle Statusänderung muss eine Kunden-E-Mail erzwingen.");
 assert(adminStatusRoute.includes("dispatchNotificationImmediately"), "Manuelle Statusänderung muss die Kunden-E-Mail sofort anstoßen.");
+assert(logistics.includes("skipTemplate: true"), "Lager-Mail darf nicht von einer veralteten Produktionsvorlage abhängen.");
+assert(logistics.includes("warehouseAddress: warehouseAddressText"), "Lager-Mail muss die vollständige Lieferadresse enthalten.");
+assert(logistics.includes("packageReference: order.orderNumber"), "Lager-Mail muss die Paketreferenz enthalten.");
+assert(logistics.includes("forceEmail: true"), "Lager-Mail muss unabhängig von Präferenzen versendet werden.");
+assert(logistics.includes("dispatchNotificationImmediately"), "Lager-Mail muss sofort in den Versand gegeben werden.");
 console.log("Order review notification checks passed.");
