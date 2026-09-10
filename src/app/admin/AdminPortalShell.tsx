@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { PortalShell } from "@/app/PortalComponents";
+import { AdminActionFeedback } from "@/app/admin/AdminActionFeedback";
 
 export const adminNavItems = [
   { href: "/admin/dashboard", label: "Übersicht" },
@@ -34,6 +35,7 @@ export function AdminPortalShell({
 }) {
   return (
     <PortalShell eyebrow={eyebrow} title={title} description={description} navItems={adminNavItems}>
+      <AdminActionFeedback />
       {children}
     </PortalShell>
   );
