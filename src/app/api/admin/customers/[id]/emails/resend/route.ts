@@ -36,12 +36,19 @@ function queuePayload(value: unknown) {
   return value as Record<string, unknown>;
 }
 
+function optionalCustomerNote(body: unknown) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return "";
+  const note = (body as Record<string, unknown>).note;
+  return typeof note === "string" ? note.trim().slice(0, 2000) : "";
+}
+
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const session = await requirePermission(Permission.CUSTOMER_EMAIL_SEND);
     const { id: customerId } = await context.params;
     const body = await readBody(request);
     const action = actionFromBody(body);
+    const customerNote = optionalCustomerNote(body);
     if (!action) return errorResponse("Bitte wähle eine vorhandene Kunden-E-Mail aus.");
 
     const customer = await prisma.customerProfile.findFirst({
@@ -120,7 +127,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
         userId: customer.user.id,
         type: "ORDER_ACCEPTED_PAYMENT_REQUIRED",
         title: "Zahlung für deinen Auftrag",
-        message: `Für Auftrag ${order.orderNumber} steht die Zahlung noch aus. Öffne den sicheren Stripe-Zahlungslink, um den Auftrag abzuschließen.`,
+        message: [
+          `Für Auftrag ${order.orderNumber} steht die Zahlung noch aus. Öffne den sicheren Stripe-Zahlungslink, um den Auftrag abzuschließen.`,
+          customerNote ? `\n\nPersönliche Nachricht von FLYERO:\n${customerNote}` : "",
+        ].join(""),
         data: {
           orderId: order.id,
           orderNumber: order.orderNumber,
@@ -131,8 +141,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
         forceEmail: true,
       });
       const sent = await dispatchNotificationImmediately(notification.queue?.id);
-      await createAuditLog({ userId: session.id, tenantId: customer.tenantId, action: "customer.email.resent", entityType: "Order", entityId: order.id, newValues: { emailType: "payment", recipientEmail: customer.user.email, paymentId: payment.id, checkoutUrl: payment.checkoutUrl, deliveryStatus: sent?.status ?? notification.queue?.status ?? null } });
-      return successResponse({ recipientEmail: customer.user.email, label: `Zahlungs-E-Mail für ${order.orderNumber}`, orderNumber: order.orderNumber, status: sent?.status ?? notification.queue?.status ?? "PENDING" });
+      await createAuditLog({ userId: session.id, tenantId: customer.tenantId, action: "customer.email.resent", entityType: "Order", entityId: order.id, newValues: { emailType: "payment", recipientEmail: customer.user.email, paymentId: payment.id, checkoutUrl: payment.checkoutUrl, customNoteIncluded: Boolean(customerNote), deliveryStatus: sent?.status ?? notification.queue?.status ?? null } });
+      return successResponse({ recipientEmail: customer.user.email, label: `Zahlungs-E-Mail für ${order.orderNumber}`, orderNumber: order.orderNumber, paymentUrl: payment.checkoutUrl, status: sent?.status ?? notification.queue?.status ?? "PENDING" });
     }
 
     const messageId = action.slice("notification:".length);

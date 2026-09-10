@@ -39,9 +39,21 @@ function typeLabel(type: string, subject: string) {
 
 export function CustomerEmailActions({ customerId, recipientEmail, verificationAvailable, paymentEmails, history }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
-  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string; paymentUrl?: string } | null>(null);
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [copied, setCopied] = useState(false);
 
-  async function resend(action: string, fallbackLabel: string) {
+  async function copyPaymentLink(url: string) {
+    try {
+      if (!navigator.clipboard) throw new Error("clipboard-unavailable");
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function resend(action: string, fallbackLabel: string, note = "") {
     if (busy) return;
     setBusy(action);
     setNotice(null);
@@ -49,13 +61,15 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
       const response = await fetch(`/api/admin/customers/${encodeURIComponent(customerId)}/emails/resend`, {
         method: "POST",
         headers: { Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...(note.trim() ? { note: note.trim() } : {}) }),
       });
       const payload = await response.json().catch(() => null);
       if (!response.ok) throw new Error(payload?.error || `${fallbackLabel} konnte nicht versendet werden.`);
       const label = payload?.data?.label || fallbackLabel;
       const address = payload?.data?.recipientEmail || recipientEmail;
-      setNotice({ tone: "success", text: `E-Mail „${label}“ wurde erfolgreich an ${address} gesendet.` });
+      const paymentUrl = typeof payload?.data?.paymentUrl === "string" ? payload.data.paymentUrl : undefined;
+      setCopied(false);
+      setNotice({ tone: "success", text: `E-Mail „${label}“ wurde erfolgreich an ${address} gesendet.`, paymentUrl });
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : `${fallbackLabel} konnte nicht versendet werden.` });
     } finally {
@@ -70,7 +84,19 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
       <p><strong>Empfänger:</strong> {recipientEmail}</p>
-      {notice ? <p className="notice" role="status" style={{ borderColor: notice.tone === "success" ? "#b7ff21" : "#ef9a9a" }}>{notice.text}</p> : null}
+      {notice ? (
+        <div className="notice" role="status" style={{ borderColor: notice.tone === "success" ? "#b7ff21" : "#ef9a9a" }}>
+          <p style={{ margin: 0 }}>{notice.text}</p>
+          {notice.paymentUrl ? (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", marginTop: "0.65rem" }}>
+              <a href={notice.paymentUrl} target="_blank" rel="noreferrer">Zahlungslink für diesen Auftrag öffnen</a>
+              <button type="button" onClick={() => { void copyPaymentLink(notice.paymentUrl!); }}>
+                {copied ? "Link kopiert" : "Link kopieren"}
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
       <div style={{ display: "grid", gap: "0.75rem" }}>
         {verificationAvailable ? (
           <div className="portalActions" style={{ justifyContent: "space-between", alignItems: "center" }}>
@@ -81,9 +107,15 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
         {paymentEmails.map((item) => {
           const action = `payment:${item.orderId}`;
           return (
-            <div className="portalActions" style={{ justifyContent: "space-between", alignItems: "center" }} key={action}>
-              <span><strong>Zahlungs-E-Mail</strong><br /><small>Auftrag {item.orderNumber} · neuer Stripe-Link wird erzeugt oder verwendet</small></span>
-              <button type="button" onClick={() => resend(action, `Zahlungs-E-Mail für ${item.orderNumber}`)} disabled={Boolean(busy)}>{busy === action ? "Wird gesendet …" : "Erneut senden"}</button>
+            <div key={action} style={{ display: "grid", gap: "0.65rem" }}>
+              <div className="portalActions" style={{ justifyContent: "space-between", alignItems: "center" }}>
+                <span><strong>Zahlungs-E-Mail</strong><br /><small>Auftrag {item.orderNumber} · geprüfter Stripe-Link für genau diesen Auftrag</small></span>
+                <button type="button" onClick={() => resend(action, `Zahlungs-E-Mail für ${item.orderNumber}`, notes[action])} disabled={Boolean(busy)}>{busy === action ? "Wird gesendet …" : "Senden"}</button>
+              </div>
+              <label>
+                <span className="sr-only">Zusatzinfo für Auftrag {item.orderNumber}</span>
+                <textarea rows={3} value={notes[action] ?? ""} onChange={(event) => setNotes((current) => ({ ...current, [action]: event.target.value }))} placeholder="Zusatzinfo an den Kunden (optional)" maxLength={2000} disabled={Boolean(busy)} style={{ width: "100%", resize: "vertical" }} />
+              </label>
             </div>
           );
         })}
