@@ -16,9 +16,12 @@ assert(route.includes("isReusableStripeCheckoutSession"), "Erneute Zahlungs-E-Ma
 assert(route.includes("forceNewCheckout"), "Für abgelaufene Sessions muss ein neuer Auftrag-Link erzeugt werden.");
 assert(route.includes("paymentUrl"), "Die Antwort muss den geprüften Auftrag-Zahlungslink zurückgeben.");
 assert(route.includes("customerNote"), "Die Zahlungs-E-Mail muss eine optionale Admin-Zusatzinfo unterstützen.");
+assert(route.includes("payment-link:"), "Der Admin muss einen internen Zahlungslink ohne E-Mail abrufen können.");
+assert(route.includes("emailSent: false"), "Der interne Link-Abruf darf keine E-Mail versenden.");
 assert(page.includes("CustomerEmailActions"), "Das Kundenprofil muss den E-Mail-Bereich einbinden.");
 assert(component.includes("disabled={Boolean(busy)}"), "Der Wiederholen-Button muss gegen Mehrfachklicks gesperrt werden.");
 assert(component.includes("keine E-Mail-Adresse"), "Fehlende Kunden-E-Mail muss verständlich angezeigt werden.");
 assert(component.includes("Link kopieren"), "Der geprüfte Zahlungslink muss kopierbar sein.");
 assert(component.includes("Zusatzinfo an den Kunden"), "Der Admin muss eine persönliche Zusatzinfo mitsenden können.");
+assert(component.includes("Link anzeigen"), "Der Admin muss den Zahlungslink intern anzeigen können.");
 console.log("Customer email resend checks passed.");

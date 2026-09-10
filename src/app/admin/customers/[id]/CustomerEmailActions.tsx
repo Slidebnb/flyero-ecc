@@ -53,7 +53,7 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
     }
   }
 
-  async function resend(action: string, fallbackLabel: string, note = "") {
+  async function resend(action: string, fallbackLabel: string, note = "", sendEmail = true) {
     if (busy) return;
     setBusy(action);
     setNotice(null);
@@ -69,7 +69,7 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
       const address = payload?.data?.recipientEmail || recipientEmail;
       const paymentUrl = typeof payload?.data?.paymentUrl === "string" ? payload.data.paymentUrl : undefined;
       setCopied(false);
-      setNotice({ tone: "success", text: `E-Mail „${label}“ wurde erfolgreich an ${address} gesendet.`, paymentUrl });
+      setNotice({ tone: "success", text: sendEmail ? `E-Mail „${label}“ wurde erfolgreich an ${address} gesendet.` : `Der Zahlungslink für ${payload?.data?.orderNumber || "diesen Auftrag"} ist bereit. Es wurde keine E-Mail versendet.`, paymentUrl });
     } catch (error) {
       setNotice({ tone: "error", text: error instanceof Error ? error.message : `${fallbackLabel} konnte nicht versendet werden.` });
     } finally {
@@ -77,13 +77,9 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
     }
   }
 
-  if (!recipientEmail) {
-    return <p className="notice">Für diesen Kunden ist keine E-Mail-Adresse hinterlegt.</p>;
-  }
-
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
-      <p><strong>Empfänger:</strong> {recipientEmail}</p>
+      {recipientEmail ? <p><strong>Empfänger:</strong> {recipientEmail}</p> : <p className="notice">Für diesen Kunden ist keine E-Mail-Adresse hinterlegt. Der interne Zahlungslink kann trotzdem erzeugt werden.</p>}
       {notice ? (
         <div className="notice" role="status" style={{ borderColor: notice.tone === "success" ? "#b7ff21" : "#ef9a9a" }}>
           <p style={{ margin: 0 }}>{notice.text}</p>
@@ -101,7 +97,7 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
         {verificationAvailable ? (
           <div className="portalActions" style={{ justifyContent: "space-between", alignItems: "center" }}>
             <span><strong>E-Mail-Verifizierung</strong><br /><small>Neuen Bestätigungslink senden</small></span>
-            <button type="button" onClick={() => resend("verification", "E-Mail-Verifizierung erneut senden")} disabled={Boolean(busy)}> {busy === "verification" ? "Wird gesendet …" : "Erneut senden"}</button>
+            <button type="button" onClick={() => resend("verification", "E-Mail-Verifizierung erneut senden")} disabled={Boolean(busy) || !recipientEmail}> {busy === "verification" ? "Wird gesendet …" : "Erneut senden"}</button>
           </div>
         ) : null}
         {paymentEmails.map((item) => {
@@ -110,7 +106,10 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
             <div key={action} style={{ display: "grid", gap: "0.65rem" }}>
               <div className="portalActions" style={{ justifyContent: "space-between", alignItems: "center" }}>
                 <span><strong>Zahlungs-E-Mail</strong><br /><small>Auftrag {item.orderNumber} · geprüfter Stripe-Link für genau diesen Auftrag</small></span>
-                <button type="button" onClick={() => resend(action, `Zahlungs-E-Mail für ${item.orderNumber}`, notes[action])} disabled={Boolean(busy)}>{busy === action ? "Wird gesendet …" : "Senden"}</button>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", justifyContent: "flex-end" }}>
+                  <button type="button" onClick={() => resend(`payment-link:${item.orderId}`, `Zahlungslink für ${item.orderNumber}`, "", false)} disabled={Boolean(busy)}>{busy === `payment-link:${item.orderId}` ? "Wird erstellt …" : "Link anzeigen"}</button>
+                  <button type="button" onClick={() => resend(action, `Zahlungs-E-Mail für ${item.orderNumber}`, notes[action])} disabled={Boolean(busy) || !recipientEmail}>{busy === action ? "Wird gesendet …" : "E-Mail senden"}</button>
+                </div>
               </div>
               <label>
                 <span className="sr-only">Zusatzinfo für Auftrag {item.orderNumber}</span>
@@ -124,7 +123,7 @@ export function CustomerEmailActions({ customerId, recipientEmail, verificationA
           return (
             <div className="portalActions" style={{ justifyContent: "space-between", alignItems: "center" }} key={item.id}>
               <span><strong>{typeLabel(item.type, item.subject)}</strong>{item.orderNumber ? <><br /><small>Auftrag {item.orderNumber} · </small></> : <br />}<small>{item.subject} · {dateLabel(item.createdAt)}</small></span>
-              <button type="button" onClick={() => resend(action, item.subject)} disabled={Boolean(busy)}>{busy === action ? "Wird gesendet …" : "Erneut senden"}</button>
+              <button type="button" onClick={() => resend(action, item.subject)} disabled={Boolean(busy) || !recipientEmail}>{busy === action ? "Wird gesendet …" : "Erneut senden"}</button>
             </div>
           );
         })}

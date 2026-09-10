@@ -13,13 +13,13 @@ import { publicUrl } from "@/lib/publicUrl";
 import { errorResponse, readBody, routeErrorResponse, successResponse } from "@/lib/request";
 
 type RouteContext = { params: Promise<{ id: string }> };
-type ResendAction = "verification" | `notification:${string}` | `payment:${string}`;
+type ResendAction = "verification" | `notification:${string}` | `payment:${string}` | `payment-link:${string}`;
 type NotificationData = Record<string, string | number | boolean | null | undefined>;
 
 function actionFromBody(body: unknown): ResendAction | null {
   if (!body || typeof body !== "object" || Array.isArray(body)) return null;
   const action = (body as Record<string, unknown>).action;
-  return typeof action === "string" && (action === "verification" || action.startsWith("notification:") || action.startsWith("payment:"))
+  return typeof action === "string" && (action === "verification" || action.startsWith("notification:") || action.startsWith("payment:") || action.startsWith("payment-link:"))
     ? action as ResendAction
     : null;
 }
@@ -60,7 +60,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       include: { user: { select: { id: true, email: true, status: true, emailVerified: true } } },
     });
     if (!customer) return errorResponse("Kunde wurde nicht gefunden.", 404);
-    if (!customer.user.email?.trim()) return errorResponse("Für diesen Kunden ist keine E-Mail-Adresse hinterlegt.", 422);
+    const isPaymentLinkOnly = action.startsWith("payment-link:");
+    if (!customer.user.email?.trim() && !isPaymentLinkOnly) return errorResponse("Für diesen Kunden ist keine E-Mail-Adresse hinterlegt.", 422);
 
     if (action === "verification") {
       if (customer.user.status !== UserStatus.EMAIL_UNVERIFIED) {
@@ -73,8 +74,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return successResponse({ recipientEmail: customer.user.email, label: "E-Mail-Verifizierung" });
     }
 
-    if (action.startsWith("payment:")) {
-      const orderId = action.slice("payment:".length);
+    if (action.startsWith("payment:") || isPaymentLinkOnly) {
+      const orderId = action.slice(isPaymentLinkOnly ? "payment-link:".length : "payment:".length);
       const order = await prisma.order.findFirst({
         where: { id: orderId, customerId: customer.id, ...productionOrderWhere(), ...(session.tenantId ? { tenantId: session.tenantId } : {}) },
         select: { id: true, orderNumber: true, status: true, needsPrintService: true, tenantId: true },
@@ -122,6 +123,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
         return errorResponse("Der vorhandene Zahlungslink konnte nicht verwendet werden. Bitte prüfe die Stripe-Zahlungseinstellungen oder öffne den Auftrag erneut.", 503);
       }
       if (!payment.checkoutUrl) return errorResponse("Der Stripe-Zahlungslink konnte nicht erstellt werden.", 503);
+      if (isPaymentLinkOnly) {
+        await createAuditLog({ userId: session.id, tenantId: customer.tenantId, action: "customer.payment_link.generated", entityType: "Order", entityId: order.id, newValues: { paymentId: payment.id, checkoutUrl: payment.checkoutUrl } });
+        return successResponse({ label: `Zahlungslink für ${order.orderNumber}`, orderNumber: order.orderNumber, paymentUrl: payment.checkoutUrl, emailSent: false });
+      }
       const campaignUrl = publicUrl(`/customer/orders/${order.id}`, request.url).toString();
       const notification = await createNotification({
         userId: customer.user.id,
@@ -142,7 +147,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       });
       const sent = await dispatchNotificationImmediately(notification.queue?.id);
       await createAuditLog({ userId: session.id, tenantId: customer.tenantId, action: "customer.email.resent", entityType: "Order", entityId: order.id, newValues: { emailType: "payment", recipientEmail: customer.user.email, paymentId: payment.id, checkoutUrl: payment.checkoutUrl, customNoteIncluded: Boolean(customerNote), deliveryStatus: sent?.status ?? notification.queue?.status ?? null } });
-      return successResponse({ recipientEmail: customer.user.email, label: `Zahlungs-E-Mail für ${order.orderNumber}`, orderNumber: order.orderNumber, paymentUrl: payment.checkoutUrl, status: sent?.status ?? notification.queue?.status ?? "PENDING" });
+      return successResponse({ recipientEmail: customer.user.email, label: `Zahlungs-E-Mail für ${order.orderNumber}`, orderNumber: order.orderNumber, paymentUrl: payment.checkoutUrl, emailSent: true, status: sent?.status ?? notification.queue?.status ?? "PENDING" });
     }
 
     const messageId = action.slice("notification:".length);
