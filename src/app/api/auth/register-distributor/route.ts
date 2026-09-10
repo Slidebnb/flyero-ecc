@@ -9,7 +9,7 @@ import {
   hashVerificationToken,
 } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
-import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { notifyAdmins } from "@/lib/notifications";
 import { publicUrl } from "@/lib/publicUrl";
 import { sendVerificationEmail } from "@/lib/verificationEmail";
 import { authRateLimitResponse, enforceAuthRateLimit } from "@/lib/authAbuseProtection";
@@ -92,12 +92,6 @@ export async function POST(request: NextRequest) {
       entityId: user.id,
       newValues: { email: user.email, role: user.role },
     }).catch(() => undefined);
-    await createNotification({
-      userId: user.id,
-      type: "DISTRIBUTOR_REGISTERED",
-      title: "Verteilerkonto erstellt",
-      message: "Bitte bestätige deine E-Mail-Adresse. Danach prüft ein Admin dein Profil.",
-    }).catch(() => undefined);
     await notifyAdmins({
       type: "DISTRIBUTOR_REGISTERED",
       title: "Neuer Verteiler registriert",
@@ -107,6 +101,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       token: verificationToken,
       requestUrl: request.url,
+      customerName: `${data.firstName} ${data.lastName}`,
     }).then(
       () => ({ sent: true, error: null }),
       (error) => ({ sent: false, error: error instanceof Error ? error.message : "Versand fehlgeschlagen" }),

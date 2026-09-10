@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 type LoginPageProps = {
-  searchParams?: Promise<{ next?: string }>;
+  searchParams?: Promise<{ next?: string; registered?: string; verificationEmailSent?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -21,6 +21,8 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   const customerRegisterHref = next
     ? `/register/customer?next=${encodeURIComponent(next)}`
     : "/register/customer";
+  const justRegistered = params?.registered === "customer" || params?.registered === "distributor";
+  const verificationEmailSent = params?.verificationEmailSent === "true";
 
   return (
     <main className="authShell flyeroAuthShell">
@@ -44,6 +46,16 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <span>Foto-Dokumentation</span>
           <span>PDF-Bericht</span>
         </div>
+        {justRegistered ? (
+          <div className={`authNotice ${verificationEmailSent ? "success" : "warning"}`} role="status">
+            <strong>{verificationEmailSent ? "Konto erstellt" : "Konto erstellt, E-Mail noch nicht zugestellt"}</strong>
+            <span>
+              {verificationEmailSent
+                ? "Wir haben dir eine Bestätigungs-Mail gesendet. Bitte prüfe auch den Spam-Ordner und bestätige deine E-Mail-Adresse vor dem ersten Login."
+                : "Die Registrierung ist gespeichert, aber die Bestätigungs-Mail konnte gerade nicht zugestellt werden. Gib deine E-Mail unten ein und fordere den Link erneut an."}
+            </span>
+          </div>
+        ) : null}
         <LoginForm next={next} />
         <p className="muted">
           Noch kein Zugang? <Link href={customerRegisterHref}>Kunde</Link> oder{" "}

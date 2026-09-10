@@ -28,16 +28,19 @@ export async function sendVerificationEmail({
   email,
   token,
   requestUrl,
+  customerName,
 }: {
   email: string;
   token: string;
   requestUrl: string;
+  customerName?: string | null;
 }) {
   const verifyUrl = publicUrl(`/verify-email?token=${encodeURIComponent(token)}`, requestUrl).toString();
   const customerEmail = buildCustomerEmail({
     subject: "Ihre FLYERO-E-Mail-Adresse best\u00e4tigen",
     eyebrow: "KONTO AKTIVIEREN",
     title: "Best\u00e4tigen Sie Ihre E-Mail-Adresse",
+    customerName,
     intro: "Willkommen bei FLYERO. Best\u00e4tigen Sie Ihre E-Mail-Adresse, damit Ihr Konto aktiviert wird.",
     action: { label: "E-Mail-Adresse best\u00e4tigen", url: verifyUrl },
     note: "Falls Sie diese Registrierung nicht gestartet haben, k\u00f6nnen Sie diese E-Mail ignorieren.",

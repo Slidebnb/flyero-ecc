@@ -72,10 +72,6 @@ export async function POST(request: NextRequest) {
     requestedNext || (previousToken?.userId === user.id ? previousToken.redirectPath : null) || latestToken?.redirectPath,
     roleContinuationFallback(user.role),
   );
-  await prisma.emailVerificationToken.updateMany({
-    where: { userId: user.id, usedAt: null },
-    data: { usedAt: new Date() },
-  });
   const { verificationToken } = await createEmailVerificationToken(user.id, redirectPath);
   try {
     await sendVerificationEmail({ email: user.email, token: verificationToken, requestUrl: request.url });
@@ -88,6 +84,10 @@ export async function POST(request: NextRequest) {
       { status: 503 },
     );
   }
+  await prisma.emailVerificationToken.updateMany({
+    where: { userId: user.id, usedAt: null, tokenHash: { not: hashVerificationToken(verificationToken) } },
+    data: { usedAt: new Date() },
+  });
 
   return Response.json({
     ok: true,

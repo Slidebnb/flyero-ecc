@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { UserStatus } from "@prisma/client";
+import { hashVerificationToken } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/verificationEmail";
 import { createCheckoutForOrder } from "@/lib/payments";
@@ -58,9 +59,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
       if (customer.user.status !== UserStatus.EMAIL_UNVERIFIED) {
         return errorResponse("Die E-Mail-Adresse dieses Kunden ist bereits bestätigt.", 409);
       }
-      await prisma.emailVerificationToken.updateMany({ where: { userId: customer.user.id, usedAt: null }, data: { usedAt: new Date() } });
       const { verificationToken } = await createEmailVerificationToken(customer.user.id, "/customer/dashboard");
-      await sendVerificationEmail({ email: customer.user.email, token: verificationToken, requestUrl: request.url });
+      await sendVerificationEmail({ email: customer.user.email, token: verificationToken, requestUrl: request.url, customerName: customer.contactName || customer.companyName });
+      await prisma.emailVerificationToken.updateMany({ where: { userId: customer.user.id, usedAt: null, tokenHash: { not: hashVerificationToken(verificationToken) } }, data: { usedAt: new Date() } });
       await createAuditLog({ userId: session.id, tenantId: customer.tenantId, action: "customer.email.resent", entityType: "CustomerProfile", entityId: customer.id, newValues: { emailType: "verification", recipientEmail: customer.user.email } });
       return successResponse({ recipientEmail: customer.user.email, label: "E-Mail-Verifizierung" });
     }
