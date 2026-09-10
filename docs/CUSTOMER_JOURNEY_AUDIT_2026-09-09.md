@@ -12,7 +12,7 @@ Jeder Kunde soll jederzeit wissen: Was ist passiert, was passiert als Nächstes,
 | Annahme durch FLYERO | vorhanden | `ORDER_ACCEPTED_PAYMENT_REQUIRED` führt den Kunden ins Portal und enthält den Zahlungsaufruf. |
 | Zahlung fehlgeschlagen | fehlerhaft | Der Kunde erhielt bislang keinen neuen Zahlungslink. |
 | Zahlung erfolgreich | vorhanden und korrekt | `buildPaymentConfirmationEmail` versendet eine Bestätigung mit Betrag, Zeitraum, Gebiet und Lageranweisung. |
-| Lageranweisung | vorhanden, aber zeitlich uneinheitlich | Für eigene Flyer wird sie bei der Lagerzuweisung erstellt; die Zahlungsbestätigung enthält sie, sobald das Lager feststeht. |
+| Lageranweisung | umgesetzt | Bei der ersten Lagerzuweisung erhält der Kunde sofort eine klare E-Mail mit Lagername, vollständiger Lieferadresse, Gesamtmenge, Auftrags-/Paketreferenz und Portal-Link. Die Nachricht hängt nicht von einer veralteten Produktionsvorlage ab und wird unabhängig von Benachrichtigungspräferenzen versendet. |
 | Zustellung/Retry | vorhanden | Queue, sofortiger Versand kritischer Nachrichten, Retry und AuditLog sind vorhanden. |
 | Organisations-Zahlung | teilweise vorhanden | Der Checkout wird serverseitig über den konfigurierten Stripe-Provider erzeugt; pro Auftrag wird ausschließlich die zurückgegebene Checkout-URL verwendet. Eine getrennte Stripe-Konfiguration pro Tenant existiert derzeit nicht. |
 | Flyerzahl bei mehreren Teilgebieten | vorher missverständlich | Die eingegebene Flyerzahl ist die Gesamtmenge der Kampagne. Sie wird serverseitig auf die Teilgebiete verteilt, als Einzelmenge gespeichert und im Kunden-/Adminportal angezeigt. |

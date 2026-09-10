@@ -8,7 +8,9 @@ import {
 } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
 import { prisma } from "@/lib/prisma";
+import { publicUrl } from "@/lib/publicUrl";
 import type { SessionUser } from "@/lib/auth";
 import { warehouseSourceWhere } from "@/lib/warehouse";
 import { productionOrderWhere } from "@/lib/productionData";
@@ -594,12 +596,35 @@ export async function ensureShipmentForCustomerFlyers(input: { orderId: string; 
     expectedDeliveryDate: order.preferredStartDate,
     notes: `Auftragsnummer ${order.orderNumber} sichtbar auf das Paket schreiben.`,
   });
-  await createNotification({
+  const notification = await createNotification({
     userId: order.customer.userId,
     type: "LOGISTICS_CUSTOMER_DELIVERY_EXPECTED",
-    title: "Flyerlieferung erwartet",
-    message: `Bitte sende deine Flyer für ${order.orderNumber} an ${assigned.warehouse.name}, ${warehouseAddressText(assigned.warehouse)}.`,
-    data: { shipmentId: shipment.id, warehouseId: assigned.warehouse.id },
+    title: "Lieferadresse für deine Flyer",
+    // This message is deliberately complete because older production template
+    // rows may still contain the former placeholder-only copy. The shipment
+    // notification must remain useful even before a template seed is rerun.
+    message: [
+      `Deine Flyerlieferung für ${order.orderNumber} ist vorbereitet.`,
+      `Lager: ${assigned.warehouse.name}`,
+      `Lieferadresse: ${warehouseAddressText(assigned.warehouse)}`,
+      `Menge: ${order.flyerQuantity.toLocaleString("de-DE")} Flyer`,
+      `Paketreferenz: ${order.orderNumber}`,
+    ].join("\n"),
+    data: {
+      shipmentId: shipment.id,
+      warehouseId: assigned.warehouse.id,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      warehouseName: assigned.warehouse.name,
+      warehouseAddress: warehouseAddressText(assigned.warehouse),
+      packageReference: order.orderNumber,
+      flyerQuantity: order.flyerQuantity,
+      campaignUrl: publicUrl(`/customer/orders/${order.id}`, "https://flyero.org").toString(),
+      nextStep: `Bitte verpacke die Flyer sicher und schreibe außen gut sichtbar die Referenz ${order.orderNumber} auf das Paket.`,
+    },
+    skipTemplate: true,
+    forceEmail: true,
   });
+  await dispatchNotificationImmediately(notification.queue?.id);
   return shipment;
 }
