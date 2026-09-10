@@ -229,7 +229,7 @@ function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
         </div>
       </MarketingSection>
 
-      <MarketingSection title="Für Makler und Projektentwickler." intro="Zwei Zielgruppen, ein klarer Weg: Planen Sie Ihre Immobilienwerbung vollständig online.">
+      <MarketingSection title="Für Makler und Projektentwickler." intro="Ob Maklerbüro oder Projektentwicklung – planen Sie Ihre regionale Verteilung einfach online.">
         <div className="mkPropertyAudienceGrid">
           {audiences.map(([Icon, title, text]) => <article key={title}><span className="mkPropertyIcon"><Icon aria-hidden="true" /></span><h3>{title}</h3><p>{text}</p></article>)}
         </div>
@@ -242,12 +242,12 @@ function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
 
       <MarketingSection tone="dark" title="Ihre Verteilung. Jederzeit im Blick." intro="Von der Planung bis zum Verteilnachweis behalten Sie Ihre Kampagne im Kundenkonto übersichtlich im Blick.">
         <div className="mkPropertyProofGrid">
-          <p>Planen Sie die Verteilung vollständig online, sehen Sie den Preis direkt, buchen Sie digital und finden Sie Ihre verfügbaren Unterlagen zentral in Ihrem Kundenkonto.</p>
+          <p>Planen, buchen und verwalten Sie Ihre Verteilung online und behalten Sie Status und Nachweise bequem im Kundenkonto im Blick.</p>
           <ul><li><Check aria-hidden="true" /> Gebiet und Auftrag klar dokumentiert</li><li><Check aria-hidden="true" /> Status und Unterlagen im Kundenkonto</li><li><Check aria-hidden="true" /> GPS-, Foto- und PDF-Nachweise nach Prüfung</li></ul>
         </div>
       </MarketingSection>
 
-      <MarketingSection title="Noch keine gedruckten Werbemittel?" intro="Ihre Druckvorlage ist bereits fertig? Auf Anfrage organisieren wir den Druck gerne für Sie. Anschließend können die Werbemittel direkt für Ihre Verteilung eingesetzt werden. Die Druckkosten werden individuell kalkuliert.">
+      <MarketingSection title="Noch keine gedruckten Werbemittel?" intro="Ihre Druckvorlage ist bereits fertig? Auf Anfrage organisieren wir den Druck gerne für Sie. Die Druckkosten werden individuell kalkuliert.">
         <div className="mkPropertyPrintCta"><span>Vorlage fertig, Druck noch offen?</span><MarketingButton href="/kontakt" variant="dark">Druckservice anfragen</MarketingButton></div>
       </MarketingSection>
 
