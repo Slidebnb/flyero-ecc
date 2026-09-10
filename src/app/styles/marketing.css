@@ -4389,3 +4389,395 @@
     font-size: 0.68rem;
   }
 }
+
+/* Immobilien landing page: calm B2B hierarchy with a direct planning path. */
+.mkPropertyHero {
+  position: relative;
+  overflow: hidden;
+  padding: clamp(92px, 10vw, 142px) 0 clamp(82px, 9vw, 120px);
+  background: #f7f9f4;
+}
+
+.mkPropertyHero .mkFlyerField {
+  display: none;
+}
+
+.mkPropertyHeroLayout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(360px, 0.78fr);
+  gap: clamp(42px, 7vw, 104px);
+  align-items: center;
+}
+
+.mkPropertyHeroCopy {
+  max-width: 760px;
+}
+
+.mkPropertyHeroCopy h1 {
+  max-width: 760px;
+  margin: 0;
+  color: var(--flyero-text);
+  font-size: clamp(3.2rem, 6vw, 6.2rem);
+  line-height: 0.96;
+  letter-spacing: -0.065em;
+}
+
+.mkPropertyHeroCopy > p {
+  max-width: 650px;
+  margin: 28px 0 0;
+  color: var(--flyero-muted);
+  font-size: clamp(1.1rem, 1.55vw, 1.28rem);
+  line-height: 1.7;
+}
+
+.mkPropertyHeroCopy .mkHeroActions {
+  align-items: center;
+  margin-top: 30px;
+}
+
+.mkPropertySecondaryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: 0 8px;
+  color: var(--flyero-text);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.mkPropertySecondaryLink svg {
+  width: 17px;
+  color: var(--flyero-green-dark);
+}
+
+.mkPropertyTrust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 22px;
+  margin-top: 30px;
+}
+
+.mkPropertyTrust .mkTrustBadge {
+  color: var(--flyero-muted);
+}
+
+.mkPropertyTrust .mkTrustBadge svg {
+  color: var(--flyero-green-dark);
+}
+
+.mkPropertyHeroPanel {
+  max-width: 470px;
+  justify-self: end;
+  padding: clamp(28px, 4vw, 44px);
+  border-left: 4px solid var(--flyero-green);
+  background: var(--flyero-dark);
+  color: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+}
+
+.mkPropertyPanelLabel,
+.mkPropertyNumber {
+  color: var(--flyero-green-dark);
+  font-size: 0.74rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mkPropertyPanelLabel {
+  color: var(--flyero-green);
+}
+
+.mkPropertyHeroPanel strong {
+  display: block;
+  max-width: 330px;
+  margin-top: 18px;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.mkPropertyHeroPanel > p {
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.65;
+}
+
+.mkPropertyPanelList {
+  display: grid;
+  gap: 14px;
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.mkPropertyPanelList span {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 0.94rem;
+  line-height: 1.4;
+}
+
+.mkPropertyPanelList svg {
+  width: 18px;
+  flex: 0 0 auto;
+  color: var(--flyero-green);
+}
+
+.mkPropertyProblem {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+  gap: clamp(34px, 7vw, 110px);
+  padding-top: 28px;
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkPropertyProblem strong {
+  display: block;
+  max-width: 520px;
+  margin-top: 18px;
+  color: var(--flyero-text);
+  font-size: clamp(1.8rem, 3vw, 3rem);
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+.mkPropertyProblem p {
+  max-width: 600px;
+  margin: 0;
+  color: var(--flyero-muted);
+  font-size: 1.08rem;
+  line-height: 1.75;
+}
+
+.mkPropertyCampaignGrid,
+.mkPropertyAudienceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 28px;
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkPropertyCampaignGrid article,
+.mkPropertyAudienceGrid article {
+  padding: 28px 0 30px;
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+.mkPropertyIcon {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(167, 255, 0, 0.28);
+  color: var(--flyero-text);
+}
+
+.mkPropertyIcon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.mkPropertyCampaignGrid h3,
+.mkPropertyAudienceGrid h3 {
+  margin: 20px 0 8px;
+  color: var(--flyero-text);
+  font-size: 1.22rem;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.mkPropertyCampaignGrid p,
+.mkPropertyAudienceGrid p {
+  margin: 0;
+  color: var(--flyero-muted);
+  line-height: 1.6;
+}
+
+.mkPropertyAudienceGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 52px;
+}
+
+.mkPropertyAudienceGrid article {
+  padding-right: 12px;
+}
+
+.mkPropertyInlineCta,
+.mkPropertyPrintCta,
+.mkPropertyFinalCta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 28px;
+}
+
+.mkPropertyInlineCta > span,
+.mkPropertyPrintCta > span {
+  color: var(--flyero-muted);
+  font-weight: 800;
+}
+
+.mkPropertyWorkflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkPropertyWorkflow li {
+  display: grid;
+  gap: 22px;
+  min-height: 220px;
+  padding: 24px 24px 0 0;
+  margin-right: 24px;
+  border-bottom: 1px solid var(--flyero-border);
+}
+
+.mkPropertyWorkflow li + li {
+  padding-left: 24px;
+  border-left: 1px solid var(--flyero-border);
+}
+
+.mkPropertyWorkflow li > span {
+  color: var(--flyero-green-dark);
+  font-size: 0.8rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+}
+
+.mkPropertyWorkflow h3 {
+  margin: 0 0 10px;
+  color: var(--flyero-text);
+  font-size: 1.16rem;
+}
+
+.mkPropertyWorkflow p {
+  margin: 0;
+  color: var(--flyero-muted);
+  line-height: 1.6;
+}
+
+.mkPropertyProofGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1fr);
+  gap: clamp(34px, 8vw, 120px);
+}
+
+.mkPropertyProofGrid > p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1.08rem;
+  line-height: 1.75;
+}
+
+.mkPropertyProofGrid ul {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.mkPropertyProofGrid li {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.84);
+  line-height: 1.45;
+}
+
+.mkPropertyProofGrid li svg {
+  width: 19px;
+  flex: 0 0 auto;
+  color: var(--flyero-green);
+}
+
+.mkPropertyPrintCta {
+  padding-top: 24px;
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkPropertyFinalCta {
+  border-top: 1px solid var(--flyero-border);
+}
+
+.mkPropertyFinalCta p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--flyero-muted);
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+@media (max-width: 820px) {
+  .mkPropertyHero {
+    padding: 72px 0 78px;
+  }
+
+  .mkPropertyHeroLayout,
+  .mkPropertyProblem,
+  .mkPropertyProofGrid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
+
+  .mkPropertyHeroPanel {
+    justify-self: stretch;
+    max-width: none;
+  }
+
+  .mkPropertyCampaignGrid,
+  .mkPropertyAudienceGrid,
+  .mkPropertyWorkflow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mkPropertyWorkflow li,
+  .mkPropertyWorkflow li + li {
+    min-height: 0;
+    padding: 22px 0;
+    margin-right: 0;
+    border-left: 0;
+  }
+
+  .mkPropertyWorkflow li + li {
+    border-top: 1px solid var(--flyero-border);
+  }
+
+  .mkPropertyInlineCta,
+  .mkPropertyPrintCta,
+  .mkPropertyFinalCta {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mkPropertyInlineCta .mkButton,
+  .mkPropertyPrintCta .mkButton,
+  .mkPropertyFinalCta .mkButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 460px) {
+  .mkPropertyHeroCopy h1 {
+    font-size: clamp(2.6rem, 13vw, 3.8rem);
+  }
+
+  .mkPropertyHeroPanel {
+    padding: 26px 22px;
+  }
+}

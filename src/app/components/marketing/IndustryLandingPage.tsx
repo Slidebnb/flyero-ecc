@@ -1,12 +1,18 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  BadgeCheck,
+  BookOpen,
   Building2,
   CakeSlice,
   CalendarDays,
   Check,
   Dumbbell,
+  FileText,
   Hammer,
+  House,
+  Megaphone,
+  MapPinned,
   ReceiptText,
   Sparkles,
   Store,
@@ -38,6 +44,8 @@ const industryIcons = {
 } as const;
 
 export function IndustryLandingPage({ page }: { page: IndustryPageData }) {
+  if (page.slug === "immobilien") return <ImmobilienLandingPage page={page} />;
+
   const Icon = industryIcons[page.iconKey as keyof typeof industryIcons] ?? Store;
   const CameraIcon = defaultProofIcons.camera;
 
@@ -152,6 +160,103 @@ export function IndustryLandingPage({ page }: { page: IndustryPageData }) {
             <MarketingButton href="/verteilung-anfragen" variant="dark">Projekt anfragen</MarketingButton>
           </div>
         </div>
+      </MarketingSection>
+    </MarketingPage>
+  );
+}
+
+function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
+  const campaignTypes = [
+    [House, "Einzelobjekt", "Ein Verkaufs- oder Mietobjekt gezielt im passenden Wohngebiet sichtbar machen."],
+    [Building2, "Mehrere Immobilien", "Aktuelle Verkaufs- oder Mietangebote auf einem Werbemittel bündeln."],
+    [BookOpen, "Immobilienkatalog", "Mehrere Angebote hochwertig als Broschüre oder Katalog regional verteilen."],
+    [MapPinned, "Neubauprojekt", "Neue Wohnanlagen, Quartiere oder Eigentumswohnungen zum Verkaufsstart bekannt machen."],
+    [Megaphone, "Eigentümerakquise", "Maklerleistungen in den Wohngebieten präsentieren, in denen neue Mandate entstehen."],
+    [CalendarDays, "Open House", "Besichtigungen und Termine lokal dort ankündigen, wo Interessenten wohnen."],
+  ] as const;
+  const workflow = [
+    ["01", "Gebiet festlegen", "Wählen Sie PLZ, Ort oder konkrete Teilgebiete rund um Ihre Immobilien."],
+    ["02", "Werbemittel planen", "Geben Sie Flyer, Faltflyer, Broschüre oder Katalog und die gewünschte Menge an."],
+    ["03", "Preis prüfen", "Die konkrete Auswahl wird im bestehenden Verteilplaner transparent berechnet."],
+    ["04", "Auftrag abschließen", "Buchen Sie direkt online und behalten Sie den weiteren Ablauf im Kundenkonto im Blick."],
+  ] as const;
+  const audiences = [
+    [Building2, "Für Immobilienmakler", "Verkaufsobjekte, Mietobjekte, Eigentümerakquise, mehrere Angebote, Kataloge und Open-House-Termine."],
+    [House, "Für Bauträger & Projektentwickler", "Neubauprojekte, Eigentumswohnungen, Wohnquartiere, Projektbroschüren und regionale Verkaufsstarts."],
+  ] as const;
+
+  return (
+    <MarketingPage>
+      <section className="mkPropertyHero" aria-labelledby="property-hero-title">
+        <PremiumFlyerField />
+        <MarketingContainer className="mkPropertyHeroLayout">
+          <div className="mkPropertyHeroCopy">
+            <h1 id="property-hero-title">Ihre Immobilien. Direkt in die Haushalte Ihrer Wunschregion.</h1>
+            <p>Vermarkten Sie einzelne Objekte, mehrere Immobilien, Neubauprojekte oder Immobilienkataloge gezielt in ausgewählten Wohngebieten.</p>
+            <div className="mkHeroActions">
+              <MarketingButton href="/verteilung-planen">Verteilgebiet & Preis prüfen</MarketingButton>
+              <Link className="mkPropertySecondaryLink" href="/so-funktionierts">Ablauf ansehen <ArrowRight aria-hidden="true" /></Link>
+            </div>
+            <div className="mkPropertyTrust" aria-label="Bestehende FLYERO-Funktionen">
+              <TrustBadge icon={MapPinned}>Digitale Planung</TrustBadge>
+              <TrustBadge icon={ReceiptText}>Transparente Preisübersicht</TrustBadge>
+              <TrustBadge icon={BadgeCheck}>Verteilnachweise</TrustBadge>
+            </div>
+          </div>
+          <aside className="mkPropertyHeroPanel" aria-label="Immobilienkampagne planen">
+            <span className="mkPropertyPanelLabel">Ihre Immobilienkampagne</span>
+            <strong>Ein Gebiet. Mehrere Möglichkeiten.</strong>
+            <p>Planen Sie die regionale Reichweite passend zu Ihrem Objekt, Projekt oder Katalog.</p>
+            <div className="mkPropertyPanelList">
+              <span><House aria-hidden="true" /> Verkaufs- und Mietobjekte</span>
+              <span><Building2 aria-hidden="true" /> Neubau und Projektentwicklung</span>
+              <span><FileText aria-hidden="true" /> Broschüren und Immobilienkataloge</span>
+            </div>
+          </aside>
+        </MarketingContainer>
+      </section>
+
+      <MarketingSection title="Online sichtbar. Regional präsent." intro="Ihre Immobilien sind online sichtbar. Erreichen Sie zusätzlich die Haushalte in den Gebieten, in denen potenzielle Käufer, Mieter oder Eigentümer tatsächlich wohnen.">
+        <div className="mkPropertyProblem">
+          <div><span className="mkPropertyNumber">01</span><strong>Immobilienwerbung beginnt mit dem richtigen Umfeld.</strong></div>
+          <p>FLYERO verbindet die Auswahl Ihres Wunschgebiets mit einem strukturierten Auftrag und der vorhandenen digitalen Planung. So entscheiden Sie selbst, wo Ihre Immobilienwerbung ankommt.</p>
+        </div>
+      </MarketingSection>
+
+      <MarketingSection tone="green" title="Nicht nur ein Objekt bewerben." intro="Bündeln Sie mehrere aktuelle Verkaufs- oder Mietangebote auf einem Faltflyer, einer Broschüre oder einem Immobilienkatalog und lassen Sie diese gezielt in ausgewählten Gebieten verteilen.">
+        <div className="mkPropertyCampaignGrid">
+          {campaignTypes.map(([Icon, title, text]) => <article key={title}><span className="mkPropertyIcon"><Icon aria-hidden="true" /></span><h3>{title}</h3><p>{text}</p></article>)}
+        </div>
+      </MarketingSection>
+
+      <MarketingSection title="Für Makler und Projektentwickler." intro="Zwei typische Einsatzbereiche – ein klarer Weg in den bestehenden Verteilplaner.">
+        <div className="mkPropertyAudienceGrid">
+          {audiences.map(([Icon, title, text]) => <article key={title}><span className="mkPropertyIcon"><Icon aria-hidden="true" /></span><h3>{title}</h3><p>{text}</p></article>)}
+        </div>
+        <div className="mkPropertyInlineCta"><span>Bereit für Ihre Wunschregion?</span><MarketingButton href="/verteilung-planen">Verteilgebiet & Preis prüfen</MarketingButton></div>
+      </MarketingSection>
+
+      <MarketingSection tone="green" title="Von der Immobilie zum passenden Verteilgebiet." intro="Der bestehende Planer führt Sie Schritt für Schritt durch Gebiet, Werbemittel, Menge und Auftrag.">
+        <ol className="mkPropertyWorkflow">{workflow.map(([number, title, text]) => <li key={number}><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></li>)}</ol>
+      </MarketingSection>
+
+      <MarketingSection tone="dark" title="Regional geplant. Im Kundenkonto nachvollziehbar." intro="FLYERO macht den Ablauf Ihrer Immobilienkampagne übersichtlich – von der digitalen Planung bis zu den vorhandenen Verteilnachweisen.">
+        <div className="mkPropertyProofGrid">
+          <p>Sie nutzen den bestehenden digitalen Prozess mit Preisübersicht, Online-Buchung, Kundenkonto und den nach der Prüfung bereitgestellten Nachweisen.</p>
+          <ul><li><Check aria-hidden="true" /> Gebiet und Auftrag strukturiert erfasst</li><li><Check aria-hidden="true" /> Status und Unterlagen im Kundenkonto</li><li><Check aria-hidden="true" /> GPS-, Foto- und PDF-Nachweise nach Prüfung</li></ul>
+        </div>
+      </MarketingSection>
+
+      <MarketingSection title="Noch keine gedruckten Werbemittel?" intro="Wenn bereits eine fertige Druckvorlage vorhanden ist, kann FLYERO den Druck auf Anfrage ebenfalls organisieren. Der Druck ist kostenpflichtig und nicht Bestandteil des automatisierten Online-Planers.">
+        <div className="mkPropertyPrintCta"><span>Vorlage vorhanden, Druck noch offen?</span><MarketingButton href="/kontakt" variant="dark">Druckservice anfragen</MarketingButton></div>
+      </MarketingSection>
+
+      <MarketingSection eyebrow="Fragen" title="Häufige Fragen zur Flyerverteilung für Immobilien.">
+        <div className="mkIndustryFaqList">{page.faq.map((item) => <FAQItem key={item.question} question={item.question} answer={item.answer} />)}</div>
+      </MarketingSection>
+
+      <MarketingSection className="mkIndustryCta" title="Bringen Sie Ihre Immobilien in die richtige Region.">
+        <div className="mkPropertyFinalCta"><p>Prüfen Sie jetzt online, welches Verteilgebiet und welcher Preis zu Ihrer Immobilienkampagne passen.</p><MarketingButton href="/verteilung-planen">Verteilgebiet & Preis prüfen</MarketingButton></div>
       </MarketingSection>
     </MarketingPage>
   );
