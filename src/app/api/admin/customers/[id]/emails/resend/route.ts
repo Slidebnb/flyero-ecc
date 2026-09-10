@@ -3,7 +3,7 @@ import { UserRole, UserStatus } from "@prisma/client";
 import { hashVerificationToken } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/verificationEmail";
-import { createCheckoutForOrder } from "@/lib/payments";
+import { createCheckoutForOrder, isReusableStripeCheckoutSession } from "@/lib/payments";
 import { createNotification } from "@/lib/notifications";
 import { dispatchNotificationImmediately } from "@/lib/notificationWorker";
 import { Permission, requirePermission } from "@/lib/permissions";
@@ -90,11 +90,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
       });
       let payment;
       try {
-        payment = existingPayment ?? await createCheckoutForOrder({
+        const existingLinkIsReusable = existingPayment
+          ? await isReusableStripeCheckoutSession(existingPayment.stripeCheckoutSessionId)
+          : false;
+        payment = existingPayment && existingLinkIsReusable
+          ? existingPayment
+          : await createCheckoutForOrder({
           orderId: order.id,
           customerUserId: customer.user.id,
           tenantId: order.tenantId,
           allowIncompleteCustomerProfile: session.role === UserRole.ADMIN,
+          forceNewCheckout: Boolean(existingPayment && !existingLinkIsReusable),
         });
       } catch (error) {
         await createAuditLog({

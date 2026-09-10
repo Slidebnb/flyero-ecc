@@ -56,6 +56,16 @@ function stripeClient() {
   return new Stripe(secret, { apiVersion: "2026-06-24.dahlia" });
 }
 
+export async function isReusableStripeCheckoutSession(sessionId: string | null | undefined) {
+  if (!sessionId || isMockStripe()) return true;
+  try {
+    const session = await stripeClient().checkout.sessions.retrieve(sessionId);
+    return session.status === "open" && session.payment_status === "unpaid";
+  } catch {
+    return false;
+  }
+}
+
 function toJson(value: unknown) {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 }
@@ -239,7 +249,7 @@ async function syncStripeDisputeEvent(event: Stripe.Event, requestContext?: Audi
   return payment;
 }
 
-export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string; tenantId?: string; idempotencyKey?: string; allowIncompleteCustomerProfile?: boolean }) {
+export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string; tenantId?: string; idempotencyKey?: string; allowIncompleteCustomerProfile?: boolean; forceNewCheckout?: boolean }) {
   const order = await prisma.order.findFirst({
     where: {
       id: input.orderId,
@@ -276,7 +286,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
 
   const existing = order.payments.find((payment) => ["CREATED", "CHECKOUT_CREATED", "PENDING", "PAID"].includes(payment.status));
   if (existing?.status === "PAID") throw new Error("Dieser Auftrag wurde bereits bezahlt.");
-  if (existing?.checkoutUrl) return withoutCheckoutClaims(existing);
+  if (existing?.checkoutUrl && !input.forceNewCheckout) return withoutCheckoutClaims(existing);
 
   const currentSnapshot = order.priceRuleSnapshot && typeof order.priceRuleSnapshot === "object" && !Array.isArray(order.priceRuleSnapshot)
     ? order.priceRuleSnapshot as Record<string, unknown>
@@ -352,6 +362,22 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
   let payment = existing;
   let createdPayment = false;
   let reopenedPayment = false;
+  if (payment && input.forceNewCheckout) {
+    payment = await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: "CREATED",
+        checkoutUrl: null,
+        stripeCheckoutSessionId: null,
+        stripePaymentIntentId: null,
+        checkoutClaimToken: null,
+        checkoutClaimedAt: null,
+        failedAt: null,
+        cancelledAt: null,
+      },
+    });
+    await addPaymentHistory({ paymentId: payment.id, fromStatus: existing?.status, toStatus: "CREATED", reason: "expired_checkout_replaced" });
+  }
   if (!payment) {
     try {
       payment = await prisma.payment.create({
