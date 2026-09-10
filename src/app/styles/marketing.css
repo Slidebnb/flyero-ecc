@@ -29,10 +29,67 @@
   margin: 0 auto;
 }
 
-.mkNavbar {
+.mkHeader {
   position: sticky;
   top: 0;
   z-index: 50;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(22px);
+}
+
+.mkAnnouncementBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 38px;
+  padding: 7px 24px;
+  background: var(--flyero-text);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.mkAnnouncementCode {
+  padding: 4px 10px;
+  border: 1px solid rgba(167, 255, 0, 0.52);
+  border-radius: 999px;
+  color: var(--flyero-green);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.mkAnnouncementCode strong {
+  color: #ffffff;
+}
+
+.mkAnnouncementHint {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.mkAnnouncementLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--flyero-green);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.mkAnnouncementLink:hover {
+  color: #ffffff;
+}
+
+.mkAnnouncementLink svg {
+  width: 14px;
+  height: 14px;
+}
+
+.mkNavbar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -40,8 +97,6 @@
   width: min(calc(100% - 48px), var(--flyero-container));
   margin: 0 auto;
   padding: 18px 0;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(22px);
 }
 
 .mkNavbar a {
@@ -151,6 +206,7 @@
 }
 
 .mkButton:focus-visible,
+.mkAnnouncementLink:focus-visible,
 .mkNavbar a:focus-visible,
 .mkFaqItem summary:focus-visible {
   outline: 3px solid rgba(167, 255, 0, 0.65);
@@ -2524,6 +2580,21 @@
 
   .mkLeadForm {
     grid-template-columns: 1fr;
+  }
+
+  .mkAnnouncementBar {
+    gap: 8px;
+    min-height: 42px;
+    padding: 7px 14px;
+    font-size: 0.72rem;
+  }
+
+  .mkAnnouncementHint {
+    display: none;
+  }
+
+  .mkAnnouncementLink {
+    font-weight: 850;
   }
 
   .mkInquiryAsideBlock {

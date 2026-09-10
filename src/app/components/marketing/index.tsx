@@ -66,35 +66,46 @@ export function FlyeroLogo({ dark = false }: { dark?: boolean }) {
 
 export function PublicNavbar() {
   return (
-    <header className="mkNavbar">
-      <Link href="/" aria-label="FLYERO Startseite">
-        <FlyeroLogo />
-      </Link>
-      <nav className="mkDesktopNav" aria-label="Hauptnavigation">
-        {navItems.map(([label, href]) => (
-          <Link key={href} href={href}>
-            {label}
-          </Link>
-        ))}
-        <Link className="mkNavLogin" href="/login">
-          Login
-        </Link>
-        <Link className="mkNavRegister" href="/register/customer">
-          Registrierung
-        </Link>
-        <Link className="mkNavCta" href="/verteilung-anfragen">
-          Verteilung anfragen
+    <header className="mkHeader">
+      <div className="mkAnnouncementBar" role="status" aria-label="Aktuelle Gutscheinaktion">
+        <span className="mkAnnouncementCopy">10 % Rabatt auf deine Online-Zahlung</span>
+        <span className="mkAnnouncementCode">Code: <strong>FLYERO10NKB</strong></span>
+        <span className="mkAnnouncementHint">Im Stripe-Checkout einlösen</span>
+        <Link href="/verteilung-anfragen" className="mkAnnouncementLink">
+          Jetzt sichern
           <ArrowRight aria-hidden="true" />
         </Link>
-      </nav>
-      <MobileMenu
-        items={[
-          ...navItems.map(([label, href]) => ({ label, href })),
-          { label: "Login", href: "/login" },
-          { label: "Registrierung", href: "/register/customer" },
-        ]}
-        cta={{ label: "Verteilung anfragen", href: "/verteilung-anfragen" }}
-      />
+      </div>
+      <div className="mkNavbar">
+        <Link href="/" aria-label="FLYERO Startseite">
+          <FlyeroLogo />
+        </Link>
+        <nav className="mkDesktopNav" aria-label="Hauptnavigation">
+          {navItems.map(([label, href]) => (
+            <Link key={href} href={href}>
+              {label}
+            </Link>
+          ))}
+          <Link className="mkNavLogin" href="/login">
+            Login
+          </Link>
+          <Link className="mkNavRegister" href="/register/customer">
+            Registrierung
+          </Link>
+          <Link className="mkNavCta" href="/verteilung-anfragen">
+            Verteilung anfragen
+            <ArrowRight aria-hidden="true" />
+          </Link>
+        </nav>
+        <MobileMenu
+          items={[
+            ...navItems.map(([label, href]) => ({ label, href })),
+            { label: "Login", href: "/login" },
+            { label: "Registrierung", href: "/register/customer" },
+          ]}
+          cta={{ label: "Verteilung anfragen", href: "/verteilung-anfragen" }}
+        />
+      </div>
     </header>
   );
 }
