@@ -109,6 +109,7 @@ export default async function AdminCustomerDetailPage({ params, searchParams }: 
   const paymentEmails: CustomerPaymentEmailItem[] = customer.orders
     .filter((order) => !order.needsPrintService && ["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "ACCEPTED_AWAITING_PAYMENT"].includes(order.status) && order.payments[0]?.status !== "PAID")
     .map((order) => ({ orderId: order.id, orderNumber: order.orderNumber }));
+  const orderNumbers = new Map(customer.orders.map((order) => [order.id, order.orderNumber]));
   const emailHistory: CustomerEmailHistoryItem[] = customer.user.notificationMessages
     .filter((message) => !["ORDER_ACCEPTED_PAYMENT_REQUIRED", "PAYMENT_FAILED"].includes(message.type))
     .map((message) => {
@@ -118,7 +119,7 @@ export default async function AdminCustomerDetailPage({ params, searchParams }: 
         type: message.type,
         subject: message.subject,
         createdAt: (message.queues[0]?.createdAt ?? message.createdAt).toISOString(),
-        orderNumber: typeof data.orderNumber === "string" ? data.orderNumber : null,
+        orderNumber: typeof data.orderNumber === "string" ? data.orderNumber : typeof data.orderId === "string" ? orderNumbers.get(data.orderId) ?? null : null,
       };
     });
 
