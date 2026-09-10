@@ -515,6 +515,11 @@ nextjs-portal {
   background: linear-gradient(135deg, #caff66, #91e86c);
 }
 
+.orderStepPanel .orderPriceFooter button:disabled {
+  cursor: default;
+  opacity: 0.62;
+}
+
 /* Module 24: UX-first order planning. */
 .smartOrderShell {
   max-width: min(1720px, calc(100vw - 28px));

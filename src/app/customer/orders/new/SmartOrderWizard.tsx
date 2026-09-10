@@ -2697,8 +2697,8 @@ export function SmartOrderWizard({ areas, today, mode = "authenticated_order", i
         <div className="orderPriceFooter">
           <span>Preis netto zzgl. MwSt.</span>
           <strong>{pricePreviewText}</strong>
-          <button type="button" onClick={() => setActiveStep((step) => Math.min(6, step + 1))}>
-            {activeStep >= 6 ? "Buchung abschließen" : "Weiter"}
+          <button type="button" disabled={activeStep >= 6} onClick={() => setActiveStep((step) => Math.min(6, step + 1))}>
+            {activeStep >= 6 ? "Abschluss geöffnet" : "Weiter"}
             <span aria-hidden="true">→</span>
           </button>
         </div>
