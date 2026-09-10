@@ -7,6 +7,7 @@ import {
   MarketingSection,
   ProcessPreview,
   PremiumFlyerField,
+  PaymentMethods,
   TrustBadge,
   defaultProofIcons,
 } from "@/app/components/marketing";
@@ -118,6 +119,7 @@ export default async function PricingPage() {
               <TrustBadge icon={defaultProofIcons.report}>Preis vor Zahlung</TrustBadge>
               <TrustBadge icon={defaultProofIcons.gps}>Gebietsbasiert</TrustBadge>
             </div>
+            <PaymentMethods />
           </div>
           <ProcessPreview />
         </MarketingContainer>

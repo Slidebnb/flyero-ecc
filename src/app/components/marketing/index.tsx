@@ -126,6 +126,7 @@ export function PublicFooter() {
         <p className="mkFooterTrust">
           Für Unternehmen, Vereine und lokale Kampagnen, die nicht nur verteilt, sondern sauber belegt werden sollen.
         </p>
+        <PaymentMethods />
       </div>
       <FooterColumn
         title="Leistungen"
@@ -315,6 +316,32 @@ export function HeroVisual() {
     <div className="mkHeroVisual" aria-label="FLYERO Ablauf bis zum Bericht">
       <div className="mkVisualFrame">
         <ProcessPreview />
+      </div>
+    </div>
+  );
+}
+
+const paymentMethods = [
+  ["/payments/stripe.svg", "Stripe"],
+  ["/payments/klarna.svg", "Klarna"],
+  ["/payments/applepay.svg", "Apple Pay"],
+  ["/payments/visa.svg", "Visa"],
+  ["/payments/mastercard.svg", "Mastercard"],
+  ["/payments/amazonpay.svg", "Amazon Pay"],
+  ["/payments/paypal.svg", "PayPal"],
+] as const;
+
+export function PaymentMethods() {
+  return (
+    <div className="mkPaymentMethods" aria-label="Zahlungsanbieter im Stripe-Checkout">
+      <strong>Sicher bezahlen</strong>
+      <span>Die im jeweiligen Checkout verfügbaren Zahlarten zeigt Stripe automatisch an.</span>
+      <div className="mkPaymentMethodsLogos">
+        {paymentMethods.map(([src, label]) => (
+          <span className="mkPaymentMethodLogo" key={src} title={label}>
+            <Image src={src} alt={label} width={52} height={24} />
+          </span>
+        ))}
       </div>
     </div>
   );

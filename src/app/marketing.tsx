@@ -12,6 +12,7 @@ export {
   ProcessPreview,
   ProofStatusPanel,
   PremiumFlyerField,
+  PaymentMethods,
   PublicFooter,
   PublicNavbar,
   SectionHeader,
