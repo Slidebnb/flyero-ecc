@@ -1,3 +1,5 @@
+import { MANUAL_BANK_TRANSFER } from "@/lib/paymentInstructions";
+
 export type CustomerEmailDetail = {
   label: string;
   value: string;
@@ -147,6 +149,16 @@ export function buildCustomerNotificationEmail(input: CustomerNotificationEmailI
         { label: "Einlösung", value: "Im Stripe-Checkout bei der nächsten Bestellung" },
       ].filter((detail): detail is { label: string; value: string } => Boolean(detail))
     : [];
+  const manualTransferDetails = input.type === "ORDER_ACCEPTED_PAYMENT_REQUIRED"
+    ? [
+        { label: "Alternative Zahlung", value: "Banküberweisung" },
+        { label: "Kontoinhaberin", value: MANUAL_BANK_TRANSFER.accountHolder },
+        { label: "IBAN", value: MANUAL_BANK_TRANSFER.iban },
+        typeof data.orderNumber === "string" && data.orderNumber.trim()
+          ? { label: "Verwendungszweck", value: data.orderNumber }
+          : null,
+      ].filter((detail): detail is { label: string; value: string } => Boolean(detail))
+    : [];
   return buildCustomerEmail({
     subject: input.subject,
     eyebrow: input.type.includes("REPORT") || input.type.includes("DOCUMENT") ? "NACHWEIS AKTUALISIERT" : "FLYERO KAMPAGNEN-UPDATE",
@@ -154,7 +166,7 @@ export function buildCustomerNotificationEmail(input: CustomerNotificationEmailI
     customerName,
     intro,
     content: bodyLines.join("\n"),
-    details: [...logisticsDetails, ...promotionDetails],
+    details: [...logisticsDetails, ...promotionDetails, ...manualTransferDetails],
     action: actionValue ? { label: paymentAction ? "Zahlung im Kundenportal starten" : input.type === "CUSTOMER_PROMOTION_CAMPAIGN" ? "Nächste Bestellung starten" : actionForType(input.type), url: actionValue } : undefined,
     note: typeof data.nextStep === "string" ? data.nextStep : null,
   });

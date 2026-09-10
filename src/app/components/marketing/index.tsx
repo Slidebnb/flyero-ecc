@@ -79,13 +79,20 @@ export function PublicNavbar() {
         <Link className="mkNavLogin" href="/login">
           Login
         </Link>
+        <Link className="mkNavRegister" href="/register/customer">
+          Registrierung
+        </Link>
         <Link className="mkNavCta" href="/verteilung-anfragen">
           Verteilung anfragen
           <ArrowRight aria-hidden="true" />
         </Link>
       </nav>
       <MobileMenu
-        items={navItems.map(([label, href]) => ({ label, href }))}
+        items={[
+          ...navItems.map(([label, href]) => ({ label, href })),
+          { label: "Login", href: "/login" },
+          { label: "Registrierung", href: "/register/customer" },
+        ]}
         cta={{ label: "Verteilung anfragen", href: "/verteilung-anfragen" }}
       />
     </header>

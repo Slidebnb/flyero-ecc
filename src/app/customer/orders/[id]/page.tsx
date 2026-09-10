@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DistributionAreaPreviewMap } from "@/app/components/DistributionAreaPreviewMap";
+import { ManualBankTransfer } from "@/app/customer/ManualBankTransfer";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
 import { CustomerLiveRefresh } from "@/app/customer/CustomerLiveRefresh";
 import {
@@ -156,6 +157,7 @@ export default async function CustomerOrderDetailPage({ params, searchParams }: 
           <Link className="primaryButton" href={action.href}>{action.label}</Link>
         )}
       </section>
+      {paymentRequired ? <ManualBankTransfer orderNumber={order.orderNumber} amount={formatCurrency(price.gross)} /> : null}
 
       <section className="customerDetailActions" aria-label="Kampagnenaktionen">
         <Link className="secondaryButton" href="/customer/orders">Alle Kampagnen</Link>

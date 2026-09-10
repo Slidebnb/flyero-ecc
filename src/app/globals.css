@@ -5619,6 +5619,53 @@ body {
   color: #a7b2c2;
 }
 
+.customerBankTransfer {
+  margin-top: 16px;
+  border-color: rgba(183, 232, 0, 0.3);
+}
+
+.customerBankTransfer > div {
+  gap: 16px;
+}
+
+.customerBankDetails {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.customerBankDetails > div {
+  display: grid;
+  grid-template-columns: minmax(125px, 0.55fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 11px 14px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.customerBankDetails > div + div {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.customerBankDetails dt {
+  color: #a7b2c2;
+  font-size: 0.82rem;
+}
+
+.customerBankDetails dd {
+  margin: 0;
+  color: #fff;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.customerBankHint {
+  color: #d4dfeb !important;
+  font-size: 0.88rem;
+}
+
 .customerSimpleFormInline {
   display: grid;
   gap: 12px;

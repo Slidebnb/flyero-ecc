@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CustomerPortalShell } from "@/app/customer/CustomerPortalShell";
+import { ManualBankTransfer } from "@/app/customer/ManualBankTransfer";
 import { customerOrderName } from "@/app/customer/customerUx";
 import { DataSection, EmptyState, StatusBadge } from "@/app/PortalComponents";
 import { requireTenantSession } from "@/lib/tenant";
@@ -41,6 +42,7 @@ export default async function CustomerPaymentsPage() {
         <span>{openPayment ? `${customerOrderName(openPayment.order.orderNumber)} · ${formatCurrency(openPayment.amount)}` : "Sobald eine neue Zahlung entsteht, steht der nächste Schritt hier."}</span>
         {openPayment ? <Link className="primaryButton" href={`/customer/orders/${openPayment.orderId}`}>Zahlung prüfen</Link> : null}
       </section>
+      {openPayment ? <ManualBankTransfer orderNumber={openPayment.order.orderNumber} amount={formatCurrency(openPayment.amount)} /> : null}
 
       <DataSection title="Zahlungen" description="Die neuesten Zahlungen zuerst. Jeder Eintrag führt direkt zur passenden Kampagne.">
         <div className="customerCampaignList">
