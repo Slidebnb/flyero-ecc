@@ -391,6 +391,7 @@
 
 .mkHeroCopy {
   max-width: 610px;
+  min-width: 0;
 }
 
 .mkEyebrow {
@@ -4032,6 +4033,18 @@
   max-width: 720px;
   font-size: clamp(3.35rem, 6.3vw, 6.15rem);
   line-height: 0.96;
+}
+
+@media (min-width: 1081px) {
+  .mkHeroLayout {
+    grid-template-columns: minmax(0, 1fr) minmax(420px, 0.92fr);
+    gap: clamp(36px, 4vw, 64px);
+  }
+
+  .mkHero h1 {
+    max-width: 100%;
+    font-size: clamp(3.35rem, 5.5vw, 5.4rem);
+  }
 }
 
 .mkHeroLead {
