@@ -200,7 +200,7 @@ function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
             <div className="mkPropertyTrust" aria-label="Was Sie mit FLYERO erhalten">
               <TrustBadge icon={MapPinned}>Digitale Planung</TrustBadge>
               <TrustBadge icon={ReceiptText}>Transparente Preisübersicht</TrustBadge>
-              <TrustBadge icon={BadgeCheck}>Verteilnachweise</TrustBadge>
+              <TrustBadge icon={BadgeCheck}>Nachweise im Kundenkonto</TrustBadge>
             </div>
           </div>
           <aside className="mkPropertyHeroPanel" aria-label="Immobilienkampagne planen">
@@ -240,15 +240,15 @@ function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
         <ol className="mkPropertyWorkflow">{workflow.map(([number, title, text]) => <li key={number}><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></li>)}</ol>
       </MarketingSection>
 
-      <MarketingSection tone="dark" title="Ihre Kampagne bleibt nachvollziehbar." intro="Von der digitalen Planung bis zu den Nachweisen nach der Prüfung behalten Sie den Ablauf übersichtlich im Blick.">
+      <MarketingSection tone="dark" title="Ihre Verteilung. Jederzeit im Blick." intro="Von der Planung bis zum Verteilnachweis behalten Sie Ihre Kampagne im Kundenkonto übersichtlich im Blick.">
         <div className="mkPropertyProofGrid">
           <p>Planen Sie die Verteilung vollständig online, sehen Sie den Preis direkt, buchen Sie digital und finden Sie Ihre verfügbaren Unterlagen zentral in Ihrem Kundenkonto.</p>
           <ul><li><Check aria-hidden="true" /> Gebiet und Auftrag klar dokumentiert</li><li><Check aria-hidden="true" /> Status und Unterlagen im Kundenkonto</li><li><Check aria-hidden="true" /> GPS-, Foto- und PDF-Nachweise nach Prüfung</li></ul>
         </div>
       </MarketingSection>
 
-      <MarketingSection title="Noch keine gedruckten Werbemittel?" intro="Ihre Druckvorlage ist bereits fertig? Auf Anfrage können wir auch die Organisation des Drucks für Sie übernehmen. Die Druckkosten werden individuell kalkuliert.">
-        <div className="mkPropertyPrintCta"><span>Vorlage vorhanden, Druck noch offen?</span><MarketingButton href="/kontakt" variant="dark">Druckservice anfragen</MarketingButton></div>
+      <MarketingSection title="Noch keine gedruckten Werbemittel?" intro="Ihre Druckvorlage ist bereits fertig? Auf Anfrage organisieren wir den Druck gerne für Sie. Anschließend können die Werbemittel direkt für Ihre Verteilung eingesetzt werden. Die Druckkosten werden individuell kalkuliert.">
+        <div className="mkPropertyPrintCta"><span>Vorlage fertig, Druck noch offen?</span><MarketingButton href="/kontakt" variant="dark">Druckservice anfragen</MarketingButton></div>
       </MarketingSection>
 
       <MarketingSection eyebrow="Fragen" title="Häufige Fragen zur Flyerverteilung für Immobilien.">
