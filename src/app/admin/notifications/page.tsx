@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { productionNotificationLogWhere, productionNotificationMessageWhere, productionNotificationQueueWhere, productionUserWhere } from "@/lib/productionData";
 import { EmptyState } from "@/app/PortalComponents";
 import { TemplatePreviewForm } from "./TemplatePreviewForm";
+import { CustomerCampaignForm } from "./CustomerCampaignForm";
 import { AdminPortalShell } from "@/app/admin/AdminPortalShell";
 
 type PageProps = {
@@ -116,6 +117,11 @@ export default async function AdminNotificationsPage({ searchParams }: PageProps
       </section>
 
       <section className="gridTwo" style={{ marginTop: 18 }}>
+        <article className="panel stack">
+          <h2 className="sectionTitle">Kundenaktion senden</h2>
+          <p className="muted">Eine verständliche Gutschein-Information an alle aktiven, bestätigten Kunden senden. Der Versand läuft über die bestehende E-Mail-Queue.</p>
+          <CustomerCampaignForm />
+        </article>
         <article className="panel stack">
           <h2 className="sectionTitle">Vorlage erstellen</h2>
           <form className="form" action="/api/admin/templates" method="post">

@@ -141,6 +141,12 @@ export function buildCustomerNotificationEmail(input: CustomerNotificationEmailI
         typeof data.packageReference === "string" && data.packageReference.trim() ? { label: "Paketreferenz", value: data.packageReference } : null,
       ].filter((detail): detail is { label: string; value: string } => Boolean(detail))
     : [];
+  const promotionDetails = input.type === "CUSTOMER_PROMOTION_CAMPAIGN"
+    ? [
+        typeof data.couponCode === "string" && data.couponCode.trim() ? { label: "Ihr Gutscheincode", value: data.couponCode } : null,
+        { label: "Einlösung", value: "Im Stripe-Checkout bei der nächsten Bestellung" },
+      ].filter((detail): detail is { label: string; value: string } => Boolean(detail))
+    : [];
   return buildCustomerEmail({
     subject: input.subject,
     eyebrow: input.type.includes("REPORT") || input.type.includes("DOCUMENT") ? "NACHWEIS AKTUALISIERT" : "FLYERO KAMPAGNEN-UPDATE",
@@ -148,8 +154,8 @@ export function buildCustomerNotificationEmail(input: CustomerNotificationEmailI
     customerName,
     intro,
     content: bodyLines.join("\n"),
-    details: logisticsDetails,
-    action: actionValue ? { label: paymentAction ? "Zahlung im Kundenportal starten" : actionForType(input.type), url: actionValue } : undefined,
+    details: [...logisticsDetails, ...promotionDetails],
+    action: actionValue ? { label: paymentAction ? "Zahlung im Kundenportal starten" : input.type === "CUSTOMER_PROMOTION_CAMPAIGN" ? "Nächste Bestellung starten" : actionForType(input.type), url: actionValue } : undefined,
     note: typeof data.nextStep === "string" ? data.nextStep : null,
   });
 }

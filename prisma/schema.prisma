@@ -573,6 +573,7 @@ model Tenant {
   supportTickets        SupportTicket[]
   leads                 Lead[]
   retentionHolds        RetentionHold[]
+  customerEmailCampaigns CustomerEmailCampaign[]
 
   @@index([status, createdAt])
 }
@@ -650,6 +651,7 @@ model User {
   orderExperienceEvents   OrderExperienceEvent[]
   createdRetentionHolds   RetentionHold[]          @relation("CreatedRetentionHolds")
   releasedRetentionHolds  RetentionHold[]          @relation("ReleasedRetentionHolds")
+  customerEmailCampaigns CustomerEmailCampaign[]   @relation("CustomerCampaignCreatedBy")
 
   @@index([role, status])
   @@index([warehouseId])
@@ -2411,6 +2413,30 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt])
+}
+
+model CustomerEmailCampaign {
+  id             String   @id @default(cuid())
+  idempotencyKey String   @unique
+  tenantId       String?
+  createdById    String
+  subject        String
+  title          String
+  body           String
+  couponCode     String
+  campaignUrl    String
+  recipientCount Int      @default(0)
+  queuedCount    Int      @default(0)
+  skippedCount   Int      @default(0)
+  status         String   @default("PROCESSING")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant    Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+  createdBy User    @relation("CustomerCampaignCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([tenantId, createdAt])
+  @@index([createdById, createdAt])
 }
 
 model NotificationTemplate {
