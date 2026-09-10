@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { UserStatus } from "@prisma/client";
+import { UserRole, UserStatus } from "@prisma/client";
 import { hashVerificationToken } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { createEmailVerificationToken, sendVerificationEmail } from "@/lib/verificationEmail";
@@ -90,7 +90,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       });
       let payment;
       try {
-        payment = existingPayment ?? await createCheckoutForOrder({ orderId: order.id, customerUserId: customer.user.id, tenantId: order.tenantId });
+        payment = existingPayment ?? await createCheckoutForOrder({
+          orderId: order.id,
+          customerUserId: customer.user.id,
+          tenantId: order.tenantId,
+          allowIncompleteCustomerProfile: session.role === UserRole.ADMIN,
+        });
       } catch (error) {
         await createAuditLog({
           userId: session.id,

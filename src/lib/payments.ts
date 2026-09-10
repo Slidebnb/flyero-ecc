@@ -239,7 +239,7 @@ async function syncStripeDisputeEvent(event: Stripe.Event, requestContext?: Audi
   return payment;
 }
 
-export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string; tenantId?: string; idempotencyKey?: string }) {
+export async function createCheckoutForOrder(input: { orderId: string; customerUserId: string; tenantId?: string; idempotencyKey?: string; allowIncompleteCustomerProfile?: boolean }) {
   const order = await prisma.order.findFirst({
     where: {
       id: input.orderId,
@@ -265,7 +265,7 @@ export async function createCheckoutForOrder(input: { orderId: string; customerU
     throw error;
   }
   const profileCompleteness = getCustomerProfileCompleteness(order.customer);
-  if (!profileCompleteness.complete) {
+  if (!profileCompleteness.complete && !input.allowIncompleteCustomerProfile) {
     throw new CustomerProfileIncompleteError(order.id, profileCompleteness.missingFields);
   }
   if (!["PAYMENT_PENDING", "PAYMENT_FAILED", "DRAFT", "ACCEPTED_AWAITING_PAYMENT"].includes(order.status)) {
