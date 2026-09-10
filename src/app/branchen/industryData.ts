@@ -108,9 +108,9 @@ export const industryPages: IndustryPageData[] = [
     faq: [
       { question: "Kann ich mehrere Immobilien in einer Kampagne bewerben?", answer: "Ja. Mehrere Angebote können auf einem Faltflyer, einer Broschüre oder einem Immobilienkatalog zusammengefasst und für ausgewählte Gebiete geplant werden." },
       { question: "Ist FLYERO für Immobilienmakler und Bauträger geeignet?", answer: "Ja. Die Seite eignet sich für Verkaufs- und Mietobjekte, Eigentümerakquise, Neubauprojekte, Wohnquartiere und regionale Verkaufsstarts." },
-      { question: "Kann ich das Verteilgebiet selbst auswählen?", answer: "Ja. Im bestehenden Verteilplaner wählen Sie PLZ, Ort oder konkrete Gebiete aus und prüfen anschließend die dazugehörige Preisübersicht." },
-      { question: "Kann FLYERO auch meine Immobilienbroschüre drucken?", answer: "Wenn eine fertige Druckvorlage vorhanden ist, kann FLYERO den kostenpflichtigen Druck auf Anfrage organisieren. Der Druck ist kein Bestandteil des automatisierten Online-Planers." },
-      { question: "Welche Nachweise erhalte ich nach der Verteilung?", answer: "Nach der Durchführung und Prüfung können die vorhandenen GPS-, Foto- und PDF-Verteilnachweise im Kundenkonto bereitgestellt werden." },
+      { question: "Kann ich das Verteilgebiet selbst auswählen?", answer: "Ja. Wählen Sie PLZ, Ort oder konkrete Gebiete aus und sehen Sie den Preis direkt passend zu Ihrer Auswahl." },
+      { question: "Kann FLYERO auch meine Immobilienbroschüre drucken?", answer: "Wenn Ihre Druckvorlage fertig ist, können wir die Organisation des Drucks auf Anfrage übernehmen. Die Druckkosten werden individuell kalkuliert." },
+      { question: "Welche Nachweise erhalte ich nach der Verteilung?", answer: "Nach der Durchführung und Prüfung finden Sie Ihre verfügbaren GPS-, Foto- und PDF-Nachweise direkt in Ihrem Kundenkonto." },
     ],
   },
   {

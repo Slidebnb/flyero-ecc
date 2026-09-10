@@ -177,7 +177,7 @@ function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
   const workflow = [
     ["01", "Gebiet festlegen", "Wählen Sie PLZ, Ort oder konkrete Teilgebiete rund um Ihre Immobilien."],
     ["02", "Werbemittel planen", "Geben Sie Flyer, Faltflyer, Broschüre oder Katalog und die gewünschte Menge an."],
-    ["03", "Preis prüfen", "Die konkrete Auswahl wird im bestehenden Verteilplaner transparent berechnet."],
+    ["03", "Preis prüfen", "Sie sehen den Preis direkt passend zu Ihrer Auswahl."],
     ["04", "Auftrag abschließen", "Buchen Sie direkt online und behalten Sie den weiteren Ablauf im Kundenkonto im Blick."],
   ] as const;
   const audiences = [
@@ -192,12 +192,12 @@ function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
         <MarketingContainer className="mkPropertyHeroLayout">
           <div className="mkPropertyHeroCopy">
             <h1 id="property-hero-title">Ihre Immobilien. Direkt in die Haushalte Ihrer Wunschregion.</h1>
-            <p>Vermarkten Sie einzelne Objekte, mehrere Immobilien, Neubauprojekte oder Immobilienkataloge gezielt in ausgewählten Wohngebieten.</p>
+            <p>Bewerben Sie einzelne Objekte, mehrere Immobilien oder ganze Neubauprojekte gezielt in ausgewählten Wohngebieten – mit Flyern, Faltflyern, Broschüren oder Immobilienkatalogen.</p>
             <div className="mkHeroActions">
               <MarketingButton href="/verteilung-planen">Verteilgebiet & Preis prüfen</MarketingButton>
               <Link className="mkPropertySecondaryLink" href="/so-funktionierts">Ablauf ansehen <ArrowRight aria-hidden="true" /></Link>
             </div>
-            <div className="mkPropertyTrust" aria-label="Bestehende FLYERO-Funktionen">
+            <div className="mkPropertyTrust" aria-label="Was Sie mit FLYERO erhalten">
               <TrustBadge icon={MapPinned}>Digitale Planung</TrustBadge>
               <TrustBadge icon={ReceiptText}>Transparente Preisübersicht</TrustBadge>
               <TrustBadge icon={BadgeCheck}>Verteilnachweise</TrustBadge>
@@ -216,10 +216,10 @@ function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
         </MarketingContainer>
       </section>
 
-      <MarketingSection title="Online sichtbar. Regional präsent." intro="Ihre Immobilien sind online sichtbar. Erreichen Sie zusätzlich die Haushalte in den Gebieten, in denen potenzielle Käufer, Mieter oder Eigentümer tatsächlich wohnen.">
+      <MarketingSection title="Online sichtbar. Regional präsent." intro="Ihre Immobilien sind bereits online. FLYERO bringt sie zusätzlich direkt zu den Menschen in Ihrer Zielregion.">
         <div className="mkPropertyProblem">
           <div><span className="mkPropertyNumber">01</span><strong>Immobilienwerbung beginnt mit dem richtigen Umfeld.</strong></div>
-          <p>FLYERO verbindet die Auswahl Ihres Wunschgebiets mit einem strukturierten Auftrag und der vorhandenen digitalen Planung. So entscheiden Sie selbst, wo Ihre Immobilienwerbung ankommt.</p>
+          <p>Online-Reichweite ist wichtig. Aber nicht jeder potenzielle Käufer, Mieter oder Eigentümer sucht gerade auf einem Immobilienportal oder folgt Ihnen in sozialen Medien. Mit FLYERO bringen Sie Ihre Immobilienwerbung zusätzlich direkt in ausgewählte Haushalte Ihrer Zielregion.</p>
         </div>
       </MarketingSection>
 
@@ -229,25 +229,25 @@ function ImmobilienLandingPage({ page }: { page: IndustryPageData }) {
         </div>
       </MarketingSection>
 
-      <MarketingSection title="Für Makler und Projektentwickler." intro="Zwei typische Einsatzbereiche – ein klarer Weg in den bestehenden Verteilplaner.">
+      <MarketingSection title="Für Makler und Projektentwickler." intro="Zwei Zielgruppen, ein klarer Weg: Planen Sie Ihre Immobilienwerbung vollständig online.">
         <div className="mkPropertyAudienceGrid">
           {audiences.map(([Icon, title, text]) => <article key={title}><span className="mkPropertyIcon"><Icon aria-hidden="true" /></span><h3>{title}</h3><p>{text}</p></article>)}
         </div>
         <div className="mkPropertyInlineCta"><span>Bereit für Ihre Wunschregion?</span><MarketingButton href="/verteilung-planen">Verteilgebiet & Preis prüfen</MarketingButton></div>
       </MarketingSection>
 
-      <MarketingSection tone="green" title="Von der Immobilie zum passenden Verteilgebiet." intro="Der bestehende Planer führt Sie Schritt für Schritt durch Gebiet, Werbemittel, Menge und Auftrag.">
+      <MarketingSection tone="green" title="Von der Immobilie zum passenden Verteilgebiet." intro="Planen Sie Gebiet, Werbemittel, Menge und Auftrag vollständig online.">
         <ol className="mkPropertyWorkflow">{workflow.map(([number, title, text]) => <li key={number}><span>{number}</span><div><h3>{title}</h3><p>{text}</p></div></li>)}</ol>
       </MarketingSection>
 
-      <MarketingSection tone="dark" title="Regional geplant. Im Kundenkonto nachvollziehbar." intro="FLYERO macht den Ablauf Ihrer Immobilienkampagne übersichtlich – von der digitalen Planung bis zu den vorhandenen Verteilnachweisen.">
+      <MarketingSection tone="dark" title="Ihre Kampagne bleibt nachvollziehbar." intro="Von der digitalen Planung bis zu den Nachweisen nach der Prüfung behalten Sie den Ablauf übersichtlich im Blick.">
         <div className="mkPropertyProofGrid">
-          <p>Sie nutzen den bestehenden digitalen Prozess mit Preisübersicht, Online-Buchung, Kundenkonto und den nach der Prüfung bereitgestellten Nachweisen.</p>
-          <ul><li><Check aria-hidden="true" /> Gebiet und Auftrag strukturiert erfasst</li><li><Check aria-hidden="true" /> Status und Unterlagen im Kundenkonto</li><li><Check aria-hidden="true" /> GPS-, Foto- und PDF-Nachweise nach Prüfung</li></ul>
+          <p>Planen Sie die Verteilung vollständig online, sehen Sie den Preis direkt, buchen Sie digital und finden Sie Ihre verfügbaren Unterlagen zentral in Ihrem Kundenkonto.</p>
+          <ul><li><Check aria-hidden="true" /> Gebiet und Auftrag klar dokumentiert</li><li><Check aria-hidden="true" /> Status und Unterlagen im Kundenkonto</li><li><Check aria-hidden="true" /> GPS-, Foto- und PDF-Nachweise nach Prüfung</li></ul>
         </div>
       </MarketingSection>
 
-      <MarketingSection title="Noch keine gedruckten Werbemittel?" intro="Wenn bereits eine fertige Druckvorlage vorhanden ist, kann FLYERO den Druck auf Anfrage ebenfalls organisieren. Der Druck ist kostenpflichtig und nicht Bestandteil des automatisierten Online-Planers.">
+      <MarketingSection title="Noch keine gedruckten Werbemittel?" intro="Ihre Druckvorlage ist bereits fertig? Auf Anfrage können wir auch die Organisation des Drucks für Sie übernehmen. Die Druckkosten werden individuell kalkuliert.">
         <div className="mkPropertyPrintCta"><span>Vorlage vorhanden, Druck noch offen?</span><MarketingButton href="/kontakt" variant="dark">Druckservice anfragen</MarketingButton></div>
       </MarketingSection>
 
