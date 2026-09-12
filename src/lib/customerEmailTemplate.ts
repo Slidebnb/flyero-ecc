@@ -1,4 +1,4 @@
-import { MANUAL_BANK_TRANSFER } from "@/lib/paymentInstructions";
+import { MANUAL_BANK_TRANSFER } from "./paymentInstructions.ts";
 
 export type CustomerEmailDetail = {
   label: string;
