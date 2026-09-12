@@ -1,6 +1,7 @@
 import { SmartOrderWizard } from "@/app/customer/orders/new/SmartOrderWizard";
 import { createSeoMetadata } from "@/app/seo";
 import { MobileMenu } from "@/app/components/MobileMenu";
+import { FlyeroLogo } from "@/app/marketing";
 import { normalizePublicLocationContext, type PublicLocationContext } from "@/lib/publicLocationContext";
 
 export const metadata = createSeoMetadata({
@@ -37,7 +38,7 @@ export default async function PublicDistributionPlannerPage({ searchParams }: Pa
       </a>
       <header className="orderExperienceTopbar publicPlannerTopbar">
         <div className="publicPlannerTitle">
-          <strong>FLYERO</strong>
+          <FlyeroLogo dark compact />
           <h1>Verteilung planen</h1>
         </div>
         <p>Adresse, Ort oder PLZ eingeben und Gebiet sowie Preis prüfen.</p>

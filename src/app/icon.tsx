@@ -14,18 +14,22 @@ export default function Icon() {
           alignItems: "center",
           justifyContent: "center",
           background: "#050806",
-          color: "#b7e800",
+          color: "#ffffff",
           fontFamily: "Arial, sans-serif",
           fontWeight: 900,
         }}
       >
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <span style={{ width: 210, height: 34, borderRadius: 999, background: "#b7e800" }} />
-            <span style={{ width: 156, height: 34, borderRadius: 999, background: "#b7e800" }} />
-            <span style={{ width: 92, height: 34, borderRadius: 999, background: "#b7e800" }} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 90, fontStyle: "italic", lineHeight: 1, whiteSpace: "nowrap" }}>
+            <span>FLY</span>
+            <span style={{ width: 74, height: 76, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12 }}>
+              <span style={{ height: 16, background: "#a7ff00" }} />
+              <span style={{ height: 16, background: "#a7ff00" }} />
+              <span style={{ height: 16, background: "#a7ff00" }} />
+            </span>
+            <span>RO</span>
           </div>
-          <span style={{ fontSize: 78, letterSpacing: 0 }}>FLYERO</span>
+          <span style={{ fontSize: 18, letterSpacing: 6, whiteSpace: "nowrap" }}>LOKAL. EFFEKTIV. MESSBAR.</span>
         </div>
       </div>
     ),

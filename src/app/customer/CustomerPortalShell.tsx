@@ -10,6 +10,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { MobileMenu } from "@/app/components/MobileMenu";
+import { FlyeroLogo } from "@/app/marketing";
 
 type CustomerPortalShellProps = {
   title: string;
@@ -27,19 +28,6 @@ const navItems = [
   { href: "/customer/invoices", label: "Rechnungen", icon: ReceiptText, group: "Ergebnisse" },
   { href: "/customer/support", label: "Hilfe", icon: CircleHelp, group: "Hilfe" },
 ];
-
-function FlyeroDarkLogo() {
-  return (
-    <span className="flyeroLogo dark" aria-label="FLYERO">
-      <span className="flyeroMark" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>
-      <strong>FLYERO</strong>
-    </span>
-  );
-}
 
 export function CustomerPortalShell({
   title,
@@ -73,7 +61,7 @@ export function CustomerPortalShell({
       </header>
       <div className="customerUnifiedBody">
         <aside className="orderSideNav customerSideNav" aria-label="Kundennavigation">
-          <FlyeroDarkLogo />
+          <FlyeroLogo dark />
           {groups.map((group) => (
             <div className="customerSideNavSection" key={group}>
               <small>{group}</small>

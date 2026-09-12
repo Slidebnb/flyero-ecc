@@ -98,7 +98,10 @@ export const siteMetadata: Metadata = {
     email: false,
   },
   icons: {
-    icon: [{ url: "/icon", type: "image/png", sizes: "512x512" }],
+    icon: [
+      { url: "/icon", type: "image/png", sizes: "512x512" },
+      { url: "/brand/flyero-icon.svg", type: "image/svg+xml", sizes: "64x64" },
+    ],
     apple: [{ url: "/apple-icon", type: "image/png", sizes: "180x180" }],
   },
   robots: {
