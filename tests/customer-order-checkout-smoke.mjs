@@ -254,7 +254,7 @@ try {
   await ensureCheckoutWarehouse();
   includes("src/app/customer/orders/new/OrderFinishStep.tsx", [
     "Jetzt buchen und bezahlen",
-    "Unverbindlich anfragen",
+    "Anfrage senden",
     "Anfrageformular herunterladen",
   ]);
   includes("src/app/customer/orders/new/SmartOrderWizard.tsx", [
