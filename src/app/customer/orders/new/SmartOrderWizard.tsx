@@ -4,6 +4,7 @@
 
 import { type PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { FlyeroLogo } from "@/app/marketing";
 import { hasExplicitPublicLocationContext, isGermanPostalCode, type PublicLocationContext } from "@/lib/publicLocationContext";
 import { hasStatisticsConsent, readConsentFromDocument } from "@/lib/cookieConsent";
 import {
@@ -143,16 +144,7 @@ const invalidAreaFinishStatus = "Bitte w\u00e4hle zuerst ein g\u00fcltiges Verte
 const inquiryFormHref = "/downloads/flyero-anfrageformular.pdf";
 
 function OrderLogo() {
-  return (
-    <span className="flyeroLogo dark" aria-label="FLYERO">
-      <span className="flyeroMark" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>
-      <strong>FLYERO</strong>
-    </span>
-  );
+  return <FlyeroLogo dark />;
 }
 
 function formatCurrency(value: string | number) {

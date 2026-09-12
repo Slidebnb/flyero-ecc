@@ -1,4 +1,4 @@
-import { MANUAL_BANK_TRANSFER } from "@/lib/paymentInstructions";
+import { MANUAL_BANK_TRANSFER } from "./paymentInstructions.ts";
 
 export type CustomerEmailDetail = {
   label: string;
@@ -104,7 +104,14 @@ export function buildCustomerEmail(input: CustomerEmailInput) {
     <div style="padding:32px 16px;">
       <div style="max-width:620px;margin:0 auto;background:#ffffff;border:1px solid #dce5d9;border-radius:18px;overflow:hidden;">
         <div style="padding:26px 32px;background:#101713;color:#ffffff;">
-          <div style="font-size:24px;font-weight:800;letter-spacing:.04em;">FLYERO</div>
+          <div role="img" aria-label="FLYERO. Lokal. Effektiv. Messbar." style="font-size:26px;font-weight:900;font-style:italic;letter-spacing:-.04em;line-height:1;white-space:nowrap;color:#ffffff;">
+            <span>FLY</span><span style="display:inline-block;width:23px;margin:0 2px;vertical-align:middle;">
+              <span style="display:block;height:5px;margin:2px 0;background:#b7ff21;"></span>
+              <span style="display:block;height:5px;margin:2px 0;background:#b7ff21;"></span>
+              <span style="display:block;height:5px;margin:2px 0;background:#b7ff21;"></span>
+            </span><span>RO</span>
+          </div>
+          <div style="margin-top:6px;color:#ffffff;font-size:8px;font-weight:700;letter-spacing:.17em;line-height:1.2;">LOKAL. EFFEKTIV. MESSBAR.</div>
           <div style="margin-top:8px;color:#b7ff21;font-size:13px;font-weight:700;letter-spacing:.04em;">${escapeHtml(input.eyebrow)}</div>
         </div>
         <div style="padding:32px;">

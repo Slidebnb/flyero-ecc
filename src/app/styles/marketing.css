@@ -143,44 +143,16 @@
 
 .mkLogo {
   display: inline-flex;
-  align-items: center;
-  gap: 11px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   color: var(--flyero-text);
   font-size: 1.55rem;
-  font-style: italic;
-  font-weight: 950;
-  letter-spacing: -0.03em;
   white-space: nowrap;
 }
 
 .mkLogo.isDark {
   color: #ffffff;
-}
-
-.mkLogoMark {
-  display: grid;
-  gap: 4px;
-  width: 31px;
-}
-
-.mkLogoMark i {
-  display: block;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--flyero-green);
-  transform: skewX(-18deg);
-}
-
-.mkLogoMark i:nth-child(1) {
-  width: 31px;
-}
-
-.mkLogoMark i:nth-child(2) {
-  width: 24px;
-}
-
-.mkLogoMark i:nth-child(3) {
-  width: 16px;
 }
 
 .mkButton {
@@ -1085,27 +1057,6 @@
 
 .mkProofBrand .mkLogo {
   font-size: 1.1rem;
-}
-
-.mkProofBrand .mkLogoMark {
-  width: 24px;
-  gap: 3px;
-}
-
-.mkProofBrand .mkLogoMark i {
-  height: 5px;
-}
-
-.mkProofBrand .mkLogoMark i:nth-child(1) {
-  width: 24px;
-}
-
-.mkProofBrand .mkLogoMark i:nth-child(2) {
-  width: 18px;
-}
-
-.mkProofBrand .mkLogoMark i:nth-child(3) {
-  width: 12px;
 }
 
 .mkProofBrand > span {
@@ -2846,22 +2797,6 @@
 
   .mkLogo {
     font-size: 1.3rem;
-  }
-
-  .mkLogoMark {
-    width: 27px;
-  }
-
-  .mkLogoMark i:nth-child(1) {
-    width: 27px;
-  }
-
-  .mkLogoMark i:nth-child(2) {
-    width: 21px;
-  }
-
-  .mkLogoMark i:nth-child(3) {
-    width: 14px;
   }
 
   .mkHeroActions {

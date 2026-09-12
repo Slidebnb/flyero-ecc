@@ -36,8 +36,8 @@ assert(!finishStep.includes("mailto:hallo@flyero.org"), "Der Kunden-Bestellflow 
 assert(!publicRequestPage.includes("mailto:hallo@flyero.org"), "Die öffentliche Anfrage-Seite darf beim E-Mail-Kontakt kein E-Mail-Programm öffnen.");
 assert(marketingShell.includes("/downloads/flyero-anfrageformular.pdf"), "Der öffentliche Footer verlinkt nicht auf das Anfrageformular.");
 const orderStyles = fs.readFileSync(path.join(root, "src", "app", "globals.css"), "utf8");
-assert(orderStyles.includes(".flyeroMark"), "Das FLYERO-Logo-Markup ist nicht im zentralen Stylesheet abgesichert.");
-assert(orderStyles.includes("overflow: visible"), "Das FLYERO-Logo schuetzt die schraegen Markierungen nicht vor dem Abschneiden.");
+assert(orderStyles.includes(".flyeroBrandBars"), "Die Balken-Wortmarke ist nicht im zentralen Stylesheet abgesichert.");
+assert(orderStyles.includes("overflow: visible"), "Das FLYERO-Logo schuetzt die Wortmarke vor dem Abschneiden.");
 assert(orderStyles.includes(".orderFinishContact"), "Der Abschluss besitzt keinen klaren Kontaktbereich fuer die sichtbare E-Mail-Adresse.");
 assert(!publicRequestPage.includes("anfrage@flyero.de"), "Die alte Anfrageadresse ist noch auf der öffentlichen Anfrage-Seite vorhanden.");
 assert(!wizard.includes("anfrage@flyero.de"), "Die alte Anfrageadresse ist noch im Kunden-Bestellflow vorhanden.");

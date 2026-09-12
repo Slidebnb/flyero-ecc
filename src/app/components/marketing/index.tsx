@@ -23,6 +23,7 @@ import {
   Utensils,
 } from "lucide-react";
 import { MobileMenu } from "@/app/components/MobileMenu";
+import { BrandLogo } from "@/app/components/BrandLogo";
 import { FooterColumn } from "@/app/components/marketing/FooterColumn";
 import { CookieSettingsLink } from "@/app/CookieSettingsLink";
 import { industryPages } from "@/app/branchen/industryData";
@@ -52,17 +53,8 @@ export const audienceIconMap: Record<string, ComponentType<{ className?: string;
   "Events & Vereine": CalendarCheck,
 };
 
-export function FlyeroLogo({ dark = false }: { dark?: boolean }) {
-  return (
-    <span className={`mkLogo${dark ? " isDark" : ""}`} aria-label="FLYERO">
-      <span className="mkLogoMark" aria-hidden="true">
-        <i />
-        <i />
-        <i />
-      </span>
-      <strong>FLYERO</strong>
-    </span>
-  );
+export function FlyeroLogo({ dark = false, compact = false }: { dark?: boolean; compact?: boolean }) {
+  return <BrandLogo dark={dark} compact={compact} />;
 }
 
 export function PublicNavbar() {

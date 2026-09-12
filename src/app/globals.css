@@ -3730,12 +3730,14 @@ body {
 
 .flyeroLogo {
   display: inline-flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   color: #111111;
   text-decoration: none;
   min-width: max-content;
   overflow: visible;
+  line-height: 1;
 }
 
 .flyeroLogo.dark {
@@ -3743,34 +3745,56 @@ body {
 }
 
 .flyeroLogo strong {
-  font-size: 1.55rem;
+  display: flex;
+  align-items: center;
+  gap: 0.015em;
+  font-size: inherit;
   font-weight: 950;
   font-style: italic;
-  letter-spacing: 0;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  white-space: nowrap;
 }
 
-.flyeroMark {
-  position: relative;
-  width: 34px;
-  height: 24px;
-  display: grid;
-  align-content: center;
-  gap: 4px;
-  overflow: visible;
+.flyeroBrand {
+  font-size: 1.55rem;
 }
 
-.flyeroMark i {
+.flyeroBrandBars {
+  display: inline-flex;
+  flex: 0 0 0.82em;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.12em;
+  width: 0.82em;
+  height: 0.78em;
+  margin: 0 0.025em 0 0.005em;
+}
+
+.flyeroBrandBars i {
   display: block;
-  height: 6px;
-  border-radius: 999px 2px 999px 999px;
-  background: linear-gradient(90deg, var(--flyero-lime), var(--flyero-lime-strong));
-  transform: skewX(-24deg);
+  width: 100%;
+  height: 0.16em;
+  min-height: 2px;
+  border-radius: 1px;
+  background: #a7ff00;
 }
 
-.flyeroMark i:nth-child(1) { width: 34px; }
-.flyeroMark i:nth-child(2) { width: 26px; }
-.flyeroMark i:nth-child(3) { width: 18px; }
+.flyeroBrandTagline {
+  display: block;
+  color: currentColor;
+  font-size: 0.29em;
+  font-weight: 800;
+  font-style: normal;
+  letter-spacing: 0.155em;
+  line-height: 1.25;
+  white-space: nowrap;
+}
 
+.flyeroBrand.isCompact .flyeroBrandTagline,
+.orderSideNav .flyeroBrandTagline {
+  display: none;
+}
 
 .flyeroAudienceGrid {
   display: grid;
@@ -4281,12 +4305,13 @@ body {
 }
 
 .orderSideNav .flyeroLogo {
+  align-items: center;
   justify-content: center;
   margin: 0 0 12px;
 }
 
-.orderSideNav .flyeroLogo strong {
-  display: none;
+.orderSideNav .flyeroLogo {
+  font-size: 1.1rem;
 }
 
 .orderSideNav a,
@@ -7852,7 +7877,7 @@ body {
 }
 
 .customerSideNav .flyeroLogo strong {
-  display: inline;
+  display: flex;
 }
 
 .customerSideNav a,
@@ -8729,15 +8754,14 @@ body {
 
 .publicPlannerTitle {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   min-width: max-content;
 }
 
 .publicPlannerTitle strong {
-  color: #a7ff00;
-  font-size: 0.8rem;
-  letter-spacing: 0.12em;
+  color: #ffffff;
+  font-size: 1rem;
 }
 
 .publicPlannerTitle h1 {
@@ -9050,7 +9074,7 @@ body {
   }
 
   .publicPlannerTitle strong {
-    font-size: 0.68rem;
+    font-size: 0.82rem;
   }
 
   .publicPlannerTitle h1 {
